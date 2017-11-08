@@ -148,7 +148,7 @@ contract NanoLoanEngine is RpSafeMath {
         return loan.approbations[loan.borrower] && (loan.approbations[loan.cosigner] || loan.cosigner == address(0));
     }
 
-    function approve(uint index) returns(bool) {
+    function approve(uint index) public returns(bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.initial);
         loan.approbations[msg.sender] = true;
@@ -156,7 +156,7 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
-    function lend(uint index) returns (bool) {
+    function lend(uint index) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.initial);
         require(isApproved(index));
@@ -179,7 +179,7 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
-    function destroy(uint index) returns (bool) {
+    function destroy(uint index) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status != Status.destroyed);
         require(msg.sender == loan.lender || ((msg.sender == loan.borrower || msg.sender == loan.cosigner) && loan.status == Status.initial));
@@ -188,7 +188,7 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
-    function transfer(uint index, address to) returns (bool) {
+    function transfer(uint index, address to) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status != Status.destroyed);
         require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer);
@@ -199,19 +199,19 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
-    function approveTransfer(uint index, address to) returns (bool) {
+    function approveTransfer(uint index, address to) public returns (bool) {
         Loan storage loan = loans[index];
         require(msg.sender == loan.lender);
         loan.approvedTransfer = to;
         return true;
     }
 
-    function getPendingAmount(uint index) constant returns (uint256) {
+    function getPendingAmount(uint index) public constant returns (uint256) {
         Loan storage loan = loans[index];
         return safeSubtract(safeAdd(safeAdd(loan.amount, loan.interest), loan.punitoryInterest), loan.paid);
     }
 
-    function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) public returns (uint256 realDelta, uint256 interest) {
+    function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) public constant returns (uint256 realDelta, uint256 interest) {
         interest = (100000 * timeDelta * amount) / interestRate;
         realDelta = (interest * interestRate) / (amount * 100000);
     }
@@ -263,11 +263,11 @@ contract NanoLoanEngine is RpSafeMath {
         }
     }
 
-    function addInterest(uint index) {
+    function addInterest(uint index) public {
         addInterestUpTo(index, block.timestamp);
     }
     
-    function pay(uint index, uint256 _amount, address _from) returns (bool) {
+    function pay(uint index, uint256 _amount, address _from) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.lent);
         addInterest(index);
@@ -287,7 +287,7 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
-    function withdrawal(uint index, address to) returns (uint256) {
+    function withdrawal(uint index, address to) public returns (uint256) {
         Loan storage loan = loans[index];
         require(to != address(0));
         if (msg.sender == loan.lender) {
@@ -298,13 +298,13 @@ contract NanoLoanEngine is RpSafeMath {
         }
     }
 
-    function changeOwner(address to) {
+    function changeOwner(address to) public {
         require(msg.sender == owner);
         require(to != address(0));
         owner = to;
     }
 
-    function setDeprecated(bool _deprecated) {
+    function setDeprecated(bool _deprecated) public {
         require(msg.sender == owner);
         deprecated = _deprecated;
     }
