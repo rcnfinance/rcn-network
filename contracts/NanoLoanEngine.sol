@@ -5,7 +5,7 @@ import './rcn/RpSafeMath.sol';
 import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
-    uint256 public constant VERSION = 8;
+    uint256 public constant VERSION = 11;
     
     Token public token;
 
@@ -16,6 +16,7 @@ contract NanoLoanEngine is RpSafeMath {
 
     event CreatedLoan(uint _index, address _borrower, address _creator);
     event ApprovedBy(uint _index, address _address);
+    event Lent(uint _index, address _lender);
     event CreatedDebt(uint _index, address _lend);
     event DestroyedBy(uint _index, address _address);
     event PartialPayment(uint _index, address _sender, address _from, uint256 _amount);
@@ -84,6 +85,37 @@ contract NanoLoanEngine is RpSafeMath {
         return index;
     }
     
+    function getLoanConfig(uint index) constant returns (address oracle, address borrower, address lender, address creator, uint amount, 
+        uint cosigerFee, uint interestRate, uint interestRatePunitory, uint duesIn, uint cancelableAt, uint decimals, bytes32 currencyHash) {
+        Loan storage loan = loans[index];
+        oracle = loan.oracle;
+        borrower = loan.borrower;
+        lender = loan.lender;
+        creator = loan.creator;
+        amount = loan.amount;
+        cosigerFee = loan.cosignerFee;
+        interestRate = loan.interestRate;
+        interestRatePunitory = loan.interestRatePunitory;
+        duesIn = loan.duesIn;
+        cancelableAt = loan.cancelableAt;
+        decimals = loan.oracle.getDecimals(loan.currency);
+        currencyHash = keccak256(loan.currency); 
+    }
+
+    function getLoanState(uint index) constant returns (uint interest, uint punitoryInterest, uint interestTimestamp,
+        uint paid, uint dueTime, Status status, uint lenderBalance, address approvedTransfer, bool approved) {
+        Loan storage loan = loans[index];
+        interest = loan.interest;
+        punitoryInterest = loan.punitoryInterest;
+        interestTimestamp = loan.interestTimestamp;
+        paid = loan.paid;
+        dueTime = loan.dueTime;
+        status = loan.status;
+        lenderBalance = loan.lenderBalance;
+        approvedTransfer = loan.approvedTransfer;
+        approved = isApproved(index);
+    }
+    
     function getTotalLoans() constant returns (uint256) { return loans.length; }
     function getOracle(uint index) constant returns (Oracle) { return loans[index].oracle; }
     function getBorrower(uint index) constant returns (address) { return loans[index].borrower; }
@@ -108,6 +140,8 @@ contract NanoLoanEngine is RpSafeMath {
     function getCurrencyLength(uint index) constant returns (uint256) { return bytes(loans[index].currency).length; }
     function getCurrencyByte(uint index, uint cindex) constant returns (bytes1) { return bytes(loans[index].currency)[cindex]; }
     function getApprovedTransfer(uint index) constant returns (address) {return loans[index].approvedTransfer; }
+    function getCurrencyHash(uint index) constant returns (bytes32) { return keccak256(loans[index].currency); }
+    function getCurrencyDecimals(uint index) constant returns (uint256) { return loans[index].oracle.getDecimals(loans[index].currency); }
 
     function isApproved(uint index) constant returns (bool) {
         Loan storage loan = loans[index];
@@ -141,7 +175,7 @@ contract NanoLoanEngine is RpSafeMath {
         if (loan.cancelableAt > 0)
             internalAddInterest(index, safeAdd(block.timestamp, loan.cancelableAt));
         
-        ApprovedBy(index, loan.lender);
+        Lent(index, loan.lender);
         return true;
     }
 
