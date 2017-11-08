@@ -1,18 +1,11 @@
 pragma solidity ^0.4.15;
 
 import './interfaces/Oracle.sol';
-import './utils/RpSafeMath.sol';
-
-contract Token {
-    function transfer(address _to, uint _value) returns (bool success);
-    function transferFrom(address _from, address _to, uint256 _value) returns (bool success);
-    function allowance(address _owner, address _spender) constant returns (uint256 remaining);
-    function approve(address _spender, uint256 _value) returns (bool success);
-    function increaseApproval (address _spender, uint _addedValue) public returns (bool success);
-}
+import './rcn/RpSafeMath.sol';
+import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
-    uint256 public constant VERSION = 2;
+    uint256 public constant VERSION = 8;
     
     Token public token;
 
@@ -21,7 +14,7 @@ contract NanoLoanEngine is RpSafeMath {
     address public owner;
     bool public deprecated;
 
-    event CreatedLoan(uint _index, address _borrower);
+    event CreatedLoan(uint _index, address _borrower, address _creator);
     event ApprovedBy(uint _index, address _address);
     event CreatedDebt(uint _index, address _lend);
     event DestroyedBy(uint _index, address _address);
@@ -46,18 +39,18 @@ contract NanoLoanEngine is RpSafeMath {
         
         uint256 amount;
         uint256 interest;
+        uint256 punitoryInterest;
         uint256 interestTimestamp;
         uint256 paid;
         uint256 cosignerFee;
-
         uint256 interestRate;
+        uint256 interestRatePunitory;
         uint256 dueTime;
         uint256 duesIn;
 
         string currency;
 
         uint256 cancelableAt;
-        uint256 interestMaxWindow;
 
         uint256 lenderBalance;
 
@@ -70,10 +63,10 @@ contract NanoLoanEngine is RpSafeMath {
     // _oracleContract: Address of the Oracle contract, must implement OracleInterface. 0x0 for no oracle
     // _cosigner: Responsable of the payment of the loan if the lender does not pay. 0x0 for no cosigner
     // _cosignerFee: absolute amount in currency
-    // _interestRate: 10 000 / interest; ej 100 000 = 100 %; 10 000 000 = 1% (by second)
+    // _interestRate: 100 000 / interest; ej 100 000 = 100 %; 10 000 000 = 1% (by second)
     function createLoan(Oracle _oracleContract, address _borrower, address _cosigner,
-        uint256 _cosignerFee, string _currency, uint256 _amount, uint256 _interestRate, uint256 _duesIn,
-        uint256 _cancelableAt, uint256 _interestMaxWindow) returns (uint256) {
+        uint256 _cosignerFee, string _currency, uint256 _amount, uint256 _interestRate,
+        uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt) returns (uint256) {
 
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
@@ -81,12 +74,13 @@ contract NanoLoanEngine is RpSafeMath {
         require(_cosigner != address(0) || _cosignerFee == 0);
         require(_borrower != address(0));
         require(_amount != 0);
-        require(_interestMaxWindow == 0 || _interestMaxWindow >= 86400);
+        require(_interestRatePunitory != 0);
+        require(_interestRate != 0);
 
         var loan = Loan(_oracleContract, Status.initial, _borrower, _cosigner, 0x0, msg.sender, _amount,
-            0, 0, 0, _cosignerFee, _interestRate, 0, _duesIn, _currency, _cancelableAt, _interestMaxWindow, 0, 0x0);
+            0, 0, 0, 0, _cosignerFee, _interestRate, _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0);
         uint index = loans.push(loan) - 1;
-        CreatedLoan(index, _borrower);
+        CreatedLoan(index, _borrower, msg.sender);
         return index;
     }
     
@@ -98,15 +92,16 @@ contract NanoLoanEngine is RpSafeMath {
     function getCreator(uint index) constant returns (address) { return loans[index].creator; }
     function getAmount(uint index) constant returns (uint256) { return loans[index].amount; }
     function getInterest(uint index) constant returns (uint256) { return loans[index].interest; }
+    function getPunitoryInterest(uint index) constant returns (uint256) { return loans[index].punitoryInterest; }
     function getInterestTimestamp(uint index) constant returns (uint256) { return loans[index].interestTimestamp; }
     function getPaid(uint index) constant returns (uint256) { return loans[index].paid; }
     function getCosignerFee(uint index) constant returns (uint256) { return loans[index].cosignerFee; }
     function getInterestRate(uint index) constant returns (uint256) { return loans[index].interestRate; }
+    function getInterestRatePunitory(uint index) constant returns (uint256) { return loans[index].interestRatePunitory; }
     function getDueTime(uint index) constant returns (uint256) { return loans[index].dueTime; }
     function getDuesIn(uint index) constant returns (uint256) { return loans[index].duesIn; }
     function getCurrency(uint index) constant returns (string) { return loans[index].currency; }
     function getCancelableAt(uint index) constant returns (uint256) { return loans[index].cancelableAt; }
-    function getInterestMaxWindow(uint index) constant returns (uint256) { return loans[index].interestMaxWindow; }
     function getApprobation(uint index, address _address) constant returns (bool) { return loans[index].approbations[_address]; }
     function getStatus(uint index) constant returns (Status) { return loans[index].status; }
     function getLenderBalance(uint index) constant returns (uint256) { return loans[index].lenderBalance; }
@@ -164,9 +159,9 @@ contract NanoLoanEngine is RpSafeMath {
         require(loan.status != Status.destroyed);
         require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer);
         require(to != address(0));
+        Transfer(index, loan.lender, to);
         loan.lender = to;
         loan.approvedTransfer = address(0);
-        Transfer(index, loan.lender, to);
         return true;
     }
 
@@ -179,57 +174,49 @@ contract NanoLoanEngine is RpSafeMath {
 
     function getPendingAmount(uint index) constant returns (uint256) {
         Loan storage loan = loans[index];
-        return safeSubtract(safeAdd(loan.amount, loan.interest), loan.paid);
-    }
-    
-    // Computes `k * (1+1/q) ^ N`, with precision `p`. The higher
-    // the precision, the higher the gas cost. It should be
-    // something around the log of `n`. When `p == n`, the
-    // precision is absolute (sans possible integer overflows).
-    // Much smaller values are sufficient to get a great approximation.
-    function fracExp(uint256 k, uint256 q, uint256 n, uint256 p, uint256 y) private constant returns (uint256) {
-      uint256 s = 0;
-      uint256 N = 1;
-      uint256 B = 1;
-      for (uint256 i = 0; i < p; ++i) {
-        s += k * (y ** i) * N / B / (q**i);
-        N = N * (n - i);
-        B = B * (i + 1);
-      }
-      return s;
+        return safeSubtract(safeAdd(safeAdd(loan.amount, loan.interest), loan.punitoryInterest), loan.paid);
     }
 
-    function calculateInterest(uint index, uint256 timestamp) constant returns(uint256) {
-        Loan storage loan = loans[index];
-        uint256 deltaTime = safeSubtract(min(timestamp, loan.dueTime), loan.interestTimestamp);
-        uint256 pending = safeSubtract(loan.amount, loan.paid);
-        return safeSubtract(fracExp(pending, loan.interestRate / deltaTime, 1, 2, 100000), pending);
-    }
-
-    function calculatePunitoryInterest(uint index, uint256 timestamp, uint256 currentInterest) constant returns(uint256) {
-        Loan storage loan = loans[index];
-        uint256 deltaDays = safeSubtract(timestamp, max(loan.dueTime, loan.interestTimestamp)) / 86400;
-        uint256 pendingPunitory = safeSubtract(safeAdd(loan.amount, currentInterest), loan.paid);
-        uint256 interestByDay = loan.interestRate / 86400;
-        return safeSubtract(fracExp(pendingPunitory, interestByDay, deltaDays, 20, 100000), pendingPunitory);
+    function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) public returns (uint256 realDelta, uint256 interest) {
+        interest = (100000 * timeDelta * amount) / interestRate;
+        realDelta = (interest * interestRate) / (amount * 100000);
     }
 
     function internalAddInterest(uint index, uint256 timestamp) internal {
         Loan storage loan = loans[index];
         if (timestamp > loan.interestTimestamp) {
             uint256 newInterest = loan.interest;
+            uint256 newPunitoryInterest = loan.punitoryInterest;
 
-            if (min(timestamp, loan.dueTime) > loan.interestTimestamp) {
-                newInterest = safeAdd(calculateInterest(index, timestamp), newInterest);
+            uint256 newTimestamp;
+            uint256 realDelta;
+            uint256 calculatedInterest;
+
+            uint256 deltaTime;
+            uint256 pending;
+
+            uint256 endNonPunitory = min(timestamp, loan.dueTime);
+            if (endNonPunitory > loan.interestTimestamp) {
+                deltaTime = safeSubtract(endNonPunitory, loan.interestTimestamp);
+                pending = safeSubtract(loan.amount, loan.paid);
+                (realDelta, calculatedInterest) = calculateInterest(deltaTime, loan.interestRate, pending);
+                newInterest = safeAdd(calculatedInterest, newInterest);
+                newTimestamp = loan.interestTimestamp + realDelta;
             }
 
             if (timestamp > loan.dueTime) {
-                newInterest = safeAdd(calculatePunitoryInterest(index, timestamp, newInterest), newInterest);
+                uint256 startPunitory = max(loan.dueTime, loan.interestTimestamp);
+                deltaTime = safeSubtract(timestamp, startPunitory);
+                pending = safeSubtract(safeAdd(loan.amount, newInterest), loan.paid);
+                (realDelta, calculatedInterest) = calculateInterest(deltaTime, loan.interestRatePunitory, pending);
+                newPunitoryInterest = safeAdd(newPunitoryInterest, calculatedInterest);
+                newTimestamp = startPunitory + realDelta;
             }
             
-            if (newInterest != loan.interest) {
-                loan.interestTimestamp = timestamp;
+            if (newInterest != loan.interest || newPunitoryInterest != loan.punitoryInterest) {
+                loan.interestTimestamp = newTimestamp;
                 loan.interest = newInterest;
+                loan.punitoryInterest = newPunitoryInterest;
             }
         }
     }
@@ -238,23 +225,8 @@ contract NanoLoanEngine is RpSafeMath {
         Loan storage loan = loans[index];
         require(loan.status == Status.lent);
         if (timestamp <= block.timestamp) {
-            if (loan.interestMaxWindow == 0) {
-                internalAddInterest(index, timestamp);
-            } else {
-                var deltaTimestamp = safeSubtract(timestamp, loan.interestTimestamp);
-                var chunks = deltaTimestamp / loan.interestMaxWindow;
-                var remainder = deltaTimestamp % loan.interestMaxWindow;
-                for (uint256 i = 0; i < chunks; i++) {
-                    internalAddInterest(index, safeAdd(loan.interestTimestamp, loan.interestMaxWindow));
-                }
-                internalAddInterest(index, safeAdd(loan.interestTimestamp, remainder));
-            }
+            internalAddInterest(index, timestamp);
         }
-    }
-
-    function addInterestBlocks(uint index, uint256 blocks) {
-        Loan storage loan = loans[index];
-        addInterestUpTo(index, safeAdd(loan.interestTimestamp, safeMult(loan.interestMaxWindow, blocks)));
     }
 
     function addInterest(uint index) {
