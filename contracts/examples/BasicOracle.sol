@@ -68,6 +68,7 @@ contract BasicOracle is Oracle {
     }
 
     function createSymbol(string symbol, uint8 _decimals, uint256 _rate, uint256 _cost, bool _costInCurrency) {
+        require(msg.sender == owner);
         require(_rate != 0);
         NewSymbol(symbol, _decimals);
         currencies[symbol] = Currency(_decimals, _rate, _cost, block.timestamp, _costInCurrency);
