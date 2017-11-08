@@ -1,8 +1,9 @@
-pragma solidity ^0.4.10;
+pragma solidity ^0.4.15;
 
 contract Oracle {
-	function getTimestamp(string symbol) returns (uint64);
-    function getRateFor(string symbol) returns(uint256);
-    function getCost(string symbol) external constant returns (uint256);
-    function getDecimals(string symbol) external constant returns (uint256);
+    event NewSymbol(string _symbol, uint8 _decimals);
+    function getTimestamp(string symbol) constant returns(uint256);
+    function getRateFor(string symbol) returns (uint256);
+    function getCost(string symbol) constant returns (uint256);
+    function getDecimals(string symbol) constant returns (uint256);
 }
