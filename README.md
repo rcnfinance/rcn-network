@@ -1,6 +1,6 @@
-RCN - Ripio Credit Network
+RCN
 ==================================
-Ripio Credit Network (“RCN​”) is a protocol based on smart contracts and blockchain technology, which brings enhanced transparency and reliability in credit and lending. The protocol enables connections between lenders and borrowers located anywhere in the world, regardless of currency.
+RCN​ is a global p2p lending protocol based on smart contracts and blockchain technology, which brings enhanced transparency and reliability in credit and lending. The protocol enables connections between lenders and borrowers located anywhere in the world, regardless of currency.
 
 This repository contains the contracts that integrate the network, the current status of the project is alpha, and we are in the first stages of development.
 
@@ -15,7 +15,7 @@ However, we recommend following a standard interface and specifications.
 
 Oracles provide equivalencies between RCN and other currencies; they should implement the oracle.sol interface to be compatible with other members of the Network. 
 
-Maintaining a cosigner could be a relatively costly task, so it's a suggested practice add a little fee to deliver the rate.
+Maintaining a Oracle could be a relatively costly task, so it's a suggested practice add a little fee to deliver the rate.
 
 ## Contracts
 
@@ -24,7 +24,7 @@ Maintaining a cosigner could be a relatively costly task, so it's a suggested pr
 An RCNB_ca *NanoLoan* is an RCN Loan whose entire principal value is paid all at once on the maturity date *dueDate*, as opposed to amortizing the bond over its lifetime. 
 
 The RCNB_ca lifetime is divided in two periods by a parameterizable date called *cancelableAt*. Before that date, the Borrower must pay the nominal value of the credit to cancel the obligation.
-After that date and until the expiration, the amount to be paid to redeem the obligation is composed of the principal value and interest accrued between the origination date and the due date.
+After that date and until the expiration, the amount to be paid for redeem the obligation is composed of the principal value and interest accrued between the origination date and the due date.
 
 From issuance to maturity, interest grows linearly at the "X" rate. After maturity, the balance continues to grow linearly but at the "YY" rate, which is expected to be higher.
 
