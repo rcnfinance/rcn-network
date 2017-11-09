@@ -21,9 +21,12 @@ Maintaining a cosigner could be a relatively costly task, so it's a suggested pr
 
 ### NanoLoanEngine
 
-The NanoLoan it is what we consider the most basic loan on the RCN.
+An RCNB_ca *NanoLoan* is an RCN Loan whose entire principal value is paid all at once on the maturity date *dueDate*, as opposed to amortizing the bond over its lifetime. 
 
+The RCNB_ca lifetime is divided in two periods by a parameterizable date called *cancelableAt*. Before that date, the Borrower must pay the nominal value of the credit to cancel the obligation.
+After that date and until the expiration, the amount to be paid to redeem the obligation is composed of the principal value and interest accrued between the origination date and the due date.
 
+From issuance to maturity, interest grows linearly at the "X" rate. After maturity, the balance continues to grow linearly but at the "YY" rate, which is expected to be higher.
 
 The flow of the loan creation is the following:
 
