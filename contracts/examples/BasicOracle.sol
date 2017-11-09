@@ -9,6 +9,7 @@ contract BasicOracle is Oracle {
 
     Token public token;
     address public owner;
+    address public provider;
 
     event RateDelivered(uint256 rate, uint256 cost, uint256 timestamp, string currency);
 
@@ -76,7 +77,7 @@ contract BasicOracle is Oracle {
 
     function setRate(string symbol, uint256 newRate) {
         Currency storage currency = currencies[symbol];
-        require(msg.sender == owner);
+        require(msg.sender == provider || msg.sender == owner);
         require(currency.rate != 0);
         require(newRate != 0);
         currency.rate = newRate;
@@ -85,14 +86,14 @@ contract BasicOracle is Oracle {
 
     function setCost(string symbol, uint256 newCost) {
         Currency storage currency = currencies[symbol];
-        require(msg.sender == owner);
+        require(msg.sender == provider || msg.sender == owner);
         require(currency.rate != 0);
         currency.cost = newCost;
     }
 
     function setCost(string symbol, uint256 newCost, bool inCurrency) {
         Currency storage currency = currencies[symbol];
-        require(msg.sender == owner);
+        require(msg.sender == provider || msg.sender == owner);
         require(currency.rate != 0);
         currency.cost = newCost;
         currency.costInCurrency = inCurrency;
@@ -102,6 +103,16 @@ contract BasicOracle is Oracle {
         require(msg.sender == owner);
         require(to != address(0));
         owner = to;
+    }
+
+    function setProvider(address _provider) {
+        require(msg.sender == owner);
+        provider = _provider;
+    }
+
+    function withdrawal(Token token, address to, uint256 amount) returns (bool) {
+        require(msg.sender == owner);
+        return token.transfer(to, amount);
     }
 
     function setBlacklisted(address _address, bool blacklisted) {
