@@ -5,7 +5,7 @@ import './utils/RpSafeMath.sol';
 import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
-    uint256 public constant VERSION = 12;
+    uint256 public constant VERSION = 13;
     
     Token public token;
 
@@ -166,14 +166,14 @@ contract NanoLoanEngine is RpSafeMath {
         loan.interestTimestamp = block.timestamp;
         loan.status = Status.lent;
 
+        if (loan.cancelableAt > 0)
+            internalAddInterest(index, safeAdd(block.timestamp, loan.cancelableAt));
+
         uint256 rate = getOracleRate(index);
         require(token.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, rate)));
 
         if (loan.cosigner != address(0))
             require(token.transferFrom(msg.sender, loan.cosigner, safeMult(loan.cosignerFee, rate)));
-        
-        if (loan.cancelableAt > 0)
-            internalAddInterest(index, safeAdd(block.timestamp, loan.cancelableAt));
         
         Lent(index, loan.lender);
         return true;
