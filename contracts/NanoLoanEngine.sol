@@ -1,7 +1,7 @@
 pragma solidity ^0.4.15;
 
 import './interfaces/Oracle.sol';
-import './rcn/RpSafeMath.sol';
+import './utils/RpSafeMath.sol';
 import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
@@ -212,8 +212,8 @@ contract NanoLoanEngine is RpSafeMath {
     }
 
     function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) public constant returns (uint256 realDelta, uint256 interest) {
-        interest = (100000 * timeDelta * amount) / interestRate;
-        realDelta = (interest * interestRate) / (amount * 100000);
+        interest = safeMult(safeMult(100000, amount), timeDelta) / interestRate;
+        realDelta = safeMult(interest, interestRate) / (amount * 100000);
     }
 
     function internalAddInterest(uint index, uint256 timestamp) internal {
