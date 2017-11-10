@@ -5,7 +5,7 @@ import './rcn/RpSafeMath.sol';
 import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
-    uint256 public constant VERSION = 11;
+    uint256 public constant VERSION = 12;
     
     Token public token;
 
@@ -287,14 +287,13 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
-    function withdrawal(uint index, address to) public returns (uint256) {
+    function withdrawal(uint index, address to, uint256 amount) public returns (bool) {
         Loan storage loan = loans[index];
         require(to != address(0));
-        if (msg.sender == loan.lender) {
-            uint256 balance = loan.lenderBalance;
-            require(token.transfer(to, balance));
-            loan.lenderBalance = 0;
-            return balance;
+        if (msg.sender == loan.lender && loan.lenderBalance >= amount) {
+            loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
+            require(token.transfer(to, amount));
+            return true;
         }
     }
 
