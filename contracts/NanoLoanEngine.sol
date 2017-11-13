@@ -144,6 +144,7 @@ contract NanoLoanEngine is RpSafeMath {
     function getApprovedTransfer(uint index) constant returns (address) {return loans[index].approvedTransfer; }
     function getCurrencyHash(uint index) constant returns (bytes32) { return keccak256(loans[index].currency); }
     function getCurrencyDecimals(uint index) constant returns (uint256) { return loans[index].oracle.getDecimals(loans[index].currency); }
+    function getExpirationRequest(uint index) constant returns (uint256) { return loans[index].expirationRequest; }
 
     function isApproved(uint index) constant returns (bool) {
         Loan storage loan = loans[index];
