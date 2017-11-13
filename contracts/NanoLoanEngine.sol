@@ -5,7 +5,7 @@ import './utils/RpSafeMath.sol';
 import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
-    uint256 public constant VERSION = 13;
+    uint256 public constant VERSION = 14;
     
     Token public token;
 
@@ -50,12 +50,12 @@ contract NanoLoanEngine is RpSafeMath {
         uint256 duesIn;
 
         string currency;
-
         uint256 cancelableAt;
-
         uint256 lenderBalance;
 
         address approvedTransfer;
+        uint256 expirationRequest;
+
         mapping(address => bool) approbations;
     }
 
@@ -67,7 +67,7 @@ contract NanoLoanEngine is RpSafeMath {
     // _interestRate: 100 000 / interest; ej 100 000 = 100 %; 10 000 000 = 1% (by second)
     function createLoan(Oracle _oracleContract, address _borrower, address _cosigner,
         uint256 _cosignerFee, string _currency, uint256 _amount, uint256 _interestRate,
-        uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt) returns (uint256) {
+        uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest) returns (uint256) {
 
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
@@ -77,16 +77,17 @@ contract NanoLoanEngine is RpSafeMath {
         require(_amount != 0);
         require(_interestRatePunitory != 0);
         require(_interestRate != 0);
+        require(_expirationRequest > block.timestamp);
 
         var loan = Loan(_oracleContract, Status.initial, _borrower, _cosigner, 0x0, msg.sender, _amount,
-            0, 0, 0, 0, _cosignerFee, _interestRate, _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0);
+            0, 0, 0, 0, _cosignerFee, _interestRate, _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest);
         uint index = loans.push(loan) - 1;
         CreatedLoan(index, _borrower, msg.sender);
         return index;
     }
     
     function getLoanConfig(uint index) constant returns (address oracle, address borrower, address lender, address creator, uint amount, 
-        uint cosignerFee, uint interestRate, uint interestRatePunitory, uint duesIn, uint cancelableAt, uint decimals, bytes32 currencyHash) {
+        uint cosignerFee, uint interestRate, uint interestRatePunitory, uint duesIn, uint cancelableAt, uint decimals, bytes32 currencyHash, uint256 expirationRequest) {
         Loan storage loan = loans[index];
         oracle = loan.oracle;
         borrower = loan.borrower;
@@ -100,6 +101,7 @@ contract NanoLoanEngine is RpSafeMath {
         cancelableAt = loan.cancelableAt;
         decimals = loan.oracle.getDecimals(loan.currency);
         currencyHash = keccak256(loan.currency); 
+        expirationRequest = loan.expirationRequest;
     }
 
     function getLoanState(uint index) constant returns (uint interest, uint punitoryInterest, uint interestTimestamp,
@@ -142,6 +144,7 @@ contract NanoLoanEngine is RpSafeMath {
     function getApprovedTransfer(uint index) constant returns (address) {return loans[index].approvedTransfer; }
     function getCurrencyHash(uint index) constant returns (bytes32) { return keccak256(loans[index].currency); }
     function getCurrencyDecimals(uint index) constant returns (uint256) { return loans[index].oracle.getDecimals(loans[index].currency); }
+    function getExpirationRequest(uint index) constant returns (uint256) { return loans[index].expirationRequest; }
 
     function isApproved(uint index) constant returns (bool) {
         Loan storage loan = loans[index];
@@ -160,6 +163,7 @@ contract NanoLoanEngine is RpSafeMath {
         Loan storage loan = loans[index];
         require(loan.status == Status.initial);
         require(isApproved(index));
+        require(block.timestamp <= loan.expirationRequest);
 
         loan.lender = msg.sender;
         loan.dueTime = safeAdd(block.timestamp, loan.duesIn);
