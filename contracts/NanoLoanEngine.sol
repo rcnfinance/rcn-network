@@ -86,14 +86,14 @@ contract NanoLoanEngine is RpSafeMath {
     }
     
     function getLoanConfig(uint index) constant returns (address oracle, address borrower, address lender, address creator, uint amount, 
-        uint cosigerFee, uint interestRate, uint interestRatePunitory, uint duesIn, uint cancelableAt, uint decimals, bytes32 currencyHash) {
+        uint cosignerFee, uint interestRate, uint interestRatePunitory, uint duesIn, uint cancelableAt, uint decimals, bytes32 currencyHash) {
         Loan storage loan = loans[index];
         oracle = loan.oracle;
         borrower = loan.borrower;
         lender = loan.lender;
         creator = loan.creator;
         amount = loan.amount;
-        cosigerFee = loan.cosignerFee;
+        cosignerFee = loan.cosignerFee;
         interestRate = loan.interestRate;
         interestRatePunitory = loan.interestRatePunitory;
         duesIn = loan.duesIn;
