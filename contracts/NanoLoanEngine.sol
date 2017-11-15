@@ -5,7 +5,7 @@ import './utils/RpSafeMath.sol';
 import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
-    uint256 public constant VERSION = 14;
+    uint256 public constant VERSION = 15;
     
     Token public token;
 
