@@ -6,4 +6,5 @@ contract Token {
     function allowance(address _owner, address _spender) constant returns (uint256 remaining);
     function approve(address _spender, uint256 _value) returns (bool success);
     function increaseApproval (address _spender, uint _addedValue) public returns (bool success);
+    function balanceOf(address _owner) constant returns (uint256 balance);
 }
