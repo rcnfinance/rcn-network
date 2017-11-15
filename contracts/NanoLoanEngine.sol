@@ -13,6 +13,7 @@ contract NanoLoanEngine is RpSafeMath {
 
     address public owner;
     bool public deprecated;
+    uint256 public totalLenderBalance;
 
     event CreatedLoan(uint _index, address _borrower, address _creator);
     event ApprovedBy(uint _index, address _address);
@@ -286,6 +287,7 @@ contract NanoLoanEngine is RpSafeMath {
         uint256 transferValue = safeMult(toPay, getOracleRate(index));
         require(token.transferFrom(msg.sender, this, transferValue));
         loan.lenderBalance = safeAdd(transferValue, loan.lenderBalance);
+        totalLenderBalance = safeAdd(transferValue, totalLenderBalance);
         PartialPayment(index, msg.sender, _from, toPay);
 
         return true;
@@ -296,6 +298,7 @@ contract NanoLoanEngine is RpSafeMath {
         require(to != address(0));
         if (msg.sender == loan.lender && loan.lenderBalance >= amount) {
             loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
+            totalLenderBalance = safeSubtract(totalLenderBalance, amount);
             require(token.transfer(to, amount));
             return true;
         }
@@ -323,5 +326,12 @@ contract NanoLoanEngine is RpSafeMath {
         uint256 rate = loan.oracle.getRateFor(loan.currency);
         require(rate != 0);
         return rate;
+    }
+
+    function emergencyWithdrawal(Token _token, address to, uint256 amount) returns (bool) {
+        require(msg.sender == owner);
+        require(_token != token || safeSubtract(token.balanceOf(this), totalLenderBalance) >= amount);
+        require(to != address(0));
+        return _token.transfer(to, amount);
     }
 }
