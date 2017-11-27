@@ -296,12 +296,11 @@ contract NanoLoanEngine is RpSafeMath {
     function withdrawal(uint index, address to, uint256 amount) public returns (bool) {
         Loan storage loan = loans[index];
         require(to != address(0));
-        if (msg.sender == loan.lender && loan.lenderBalance >= amount) {
-            loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
-            totalLenderBalance = safeSubtract(totalLenderBalance, amount);
-            require(token.transfer(to, amount));
-            return true;
-        }
+        require(msg.sender == loan.lender)
+        require(loan.lenderBalance >= amount)
+        loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
+        totalLenderBalance = safeSubtract(totalLenderBalance, amount);
+        require(token.transfer(to, amount));
     }
 
     function changeOwner(address to) public {
