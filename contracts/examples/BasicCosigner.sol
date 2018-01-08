@@ -47,7 +47,6 @@ contract BasicCosigner is RpSafeMath {
     }
 
     mapping(uint256 => Liability) public liabilities;
-    mapping(uint256 => bool) public lockedLoans;
 
     function BasicCosigner(Token _token, NanoLoanEngine _engine) {
         owner = msg.sender;
@@ -62,7 +61,6 @@ contract BasicCosigner is RpSafeMath {
         require(liabilities[index].coverage == 0);
         require(engine.approve(index));
         liabilities[index] = Liability(coverage, requiredArrears, false);
-        lockedLoans[index] = true;
         return true;
     }
 
@@ -70,7 +68,6 @@ contract BasicCosigner is RpSafeMath {
         require(msg.sender == owner);
         require(engine.destroy(index));
         delete liabilities[index];
-        lockedLoans[index] = false;
         return true;
     }
 
@@ -94,7 +91,7 @@ contract BasicCosigner is RpSafeMath {
     }
 
     function transferLoan(uint256 index, address to) public returns (bool) {
-        require(!lockedLoans[index]);
+        require(liabilities[index].claimed || liabilities[index].coverage == 0);
         require(msg.sender == owner);
         return engine.transfer(index, to);
     }
@@ -112,7 +109,6 @@ contract BasicCosigner is RpSafeMath {
         uint amount = safeMult(debt, liability.coverage) / 100;
         require(engine.transfer(index, this));
         require(token.transfer(msg.sender, safeMult(getOracleRate(index), amount)));
-        lockedLoans[index] = false;
         return true;
     }
 
