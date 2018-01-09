@@ -10,7 +10,7 @@ contract NanoLoanEngine {
     function getOracle(uint index) constant returns (address);
     function getDueTime(uint index) constant returns (uint256);
     function getStatus(uint index) constant returns (Status);
-    function withdrawal(uint index, address _to) returns (uint256);
+    function withdrawal(uint index, address to, uint256 amount) public returns (bool);
     function getCosigner(uint index) constant returns (address);
     function getInterest(uint index) constant returns (uint256);
     function approve(uint index) constant returns (bool);
@@ -85,9 +85,9 @@ contract BasicCosigner is RpSafeMath {
         return true;
     }
 
-    function withdrawalFromLoan(uint256 index, address to) public returns (uint256) {
+    function withdrawalFromLoan(uint256 index, address to, uint256 amount) public returns (bool) {
         require(msg.sender == owner);
-        return engine.withdrawal(index, to);
+        return engine.withdrawal(index, to, amount);
     }
 
     function transferLoan(uint256 index, address to) public returns (bool) {
