@@ -1,7 +1,7 @@
 pragma solidity ^0.4.15;
 
 import './interfaces/Oracle.sol';
-import './utils/RpSafeMath.sol';
+import './rcn/RpSafeMath.sol';
 import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
@@ -62,10 +62,29 @@ contract NanoLoanEngine is RpSafeMath {
 
     Loan[] private loans;
 
-    // _oracleContract: Address of the Oracle contract, must implement OracleInterface. 0x0 for no oracle
-    // _cosigner: Responsable of the payment of the loan if the lender does not pay. 0x0 for no cosigner
-    // _cosignerFee: absolute amount in currency
-    // _interestRate: 100 000 / interest; ej 100 000 = 100 %; 10 000 000 = 1% (by second)
+    /**
+        @dev Creates a loan request, the loan can be generated with any borrower, cosigner, and conditions; if the 
+        cosigner and borrower agree they must call the "approve" function.
+
+        The creator of the loan is the caller of this function; this is useful to track which wallet created the loan.
+
+        @param _oracleContract Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
+        @param _borrower Address of the borrower
+        @param _cosigner Address of the cosigner, 0x0 if the contract does not have a cosigner.
+        @param _cosignerFee Defined on the same currency and unit that "amount"; this value is absolute and paid by the
+        lender when the loan starts. If there is no cosigner, the fee must be 0.
+        @param _currency The currency to use in the Oracle, if there is no Oracle, this field must remain empty.
+        @param _amount The requested amount; currency and unit are defined by the Oracle, if there is no Oracle present
+        the currency is RCN, and the unit is wei.
+        @param _interestRate The non-punitory interest rate by second, defined as a denominator of 10 000 000.
+        @param _interestRatePunitory The punitory interest rate by second, defined as a denominator of 10 000 000.
+        Ej: interestRate 11108571428571 = 28% Anual interest
+        @param _duesIn The time in seconds that the borrower has in order to pay the debt after the lender lends the money.
+        @param _cancelableAt Delta in seconds specifying how much interest should be added in advance, if the borrower pays 
+        entirely or partially the loan before this term, no extra interest will be deducted.
+        @param _expirationRequest Timestamp of when the loan request expires, if the loan is not filled before this date, 
+        the request is no longer valid.
+    */
     function createLoan(Oracle _oracleContract, address _borrower, address _cosigner,
         uint256 _cosignerFee, string _currency, uint256 _amount, uint256 _interestRate,
         uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest) returns (uint256) {
@@ -147,11 +166,26 @@ contract NanoLoanEngine is RpSafeMath {
     function getCurrencyDecimals(uint index) constant returns (uint256) { return loans[index].oracle.getDecimals(loans[index].currency); }
     function getExpirationRequest(uint index) constant returns (uint256) { return loans[index].expirationRequest; }
 
+    /**
+        @param index Index of the loan
+
+        @return true if the loan has been approved by the borrower and cosigner.
+    */
     function isApproved(uint index) constant returns (bool) {
         Loan storage loan = loans[index];
         return loan.approbations[loan.borrower] && (loan.approbations[loan.cosigner] || loan.cosigner == address(0));
     }
 
+    /**
+        @dev Called by the members of the loan to show that they agree with the terms of the loan; the borrower and the 
+        cosigner must call this method before any lender could call the method "lend".
+
+        Any address can call this method to be added to the "approbations" mapping.
+
+        @param index Index of the loan
+
+        @return true if the approve was done successfully
+    */
     function approve(uint index) public returns(bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.initial);
@@ -160,6 +194,19 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
+    /**
+        @dev Performs the lend of the RCN equivalent to the requested amount, and transforms the msg.sender in the new lender.
+
+        The loan must be previously approved by the borrower and the cosigner.
+
+        Before calling this function, the lender candidate must call the "approve" function on the RCN Token, specifying
+        an amount sufficient enough to pay the equivalent of the requested amount, the oracle fee and the cosigner 
+        fee.
+        
+        @param index Index of the loan
+
+        @return true if the lend was done successfully
+    */
     function lend(uint index) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.initial);
@@ -184,6 +231,17 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
+    /**
+        @dev Destroys a loan, the borrower or the cosigner can call this method if they performed an accidental or regretted 
+        "approve" of the loan, this method only works for them if the loan is in "pending" status.
+
+        The lender can call this method at any moment, in case of a loan with status "lent" the lender is pardoning 
+        the debt. 
+
+        @param index Index of the loan
+
+        @return true if the destroy was done successfully
+    */
     function destroy(uint index) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status != Status.destroyed);
@@ -193,6 +251,15 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
+    /**
+        @dev Transfers a loan to a different lender, the caller must be the current lender or previously being approved with
+        the method "approveTransfer"
+
+        @param index Index of the loan
+        @param to New lender
+
+        @return true if the transfer was done successfully
+    */
     function transfer(uint index, address to) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status != Status.destroyed);
@@ -204,6 +271,17 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
+    /**
+        @dev Approves the transfer a given loan in the name of the lender, the behavior of this function is similar to
+        "approve" in the ERC20 standard, but only one approved address is allowed at a time.
+
+        The same method can be called passing 0x0 as parameter "to" to erase a previously approved address.
+
+        @param index Index of the loan
+        @param to Address allowed to transfer the loan or 0x0 to delete
+
+        @return true if the approve was done successfully
+    */
     function approveTransfer(uint index, address to) public returns (bool) {
         Loan storage loan = loans[index];
         require(msg.sender == loan.lender);
@@ -211,16 +289,41 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
+    /**
+        @dev Returns the pending amount to complete de payment of the loan, it doesn’t consider the total amount of accrued 
+        interest, to get the real pending you must call "addInterest" before.
+
+        @param index Index of the loan
+
+        @return Aprox pending payment amount
+    */
     function getPendingAmount(uint index) public constant returns (uint256) {
         Loan storage loan = loans[index];
         return safeSubtract(safeAdd(safeAdd(loan.amount, loan.interest), loan.punitoryInterest), loan.paid);
     }
 
+    /**
+        @dev Calculates the interest of a given amount, interest rate and delta time.
+
+        @param timeDelta Elapsed time
+        @param interestRate Interest rate expressed as the denominator of 10 000 000.
+        @param amount Amount to apply interest
+        @return realDelta The real timeDelta applied
+        @return interest The interest gained in the realDelta time
+    */
     function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) public constant returns (uint256 realDelta, uint256 interest) {
         interest = safeMult(safeMult(100000, amount), timeDelta) / interestRate;
         realDelta = safeMult(interest, interestRate) / (amount * 100000);
     }
 
+    /**
+        @dev Computes loan interest
+
+        Computes the punitory and non-punitory interest of a given loan and only applies the change.
+        
+        @param index Index of the loan
+        @param timestamp Target absolute unix time to calculate interest.
+    */
     function internalAddInterest(uint index, uint256 timestamp) internal {
         Loan storage loan = loans[index];
         if (timestamp > loan.interestTimestamp) {
@@ -260,6 +363,12 @@ contract NanoLoanEngine is RpSafeMath {
         }
     }
 
+    /**
+        @dev Computes loan interest only up to current unix time
+
+        @param index Index of the loan
+        @param timestamp Target absolute unix time to calculate interest.
+    */
     function addInterestUpTo(uint index, uint256 timestamp) internal {
         Loan storage loan = loans[index];
         require(loan.status == Status.lent);
@@ -268,10 +377,39 @@ contract NanoLoanEngine is RpSafeMath {
         }
     }
 
+    /**
+        @dev Updates the loan accumulated interests up to the current Unix time.
+        
+        @param index Index of the loan
+    */
     function addInterest(uint index) public {
         addInterestUpTo(index, block.timestamp);
     }
     
+    /**
+        @dev Pay loan
+
+        Realizes a payment of a given Loan, before performing the payment the accumulated
+        interest is computed and added to the total pending amount.
+
+        Before calling this function, the msg.sender must call the "approve" function on the RCN Token, specifying an amount
+        sufficient enough to pay the equivalent of the desired payment and the oracle fee.
+
+        Because it is difficult or even impossible to know in advance how much RCN are going to be spent on the
+        transaction*, we recommend performing the "approve" using an amount 5% superior to the wallet estimated
+        spending. If the RCN spent results to be less, the extra tokens are never debited from the msg.sender.
+
+        * The RCN rate can fluctuate on the same block, and it is impossible to know in advance the exact time of the
+        confirmation of the transaction. 
+
+        If the paid pending amount equals zero, the loan changes status to "paid" and it is considered closed.
+
+        @param index Index of the loan
+        @param _amount Amount to pay, specified in the loan currency; or in RCN if the loan has no oracle
+        @param _from The identity of the payer
+
+        @return true if the payment was executed successfully
+    */
     function pay(uint index, uint256 _amount, address _from) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.lent);
@@ -293,6 +431,23 @@ contract NanoLoanEngine is RpSafeMath {
         return true;
     }
 
+    /**
+        @dev Withdraw lender funds
+
+        When a loan is paid, the funds are not transferred automatically to the lender, the funds are stored on the
+        engine contract, and the lender must call this function specifying the amount desired to transfer and the 
+        destination.
+
+        This behavior is defined to allow the temporary transfer of the loan to a smart contract, without worrying that
+        the contract will receive tokens that are not traceable; and it allows the development of decentralized 
+        autonomous organizations.
+
+        @param index Index of the loan
+        @param to Destination of the wiwthdraw funds
+        @param amount Amount to withdraw, in RCN
+
+        @return true if the withdraw was executed successfully
+    */
     function withdrawal(uint index, address to, uint256 amount) public returns (bool) {
         Loan storage loan = loans[index];
         require(to != address(0));
@@ -304,17 +459,30 @@ contract NanoLoanEngine is RpSafeMath {
         }
     }
 
+    /**
+        @dev Changes the owner of the engine 
+    */
     function changeOwner(address to) public {
         require(msg.sender == owner);
         require(to != address(0));
         owner = to;
     }
 
+    /**
+        @dev Deprecates the engine, locks the creation of new loans.
+    */
     function setDeprecated(bool _deprecated) public {
         require(msg.sender == owner);
         deprecated = _deprecated;
     }
 
+    /**
+        @dev Retrieves the rate of the loan's currency in RCN, provided by the oracle; 
+        if the loan has no oracle, returns 1.
+
+        @param index Index of the loan
+        @return Equivalent of the currency in RCN
+    */
     function getOracleRate(uint index) internal returns (uint256) {
         Loan storage loan = loans[index];
         if (loan.oracle == address(0)) 
@@ -328,6 +496,9 @@ contract NanoLoanEngine is RpSafeMath {
         return rate;
     }
 
+    /**
+        @dev Withdraws tokens not belonging to any lender. 
+    */
     function emergencyWithdrawal(Token _token, address to, uint256 amount) returns (bool) {
         require(msg.sender == owner);
         require(_token != token || safeSubtract(token.balanceOf(this), totalLenderBalance) >= amount);
