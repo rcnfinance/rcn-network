@@ -41,3 +41,11 @@ The flow of the loan creation is the following:
 ### BasicOracle
 
 The BasicOracle implements a generic version of the Oracle interface, it allows the implementation of an arbitrary number of symbols. The owner has the responsibility of maintaining the rates updated.
+
+### BasicCosigner
+
+The BasicCosigner is a sample that shows how cosigners can be implemented to the network. This sample defines the part of the loan covered and builds a liability. This means that, if the borrower defaults, the cosigner pays the compensation in exchange for the defaulted loan.
+
+BasicCosigner.sol is only the first implementation on the role of a cosigner agent in RCN. The concept itself is flexible, which means that any combination of rules and conditions could be used to implement a cosigner. 
+
+We believe that the most transparent way of running a cosigner is to imprint that logic on a smart contract, but it's not required by the network.
