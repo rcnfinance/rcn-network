@@ -1,7 +1,7 @@
 pragma solidity ^0.4.15;
 
 import './interfaces/Oracle.sol';
-import './rcn/RpSafeMath.sol';
+import './utils/RpSafeMath.sol';
 import "./interfaces/Token.sol";
 
 contract NanoLoanEngine is RpSafeMath {
