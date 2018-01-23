@@ -92,8 +92,8 @@ contract BasicCosigner is RpSafeMath {
         @dev Withdraws tokens from the smart contract.
 
         @param _token Token contract address
-        @param _to Destination address
-        @param _amount Amount to send
+        @param to Destination address
+        @param amount Amount to send
 
         @return true if the withdrawal was done successfully
     */
@@ -133,12 +133,10 @@ contract BasicCosigner is RpSafeMath {
     /**
         @dev Transfers a loan to a new owner
 
-        @index Index of the loan
-
         @param index Index of the loan
         @param to New owner of the loan
 
-        @returns true if the loan was transfered
+        @return true if the loan was transfered
     */
     function transferLoan(uint256 index, address to) public returns (bool) {
         require(liabilities[index].claimed || liabilities[index].coverage == 0);
@@ -156,9 +154,9 @@ contract BasicCosigner is RpSafeMath {
         corresponding to the compensation are transferred from this contract to the lender, this contract has to have
         enough tokens to pay to the lender.
 
-        @index Index of the loan
+        @param index Index of the loan
 
-        @returns true if the compensation was claimed
+        @return true if the compensation was claimed
     */
     function claim(uint256 index) public returns (bool) {
         Liability storage liability = liabilities[index];
@@ -179,9 +177,9 @@ contract BasicCosigner is RpSafeMath {
     /**
         @dev Defines a custom logic that determines if a loan is defaulted or not.
 
-        @index Index of the loan
+        @param index Index of the loan
 
-        @returns true if the loan is considered defaulted
+        @return true if the loan is considered defaulted
     */
     function isDefaulted(uint256 index) constant returns (bool) {
         Liability storage liability = liabilities[index];
