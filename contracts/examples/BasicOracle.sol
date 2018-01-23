@@ -185,9 +185,9 @@ contract BasicOracle is Oracle {
         provider = _provider;
     }
 
-    function withdrawal(Token token, address to, uint256 amount) returns (bool) {
+    function withdrawal(Token _token, address to, uint256 amount) returns (bool) {
         require(msg.sender == owner);
-        return token.transfer(to, amount);
+        return _token.transfer(to, amount);
     }
 
     /**
