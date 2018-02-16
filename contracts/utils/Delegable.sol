@@ -29,7 +29,19 @@ contract Delegable is Ownable {
     */
     function wasDelegate(address _address, uint256 timestamp) public constant returns (bool) {
         DelegateLog memory delegateLog = delegates[_address];
-        return delegateLog.started >= timestamp && delegateLog.started != 0 && (delegateLog.ended == 0 || delegateLog.ended > timestamp);
+        return timestamp >= delegateLog.started && delegateLog.started != 0 && (delegateLog.ended == 0 || timestamp < delegateLog.ended);
+    }
+
+    /**
+        @dev Checks if a delegate is active
+
+        @param _address Address of the delegate
+        
+        @return true if the delegate is active
+    */
+    function isDelegate(address _address) public constant returns (bool) {
+        DelegateLog memory delegateLog = delegates[_address];
+        return delegateLog.started != 0 && delegateLog.ended == 0;
     }
 
     /**
