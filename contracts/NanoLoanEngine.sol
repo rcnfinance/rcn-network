@@ -15,7 +15,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     mapping(address => uint256) private lendersBalance;
 
     function name() constant returns (string _name) {
-        _name = "Nano loan engine 202";
+        _name = "RCN - Nano loan engine 202";
     }
 
     function symbol() constant returns (string _symbol) {
@@ -212,10 +212,12 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         require(rcn.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, rate)));
         
+        // ERC721, create new loan and transfer it to the lender
         Transfer(0x0, loan.lender, index);
         activeLoans += 1;
         lendersBalance[loan.lender] += 1;
         Lent(index, loan.lender, 0x0);
+
         return true;
     }
 
@@ -236,6 +238,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(msg.sender == loan.lender || (msg.sender == loan.borrower && loan.status == Status.initial));
         DestroyedBy(index, msg.sender);
 
+        // ERC721, remove loan from circulation
         if (loan.status != Status.initial) {
             lendersBalance[loan.lender] -= 1;
             activeLoans -= 1;
@@ -264,10 +267,11 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         loan.lender = to;
         loan.approvedTransfer = address(0);
 
+        // ERC-721, transfer loan to another address
         lendersBalance[msg.sender] -= 1;
         lendersBalance[to] += 1;
-
         Transfer(loan.lender, to, index);
+
         return true;
     }
 
@@ -432,6 +436,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             TotalPayment(index);
             loan.status = Status.paid;
 
+            // ERC-721, remove loan from circulation
             lendersBalance[loan.lender] -= 1;
             activeLoans -= 1;
             Transfer(loan.lender, 0x0, index);
@@ -453,7 +458,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @param loan The loan with the cosigner
         @param data Data required by the oracle
 
-        @returns The rate of the oracle
+        @return The rate of the oracle
     */
     function getRate(Loan loan, bytes data) internal returns (uint256) {
         if (loan.oracle == address(0)) {
