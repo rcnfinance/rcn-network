@@ -1,56 +1,70 @@
 pragma solidity ^0.4.15;
 
 import './interfaces/Oracle.sol';
-import './utils/RpSafeMath.sol';
 import "./interfaces/Token.sol";
+import "./utils/Ownable.sol";
+import "./utils/TokenLockable.sol";
+import "./interfaces/Cosigner.sol";
+import "./interfaces/Engine.sol";
+import "./interfaces/ERC721.sol";
 
-contract NanoLoanEngine is RpSafeMath {
-    uint256 public constant VERSION = 15;
+contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
+    uint256 public constant VERSION = 202;
+
+    uint256 private activeLoans = 0;
+    mapping(address => uint256) private lendersBalance;
+
+    function name() constant returns (string _name) {
+        _name = "Nano loan engine 202";
+    }
+
+    function symbol() constant returns (string _symbol) {
+        _symbol = "RCN-NLE-202";
+    }
+
+    function totalSupply() constant returns (uint _totalSupply) {
+        _totalSupply = activeLoans;
+    }
+
+    function balanceOf(address _owner) constant returns (uint _balance) {
+        _balance = lendersBalance[_owner];
+    }
     
-    Token public token;
-
-    enum Status { initial, lent, paid, destroyed }
-
-    address public owner;
+    Token public rcn;
     bool public deprecated;
-    uint256 public totalLenderBalance;
 
     event CreatedLoan(uint _index, address _borrower, address _creator);
     event ApprovedBy(uint _index, address _address);
-    event Lent(uint _index, address _lender);
-    event CreatedDebt(uint _index, address _lend);
+    event Lent(uint _index, address _lender, address _cosigner);
     event DestroyedBy(uint _index, address _address);
     event PartialPayment(uint _index, address _sender, address _from, uint256 _amount);
-    event Transfer(uint _index, address _from, address _to);
     event TotalPayment(uint _index);
 
-    function NanoLoanEngine(Token _token) {
+    function NanoLoanEngine(Token _rcn) public {
         owner = msg.sender;
-        token = _token;
+        rcn = _rcn;
     }
 
     struct Loan {
         Oracle oracle;
-
         Status status;
 
         address borrower;
-        address cosigner;
         address lender;
         address creator;
+        address cosigner;
         
         uint256 amount;
         uint256 interest;
         uint256 punitoryInterest;
         uint256 interestTimestamp;
         uint256 paid;
-        uint256 cosignerFee;
         uint256 interestRate;
         uint256 interestRatePunitory;
         uint256 dueTime;
         uint256 duesIn;
 
-        string currency;
+        bytes32 currency;
         uint256 cancelableAt;
         uint256 lenderBalance;
 
@@ -70,9 +84,6 @@ contract NanoLoanEngine is RpSafeMath {
 
         @param _oracleContract Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
         @param _borrower Address of the borrower
-        @param _cosigner Address of the cosigner, 0x0 if the contract does not have a cosigner.
-        @param _cosignerFee Defined on the same currency and unit that "amount"; this value is absolute and paid by the
-        lender when the loan starts. If there is no cosigner, the fee must be 0.
         @param _currency The currency to use in the Oracle, if there is no Oracle, this field must remain empty.
         @param _amount The requested amount; currency and unit are defined by the Oracle, if there is no Oracle present
         the currency is RCN, and the unit is wei.
@@ -85,85 +96,51 @@ contract NanoLoanEngine is RpSafeMath {
         @param _expirationRequest Timestamp of when the loan request expires, if the loan is not filled before this date, 
         the request is no longer valid.
     */
-    function createLoan(Oracle _oracleContract, address _borrower, address _cosigner,
-        uint256 _cosignerFee, string _currency, uint256 _amount, uint256 _interestRate,
+    function createLoan(Oracle _oracleContract, address _borrower, bytes32 _currency, uint256 _amount, uint256 _interestRate,
         uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest) returns (uint256) {
 
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
-        require(_oracleContract != address(0) || bytes(_currency).length == 0);
-        require(_cosigner != address(0) || _cosignerFee == 0);
+        require(_oracleContract != address(0) || _currency == 0x0);
         require(_borrower != address(0));
         require(_amount != 0);
         require(_interestRatePunitory != 0);
         require(_interestRate != 0);
         require(_expirationRequest > block.timestamp);
 
-        var loan = Loan(_oracleContract, Status.initial, _borrower, _cosigner, 0x0, msg.sender, _amount,
-            0, 0, 0, 0, _cosignerFee, _interestRate, _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest);
+        var loan = Loan(_oracleContract, Status.initial, _borrower, 0x0, 0x0, msg.sender, _amount, 0, 0, 0, 0, _interestRate,
+            _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest);
         uint index = loans.push(loan) - 1;
         CreatedLoan(index, _borrower, msg.sender);
+
+        if (msg.sender == _borrower) {
+            approveLoan(index);
+        }
+
         return index;
     }
     
-    function getLoanConfig(uint index) constant returns (address oracle, address borrower, address lender, address creator, uint amount, 
-        uint cosignerFee, uint interestRate, uint interestRatePunitory, uint duesIn, uint cancelableAt, uint decimals, bytes32 currencyHash, uint256 expirationRequest) {
-        Loan storage loan = loans[index];
-        oracle = loan.oracle;
-        borrower = loan.borrower;
-        lender = loan.lender;
-        creator = loan.creator;
-        amount = loan.amount;
-        cosignerFee = loan.cosignerFee;
-        interestRate = loan.interestRate;
-        interestRatePunitory = loan.interestRatePunitory;
-        duesIn = loan.duesIn;
-        cancelableAt = loan.cancelableAt;
-        decimals = loan.oracle.getDecimals(loan.currency);
-        currencyHash = keccak256(loan.currency); 
-        expirationRequest = loan.expirationRequest;
-    }
-
-    function getLoanState(uint index) constant returns (uint interest, uint punitoryInterest, uint interestTimestamp,
-        uint paid, uint dueTime, Status status, uint lenderBalance, address approvedTransfer, bool approved) {
-        Loan storage loan = loans[index];
-        interest = loan.interest;
-        punitoryInterest = loan.punitoryInterest;
-        interestTimestamp = loan.interestTimestamp;
-        paid = loan.paid;
-        dueTime = loan.dueTime;
-        status = loan.status;
-        lenderBalance = loan.lenderBalance;
-        approvedTransfer = loan.approvedTransfer;
-        approved = isApproved(index);
-    }
-    
+    function ownerOf(uint256 index) constant returns (address owner) { owner = loans[index].lender; }
     function getTotalLoans() constant returns (uint256) { return loans.length; }
     function getOracle(uint index) constant returns (Oracle) { return loans[index].oracle; }
     function getBorrower(uint index) constant returns (address) { return loans[index].borrower; }
     function getCosigner(uint index) constant returns (address) { return loans[index].cosigner; }
-    function getLender(uint index) constant returns (address) { return loans[index].lender; }
     function getCreator(uint index) constant returns (address) { return loans[index].creator; }
     function getAmount(uint index) constant returns (uint256) { return loans[index].amount; }
     function getInterest(uint index) constant returns (uint256) { return loans[index].interest; }
     function getPunitoryInterest(uint index) constant returns (uint256) { return loans[index].punitoryInterest; }
     function getInterestTimestamp(uint index) constant returns (uint256) { return loans[index].interestTimestamp; }
     function getPaid(uint index) constant returns (uint256) { return loans[index].paid; }
-    function getCosignerFee(uint index) constant returns (uint256) { return loans[index].cosignerFee; }
     function getInterestRate(uint index) constant returns (uint256) { return loans[index].interestRate; }
     function getInterestRatePunitory(uint index) constant returns (uint256) { return loans[index].interestRatePunitory; }
     function getDueTime(uint index) constant returns (uint256) { return loans[index].dueTime; }
     function getDuesIn(uint index) constant returns (uint256) { return loans[index].duesIn; }
-    function getCurrency(uint index) constant returns (string) { return loans[index].currency; }
     function getCancelableAt(uint index) constant returns (uint256) { return loans[index].cancelableAt; }
     function getApprobation(uint index, address _address) constant returns (bool) { return loans[index].approbations[_address]; }
     function getStatus(uint index) constant returns (Status) { return loans[index].status; }
     function getLenderBalance(uint index) constant returns (uint256) { return loans[index].lenderBalance; }
-    function getCurrencyLength(uint index) constant returns (uint256) { return bytes(loans[index].currency).length; }
-    function getCurrencyByte(uint index, uint cindex) constant returns (bytes1) { return bytes(loans[index].currency)[cindex]; }
     function getApprovedTransfer(uint index) constant returns (address) {return loans[index].approvedTransfer; }
-    function getCurrencyHash(uint index) constant returns (bytes32) { return keccak256(loans[index].currency); }
-    function getCurrencyDecimals(uint index) constant returns (uint256) { return loans[index].oracle.getDecimals(loans[index].currency); }
+    function getCurrency(uint index) constant returns (bytes32) { return loans[index].currency; }
     function getExpirationRequest(uint index) constant returns (uint256) { return loans[index].expirationRequest; }
 
     /**
@@ -173,7 +150,7 @@ contract NanoLoanEngine is RpSafeMath {
     */
     function isApproved(uint index) constant returns (bool) {
         Loan storage loan = loans[index];
-        return loan.approbations[loan.borrower] && (loan.approbations[loan.cosigner] || loan.cosigner == address(0));
+        return loan.approbations[loan.borrower];
     }
 
     /**
@@ -186,14 +163,14 @@ contract NanoLoanEngine is RpSafeMath {
 
         @return true if the approve was done successfully
     */
-    function approve(uint index) public returns(bool) {
+    function approveLoan(uint index) public returns(bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.initial);
         loan.approbations[msg.sender] = true;
         ApprovedBy(index, msg.sender);
         return true;
     }
-
+    
     /**
         @dev Performs the lend of the RCN equivalent to the requested amount, and transforms the msg.sender in the new lender.
 
@@ -207,8 +184,9 @@ contract NanoLoanEngine is RpSafeMath {
 
         @return true if the lend was done successfully
     */
-    function lend(uint index) public returns (bool) {
+    function lend(uint index, bytes oracleData, Cosigner cosigner, bytes cosignerData) public returns (bool) {
         Loan storage loan = loans[index];
+
         require(loan.status == Status.initial);
         require(isApproved(index));
         require(block.timestamp <= loan.expirationRequest);
@@ -219,15 +197,25 @@ contract NanoLoanEngine is RpSafeMath {
         loan.status = Status.lent;
 
         if (loan.cancelableAt > 0)
-            internalAddInterest(index, safeAdd(block.timestamp, loan.cancelableAt));
+            internalAddInterest(loan, safeAdd(block.timestamp, loan.cancelableAt));
 
-        uint256 rate = getOracleRate(index);
-        require(token.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, rate)));
+        uint256 rate = getRate(loan, oracleData);
 
-        if (loan.cosigner != address(0))
-            require(token.transferFrom(msg.sender, loan.cosigner, safeMult(loan.cosignerFee, rate)));
+        if (cosigner != address(0)) {
+            uint256 cosignerCost = cosigner.getCost(this, index, cosignerData);
+            require(rcn.transferFrom(msg.sender, this, cosignerCost));
+            require(rcn.approve(cosigner, cosignerCost));
+            require(cosigner.cosign(this, index, cosignerData));
+            require(rcn.allowance(this, cosigner) == 0);
+            loan.cosigner = cosigner;
+        }
+
+        require(rcn.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, rate)));
         
-        Lent(index, loan.lender);
+        Transfer(0x0, loan.lender, index);
+        activeLoans += 1;
+        lendersBalance[loan.lender] += 1;
+        Lent(index, loan.lender, 0x0);
         return true;
     }
 
@@ -245,8 +233,15 @@ contract NanoLoanEngine is RpSafeMath {
     function destroy(uint index) public returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status != Status.destroyed);
-        require(msg.sender == loan.lender || ((msg.sender == loan.borrower || msg.sender == loan.cosigner) && loan.status == Status.initial));
+        require(msg.sender == loan.lender || (msg.sender == loan.borrower && loan.status == Status.initial));
         DestroyedBy(index, msg.sender);
+
+        if (loan.status != Status.initial) {
+            lendersBalance[loan.lender] -= 1;
+            activeLoans -= 1;
+            Transfer(loan.lender, 0x0, index);
+        }
+
         loan.status = Status.destroyed;
         return true;
     }
@@ -260,15 +255,30 @@ contract NanoLoanEngine is RpSafeMath {
 
         @return true if the transfer was done successfully
     */
-    function transfer(uint index, address to) public returns (bool) {
+    function transfer(address to, uint256 index) public returns (bool) {
         Loan storage loan = loans[index];
-        require(loan.status != Status.destroyed);
+        
+        require(loan.status != Status.destroyed && loan.status != Status.paid);
         require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer);
         require(to != address(0));
-        Transfer(index, loan.lender, to);
         loan.lender = to;
         loan.approvedTransfer = address(0);
+
+        lendersBalance[msg.sender] -= 1;
+        lendersBalance[to] += 1;
+
+        Transfer(loan.lender, to, index);
         return true;
+    }
+
+    /**
+        @dev ERC721 method, transfers the loan to the msg.sender, the msg.sender must be approved using the 
+        "approve" method.
+
+        @return true if the transfer was successfull
+    */
+    function takeOwnership(uint256 _index) public returns (bool) {
+        return transfer(msg.sender, _index);
     }
 
     /**
@@ -277,21 +287,22 @@ contract NanoLoanEngine is RpSafeMath {
 
         The same method can be called passing 0x0 as parameter "to" to erase a previously approved address.
 
-        @param index Index of the loan
         @param to Address allowed to transfer the loan or 0x0 to delete
+        @param index Index of the loan
 
         @return true if the approve was done successfully
     */
-    function approveTransfer(uint index, address to) public returns (bool) {
+    function approve(address to, uint256 index) public returns (bool) {
         Loan storage loan = loans[index];
         require(msg.sender == loan.lender);
         loan.approvedTransfer = to;
+        Approval(msg.sender, to, index);
         return true;
     }
 
     /**
-        @dev Returns the pending amount to complete de payment of the loan, it doesn’t consider the total amount of accrued 
-        interest, to get the real pending you must call "addInterest" before.
+        @dev Returns the pending amount to complete de payment of the loan, keep in mind that this number increases 
+        every second.
 
         @param index Index of the loan
 
@@ -299,6 +310,7 @@ contract NanoLoanEngine is RpSafeMath {
     */
     function getPendingAmount(uint index) public constant returns (uint256) {
         Loan storage loan = loans[index];
+        addInterest(index);
         return safeSubtract(safeAdd(safeAdd(loan.amount, loan.interest), loan.punitoryInterest), loan.paid);
     }
 
@@ -316,16 +328,15 @@ contract NanoLoanEngine is RpSafeMath {
         realDelta = safeMult(interest, interestRate) / (amount * 100000);
     }
 
-    /**
+    /**z
         @dev Computes loan interest
 
         Computes the punitory and non-punitory interest of a given loan and only applies the change.
         
-        @param index Index of the loan
+        @param loan Loan to compute interest
         @param timestamp Target absolute unix time to calculate interest.
     */
-    function internalAddInterest(uint index, uint256 timestamp) internal {
-        Loan storage loan = loans[index];
+    function internalAddInterest(Loan loan, uint256 timestamp) internal {
         if (timestamp > loan.interestTimestamp) {
             uint256 newInterest = loan.interest;
             uint256 newPunitoryInterest = loan.punitoryInterest;
@@ -366,14 +377,12 @@ contract NanoLoanEngine is RpSafeMath {
     /**
         @dev Computes loan interest only up to current unix time
 
-        @param index Index of the loan
         @param timestamp Target absolute unix time to calculate interest.
     */
-    function addInterestUpTo(uint index, uint256 timestamp) internal {
-        Loan storage loan = loans[index];
+    function addInterestUpTo(Loan loan, uint256 timestamp) internal {
         require(loan.status == Status.lent);
         if (timestamp <= block.timestamp) {
-            internalAddInterest(index, timestamp);
+            internalAddInterest(loan, timestamp);
         }
     }
 
@@ -383,7 +392,8 @@ contract NanoLoanEngine is RpSafeMath {
         @param index Index of the loan
     */
     function addInterest(uint index) public {
-        addInterestUpTo(index, block.timestamp);
+        Loan storage loan = loans[index];
+        addInterestUpTo(loan, block.timestamp);
     }
     
     /**
@@ -410,8 +420,9 @@ contract NanoLoanEngine is RpSafeMath {
 
         @return true if the payment was executed successfully
     */
-    function pay(uint index, uint256 _amount, address _from) public returns (bool) {
+    function pay(uint index, uint256 _amount, address _from, bytes oracleData) public returns (bool) {
         Loan storage loan = loans[index];
+
         require(loan.status == Status.lent);
         addInterest(index);
         uint256 toPay = min(getPendingAmount(index), _amount);
@@ -420,15 +431,36 @@ contract NanoLoanEngine is RpSafeMath {
         if (getPendingAmount(index) == 0) {
             TotalPayment(index);
             loan.status = Status.paid;
+
+            lendersBalance[loan.lender] -= 1;
+            activeLoans -= 1;
+            Transfer(loan.lender, 0x0, index);
         }
 
-        uint256 transferValue = safeMult(toPay, getOracleRate(index));
-        require(token.transferFrom(msg.sender, this, transferValue));
+        uint256 rate = getRate(loan, oracleData);
+        uint256 transferValue = safeMult(toPay, rate);
+        lockTokens(rcn, transferValue);
+        require(rcn.transferFrom(msg.sender, this, transferValue));
         loan.lenderBalance = safeAdd(transferValue, loan.lenderBalance);
-        totalLenderBalance = safeAdd(transferValue, totalLenderBalance);
         PartialPayment(index, msg.sender, _from, toPay);
 
         return true;
+    }
+
+    /**
+        @dev Retrieves the rate corresponding of the loan oracle, if the loan has no oracle the rate is 1
+
+        @param loan The loan with the cosigner
+        @param data Data required by the oracle
+
+        @returns The rate of the oracle
+    */
+    function getRate(Loan loan, bytes data) internal returns (uint256) {
+        if (loan.oracle == address(0)) {
+            return 1;
+        } else {
+            return loan.oracle.getRate(loan.currency, data);
+        }
     }
 
     /**
@@ -450,59 +482,18 @@ contract NanoLoanEngine is RpSafeMath {
     */
     function withdrawal(uint index, address to, uint256 amount) public returns (bool) {
         Loan storage loan = loans[index];
-        require(to != address(0));
         if (msg.sender == loan.lender && loan.lenderBalance >= amount) {
             loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
-            totalLenderBalance = safeSubtract(totalLenderBalance, amount);
-            require(token.transfer(to, amount));
+            require(rcn.transfer(to, amount));
+            unlockTokens(rcn, amount);
             return true;
         }
     }
 
     /**
-        @dev Changes the owner of the engine 
-    */
-    function changeOwner(address to) public {
-        require(msg.sender == owner);
-        require(to != address(0));
-        owner = to;
-    }
-
-    /**
         @dev Deprecates the engine, locks the creation of new loans.
     */
-    function setDeprecated(bool _deprecated) public {
-        require(msg.sender == owner);
+    function setDeprecated(bool _deprecated) public onlyOwner {
         deprecated = _deprecated;
-    }
-
-    /**
-        @dev Retrieves the rate of the loan's currency in RCN, provided by the oracle; 
-        if the loan has no oracle, returns 1.
-
-        @param index Index of the loan
-        @return Equivalent of the currency in RCN
-    */
-    function getOracleRate(uint index) internal returns (uint256) {
-        Loan storage loan = loans[index];
-        if (loan.oracle == address(0)) 
-            return 1;
-
-        uint256 costOracle = loan.oracle.getCost(loan.currency);
-        require(token.transferFrom(msg.sender, this, costOracle));
-        require(token.approve(loan.oracle, costOracle));
-        uint256 rate = loan.oracle.getRateFor(loan.currency);
-        require(rate != 0);
-        return rate;
-    }
-
-    /**
-        @dev Withdraws tokens not belonging to any lender. 
-    */
-    function emergencyWithdrawal(Token _token, address to, uint256 amount) returns (bool) {
-        require(msg.sender == owner);
-        require(_token != token || safeSubtract(token.balanceOf(this), totalLenderBalance) >= amount);
-        require(to != address(0));
-        return _token.transfer(to, amount);
     }
 }
