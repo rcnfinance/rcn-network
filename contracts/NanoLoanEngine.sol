@@ -84,17 +84,18 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @param _oracleContract Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
         @param _borrower Address of the borrower
-        @param _currency The currency to use in the Oracle, if there is no Oracle, this field must remain empty.
+        @param _currency The currency to use with the oracle, the currency code is generated with the following formula,
+            keccak256(ticker,decimals).
         @param _amount The requested amount; currency and unit are defined by the Oracle, if there is no Oracle present
-        the currency is RCN, and the unit is wei.
+            the currency is RCN, and the unit is wei.
         @param _interestRate The non-punitory interest rate by second, defined as a denominator of 10 000 000.
         @param _interestRatePunitory The punitory interest rate by second, defined as a denominator of 10 000 000.
-        Ej: interestRate 11108571428571 = 28% Anual interest
+            Ej: interestRate 11108571428571 = 28% Anual interest
         @param _duesIn The time in seconds that the borrower has in order to pay the debt after the lender lends the money.
         @param _cancelableAt Delta in seconds specifying how much interest should be added in advance, if the borrower pays 
         entirely or partially the loan before this term, no extra interest will be deducted.
         @param _expirationRequest Timestamp of when the loan request expires, if the loan is not filled before this date, 
-        the request is no longer valid.
+            the request is no longer valid.
     */
     function createLoan(Oracle _oracleContract, address _borrower, bytes32 _currency, uint256 _amount, uint256 _interestRate,
         uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest) returns (uint256) {
@@ -154,9 +155,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @dev Called by the members of the loan to show that they agree with the terms of the loan; the borrower and the 
-        cosigner must call this method before any lender could call the method "lend".
-
+        @dev Called by the members of the loan to show that they agree with the terms of the loan; the borrower
+        must call this method before any lender could call the method "lend".
+            
         Any address can call this method to be added to the "approbations" mapping.
 
         @param index Index of the loan
@@ -174,13 +175,15 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     /**
         @dev Performs the lend of the RCN equivalent to the requested amount, and transforms the msg.sender in the new lender.
 
-        The loan must be previously approved by the borrower and the cosigner.
-
-        Before calling this function, the lender candidate must call the "approve" function on the RCN Token, specifying
-        an amount sufficient enough to pay the equivalent of the requested amount, the oracle fee and the cosigner 
-        fee.
+        The loan must be previously approved by the borrower; before calling this function, the lender candidate must 
+        call the "approve" function on the RCN Token, specifying an amount sufficient enough to pay the equivalent of
+        the requested amount, and the cosigner fee.
         
         @param index Index of the loan
+        @param oracleData Data required by the oracle to return the rate, the content of this field must be provided
+            by the url exposed in the url() method of the oracle.
+        @param cosigner Address of the cosigner, 0x0 for lending without cosigner.
+        @param cosignerData Data required by the cosigner to process the request.
 
         @return true if the lend was done successfully
     */
@@ -222,7 +225,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @dev Destroys a loan, the borrower or the cosigner can call this method if they performed an accidental or regretted 
+        @dev Destroys a loan, the borrower could call this method if they performed an accidental or regretted 
         "approve" of the loan, this method only works for them if the loan is in "pending" status.
 
         The lender can call this method at any moment, in case of a loan with status "lent" the lender is pardoning 
@@ -250,8 +253,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @dev Transfers a loan to a different lender, the caller must be the current lender or previously being approved with
-        the method "approveTransfer"
+        @dev Transfers a loan to a different lender, the caller must be the current lender or previously being
+        approved with the method "approveTransfer"; only loans with the Status.lent status can be transfered.
 
         @param index Index of the loan
         @param to New lender
@@ -267,7 +270,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         loan.lender = to;
         loan.approvedTransfer = address(0);
 
-        // ERC-721, transfer loan to another address
+        // ERC721, transfer loan to another address
         lendersBalance[msg.sender] -= 1;
         lendersBalance[to] += 1;
         Transfer(loan.lender, to, index);
@@ -286,7 +289,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @dev Approves the transfer a given loan in the name of the lender, the behavior of this function is similar to
+        @dev Approves the transfer of a given loan in the name of the lender, the behavior of this function is similar to
         "approve" in the ERC20 standard, but only one approved address is allowed at a time.
 
         The same method can be called passing 0x0 as parameter "to" to erase a previously approved address.
@@ -324,6 +327,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @param timeDelta Elapsed time
         @param interestRate Interest rate expressed as the denominator of 10 000 000.
         @param amount Amount to apply interest
+
         @return realDelta The real timeDelta applied
         @return interest The interest gained in the realDelta time
     */
@@ -421,7 +425,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @param index Index of the loan
         @param _amount Amount to pay, specified in the loan currency; or in RCN if the loan has no oracle
         @param _from The identity of the payer
-
+        @param oracleData Data required by the oracle to return the rate, the content of this field must be provided
+            by the url exposed in the url() method of the oracle.
+            
         @return true if the payment was executed successfully
     */
     function pay(uint index, uint256 _amount, address _from, bytes oracleData) public returns (bool) {
@@ -436,7 +442,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             TotalPayment(index);
             loan.status = Status.paid;
 
-            // ERC-721, remove loan from circulation
+            // ERC721, remove loan from circulation
             lendersBalance[loan.lender] -= 1;
             activeLoans -= 1;
             Transfer(loan.lender, 0x0, index);
