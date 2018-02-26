@@ -88,7 +88,13 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
         uint256 premium = safeMult(engine.getPendingAmount(index), liability.coverage) / 100;
         require(engine.takeOwnership(index));
 
-        uint256 rate = engine.getOracle(index).getRate(engine.getCurrency(index), oracleData);
+        Oracle oracle = engine.getOracle(index);
+        uint256 rate = 1;
+
+        if (oracle != address(0)) {
+            rate = oracle.getRate(engine.getCurrency(index), oracleData);
+        }
+
         require(rcn.transfer(msg.sender, safeMult(rate, premium)));
         return true;
     }
