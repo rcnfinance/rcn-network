@@ -38,10 +38,30 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
         bool claimed;
     }
 
+    /**
+        @dev Retrieves the cost of using this cosigner, the cost is in RCN wei. This method does not validate the
+        signature of the data.
+
+        @param engine Address of the engine
+        @param index Index of the loan
+        @param data Data with the params of the insurance, including the cost.
+
+        @return the cost of the insurance in RCN wei.
+    */
     function getCost(address engine, uint256 index, bytes data) constant public returns (uint256) {
         return uint256(readBytes32(data, INDEX_COST));
     }
 
+    /**
+        @dev Cosigns a loan, the parameters of the insurance are in the data field, and should be signed by
+        an active delegate.
+
+        @param engine Address of the engine
+        @param index Index of the loan
+        @param data Data with the params of the insurance, this contains the signature that makes the params valid.
+
+        @return true If the cosign was done
+    */
     function cosign(address engine, uint256 index, bytes data) public returns (bool) {
         require(msg.sender == engine);
         require(expiration < block.timestamp);
@@ -74,7 +94,16 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
             safeAdd(engine.getDueTime(index), liability.requiredArrears) <= block.timestamp;
     }
 
+    /**
+        @dev Transfers the ownership of the debt to the cosigner and the cosigner pays the benefit of the insurance
+        to the current lender. The oracle is the same used by the loan.
 
+        @param engine Address of the engine
+        @param index Index of the loan
+        @param oracleData Data required by the oracle
+
+        @return true if the insurance was claimed successfully
+    */
     function claim(Engine engine, uint256 index, bytes oracleData) public returns (bool) {
         Liability storage liability = liabilities[engine][index];
 

@@ -28,6 +28,13 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         return infoUrl;
     }
 
+    /**
+        @dev Sets the time window of the validity of the rates signed.
+
+        @param time Duration of the window
+
+        @return true is the time was set correctly
+    */
     function setExpirationTime(uint256 time) public onlyOwner returns (bool) {
         expiration = time;
         return true;
@@ -38,6 +45,17 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         return true;
     }
 
+    /**
+        @dev Retrieves the convertion rate of a given currency, the information of the rate is carried over the 
+        data field. If there is a newer rate on the cache, that rate is delivered and the data field is ignored.
+
+        If the data contains a more recent rate than the cache, the cache is updated.
+
+        @param currency Hash of the currency
+        @param data Data with the rate signed by a delegate
+
+        @return the rate of the currency
+    */
     function getRate(bytes32 currency, bytes data) constant returns (uint256) {
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
         require(timestamp <= block.timestamp);
