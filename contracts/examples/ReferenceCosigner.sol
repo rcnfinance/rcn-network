@@ -98,14 +98,15 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
         @dev Transfers the ownership of the debt to the cosigner and the cosigner pays the benefit of the insurance
         to the current lender. The oracle is the same used by the loan.
 
-        @param engine Address of the engine
+        @param engineAddress Address of the engine
         @param index Index of the loan
         @param oracleData Data required by the oracle
 
         @return true if the insurance was claimed successfully
     */
-    function claim(Engine engine, uint256 index, bytes oracleData) public returns (bool) {
+    function claim(address engineAddress, uint256 index, bytes oracleData) public returns (bool) {
         Liability storage liability = liabilities[engine][index];
+        Engine engine = Engine(engineAddress);
 
         require(!liability.claimed);
         require(msg.sender == engine.ownerOf(index));
