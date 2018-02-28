@@ -29,6 +29,55 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function balanceOf(address _owner) constant returns (uint _balance) {
         _balance = lendersBalance[_owner];
     }
+
+    function tokenOfOwnerByIndex(address _owner, uint256 _index) constant returns (uint tokenId) {
+        uint256 tokenCount = balanceOf(_owner);
+
+        if (tokenCount == 0 || _index >= tokenCount) {
+            // Fail transaction
+            revert();
+        } else {
+            uint256 totalLoans = totalSupply();
+            uint256 resultIndex = 0;
+
+            uint256 loanId;
+
+            for (loanId = 0; loanId <= totalLoans; loanId++) {
+                if (loans[loanId].lender == _owner) {
+                    if (resultIndex == _index) {
+                        return loanId;
+                    }
+                    resultIndex++;
+                }
+            }
+
+            revert();
+        }
+    }
+
+    function tokensOfOwner(address _owner) external constant returns(uint256[] ownerTokens) {
+        uint256 tokenCount = balanceOf(_owner);
+
+        if (tokenCount == 0) {
+            // Return an empty array
+            return new uint256[](0);
+        } else {
+            uint256[] memory result = new uint256[](tokenCount);
+            uint256 totalLoans = totalSupply();
+            uint256 resultIndex = 0;
+
+            uint256 loanId;
+
+            for (loanId = 0; loanId <= totalLoans; loanId++) {
+                if (loans[loanId].lender == _owner) {
+                    result[resultIndex] = loanId;
+                    resultIndex++;
+                }
+            }
+
+            return result;
+        }
+    }
     
     Token public rcn;
     bool public deprecated;
@@ -128,7 +177,6 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function getCosigner(uint index) constant returns (address) { return loans[index].cosigner; }
     function getCreator(uint index) constant returns (address) { return loans[index].creator; }
     function getAmount(uint index) constant returns (uint256) { return loans[index].amount; }
-    function getInterest(uint index) constant returns (uint256) { return loans[index].interest; }
     function getPunitoryInterest(uint index) constant returns (uint256) { return loans[index].punitoryInterest; }
     function getInterestTimestamp(uint index) constant returns (uint256) { return loans[index].interestTimestamp; }
     function getPaid(uint index) constant returns (uint256) { return loans[index].paid; }
@@ -143,6 +191,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function getApprovedTransfer(uint index) constant returns (address) {return loans[index].approvedTransfer; }
     function getCurrency(uint index) constant returns (bytes32) { return loans[index].currency; }
     function getExpirationRequest(uint index) constant returns (uint256) { return loans[index].expirationRequest; }
+    function getInterest(uint index) constant returns (uint256) { return loans[index].interest; }
 
     /**
         @param index Index of the loan
@@ -198,7 +247,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         loan.dueTime = safeAdd(block.timestamp, loan.duesIn);
         loan.interestTimestamp = block.timestamp;
         loan.status = Status.lent;
-
+        
         if (loan.cancelableAt > 0)
             internalAddInterest(loan, safeAdd(block.timestamp, loan.cancelableAt));
 
@@ -212,7 +261,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             require(rcn.allowance(this, cosigner) == 0);
             loan.cosigner = cosigner;
         }
-
+        
         require(rcn.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, rate)));
         
         // ERC721, create new loan and transfer it to the lender
@@ -336,7 +385,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         realDelta = safeMult(interest, interestRate) / (amount * 100000);
     }
 
-    /**z
+    /**
         @dev Computes loan interest
 
         Computes the punitory and non-punitory interest of a given loan and only applies the change.
@@ -344,7 +393,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @param loan Loan to compute interest
         @param timestamp Target absolute unix time to calculate interest.
     */
-    function internalAddInterest(Loan loan, uint256 timestamp) internal {
+    function internalAddInterest(Loan storage loan, uint256 timestamp) internal {
         if (timestamp > loan.interestTimestamp) {
             uint256 newInterest = loan.interest;
             uint256 newPunitoryInterest = loan.punitoryInterest;
@@ -387,7 +436,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @param timestamp Target absolute unix time to calculate interest.
     */
-    function addInterestUpTo(Loan loan, uint256 timestamp) internal {
+    function addInterestUpTo(Loan storage loan, uint256 timestamp) internal {
         require(loan.status == Status.lent);
         if (timestamp <= block.timestamp) {
             internalAddInterest(loan, timestamp);
