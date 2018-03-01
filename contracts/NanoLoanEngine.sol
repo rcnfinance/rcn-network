@@ -43,7 +43,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             uint256 loanId;
 
             for (loanId = 0; loanId <= totalLoans; loanId++) {
-                if (loans[loanId].lender == _owner) {
+                if (loans[loanId].lender == _owner && loans[loanId].status == Status.lent) {
                     if (resultIndex == _index) {
                         return loanId;
                     }
@@ -69,7 +69,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             uint256 loanId;
 
             for (loanId = 0; loanId <= totalLoans; loanId++) {
-                if (loans[loanId].lender == _owner) {
+                if (loans[loanId].lender == _owner && loans[loanId].status == Status.lent) {
                     result[resultIndex] = loanId;
                     resultIndex++;
                 }
@@ -367,6 +367,10 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function getPendingAmount(uint index) public constant returns (uint256) {
         Loan storage loan = loans[index];
         addInterest(index);
+        return getRawPendingAmount(loan);
+    }
+
+    function getRawPendingAmount(Loan loan) internal returns (uint256) {
         return safeSubtract(safeAdd(safeAdd(loan.amount, loan.interest), loan.punitoryInterest), loan.paid);
     }
 
@@ -381,8 +385,13 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @return interest The interest gained in the realDelta time
     */
     function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) public constant returns (uint256 realDelta, uint256 interest) {
-        interest = safeMult(safeMult(100000, amount), timeDelta) / interestRate;
-        realDelta = safeMult(interest, interestRate) / (amount * 100000);
+        if (amount == 0) {
+            interest = 0;
+            realDelta = timeDelta;
+        } else {
+            interest = safeMult(safeMult(100000, amount), timeDelta) / interestRate;
+            realDelta = safeMult(interest, interestRate) / (amount * 100000);
+        }
     }
 
     /**
@@ -407,8 +416,14 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
             uint256 endNonPunitory = min(timestamp, loan.dueTime);
             if (endNonPunitory > loan.interestTimestamp) {
-                deltaTime = safeSubtract(endNonPunitory, loan.interestTimestamp);
-                pending = safeSubtract(loan.amount, loan.paid);
+                deltaTime = endNonPunitory - loan.interestTimestamp;
+
+                if (loan.paid < loan.amount) {
+                    pending = loan.amount - loan.paid;
+                } else {
+                    pending = 0;
+                }
+
                 (realDelta, calculatedInterest) = calculateInterest(deltaTime, loan.interestRate, pending);
                 newInterest = safeAdd(calculatedInterest, newInterest);
                 newTimestamp = loan.interestTimestamp + realDelta;
@@ -416,8 +431,13 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
             if (timestamp > loan.dueTime) {
                 uint256 startPunitory = max(loan.dueTime, loan.interestTimestamp);
-                deltaTime = safeSubtract(timestamp, startPunitory);
-                pending = safeSubtract(safeAdd(loan.amount, newInterest), loan.paid);
+                deltaTime = timestamp - startPunitory;
+
+                pending = safeSubtract(safeAdd(safeAdd(loan.amount, newInterest), newPunitoryInterest), loan.paid);
+                if (pending > newPunitoryInterest) {
+                    pending = safeSubtract(pending, newPunitoryInterest);
+                }
+
                 (realDelta, calculatedInterest) = calculateInterest(deltaTime, loan.interestRatePunitory, pending);
                 newPunitoryInterest = safeAdd(newPunitoryInterest, calculatedInterest);
                 newTimestamp = startPunitory + realDelta;
@@ -487,7 +507,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         uint256 toPay = min(getPendingAmount(index), _amount);
 
         loan.paid = safeAdd(loan.paid, toPay);
-        if (getPendingAmount(index) == 0) {
+
+        if (getRawPendingAmount(loan) == 0) {
             TotalPayment(index);
             loan.status = Status.paid;
 
