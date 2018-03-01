@@ -3,7 +3,7 @@ pragma solidity ^0.4.15;
 import "./../../interfaces/Oracle.sol";
 import "./../../utils/BytesUtils.sol";
 
-contract TestOracle is BytesUtils {
+contract TestOracle is Oracle, BytesUtils {
     bytes32 public dummyData = keccak256("test_oracle");
     bytes public dummyDataBytes = buildData(dummyData);
 
