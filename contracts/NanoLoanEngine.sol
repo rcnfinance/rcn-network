@@ -433,10 +433,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
                 uint256 startPunitory = max(loan.dueTime, loan.interestTimestamp);
                 deltaTime = timestamp - startPunitory;
 
-                pending = safeSubtract(safeAdd(safeAdd(loan.amount, newInterest), newPunitoryInterest), loan.paid);
-                if (pending > newPunitoryInterest) {
-                    pending = safeSubtract(pending, newPunitoryInterest);
-                }
+                uint256 debt = safeAdd(loan.amount, newInterest);
+                pending = min(debt, safeSubtract(safeAdd(debt, newPunitoryInterest), loan.paid));
 
                 (realDelta, calculatedInterest) = calculateInterest(deltaTime, loan.interestRatePunitory, pending);
                 newPunitoryInterest = safeAdd(newPunitoryInterest, calculatedInterest);
