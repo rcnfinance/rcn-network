@@ -1,16 +1,19 @@
 var TestToken = artifacts.require("./utils/TestToken.sol");
 var NanoLoanEngine = artifacts.require("./NanoLoanEngine.sol");
 var TestOracle = artifacts.require("./examples/TestOracle.sol");
+var TestCosigner = artifacts.require("./examples/TestCosigner.sol");
 
 contract('NanoLoanEngine', function(accounts) {
     let rcn;
     let engine;
     let oracle;
+    let cosigner;
 
     beforeEach("Create engine and token", async function(){ 
         rcn = await TestToken.new();
         engine = await NanoLoanEngine.new(rcn.address, {from:accounts[0]});
-        oracle = await TestOracle.new()
+        oracle = await TestOracle.new();
+        cosigner = await TestCosigner.new(rcn.address);
     })
 
     async function assertThrow(promise) {
@@ -85,7 +88,14 @@ contract('NanoLoanEngine', function(accounts) {
         
         // create a new loan
         let loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.toWei(1), toInterestRate(27),
-            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[1]);
+            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[0]);
+
+        // the borrower should approve the loan
+        await engine.approveLoan(loanId, {from:accounts[1]})
+
+        // the creator should be accounts 0
+        let creator = await engine.getCreator(loanId)
+        assert.equal(creator, accounts[0], "Creator should be account 0")
 
         // load the sample test data
         let dummyData = await oracle.dummyDataBytes();
@@ -313,6 +323,62 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(allLoans3[0], loanId3, "Should have loan 3")
     })
 
+    it("Should work with a cosigner", async()=> {
+        // Create loan
+        let loanId = await createLoan(engine, 0x0, accounts[0], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
+        86400, 0, 10 * 10**20, accounts[0]);
+
+        // get cosigner data
+        let cosignerData = await cosigner.data();
+
+        // lend with cosigner
+        await buyTokens(rcn, accounts[1], web3.toWei(3));
+        await rcn.approve(engine.address, web3.toWei(3), {from:accounts[1]})
+        await engine.lend(loanId, [], cosigner.address, cosignerData, {from:accounts[1]})
+
+        // cosigner should have 1 RCN
+        let cosignerBalance = await rcn.balanceOf(cosigner.address);
+        assert.equal(cosignerBalance.toNumber(), web3.toWei(1), "Cosigner should have 1 RCN")
+
+        // the cosigner of the loan should be the test cosigner
+        let loanCosigner = await engine.getCosigner(loanId)
+        assert.equal(loanCosigner, cosigner.address, "The cosigner should be the test cosigner")
+
+        // the loan should be in lent status
+        let loanStatus = await engine.getStatus(loanId)
+        assert.equal(loanStatus.toNumber(), 1, "The status should be lent")
+    })
+
+    it("Should not work with the wrong cosigner data", async() => {
+        // Create loan
+        let loanId = await createLoan(engine, 0x0, accounts[0], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
+        86400, 0, 10 * 10**20, accounts[0]);
+
+        // cosigner should be empty
+        let loanCosigner = await engine.getCosigner(loanId)
+        assert.equal(loanCosigner, 0x0, "Cosigner should be empty");
+
+        // get cosigner data
+        let cosignerData = await cosigner.badData();
+
+        // lend with cosigner, should fail because of the bad data
+        await buyTokens(rcn, accounts[1], web3.toWei(3));
+        await rcn.approve(engine.address, web3.toWei(3), {from:accounts[1]});
+        await assertThrow(engine.lend(loanId, [], cosigner.address, cosignerData, {from:accounts[1]}));
+
+        // cosigner should have 0 RCN
+        let cosignerBalance = await rcn.balanceOf(cosigner.address);
+        assert.equal(cosignerBalance.toNumber(), 0, "Cosigner should have 0 RCN");
+
+        // the cosigner of the loan should not be the test cosigner
+        loanCosigner = await engine.getCosigner(loanId)
+        assert.equal(loanCosigner, 0x0, "The cosigner should not be the test cosigner")
+
+        // the loan should be in initial status
+        let loanStatus = await engine.getStatus(loanId)
+        assert.equal(loanStatus.toNumber(), 0, "The status should be initial")
+    })
+
     it("Test E2 28% Anual interest, 91 days", e_test(10000, 11108571428571, 7405714285714, 7862400, 30, 10233, 31,  10474, 91, 11469));
     it("Test E3 28% Anual interest, 30 days", e_test(800000, 11108571428571, 7405714285714, 2592000, 10, 806222, 10,  812444, 30, 837768));
     it("Test E4 27% Anual interest, 30 days", e_test(10000, 11520000000000, 7680000000000, 2592000, 10, 10075, 10, 10150, 30, 10455));
@@ -323,12 +389,56 @@ contract('NanoLoanEngine', function(accounts) {
     it("Test E9 42% Anual interset, 30 days", e_test(500000, 7405714285714, 4937142857142, 2592000, 10, 505833, 10, 511667, 30, 535613));
     it("Test E10 30% Anual interset, 30 days", e_test(300000, 10368000000000, 6912000000000, 2592000, 10, 302500, 10, 305000, 30, 315188));
 
-    function e_test(amount, interest, punnitoryInterest, dueTime, d1, v1, d2, v2, d3, v3) { return async() => {
+    function e_test(amount, interest, punitoryInterest, duesIn, d1, v1, d2, v2, d3, v3) { return async() => {
         let secondsInDay = 86400;
 
         // Create a new loan with the received params
-        let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, amount, interest, punnitoryInterest, 
-            dueTime, 0, 10 * 10**20, accounts[1]);
+        let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, amount, interest, punitoryInterest, 
+            duesIn, 0, 10 * 10**20, accounts[1]);
+
+        // test configuration params
+        let cosigner = await engine.getCosigner(loanId)
+        let borrower = await engine.getBorrower(loanId)
+        let creator = await engine.getCreator(loanId)
+        let lender = await engine.ownerOf(loanId)
+        let currency = await engine.getCurrency(loanId)
+        let oracle = await engine.getOracle(loanId)
+        let status = await engine.getStatus(loanId)
+        let loanAmount = await engine.getAmount(loanId)
+        let loanInterest = await engine.getInterest(loanId)
+        let loanPunitoryInterest = await engine.getPunitoryInterest(loanId)
+        let interestTimestamp = await engine.getInterestTimestamp(loanId)
+        let paid = await engine.getPaid(loanId)
+        let interestRate = await engine.getInterestRate(loanId)
+        let interestRatePunitory = await engine.getInterestRatePunitory(loanId)
+        let dueTime = await engine.getDueTime(loanId)
+        let loanDuesIn = await engine.getDuesIn(loanId)
+        let cancelableAt = await engine.getCancelableAt(loanId)
+        let lenderBalance = await engine.getLenderBalance(loanId)
+        let approvedTransfer = await engine.getApprovedTransfer(loanId)
+        let expirationRequest = await engine.getExpirationRequest(loanId)
+
+        assert.equal(expirationRequest.toNumber(), 10 * 10**20, "Should had the defined expiration")
+        assert.equal(approvedTransfer, 0x0, "Approved transfer should start empty")
+        assert.equal(cancelableAt.toNumber(), 0, "Cancelable at should be 0")
+        assert.equal(lenderBalance.toNumber(), 0, "Lender balance should start at 0")
+        assert.equal(dueTime.toNumber(), 0, "Due time should start at 0")
+        assert.equal(loanDuesIn.toNumber(), duesIn, "Dues in should be the defined")
+        assert.equal(interestRate.toNumber(), interest, "Interest rate should be the defined")
+        assert.equal(interestRatePunitory.toNumber(), punitoryInterest, "Interest rate punitory should be the defined")
+        assert.equal(paid.toNumber(), 0, "Paid should start at 0")
+        assert.equal(interestTimestamp.toNumber(), 0, "Interest timestamp should start at 0")
+        assert.equal(loanInterest.toNumber(), 0, "Interest should start at 0")
+        assert.equal(loanPunitoryInterest.toNumber(), 0, "Punitory interest should start at 0")
+        assert.equal(loanAmount.toNumber(), amount, "Amount should be the defined amount")
+        assert.equal(status.toNumber(), 0, "Status should be initial")
+        assert.equal(cosigner, 0x0, "Cosigner should be empty")
+        assert.equal(borrower, accounts[1], "Borrower should be account 1")
+        assert.equal(creator, accounts[1], "Creator should be account 0")
+        assert.equal(lender, 0x0, "Lender should be empty")
+        assert.equal(currency, 0x0, "Currency should be empty")
+        assert.equal(oracle, 0x0, "Oracle should be empty")
+
 
         // Check if the loan is approved
         let isApproved = await engine.isApproved(loanId)
