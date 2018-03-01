@@ -505,6 +505,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(loan.status == Status.lent);
         addInterest(index);
         uint256 toPay = min(getPendingAmount(index), _amount);
+        PartialPayment(index, msg.sender, _from, toPay);
 
         loan.paid = safeAdd(loan.paid, toPay);
 
@@ -523,7 +524,6 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         lockTokens(rcn, transferValue);
         require(rcn.transferFrom(msg.sender, this, transferValue));
         loan.lenderBalance = safeAdd(transferValue, loan.lenderBalance);
-        PartialPayment(index, msg.sender, _from, toPay);
 
         return true;
     }
