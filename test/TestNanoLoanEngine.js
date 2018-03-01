@@ -49,7 +49,7 @@ contract('NanoLoanEngine', function(accounts) {
 
     async function lendLoan(rcn, engine, account, index, max) {
         await buyTokens(rcn, account, max);
-        await rcn.approve(engine.address, web3.toWei(20), {from:account})
+        await rcn.approve(engine.address, max, {from:account})
         await engine.lend(index, [], 0x0, [], {from:account})
     }
 
@@ -188,6 +188,129 @@ contract('NanoLoanEngine', function(accounts) {
         // test if the remaining tokens of the lenders keeps being locked
         await assertThrow(engine.withdrawTokens(rcn.address, accounts[5], 1), "Tokens of lender should not be accesible")
         
+    })
+
+    it("Test fix error pay all", async() => {
+        // create a loan and paid it
+        let loanId = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
+        86400, 0, 10 * 10**20, accounts[0]);
+        await lendLoan(rcn, engine, accounts[1], loanId, 4000)
+
+        // fully pay a loan
+        await buyTokens(rcn, accounts[0], 8000)
+        await rcn.approve(engine.address, 8000, {from:accounts[0]})
+        await engine.pay(loanId, 8000, accounts[0], [], {from:accounts[0]})
+
+    })
+
+    it("Should work as a ERC721 token", async()=> {
+        // Total supply should start at 1
+        let totalSupply = await engine.totalSupply()
+        assert.equal(totalSupply.toNumber(), 0, "Total supply should start at 0")
+
+        // Create 5 loans
+        let loanId1 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
+        86400, 0, 10 * 10**20, accounts[0]);
+        let loanId2 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
+        86400, 0, 10 * 10**20, accounts[0]);
+        let loanId3 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
+        86400, 0, 10 * 10**20, accounts[0]);
+        let loanId4 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
+        86400, 0, 10 * 10**20, accounts[0]);
+        let loanId5 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
+        86400, 0, 10 * 10**20, accounts[0]);
+
+        // Total supply should remain 0 until one loan activates
+        totalSupply = await engine.totalSupply()
+        assert.equal(totalSupply.toNumber(), 0, "Total supply be 0")
+
+        // lend 2 loans
+        await lendLoan(rcn, engine, accounts[1], loanId1, 4000)
+        await lendLoan(rcn, engine, accounts[1], loanId2, 4000)
+
+        // Total supply should be 2
+        totalSupply = await engine.totalSupply()
+        assert.equal(totalSupply.toNumber(), 2, "Should have 2 active loans")
+
+        // Check the lender balance
+        let account1balance = await engine.balanceOf(accounts[1])
+        assert.equal(account1balance.toNumber(), 2, "Account 1 has 2 loans")
+
+        // Check the list of loans of account 1
+        let allLoans = await engine.tokensOfOwner(accounts[1])
+        assert.equal(allLoans.length, 2, "Account should have 2 loans")
+        assert.equal(allLoans[0], loanId1, "Should have loan 1")
+        assert.equal(allLoans[1], loanId2, "Should have loan 2")
+
+        // Test all loans by index of account 1
+        let tokenIndex0 = await engine.tokenOfOwnerByIndex(accounts[1], 0)
+        assert.equal(tokenIndex0, loanId1, "Token 0 should be loan 1")
+
+        let tokenIndex1 = await engine.tokenOfOwnerByIndex(accounts[1], 1)
+        assert.equal(tokenIndex1, loanId2, "Token 1 should be loan 2")
+
+        // lend 1 more loan from another lender
+        await lendLoan(rcn, engine, accounts[2], loanId3, 4000)
+
+        // Total supply should be 3
+        totalSupply = await engine.totalSupply()
+        assert.equal(totalSupply.toNumber(), 3, "Should have 3 active loans")
+
+        // account 2 should have 1 loan
+        let account2balance = await engine.balanceOf(accounts[2])
+        assert.equal(account2balance.toNumber(), 1, "Account 2 has 1 loans")
+
+        // transfer all loans to account 3
+        await engine.transfer(accounts[3], loanId1, {from:accounts[1]})
+        await engine.transfer(accounts[3], loanId2, {from:accounts[1]})
+        await engine.transfer(accounts[3], loanId3, {from:accounts[2]})
+
+        // account 3 should have 3 loans
+        let account3balance = await engine.balanceOf(accounts[3])
+        assert.equal(account3balance.toNumber(), 3, "Account 3 has 3 loans")
+
+        // check all loans of account 3
+        let allLoans3 = await engine.tokensOfOwner(accounts[3])
+        assert.equal(allLoans3.length, 3, "Account should have 3 loans")
+        assert.equal(allLoans3[0], loanId1, "Should have loan 1")
+        assert.equal(allLoans3[1], loanId2, "Should have loan 2")
+        assert.equal(allLoans3[2], loanId3, "Should have loan 3")
+
+        // account 1 and 2 should have no loans
+        allLoans = await engine.tokensOfOwner(accounts[1])
+        assert.equal(allLoans.length, 0, "Account 1 should have 0 loans")
+        allLoans2 = await engine.tokensOfOwner(accounts[2])
+        assert.equal(allLoans2.length, 0, "Account 2 should have 0 loans")
+
+        // destroy one loan
+        await engine.destroy(loanId2, {from:accounts[3]})
+
+        // check all loans of account 3
+        allLoans3 = await engine.tokensOfOwner(accounts[3])
+        assert.equal(allLoans3.length, 2, "Account should have 2 loans")
+        assert.equal(allLoans3[0], loanId1, "Should have loan 1")
+        assert.equal(allLoans3[1], loanId3, "Should have loan 3")
+        
+        // total supply should have dropped
+        totalSupply = await engine.totalSupply()
+        assert.equal(totalSupply.toNumber(), 2, "Should have 2 active loans")
+
+        // lend a new loan
+        await lendLoan(rcn, engine, accounts[5], loanId4, 4000)
+
+        // fully pay a loan
+        await buyTokens(rcn, accounts[0], 8000)
+        await rcn.approve(engine.address, 8000, {from:accounts[0]})
+        await engine.pay(loanId1, 8000, accounts[0], [], {from:accounts[0]})
+
+        // total supply should have dropped
+        totalSupply = await engine.totalSupply()
+        assert.equal(totalSupply.toNumber(), 2, "Should have 2 active loans")
+
+        // check all loans of account 3
+        allLoans3 = await engine.tokensOfOwner(accounts[3])
+        assert.equal(allLoans3.length, 1, "Account should have 2 loans")
+        assert.equal(allLoans3[0], loanId3, "Should have loan 3")
     })
 
     it("Test E2 28% Anual interest, 91 days", e_test(10000, 11108571428571, 7405714285714, 7862400, 30, 10233, 31,  10474, 91, 11469));
