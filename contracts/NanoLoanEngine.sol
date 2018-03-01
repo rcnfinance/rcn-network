@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+    pragma solidity ^0.4.15;
 
 import './interfaces/Oracle.sol';
 import "./interfaces/Token.sol";
@@ -158,7 +158,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(_interestRate != 0);
         require(_expirationRequest > block.timestamp);
 
-        var loan = Loan(_oracleContract, Status.initial, _borrower, 0x0, 0x0, msg.sender, _amount, 0, 0, 0, 0, _interestRate,
+        var loan = Loan(_oracleContract, Status.initial, _borrower, 0x0, msg.sender, 0x0, _amount, 0, 0, 0, 0, _interestRate,
             _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest);
         uint index = loans.push(loan) - 1;
         CreatedLoan(index, _borrower, msg.sender);
