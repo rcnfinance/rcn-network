@@ -1,14 +1,16 @@
 var TestToken = artifacts.require("./utils/TestToken.sol");
 var NanoLoanEngine = artifacts.require("./NanoLoanEngine.sol");
-var BasicOracle = artifacts.require("./examples/TestOracle.sol");
+var TestOracle = artifacts.require("./examples/TestOracle.sol");
 
 contract('NanoLoanEngine', function(accounts) {
     let rcn;
     let engine;
+    let oracle;
 
     beforeEach("Create engine and token", async function(){ 
         rcn = await TestToken.new();
-        engine = await NanoLoanEngine.new(rcn.address);
+        engine = await NanoLoanEngine.new(rcn.address, {from:accounts[0]});
+        oracle = await TestOracle.new()
     })
 
     async function assertThrow(promise) {
@@ -45,18 +47,21 @@ contract('NanoLoanEngine', function(accounts) {
         return newLoans - 1;
     }
 
+    async function lendLoan(rcn, engine, account, index, max) {
+        await buyTokens(rcn, account, max);
+        await rcn.approve(engine.address, web3.toWei(20), {from:account})
+        await engine.lend(index, [], 0x0, [], {from:account})
+    }
+
     async function increaseTime(delta) {
         await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 0});
     }
     
     function toInterestRate(interest) { return (10000000 / interest) * 360 * 86400;  }
-    function toWei(amount) { return amount * 10 ** 18; }
 
-    it("Lend should fail if loan not approved", async() => {
-        // instance = await deployEngine(instance);
-        
+    it("Lend should fail if loan not approved", async() => {        
         // create a new loan
-        let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, toWei(2), toInterestRate(27), toInterestRate(40), 
+        let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
             86400, 0, 10 * 10**20, accounts[0]);
 
         // check that the loan is not approved
@@ -64,8 +69,8 @@ contract('NanoLoanEngine', function(accounts) {
         assert.isFalse(isApproved, "Should not be approved")
 
         // buy RCN and approve the token transfer
-        await buyTokens(rcn, accounts[2], toWei(20));
-        await rcn.approve(engine.address, toWei(2), {from:accounts[2]})
+        await buyTokens(rcn, accounts[2], web3.toWei(20));
+        await rcn.approve(engine.address, web3.toWei(20), {from:accounts[2]})
 
         // try to lend and expect an exception
         await assertThrow(engine.lend(loanId, [], 0x0, [], {from:accounts[2]}))
@@ -73,6 +78,116 @@ contract('NanoLoanEngine', function(accounts) {
         // check that the status didn't change
         let status = await engine.getStatus(loanId)
         assert.equal(status.toNumber(), 0, "Status should be initial")
+    })
+
+    it("Should handle a loan with an oracle", async() => {
+        let ethCurrency = 0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861;
+        
+        // create a new loan
+        let loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.toWei(1), toInterestRate(27),
+            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[1]);
+
+        // load the sample test data
+        let dummyData = await oracle.dummyDataBytes();
+
+        // buy RCN and approve the token transfer
+        await buyTokens(rcn, accounts[2], web3.toWei(7000));
+        await rcn.approve(engine.address, web3.toWei(7000), {from:accounts[2]})
+
+        // execute the lend
+        await engine.lend(loanId, dummyData, 0x0, [], {from:accounts[2]});
+
+        // check the lender of the loan
+        let loanOwner = await engine.ownerOf(loanId);
+        assert.equal(loanOwner, accounts[2], "The lender should be account 2")
+
+        // check the borrower balance
+        let borrowerBalance = await rcn.balanceOf(accounts[1]);
+        assert.equal(borrowerBalance.toNumber(), web3.toWei(1) * 6000, "Borrower balance should be 6000 RCN");
+
+        // check the status of the loan
+        let status = await engine.getStatus(loanId)
+        assert.equal(status.toNumber(), 1, "Status should be lent")
+
+        // pay half of the loan
+        await rcn.approve(engine.address, web3.toWei(7000), {from:accounts[1]})
+        await engine.pay(loanId, web3.toWei(1) / 2, accounts[1], dummyData, {from:accounts[1]})
+
+        // check if payment succeded
+        let lenderBalance = await engine.getLenderBalance(loanId)
+        let engineBalance = await rcn.balanceOf(engine.address)
+        assert.equal(lenderBalance.toNumber(), engineBalance.toNumber(), "All the engine balance should be for the lender")
+        assert.equal(lenderBalance.toNumber(), (web3.toWei(1) / 2) * 6000, "The lender should have received 3000 RCN")
+
+        // pay the total of the loan
+        await buyTokens(rcn, accounts[1], web3.toWei(5000))
+        await rcn.approve(engine.address, web3.toWei(5000), {from:accounts[1]})
+        await engine.pay(loanId, web3.toWei(1), accounts[1], dummyData, {from:accounts[1]})
+
+        // check the status of the loan, should be paid
+        status = await engine.getStatus(loanId)
+        assert.equal(status.toNumber(), 2, "Status should be paid")
+    })
+
+    it("Should fail if the oracle has the wrong data", async() => {
+        let ethCurrency = 0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861;
+        
+        // create a new loan
+        let loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.toWei(1), toInterestRate(27),
+            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[1]);
+
+        // buy RCN and approve the token transfer
+        await buyTokens(rcn, accounts[2], web3.toWei(7000));
+        await rcn.approve(engine.address, web3.toWei(7000), {from:accounts[2]})
+
+        // execute the lend but with a wrong oracle data
+        await assertThrow(engine.lend(loanId, [0x23, 0x12, 0x4a], 0x0, [], {from:accounts[2]}));
+
+        // check that the status didn't change
+        let status = await engine.getStatus(loanId)
+        assert.equal(status.toNumber(), 0, "Status should be initial")
+    })
+
+    it("Should not allow the withdraw of lender tokens, but permit a emergency withdrawal", async() => {
+        // create a new loan and lend it
+        let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
+            86400, 0, 10 * 10**20, accounts[1]);
+        await lendLoan(rcn, engine, accounts[2], loanId, web3.toWei(2));
+        
+        // pay the loan
+        await buyTokens(rcn, accounts[1], web3.toWei(2))
+        await rcn.approve(engine.address, web3.toWei(2), {from:accounts[1]})
+        await engine.pay(loanId, web3.toWei(2), accounts[1], [], {from:accounts[1]})
+        
+        // try and fail to withdraw tokens as the owner of the engine
+        await assertThrow(engine.withdrawTokens(rcn.address, accounts[3], web3.toWei(1), {from:accounts[0]}));
+
+        // check if the balance of the engine is still there
+        let engineBalance = await rcn.balanceOf(engine.address);
+        assert.equal(engineBalance.toNumber(), web3.toWei(2), "The engine balance should be 2 RCN")
+
+        // deposit some RCN "by mistake"
+        await buyTokens(rcn, accounts[4], web3.toWei(1))
+        await rcn.transfer(engine.address, web3.toWei(1), {from:accounts[4]})
+
+        // lender trying to withdraw more of his balance should fail
+        await assertThrow(engine.withdrawal(loanId, web3.toWei(2.5), accounts[2], {from:accounts[2]}))
+        let lenderBalance = await rcn.balanceOf(accounts[2])
+        assert.equal(lenderBalance.toNumber(), 0, "Lender should have no balance")
+
+        // test the emergency withdraw function
+        await engine.withdrawTokens(rcn.address, accounts[3], web3.toWei(1), {from:accounts[0]})
+        let emergencyBalance = await rcn.balanceOf(accounts[3])
+        assert.equal(emergencyBalance.toNumber(), web3.toWei(1), "The emergency balance should be on the account 3")
+        
+        // withdraw part of the lender balance and check it
+        await engine.withdrawal(loanId, accounts[2], 2000, {from:accounts[2]})
+        lenderBalance = await rcn.balanceOf(accounts[2])
+        assert.equal(lenderBalance.toNumber(), 2000, "Lender should have his RCN")
+
+        // test if the remaining tokens of the lenders keeps being locked
+        await assertThrow(engine.withdrawTokens(rcn.address, accounts[5], 1), "Tokens of lender should not be accesible")
+        
     })
 
     it("Test E2 28% Anual interest, 91 days", e_test(10000, 11108571428571, 7405714285714, 7862400, 30, 10233, 31,  10474, 91, 11469));
@@ -97,8 +212,8 @@ contract('NanoLoanEngine', function(accounts) {
         assert.isTrue(isApproved, "Should be approved")
 
         // Buy tokens and prepare the lender to do the lent
-        await buyTokens(rcn, accounts[2], toWei(100));
-        await rcn.approve(engine.address, toWei(100), {from:accounts[2]})
+        await buyTokens(rcn, accounts[2], web3.toWei(100));
+        await rcn.approve(engine.address, web3.toWei(100), {from:accounts[2]})
         
         // accounts[2] lends to the borrower
         await engine.lend(loanId, [], 0x0, [], {from:accounts[2]})
