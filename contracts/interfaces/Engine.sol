@@ -3,6 +3,9 @@ pragma solidity ^0.4.15;
 import './Oracle.sol';
 
 contract Engine {
+    uint256 public VERSION;
+    string public VERSION_NAME;
+
     enum Status { initial, lent, paid, destroyed }
     struct Approbation {
         bool approved;

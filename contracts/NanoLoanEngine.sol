@@ -10,12 +10,13 @@ import "./interfaces/ERC721.sol";
 
 contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     uint256 public constant VERSION = 202;
+    string public constant VERSION_NAME = "Basalt";
 
     uint256 private activeLoans = 0;
     mapping(address => uint256) private lendersBalance;
 
     function name() constant returns (string _name) {
-        _name = "RCN - Nano loan engine 202";
+        _name = "RCN - Nano loan engine - Basalt 202";
     }
 
     function symbol() constant returns (string _symbol) {
