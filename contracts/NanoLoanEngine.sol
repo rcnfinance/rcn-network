@@ -220,7 +220,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         ApprovedBy(index, msg.sender);
         return true;
     }
-    
+
     /**
         @dev Performs the lend of the RCN equivalent to the requested amount, and transforms the msg.sender in the new lender.
 
@@ -542,12 +542,11 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     */
     function withdrawal(uint index, address to, uint256 amount) public returns (bool) {
         Loan storage loan = loans[index];
-        if (msg.sender == loan.lender && loan.lenderBalance >= amount) {
-            loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
-            require(rcn.transfer(to, amount));
-            unlockTokens(rcn, amount);
-            return true;
-        }
+        require(msg.sender == loan.lender);
+        loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
+        require(rcn.transfer(to, amount));
+        unlockTokens(rcn, amount);
+        return true;
     }
 
     /**
