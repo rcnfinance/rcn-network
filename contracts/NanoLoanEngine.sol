@@ -1,4 +1,4 @@
-    pragma solidity ^0.4.15;
+pragma solidity ^0.4.15;
 
 import './interfaces/Oracle.sol';
 import "./interfaces/Token.sol";
@@ -567,6 +567,42 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(rcn.transfer(to, amount));
         unlockTokens(rcn, amount);
         return true;
+    }
+
+    function withdrawalRange(uint256 fromIndex, uint256 toIndex, address to) public returns (uint256) {
+        uint256 loanId;
+        uint256 totalWithdraw = 0;
+
+        for (loanId = fromIndex; loanId <= toIndex; loanId++) {
+            Loan storage loan = loans[loanId];
+            if (loan.lender == msg.sender) {
+                totalWithdraw += loan.lenderBalance;
+                loan.lenderBalance = 0;
+            }
+        }
+
+        require(rcn.transfer(to, totalWithdraw));
+        unlockTokens(rcn, totalWithdraw);
+        
+        return totalWithdraw;
+    }
+
+    function withdrawalList(uint256[] memory loanIds, address to) public returns (uint256) {
+        uint256 inputId;
+        uint256 totalWithdraw = 0;
+
+        for (inputId = 0; inputId < loanIds.length; inputId++) {
+            Loan storage loan = loans[loanIds[inputId]];
+            if (loan.lender == msg.sender) {
+                totalWithdraw += loan.lenderBalance;
+                loan.lenderBalance = 0;
+            }
+        }
+
+        require(rcn.transfer(to, totalWithdraw));
+        unlockTokens(rcn, totalWithdraw);
+
+        return totalWithdraw;
     }
 
     /**
