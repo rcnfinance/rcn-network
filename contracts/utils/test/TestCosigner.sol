@@ -2,7 +2,7 @@ pragma solidity ^0.4.15;
 
 import "./../../interfaces/Cosigner.sol";
 import "./../../utils/BytesUtils.sol";
-
+import "./../../interfaces/Engine.sol";
 import "./../../interfaces/Token.sol";
 
 contract TestCosigner is Cosigner, BytesUtils {
@@ -27,17 +27,16 @@ contract TestCosigner is Cosigner, BytesUtils {
         }
     }
 
-    function getCost(address, uint256, bytes data) constant returns (uint256) {
+    function cost(address, uint256, bytes data, bytes) constant returns (uint256) {
         return uint256(readBytes32(data, 1));
     }
 
-    function cosign(address engine, uint256, bytes data) returns (bool) {
+    function requestCosign(Engine engine, uint256 index, bytes data, bytes) returns (bool) {
         if(readBytes32(data, 0) == keccak256("test_oracle")) {
-            require(token.transferFrom(engine, this, uint256(readBytes32(data, 1))));
+            require(engine.cosign(index, uint256(readBytes32(data, 1))));
             return true;
         } else {
-            require(token.transferFrom(engine, this, uint256(readBytes32(data, 1))));
-            return false;
+            return true;
         }
     }
 
