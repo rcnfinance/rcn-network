@@ -48,7 +48,7 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
 
         @return the cost of the insurance in RCN wei.
     */
-    function getCost(address engine, uint256 index, bytes data) constant public returns (uint256) {
+    function cost(address engine, uint256 index, bytes data, bytes) constant public returns (uint256) {
         return uint256(readBytes32(data, INDEX_COST));
     }
 
@@ -62,22 +62,26 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
 
         @return true If the cosign was done
     */
-    function cosign(address engine, uint256 index, bytes data) public returns (bool) {
-        require(msg.sender == engine);
+    function requestCosign(Engine engine, uint256 index, bytes data, bytes) public returns (bool) {
+        require(msg.sender == address(engine));
         require(expiration < block.timestamp);
+        require(liabilities[engine][index].coverage == 0);
 
         uint256 cost = uint256(readBytes32(data, INDEX_COST));
         uint256 coverage = uint256(readBytes32(data, INDEX_COVERAGE));
         uint256 requiredArrears = uint256(readBytes32(data, INDEX_REQUIRED_ARREARS));
         uint256 expiration = uint256(readBytes32(data, INDEX_EXPIRATION));
 
+        require(coverage != 0);
+
         bytes32 hash = keccak256(this, cost, engine, index, coverage, requiredArrears, expiration);
         address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32",hash),uint8(readBytes32(data, INDEX_V)),
             readBytes32(data, INDEX_R),readBytes32(data, INDEX_S));
         require(isDelegate(signer));
         
-        require(rcn.transferFrom(engine, this, cost));
         liabilities[engine][index] = Liability(coverage, requiredArrears, false);
+        require(engine.cosign(index, cost));
+
         return true;
     }
 

@@ -1,5 +1,7 @@
 pragma solidity ^0.4.15;
 
+import "./Engine.sol";
+
 /**
     @dev Defines the interface of a standard RCN cosigner.
 
@@ -22,20 +24,20 @@ contract Cosigner {
     function url() constant returns (string);
     
     /**
-        @dev Retrieves the cost of a given insurance, this amount should be exact, if when called the "cosign" method
-        the cosigner does not withdraw this exact amount of RCN from the engine, the whole operation will fail.
+        @dev Retrieves the cost of a given insurance, this amount should be exact.
 
         @return the cost of the cosign, in RCN wei
     */
-    function getCost(address engine, uint256 index, bytes data) constant returns (uint256);
+    function cost(address engine, uint256 index, bytes data, bytes oracleData) constant returns (uint256);
     
     /**
         @dev The engine calls this method for confirmation of the conditions, if the cosigner accepts the liability of
-        the insurance; and the paremeters passed in the data field this method should return true.
+        the insurance it must call the method "cosign" of the engine. If the cosigner does not call that method, or
+        does not return true to this method, the operation fails.
 
         @return true if the cosigner accepts the liability
     */
-    function cosign(address engine, uint256 index, bytes data) returns (bool);
+    function requestCosign(Engine engine, uint256 index, bytes data, bytes oracleData) public returns (bool);
     
     /**
         @dev Claims the benefit of the insurance if the loan is defaulted, this method should be only calleable by the

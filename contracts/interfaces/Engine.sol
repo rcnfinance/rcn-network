@@ -27,7 +27,7 @@ contract Engine {
     function isApproved(uint index) constant returns (bool);
     function getPendingAmount(uint index) constant public returns (uint256);
     function getCurrency(uint index) constant public returns (bytes32);
-
+    function cosign(uint index, uint256 cost) external returns (bool);
     function approveLoan(uint index) public returns (bool);
     function transfer(address to, uint256 index) public returns (bool);
     function takeOwnership(uint256 index) public returns (bool);

@@ -96,8 +96,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     struct Loan {
-        Oracle oracle;
         Status status;
+        Oracle oracle;
 
         address borrower;
         address lender;
@@ -159,7 +159,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(_interestRate != 0);
         require(_expirationRequest > block.timestamp);
 
-        var loan = Loan(_oracleContract, Status.initial, _borrower, 0x0, msg.sender, 0x0, _amount, 0, 0, 0, 0, _interestRate,
+        var loan = Loan(Status.initial, _oracleContract, _borrower, 0x0, msg.sender, 0x0, _amount, 0, 0, 0, 0, _interestRate,
             _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest);
         uint index = loans.push(loan) - 1;
         CreatedLoan(index, _borrower, msg.sender);
@@ -255,12 +255,12 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         uint256 rate = getRate(loan, oracleData);
 
         if (cosigner != address(0)) {
-            uint256 cosignerCost = cosigner.getCost(this, index, cosignerData);
-            require(rcn.transferFrom(msg.sender, this, cosignerCost));
-            require(rcn.approve(cosigner, cosignerCost));
-            require(cosigner.cosign(this, index, cosignerData));
-            require(rcn.allowance(this, cosigner) == 0);
-            loan.cosigner = cosigner;
+            // The cosigner it's temporary set to the next address (cosigner + 2), it's expected that the cosigner will
+            // call the method "cosign" to accept the conditions; that method also sets the cosigner to the right
+            // address. If that does not happen, the transaction fails.
+            loan.cosigner = address(uint256(msg.sender) + 2);
+            require(cosigner.requestCosign(this, index, cosignerData, oracleData));
+            require(loan.cosigner == address(cosigner));
         }
         
         require(rcn.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, rate)));
@@ -271,6 +271,24 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         lendersBalance[loan.lender] += 1;
         Lent(index, loan.lender, 0x0);
 
+        return true;
+    }
+
+    /**
+        @dev The cosigner must call this method to accept the conditions of a loan, this method pays the cosigner his fee
+
+        @param index Index of the loan
+        @param cost Fee set by the cosigner
+
+        @return true If the cosign was successfull
+    */
+    function cosign(uint index, uint256 cost) external returns (bool) {
+        Loan storage loan = loans[index];
+        require(loan.status == Status.lent && (loan.dueTime - loan.duesIn) == block.timestamp);
+        require(loan.cosigner != address(0));
+        require(loan.cosigner == address(uint256(msg.sender) + 2));
+        loan.cosigner = msg.sender;
+        require(rcn.transferFrom(loan.lender, msg.sender, cost));
         return true;
     }
 
