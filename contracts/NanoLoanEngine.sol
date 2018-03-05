@@ -79,6 +79,10 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             return result;
         }
     }
+
+    function allowance(address from, uint256 index) constant public returns (bool) {
+        return loans[index].approvedTransfer == from;
+    }
     
     Token public rcn;
     bool public deprecated;
