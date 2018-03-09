@@ -83,7 +83,15 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function allowance(address from, uint256 index) public view returns (bool) {
         return loans[index].approvedTransfer == from;
     }
-    
+
+    function tokenMetadata(uint256 index) public view returns (string) {
+        return loans[index].metadata;
+    }
+
+    function tokenMetadataHash(uint256 index) public view returns (bytes32) {
+        return keccak256(loans[index].metadata);
+    }
+
     Token public rcn;
     bool public deprecated;
 
@@ -125,6 +133,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         address approvedTransfer;
         uint256 expirationRequest;
 
+        string metadata;
         mapping(address => bool) approbations;
     }
 
@@ -152,7 +161,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             the request is no longer valid.
     */
     function createLoan(Oracle _oracleContract, address _borrower, bytes32 _currency, uint256 _amount, uint256 _interestRate,
-        uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest) public returns (uint256) {
+        uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest, string _metadata) public returns (uint256) {
 
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
@@ -164,7 +173,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(_expirationRequest > block.timestamp);
 
         var loan = Loan(Status.initial, _oracleContract, _borrower, 0x0, msg.sender, 0x0, _amount, 0, 0, 0, 0, _interestRate,
-            _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest);
+            _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest, _metadata);
         uint index = loans.push(loan) - 1;
         CreatedLoan(index, _borrower, msg.sender);
 
