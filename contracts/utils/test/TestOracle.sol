@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.19;
 
 import "./../../interfaces/Oracle.sol";
 import "./../../utils/BytesUtils.sol";
@@ -7,7 +7,7 @@ contract TestOracle is Oracle, BytesUtils {
     bytes32 public dummyData = keccak256("test_oracle");
     bytes public dummyDataBytes = buildData(dummyData);
 
-    function buildData(bytes32 d) internal returns (bytes o) {
+    function buildData(bytes32 d) internal pure returns (bytes o) {
         assembly {
             let size := 32
             o := mload(0x40)
@@ -17,11 +17,11 @@ contract TestOracle is Oracle, BytesUtils {
         }
     }
 
-    function url() constant returns (string) {
+    function url() public view returns (string) {
         return "";
     }
 
-    function getRate(bytes32 currency, bytes data) constant returns (uint256) {
+    function getRate(bytes32, bytes data) public returns (uint256) {
         require(readBytes32(data, 0) == dummyData);
         return 6000;
     }
