@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.19;
 
 import "./Engine.sol";
 
@@ -21,14 +21,14 @@ contract Cosigner {
     /**
         @return the url of the endpoint that exposes the insurance offers.
     */
-    function url() constant returns (string);
+    function url() public view returns (string);
     
     /**
         @dev Retrieves the cost of a given insurance, this amount should be exact.
 
         @return the cost of the cosign, in RCN wei
     */
-    function cost(address engine, uint256 index, bytes data, bytes oracleData) constant returns (uint256);
+    function cost(address engine, uint256 index, bytes data, bytes oracleData) public view returns (uint256);
     
     /**
         @dev The engine calls this method for confirmation of the conditions, if the cosigner accepts the liability of

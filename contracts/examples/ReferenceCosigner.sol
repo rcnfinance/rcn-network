@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.19;
 
 import './../utils/BytesUtils.sol';
 import './../utils/RpSafeMath.sol';
@@ -23,7 +23,7 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
     mapping(address => mapping(uint256 => Liability)) public liabilities;
     string private infoUrl;
 
-    function url() constant public returns (string) {
+    function url() public view returns (string) {
         return infoUrl;
     }
 
@@ -48,7 +48,7 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
 
         @return the cost of the insurance in RCN wei.
     */
-    function cost(address engine, uint256 index, bytes data, bytes) constant public returns (uint256) {
+    function cost(address engine, uint256 index, bytes data, bytes) public view returns (uint256) {
         return uint256(readBytes32(data, INDEX_COST));
     }
 
@@ -92,7 +92,7 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
 
         @return true if the loan is considered defaulted
     */
-    function isDefaulted(Engine engine, uint256 index) constant returns (bool) {
+    function isDefaulted(Engine engine, uint256 index) public view returns (bool) {
         Liability storage liability = liabilities[engine][index];
         return engine.getStatus(index) == Engine.Status.lent &&
             safeAdd(engine.getDueTime(index), liability.requiredArrears) <= block.timestamp;

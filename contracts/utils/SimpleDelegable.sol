@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.19;
 
 import "./Ownable.sol";
 
@@ -10,7 +10,7 @@ contract SimpleDelegable is Ownable {
         _;
     }
 
-    function isDelegate(address _delegate) constant public returns (bool) {
+    function isDelegate(address _delegate) public view returns (bool) {
         return delegates[_delegate];
     }
 

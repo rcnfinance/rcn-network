@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.19;
 
 import './interfaces/Oracle.sol';
 import "./interfaces/Token.sol";
@@ -15,23 +15,23 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     uint256 private activeLoans = 0;
     mapping(address => uint256) private lendersBalance;
 
-    function name() constant returns (string _name) {
+    function name() public view returns (string _name) {
         _name = "RCN - Nano loan engine - Basalt 202";
     }
 
-    function symbol() constant returns (string _symbol) {
+    function symbol() public view returns (string _symbol) {
         _symbol = "RCN-NLE-202";
     }
 
-    function totalSupply() constant returns (uint _totalSupply) {
+    function totalSupply() public view returns (uint _totalSupply) {
         _totalSupply = activeLoans;
     }
 
-    function balanceOf(address _owner) constant returns (uint _balance) {
+    function balanceOf(address _owner) public view returns (uint _balance) {
         _balance = lendersBalance[_owner];
     }
 
-    function tokenOfOwnerByIndex(address _owner, uint256 _index) constant returns (uint tokenId) {
+    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint tokenId) {
         uint256 tokenCount = balanceOf(_owner);
 
         if (tokenCount == 0 || _index >= tokenCount) {
@@ -56,7 +56,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         }
     }
 
-    function tokensOfOwner(address _owner) external constant returns(uint256[] ownerTokens) {
+    function tokensOfOwner(address _owner) external view returns(uint256[] ownerTokens) {
         uint256 tokenCount = balanceOf(_owner);
 
         if (tokenCount == 0) {
@@ -80,7 +80,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         }
     }
 
-    function allowance(address from, uint256 index) constant public returns (bool) {
+    function allowance(address from, uint256 index) public view returns (bool) {
         return loans[index].approvedTransfer == from;
     }
     
@@ -152,7 +152,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             the request is no longer valid.
     */
     function createLoan(Oracle _oracleContract, address _borrower, bytes32 _currency, uint256 _amount, uint256 _interestRate,
-        uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest) returns (uint256) {
+        uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest) public returns (uint256) {
 
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
@@ -175,35 +175,35 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         return index;
     }
     
-    function ownerOf(uint256 index) constant returns (address owner) { owner = loans[index].lender; }
-    function getTotalLoans() constant returns (uint256) { return loans.length; }
-    function getOracle(uint index) constant returns (Oracle) { return loans[index].oracle; }
-    function getBorrower(uint index) constant returns (address) { return loans[index].borrower; }
-    function getCosigner(uint index) constant returns (address) { return loans[index].cosigner; }
-    function getCreator(uint index) constant returns (address) { return loans[index].creator; }
-    function getAmount(uint index) constant returns (uint256) { return loans[index].amount; }
-    function getPunitoryInterest(uint index) constant returns (uint256) { return loans[index].punitoryInterest; }
-    function getInterestTimestamp(uint index) constant returns (uint256) { return loans[index].interestTimestamp; }
-    function getPaid(uint index) constant returns (uint256) { return loans[index].paid; }
-    function getInterestRate(uint index) constant returns (uint256) { return loans[index].interestRate; }
-    function getInterestRatePunitory(uint index) constant returns (uint256) { return loans[index].interestRatePunitory; }
-    function getDueTime(uint index) constant returns (uint256) { return loans[index].dueTime; }
-    function getDuesIn(uint index) constant returns (uint256) { return loans[index].duesIn; }
-    function getCancelableAt(uint index) constant returns (uint256) { return loans[index].cancelableAt; }
-    function getApprobation(uint index, address _address) constant returns (bool) { return loans[index].approbations[_address]; }
-    function getStatus(uint index) constant returns (Status) { return loans[index].status; }
-    function getLenderBalance(uint index) constant returns (uint256) { return loans[index].lenderBalance; }
-    function getApprovedTransfer(uint index) constant returns (address) {return loans[index].approvedTransfer; }
-    function getCurrency(uint index) constant returns (bytes32) { return loans[index].currency; }
-    function getExpirationRequest(uint index) constant returns (uint256) { return loans[index].expirationRequest; }
-    function getInterest(uint index) constant returns (uint256) { return loans[index].interest; }
+    function ownerOf(uint256 index) public view returns (address owner) { owner = loans[index].lender; }
+    function getTotalLoans() public view returns (uint256) { return loans.length; }
+    function getOracle(uint index) public view returns (Oracle) { return loans[index].oracle; }
+    function getBorrower(uint index) public view returns (address) { return loans[index].borrower; }
+    function getCosigner(uint index) public view returns (address) { return loans[index].cosigner; }
+    function getCreator(uint index) public view returns (address) { return loans[index].creator; }
+    function getAmount(uint index) public view returns (uint256) { return loans[index].amount; }
+    function getPunitoryInterest(uint index) public view returns (uint256) { return loans[index].punitoryInterest; }
+    function getInterestTimestamp(uint index) public view returns (uint256) { return loans[index].interestTimestamp; }
+    function getPaid(uint index) public view returns (uint256) { return loans[index].paid; }
+    function getInterestRate(uint index) public view returns (uint256) { return loans[index].interestRate; }
+    function getInterestRatePunitory(uint index) public view returns (uint256) { return loans[index].interestRatePunitory; }
+    function getDueTime(uint index) public view returns (uint256) { return loans[index].dueTime; }
+    function getDuesIn(uint index) public view returns (uint256) { return loans[index].duesIn; }
+    function getCancelableAt(uint index) public view returns (uint256) { return loans[index].cancelableAt; }
+    function getApprobation(uint index, address _address) public view returns (bool) { return loans[index].approbations[_address]; }
+    function getStatus(uint index) public view returns (Status) { return loans[index].status; }
+    function getLenderBalance(uint index) public view returns (uint256) { return loans[index].lenderBalance; }
+    function getApprovedTransfer(uint index) public view returns (address) {return loans[index].approvedTransfer; }
+    function getCurrency(uint index) public view returns (bytes32) { return loans[index].currency; }
+    function getExpirationRequest(uint index) public view returns (uint256) { return loans[index].expirationRequest; }
+    function getInterest(uint index) public view returns (uint256) { return loans[index].interest; }
 
     /**
         @param index Index of the loan
 
         @return true if the loan has been approved by the borrower and cosigner.
     */
-    function isApproved(uint index) constant returns (bool) {
+    function isApproved(uint index) public view returns (bool) {
         Loan storage loan = loans[index];
         return loan.approbations[loan.borrower];
     }
@@ -387,13 +387,13 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return Aprox pending payment amount
     */
-    function getPendingAmount(uint index) public constant returns (uint256) {
-        Loan storage loan = loans[index];
+    function getPendingAmount(uint index) public returns (uint256) {
         addInterest(index);
-        return getRawPendingAmount(loan);
+        return getRawPendingAmount(index);
     }
 
-    function getRawPendingAmount(Loan loan) internal returns (uint256) {
+    function getRawPendingAmount(uint index) public view returns (uint256) {
+        Loan memory loan = loans[index];
         return safeSubtract(safeAdd(safeAdd(loan.amount, loan.interest), loan.punitoryInterest), loan.paid);
     }
 
@@ -407,7 +407,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @return realDelta The real timeDelta applied
         @return interest The interest gained in the realDelta time
     */
-    function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) public constant returns (uint256 realDelta, uint256 interest) {
+    function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) internal pure returns (uint256 realDelta, uint256 interest) {
         if (amount == 0) {
             interest = 0;
             realDelta = timeDelta;
@@ -530,7 +530,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         loan.paid = safeAdd(loan.paid, toPay);
 
-        if (getRawPendingAmount(loan) == 0) {
+        if (getRawPendingAmount(index) == 0) {
             TotalPayment(index);
             loan.status = Status.paid;
 

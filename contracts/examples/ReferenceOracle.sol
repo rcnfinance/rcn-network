@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.19;
 
 import './../utils/Delegable.sol';
 import './../interfaces/Token.sol';
@@ -24,7 +24,7 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         uint256 rate;
     }
 
-    function url() public constant returns (string) {
+    function url() public view returns (string) {
         return infoUrl;
     }
 
@@ -56,7 +56,7 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
 
         @return the rate of the currency
     */
-    function getRate(bytes32 currency, bytes data) constant returns (uint256) {
+    function getRate(bytes32 currency, bytes data) public returns (uint256) {
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
         require(timestamp <= block.timestamp);
         require(timestamp > block.timestamp - expiration);

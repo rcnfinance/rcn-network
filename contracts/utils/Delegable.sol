@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.19;
 
 import "./Ownable.sol";
 
@@ -27,7 +27,7 @@ contract Delegable is Ownable {
 
         @return true if at the timestamp the delegate existed
     */
-    function wasDelegate(address _address, uint256 timestamp) public constant returns (bool) {
+    function wasDelegate(address _address, uint256 timestamp) public view returns (bool) {
         DelegateLog memory delegateLog = delegates[_address];
         return timestamp >= delegateLog.started && delegateLog.started != 0 && (delegateLog.ended == 0 || timestamp < delegateLog.ended);
     }
@@ -39,7 +39,7 @@ contract Delegable is Ownable {
         
         @return true if the delegate is active
     */
-    function isDelegate(address _address) public constant returns (bool) {
+    function isDelegate(address _address) public view returns (bool) {
         DelegateLog memory delegateLog = delegates[_address];
         return delegateLog.started != 0 && delegateLog.ended == 0;
     }

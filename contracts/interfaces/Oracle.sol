@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.19;
 
 import "./../utils/Ownable.sol";
 import "./Token.sol";
@@ -25,7 +25,7 @@ contract Oracle is Ownable {
     /**
         @dev Returns the url where the oracle exposes a valid "oracleData" if needed
     */
-    function url() constant returns (string);
+    function url() public view returns (string);
 
     /**
         @dev Returns a valid convertion rate from the currency given to RCN
@@ -33,7 +33,7 @@ contract Oracle is Ownable {
         @param symbol Symbol of the currency
         @param data Generic data field, could be used for off-chain signing
     */
-    function getRate(bytes32 symbol, bytes data) constant returns (uint256);
+    function getRate(bytes32 symbol, bytes data) public returns (uint256);
 
     /**
         @dev Adds a currency to the oracle, once added it cannot be removed
@@ -53,14 +53,14 @@ contract Oracle is Ownable {
     /**
         @return The number of decimals of a given currency hash, only if registered
     */
-    function decimals(bytes32 symbol) constant returns (uint8) {
+    function decimals(bytes32 symbol) public view returns (uint8) {
         return currencies[symbol].decimals;
     }
 
     /**
         @return true If the currency is supported
     */
-    function supported(bytes32 symbol) constant returns (bool) {
+    function supported(bytes32 symbol) public view returns (bool) {
         return currencies[symbol].supported;
     }
 }

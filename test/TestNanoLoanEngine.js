@@ -460,7 +460,7 @@ contract('NanoLoanEngine', function(accounts) {
 
         // check that the interest accumulated it's close to the defined by the test
         await engine.addInterest(loanId);
-        let d1PendingAmount = await engine.getPendingAmount(loanId);
+        let d1PendingAmount = await engine.getRawPendingAmount(loanId);
         var d1Diff = Math.abs(d1PendingAmount.toNumber() - v1);
         assert.isBelow(d1Diff, 2, "The v1 should aprox the interest rate in the d1 timestamp");
 
@@ -469,7 +469,7 @@ contract('NanoLoanEngine', function(accounts) {
 
         // check that the interest accumulated it's close to the defined by the test
         await engine.addInterest(loanId);
-        let d2PendingAmount = await engine.getPendingAmount(loanId);
+        let d2PendingAmount = await engine.getRawPendingAmount(loanId);
         var d2Diff = Math.abs(d2PendingAmount.toNumber() - v2);
         assert.isBelow(d2Diff, 2, "The v2 should aprox the interest rate in the d2 timestamp");
 
@@ -478,7 +478,7 @@ contract('NanoLoanEngine', function(accounts) {
 
         // check that the interest accumulated it's close to the defined by the test
         await engine.addInterest(loanId);
-        let d3PendingAmount = await engine.getPendingAmount(loanId);
+        let d3PendingAmount = await engine.getRawPendingAmount(loanId);
         var d3Diff = Math.abs(d3PendingAmount.toNumber() - v3);
         assert.isBelow(d3Diff, 2, "The v3 should aprox the interest rate in the d3 timestamp");
     } }
