@@ -9,7 +9,7 @@ contract('NanoLoanEngine', function(accounts) {
     let oracle;
     let cosigner;
 
-    beforeEach("Create engine and token", async function(){ 
+    beforeEach("Create engine and token", async function(){
         rcn = await TestToken.new();
         engine = await NanoLoanEngine.new(rcn.address, {from:accounts[0]});
         oracle = await TestOracle.new();
@@ -44,7 +44,7 @@ contract('NanoLoanEngine', function(accounts) {
         cancelableAt, expireTime, from) {
         let prevLoans = (await engine.getTotalLoans()).toNumber()
         await engine.createLoan(oracle, borrower, currency, amount, interestRate, interestRatePunitory,
-            duration, cancelableAt, expireTime, { from: from })
+            duration, cancelableAt, expireTime, "", { from: from })
         let newLoans = (await engine.getTotalLoans()).toNumber()
         assert.equal(prevLoans, newLoans - 1, "No more than 1 loan should be created in parallel, during tests")
         return newLoans - 1;
@@ -65,7 +65,7 @@ contract('NanoLoanEngine', function(accounts) {
     it("Lend should fail if loan not approved", async() => {        
         // create a new loan
         let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
-            86400, 0, 10 * 10**20, accounts[0]);
+            86400, 0, 10 * 10**20, accounts[0], "");
 
         // check that the loan is not approved
         let isApproved = await engine.isApproved(loanId)
@@ -88,7 +88,7 @@ contract('NanoLoanEngine', function(accounts) {
         
         // create a new loan
         let loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.toWei(1), toInterestRate(27),
-            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[0]);
+            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[0], "");
 
         // the borrower should approve the loan
         await engine.approveLoan(loanId, {from:accounts[1]})
@@ -144,7 +144,7 @@ contract('NanoLoanEngine', function(accounts) {
         
         // create a new loan
         let loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.toWei(1), toInterestRate(27),
-            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[1]);
+            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[1], "");
 
         // buy RCN and approve the token transfer
         await buyTokens(rcn, accounts[2], web3.toWei(7000));
@@ -161,7 +161,7 @@ contract('NanoLoanEngine', function(accounts) {
     it("Should not allow the withdraw of lender tokens, but permit a emergency withdrawal", async() => {
         // create a new loan and lend it
         let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
-            86400, 0, 10 * 10**20, accounts[1]);
+            86400, 0, 10 * 10**20, accounts[1], "");
         await lendLoan(rcn, engine, accounts[2], loanId, web3.toWei(2));
         
         // pay the loan
@@ -203,7 +203,7 @@ contract('NanoLoanEngine', function(accounts) {
     it("Test fix error pay all", async() => {
         // create a loan and paid it
         let loanId = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0]);
+        86400, 0, 10 * 10**20, accounts[0], "");
         await lendLoan(rcn, engine, accounts[1], loanId, 4000)
 
         // fully pay a loan
@@ -220,15 +220,15 @@ contract('NanoLoanEngine', function(accounts) {
 
         // Create 5 loans
         let loanId1 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0]);
+        86400, 0, 10 * 10**20, accounts[0], "");
         let loanId2 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0]);
+        86400, 0, 10 * 10**20, accounts[0], "");
         let loanId3 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0]);
+        86400, 0, 10 * 10**20, accounts[0], "");
         let loanId4 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0]);
+        86400, 0, 10 * 10**20, accounts[0], "");
         let loanId5 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0]);
+        86400, 0, 10 * 10**20, accounts[0], "");
 
         // Total supply should remain 0 until one loan activates
         totalSupply = await engine.totalSupply()
@@ -326,7 +326,7 @@ contract('NanoLoanEngine', function(accounts) {
     it("Should work with a cosigner", async()=> {
         // Create loan
         let loanId = await createLoan(engine, 0x0, accounts[0], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0]);
+        86400, 0, 10 * 10**20, accounts[0], "");
 
         // get cosigner data
         let cosignerData = await cosigner.data();
@@ -352,7 +352,7 @@ contract('NanoLoanEngine', function(accounts) {
     it("Should not work with the wrong cosigner data", async() => {
         // Create loan
         let loanId = await createLoan(engine, 0x0, accounts[0], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0]);
+        86400, 0, 10 * 10**20, accounts[0], "");
 
         // cosigner should be empty
         let loanCosigner = await engine.getCosigner(loanId)
@@ -394,7 +394,7 @@ contract('NanoLoanEngine', function(accounts) {
 
         // Create a new loan with the received params
         let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, amount, interest, punitoryInterest, 
-            duesIn, 0, 10 * 10**20, accounts[1]);
+            duesIn, 0, 10 * 10**20, accounts[1], "");
 
         // test configuration params
         let cosigner = await engine.getCosigner(loanId)
