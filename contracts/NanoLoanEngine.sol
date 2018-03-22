@@ -114,19 +114,6 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @notice Returns true if the "from" address can transfer a token that belongs to another address.
-        @dev Required for ERC-20 compliance (kind of), not specified on the ERC-721 standard.
-
-        @param from Address to check if can transfer
-        @param index Index of the loan
-
-        @return true If the address can transfer that token witout being the owner.
-    */
-    function allowance(address from, uint256 index) public view returns (bool) {
-        return loans[index].approvedTransfer == from;
-    }
-
-    /**
         @notice Returns the loan metadata, this field can be set by the creator of the loan with his own criteria.
 
         @param index Index of the loan
@@ -260,7 +247,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function getApprobation(uint index, address _address) public view returns (bool) { return loans[index].approbations[_address]; }
     function getStatus(uint index) public view returns (Status) { return loans[index].status; }
     function getLenderBalance(uint index) public view returns (uint256) { return loans[index].lenderBalance; }
-    function getApprovedTransfer(uint index) public view returns (address) {return loans[index].approvedTransfer; }
+    function getApproved(uint index) public view returns (address) {return loans[index].approvedTransfer; }
     function getCurrency(uint index) public view returns (bytes32) { return loans[index].currency; }
     function getExpirationRequest(uint index) public view returns (uint256) { return loans[index].expirationRequest; }
     function getInterest(uint index) public view returns (uint256) { return loans[index].interest; }
@@ -434,6 +421,22 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     */
     function takeOwnership(uint256 _index) public returns (bool) {
         return transfer(msg.sender, _index);
+    }
+
+    /**
+        @notice Transfers the loan to an address, only if the current owner is the "from" address
+
+        @dev Required for ERC-721 compliance
+
+        @param from Current owner of the loan
+        @param to New owner of the loan
+        @param index Index of the loan
+
+        @return true if the transfer was successfull
+    */
+    function transferFrom(address from, address to, uint256 index) public returns (bool) {
+        require(loans[index].lender == from);
+        return transfer(to, index);
     }
 
     /**

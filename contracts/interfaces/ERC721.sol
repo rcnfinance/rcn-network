@@ -11,7 +11,7 @@ contract ERC721 {
    function approve(address, uint256) public returns (bool);
    function takeOwnership(uint256) public returns (bool);
    function transfer(address, uint256) public returns (bool);
-   function allowance(address, uint256) public view returns (bool);
+   function getApproved(uint256 _tokenId) public view returns (address);
    // Token metadata
    function tokenMetadata(uint256 _tokenId) public view returns (string info);
    // Events

@@ -415,7 +415,7 @@ contract('NanoLoanEngine', function(accounts) {
         let loanDuesIn = await engine.getDuesIn(loanId)
         let cancelableAt = await engine.getCancelableAt(loanId)
         let lenderBalance = await engine.getLenderBalance(loanId)
-        let approvedTransfer = await engine.getApprovedTransfer(loanId)
+        let approvedTransfer = await engine.getApproved(loanId)
         let expirationRequest = await engine.getExpirationRequest(loanId)
 
         assert.equal(expirationRequest.toNumber(), 10 * 10**20, "Should had the defined expiration")
