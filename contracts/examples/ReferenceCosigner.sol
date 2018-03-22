@@ -10,7 +10,7 @@ import './../utils/Ownable.sol';
 import './../utils/SimpleDelegable.sol';
 
 contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils {
-    Token public rcn = Token(0x2f45b6Fb2F28A73f110400386da31044b2e953D4);
+    Token public rcn;
     
     uint private constant INDEX_COST = 0;
     uint private constant INDEX_COVERAGE = 1;
@@ -22,6 +22,10 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
 
     mapping(address => mapping(uint256 => Liability)) public liabilities;
     string private infoUrl;
+
+    function ReferenceCosigner(Token token) public {
+        rcn = token;
+    }
 
     function url() public view returns (string) {
         return infoUrl;
