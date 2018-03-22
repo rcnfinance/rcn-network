@@ -1,26 +1,26 @@
-pragma solidity ^0.4.10;
+pragma solidity ^0.4.19;
 
 /* taking ideas from FirstBlood token */
 contract RpSafeMath {
-    function safeAdd(uint256 x, uint256 y) internal returns(uint256) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns(uint256) {
       uint256 z = x + y;
-      assert((z >= x) && (z >= y));
+      require((z >= x) && (z >= y));
       return z;
     }
 
-    function safeSubtract(uint256 x, uint256 y) internal returns(uint256) {
-      assert(x >= y);
+    function safeSubtract(uint256 x, uint256 y) internal pure returns(uint256) {
+      require(x >= y);
       uint256 z = x - y;
       return z;
     }
 
-    function safeMult(uint256 x, uint256 y) internal returns(uint256) {
+    function safeMult(uint256 x, uint256 y) internal pure returns(uint256) {
       uint256 z = x * y;
-      assert((x == 0)||(z/x == y));
+      require((x == 0)||(z/x == y));
       return z;
     }
 
-    function min(uint256 a, uint256 b) internal returns(uint256) {
+    function min(uint256 a, uint256 b) internal pure returns(uint256) {
         if (a < b) { 
           return a;
         } else { 
@@ -28,7 +28,7 @@ contract RpSafeMath {
         }
     }
     
-    function max(uint256 a, uint256 b) internal returns(uint256) {
+    function max(uint256 a, uint256 b) internal pure returns(uint256) {
         if (a > b) { 
           return a;
         } else { 
