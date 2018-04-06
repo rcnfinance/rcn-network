@@ -312,8 +312,10 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         if (loan.cancelableAt > 0)
             internalAddInterest(loan, safeAdd(block.timestamp, loan.cancelableAt));
 
-        uint256 rate = getRate(loan, oracleData);
-
+        // Transfer the money to the borrower before handling the cosigner
+        // so the cosigner could require a specific usage for that money.
+        require(rcn.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, getRate(loan, oracleData))));
+        
         if (cosigner != address(0)) {
             // The cosigner it's temporary set to the next address (cosigner + 2), it's expected that the cosigner will
             // call the method "cosign" to accept the conditions; that method also sets the cosigner to the right
@@ -322,9 +324,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             require(cosigner.requestCosign(this, index, cosignerData, oracleData));
             require(loan.cosigner == address(cosigner));
         }
-        
-        require(rcn.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, rate)));
-        
+                
         // ERC721, create new loan and transfer it to the lender
         Transfer(0x0, loan.lender, index);
         activeLoans += 1;
