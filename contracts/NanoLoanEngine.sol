@@ -308,6 +308,11 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         loan.dueTime = safeAdd(block.timestamp, loan.duesIn);
         loan.interestTimestamp = block.timestamp;
         loan.status = Status.lent;
+
+        // ERC721, create new loan and transfer it to the lender
+        Transfer(0x0, loan.lender, index);
+        activeLoans += 1;
+        lendersBalance[loan.lender] += 1;
         
         if (loan.cancelableAt > 0)
             internalAddInterest(loan, safeAdd(block.timestamp, loan.cancelableAt));
@@ -325,10 +330,6 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             require(loan.cosigner == address(cosigner));
         }
                 
-        // ERC721, create new loan and transfer it to the lender
-        Transfer(0x0, loan.lender, index);
-        activeLoans += 1;
-        lendersBalance[loan.lender] += 1;
         Lent(index, loan.lender, cosigner);
 
         return true;
