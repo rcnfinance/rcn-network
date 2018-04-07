@@ -10,13 +10,12 @@ import "./Token.sol";
     it's primarily used by the exchange but could be used by any other agent.
 */
 contract Oracle is Ownable {
-    uint256 public constant VERSION = 2;
+    uint256 public constant VERSION = 3;
 
-    event NewSymbol(bytes32 _currency, string _ticker, uint8 _decimals);
+    event NewSymbol(bytes32 _currency, string _ticker);
     
     struct Symbol {
         string ticker;
-        uint8 decimals;
         bool supported;
     }
 
@@ -33,28 +32,20 @@ contract Oracle is Ownable {
         @param symbol Symbol of the currency
         @param data Generic data field, could be used for off-chain signing
     */
-    function getRate(bytes32 symbol, bytes data) public returns (uint256);
+    function getRate(bytes32 symbol, bytes data) public returns (uint256 rate, uint256 decimals);
 
     /**
         @dev Adds a currency to the oracle, once added it cannot be removed
 
         @param ticker Symbol of the currency
-        @param decimals Decimals of the convertion
 
-        @return the hash of the currency, calculated keccak256(ticker, decimals)
+        @return the hash of the currency, calculated keccak256(ticker)
     */
-    function addCurrency(string ticker, uint8 decimals) public onlyOwner returns (bytes32) {
-        NewSymbol(currency, ticker, decimals);
-        bytes32 currency = keccak256(ticker, decimals);
-        currencies[currency] = Symbol(ticker, decimals, true);
+    function addCurrency(string ticker) public onlyOwner returns (bytes32) {
+        NewSymbol(currency, ticker);
+        bytes32 currency = keccak256(ticker);
+        currencies[currency] = Symbol(ticker, true);
         return currency;
-    }
-
-    /**
-        @return The number of decimals of a given currency hash, only if registered
-    */
-    function decimals(bytes32 symbol) public view returns (uint8) {
-        return currencies[symbol].decimals;
     }
 
     /**

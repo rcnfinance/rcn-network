@@ -98,7 +98,7 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(creator, accounts[0], "Creator should be account 0")
 
         // load the sample test data
-        let dummyData = await oracle.dummyDataBytes();
+        let dummyData = await oracle.dummyDataBytes1();
 
         // buy RCN and approve the token transfer
         await buyTokens(rcn, accounts[2], web3.toWei(7000));
@@ -128,6 +128,121 @@ contract('NanoLoanEngine', function(accounts) {
         let engineBalance = await rcn.balanceOf(engine.address)
         assert.equal(lenderBalance.toNumber(), engineBalance.toNumber(), "All the engine balance should be for the lender")
         assert.equal(lenderBalance.toNumber(), (web3.toWei(1) / 2) * 6000, "The lender should have received 3000 RCN")
+
+        // pay the total of the loan
+        await buyTokens(rcn, accounts[1], web3.toWei(5000))
+        await rcn.approve(engine.address, web3.toWei(5000), {from:accounts[1]})
+        await engine.pay(loanId, web3.toWei(1), accounts[1], dummyData, {from:accounts[1]})
+
+        // check the status of the loan, should be paid
+        status = await engine.getStatus(loanId)
+        assert.equal(status.toNumber(), 2, "Status should be paid")
+    })
+
+    it("Should handle a loan with an oracle if RCN is more expensive than ETH", async() => {
+        let ethCurrency = 0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861;
+        
+        // create a new loan
+        let loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.toWei(1), toInterestRate(27),
+            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[0], "");
+
+        // the borrower should approve the loan
+        await engine.approveLoan(loanId, {from:accounts[1]})
+
+        // the creator should be accounts 0
+        let creator = await engine.getCreator(loanId)
+        assert.equal(creator, accounts[0], "Creator should be account 0")
+
+        // load the sample test data
+        let dummyData = await oracle.dummyDataBytes2();
+
+        // buy RCN and approve the token transfer
+        await buyTokens(rcn, accounts[2], web3.toWei(7000));
+        await rcn.approve(engine.address, web3.toWei(7000), {from:accounts[2]})
+
+        // execute the lend
+        await engine.lend(loanId, dummyData, 0x0, [], {from:accounts[2]});
+
+        // check the lender of the loan
+        let loanOwner = await engine.ownerOf(loanId);
+        assert.equal(loanOwner, accounts[2], "The lender should be account 2")
+
+        // check the borrower balance
+        let borrowerBalance = await rcn.balanceOf(accounts[1]);
+        assert.equal(borrowerBalance.toNumber(), web3.toWei(1) * 0.5, "Borrower balance should be 0.5 RCN");
+
+        // check the status of the loan
+        let status = await engine.getStatus(loanId)
+        assert.equal(status.toNumber(), 1, "Status should be lent")
+
+        // pay half of the loan
+        await rcn.approve(engine.address, web3.toWei(7000), {from:accounts[1]})
+        await engine.pay(loanId, web3.toWei(1) / 2, accounts[1], dummyData, {from:accounts[1]})
+
+        // check if payment succeded
+        let lenderBalance = await engine.getLenderBalance(loanId)
+        let engineBalance = await rcn.balanceOf(engine.address)
+        assert.equal(lenderBalance.toNumber(), engineBalance.toNumber(), "All the engine balance should be for the lender")
+        assert.equal(lenderBalance.toNumber(), (web3.toWei(1) / 2) * 0.5, "The lender should have received 3000 RCN")
+
+        // pay the total of the loan
+        await buyTokens(rcn, accounts[1], web3.toWei(5000))
+        await rcn.approve(engine.address, web3.toWei(5000), {from:accounts[1]})
+        await engine.pay(loanId, web3.toWei(1), accounts[1], dummyData, {from:accounts[1]})
+
+        // check the status of the loan, should be paid
+        status = await engine.getStatus(loanId)
+        assert.equal(status.toNumber(), 2, "Status should be paid")
+    })
+
+    it("Should handle a loan with an oracle if RCN changes rate", async() => {
+        let ethCurrency = 0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861;
+        
+        // create a new loan
+        let loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.toWei(1), toInterestRate(27),
+            toInterestRate(40), 86400, 0, 10 * 10**20, accounts[0], "");
+
+        // the borrower should approve the loan
+        await engine.approveLoan(loanId, {from:accounts[1]})
+
+        // the creator should be accounts 0
+        let creator = await engine.getCreator(loanId)
+        assert.equal(creator, accounts[0], "Creator should be account 0")
+
+        // load the sample test data
+        let dummyData = await oracle.dummyDataBytes1();
+
+        // buy RCN and approve the token transfer
+        await buyTokens(rcn, accounts[2], web3.toWei(7000));
+        await rcn.approve(engine.address, web3.toWei(7000), {from:accounts[2]})
+
+        // execute the lend
+        await engine.lend(loanId, dummyData, 0x0, [], {from:accounts[2]});
+
+        // check the lender of the loan
+        let loanOwner = await engine.ownerOf(loanId);
+        assert.equal(loanOwner, accounts[2], "The lender should be account 2")
+
+        // check the borrower balance
+        let borrowerBalance = await rcn.balanceOf(accounts[1]);
+        assert.equal(borrowerBalance.toNumber(), web3.toWei(1) * 6000, "Borrower balance should be 0.5 RCN");
+
+        // check the status of the loan
+        let status = await engine.getStatus(loanId)
+        assert.equal(status.toNumber(), 1, "Status should be lent")
+
+        // load new rate, RCN is more expensive now
+        dummyData = await oracle.dummyDataBytes2();
+
+        // pay half of the loan
+        await rcn.approve(engine.address, web3.toWei(7000), {from:accounts[1]})
+        await engine.pay(loanId, web3.toWei(1) / 2, accounts[1], dummyData, {from:accounts[1]})
+
+        // check if payment succeded
+        let lenderBalance = await engine.getLenderBalance(loanId)
+        let engineBalance = await rcn.balanceOf(engine.address)
+        assert.equal(lenderBalance.toNumber(), engineBalance.toNumber(), "All the engine balance should be for the lender")
+        assert.equal(lenderBalance.toNumber(), (web3.toWei(1) / 2) * 0.5, "The lender should have received 3000 RCN")
 
         // pay the total of the loan
         await buyTokens(rcn, accounts[1], web3.toWei(5000))
