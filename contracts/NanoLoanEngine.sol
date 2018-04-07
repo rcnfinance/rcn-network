@@ -195,7 +195,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @param _oracleContract Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
         @param _borrower Address of the borrower
         @param _currency The currency to use with the oracle, the currency code is generated with the following formula,
-            keccak256(ticker,decimals).
+            keccak256(ticker), is always stored as the minimum divisible amount. (Ej: ETH Wei, USD Cents)
         @param _amount The requested amount; currency and unit are defined by the Oracle, if there is no Oracle present
             the currency is RCN, and the unit is wei.
         @param _interestRate The non-punitory interest rate by second, defined as a denominator of 10 000 000.
