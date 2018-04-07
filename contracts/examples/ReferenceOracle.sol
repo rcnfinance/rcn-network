@@ -11,9 +11,10 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
 
     uint constant private INDEX_TIMESTAMP = 0;
     uint constant private INDEX_RATE = 1;
-    uint constant private INDEX_V = 2;
-    uint constant private INDEX_R = 3;
-    uint constant private INDEX_S = 4;
+    uint constant private INDEX_DECIMALS = 2;
+    uint constant private INDEX_V = 3;
+    uint constant private INDEX_R = 4;
+    uint constant private INDEX_S = 5;
 
     string private infoUrl;
 
@@ -22,6 +23,7 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
     struct RateCache {
         uint256 timestamp;
         uint256 rate;
+        uint256 decimals;
     }
 
     function url() public view returns (string) {
@@ -54,29 +56,31 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         @param currency Hash of the currency
         @param data Data with the rate signed by a delegate
 
-        @return the rate of the currency
+        @return the rate and decimals of the currency convertion
     */
-    function getRate(bytes32 currency, bytes data) public returns (uint256) {
+    function getRate(bytes32 currency, bytes data) public returns (uint256, uint256) {
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
         require(timestamp <= block.timestamp);
         require(timestamp > block.timestamp - expiration);
 
         if (cache[currency].timestamp >= timestamp) {
-            return cache[currency].rate;
+            RateCache memory rateCache = cache[currency];
+            return (rateCache.rate, rateCache.decimals);
         } else {
             uint256 rate = uint256(readBytes32(data, INDEX_RATE));
+            uint256 decimals = uint256(readBytes32(data, INDEX_DECIMALS));
             uint8 v = uint8(readBytes32(data, INDEX_V));
             bytes32 r = readBytes32(data, INDEX_R);
             bytes32 s = readBytes32(data, INDEX_S);
             
-            bytes32 hash = keccak256(this, currency, rate, timestamp);
-            address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash),v,r,s);
+            bytes32 _hash = keccak256(this, currency, rate, decimals, timestamp);
+            address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _hash),v,r,s);
 
             require(isDelegate(signer));
 
-            cache[currency] = RateCache(timestamp, rate);
+            cache[currency] = RateCache(timestamp, rate, decimals);
 
-            return rate;
+            return (rate, decimals);
         }
     }
 }   

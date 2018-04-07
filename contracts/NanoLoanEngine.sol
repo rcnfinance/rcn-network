@@ -9,18 +9,21 @@ import "./interfaces/Engine.sol";
 import "./interfaces/ERC721.sol";
 
 contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
-    uint256 public constant VERSION = 205;
+    uint256 constant internal PRECISION = (10**18);
+    uint256 constant internal MAX_DECIMALS = 18;
+
+    uint256 public constant VERSION = 210;
     string public constant VERSION_NAME = "Basalt";
 
     uint256 private activeLoans = 0;
     mapping(address => uint256) private lendersBalance;
 
     function name() public view returns (string _name) {
-        _name = "RCN - Nano loan engine - Basalt 205";
+        _name = "RCN - Nano loan engine - Basalt 210";
     }
 
     function symbol() public view returns (string _symbol) {
-        _symbol = "RCN-NLE-205";
+        _symbol = "RCN-NLE-210";
     }
 
     /**
@@ -319,7 +322,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         // Transfer the money to the borrower before handling the cosigner
         // so the cosigner could require a specific usage for that money.
-        require(rcn.transferFrom(msg.sender, loan.borrower, safeMult(loan.amount, getRate(loan, oracleData))));
+        uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, loan.amount);
+        require(rcn.transferFrom(msg.sender, loan.borrower, transferValue));
         
         if (cosigner != address(0)) {
             // The cosigner it's temporary set to the next address (cosigner + 2), it's expected that the cosigner will
@@ -624,8 +628,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             Transfer(loan.lender, 0x0, index);
         }
 
-        uint256 rate = getRate(loan, oracleData);
-        uint256 transferValue = safeMult(toPay, rate);
+        uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, toPay);
+        require(transferValue > 0 || toPay < _amount);
+
         lockTokens(rcn, transferValue);
         require(rcn.transferFrom(msg.sender, this, transferValue));
         loan.lenderBalance = safeAdd(transferValue, loan.lenderBalance);
@@ -634,20 +639,23 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @notice Retrieves the rate corresponding of the loan oracle
+        @notice Converts an amount to RCN using the loan oracle.
         
         @dev If the loan has no oracle the currency must be RCN so the rate is 1
 
-        @param loan The loan with the cosigner
-        @param data Data required by the oracle
-
-        @return The rate of the oracle
+        @return The result of the convertion
     */
-    function getRate(Loan loan, bytes data) internal returns (uint256) {
-        if (loan.oracle == address(0)) {
-            return 1;
+    function convertRate(Oracle oracle, bytes32 currency, bytes data, uint256 amount) public returns (uint256) {
+        if (oracle == address(0)) {
+            return amount;
         } else {
-            return loan.oracle.getRate(loan.currency, data);
+            uint256 rate;
+            uint256 decimals;
+            
+            (rate, decimals) = oracle.getRate(currency, data);
+
+            require(decimals <= MAX_DECIMALS);
+            return (safeMult(safeMult(amount, rate), (10**decimals))) / PRECISION;
         }
     }
 
