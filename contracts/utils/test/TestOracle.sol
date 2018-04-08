@@ -28,9 +28,11 @@ contract TestOracle is Oracle, BytesUtils {
         bytes32 sentData = readBytes32(data, 0);
         require(sentData == dummyData1 || sentData == dummyData2);
         if (sentData == dummyData1) {
-            return (6000, 18);
+            // 1 ETH WEI = 6000 RCN WEI
+            return (6000, 0);
         } else if (sentData == dummyData2) {
-            return (5, 17);
+            // 1 ETH WEI = 0.5 RCN WEI
+            return (5, 1);
         }
     }
 }

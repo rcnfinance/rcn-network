@@ -10,20 +10,20 @@ import "./interfaces/ERC721.sol";
 
 contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     uint256 constant internal PRECISION = (10**18);
-    uint256 constant internal MAX_DECIMALS = 18;
+    uint256 constant internal RCN_DECIMALS = 18;
 
-    uint256 public constant VERSION = 210;
+    uint256 public constant VERSION = 211;
     string public constant VERSION_NAME = "Basalt";
 
     uint256 private activeLoans = 0;
     mapping(address => uint256) private lendersBalance;
 
     function name() public view returns (string _name) {
-        _name = "RCN - Nano loan engine - Basalt 210";
+        _name = "RCN - Nano loan engine - Basalt 211";
     }
 
     function symbol() public view returns (string _symbol) {
-        _symbol = "RCN-NLE-210";
+        _symbol = "RCN-NLE-211";
     }
 
     /**
@@ -654,8 +654,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             
             (rate, decimals) = oracle.getRate(currency, data);
 
-            require(decimals <= MAX_DECIMALS);
-            return (safeMult(safeMult(amount, rate), (10**decimals))) / PRECISION;
+            require(decimals <= RCN_DECIMALS);
+            return (safeMult(safeMult(amount, rate), (10**(RCN_DECIMALS-decimals)))) / PRECISION;
         }
     }
 
