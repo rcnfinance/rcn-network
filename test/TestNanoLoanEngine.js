@@ -436,6 +436,30 @@ contract('NanoLoanEngine', function(accounts) {
         allLoans3 = await engine.tokensOfOwner(accounts[3])
         assert.equal(allLoans3.length, 1, "Account should have 2 loans")
         assert.equal(allLoans3[0], loanId3, "Should have loan 3")
+
+        // try pull loan witout approval, should fail
+        await assertThrow(engine.takeOwnership(loanId3, {from: accounts[2]}))
+
+        // approve transfer for the loan and try again
+        await engine.approve(accounts[2], loanId3, {from:accounts[3]})
+        await engine.takeOwnership(loanId3, {from: accounts[2]})
+        assert.equal(await engine.ownerOf(loanId3), accounts[2])
+
+        // approve for all should work
+        await engine.setApprovalForAll(accounts[1], true, {from:accounts[2]})
+        await engine.takeOwnership(loanId3, {from: accounts[1]})
+        assert.equal(await engine.ownerOf(loanId3), accounts[1])
+
+        // but not in reverse
+        await assertThrow(engine.takeOwnership(loanId3, {from: accounts[2]}))
+        assert.equal(await engine.ownerOf(loanId3), accounts[1])
+
+        // and we should be able to disable it
+        await engine.transferFrom(accounts[1], accounts[2], loanId3, {from:accounts[1]})
+        assert.equal(await engine.ownerOf(loanId3), accounts[2])
+        await engine.setApprovalForAll(accounts[1], false, {from:accounts[2]})
+        await assertThrow(engine.takeOwnership(loanId3, {from: accounts[1]}))
+        assert.equal(await engine.ownerOf(loanId3), accounts[2])
     })
 
     it("Should work with a cosigner", async()=> {

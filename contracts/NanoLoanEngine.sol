@@ -117,6 +117,15 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
+        @notice Returns true if the _operator can transfer the loans of the _owner
+
+        @dev Required for ERC-721 compliance 
+    */
+    function isApprovedForAll(address _owner, address _operator) public view returns (bool) {
+        return operators[_owner][_operator];
+    }
+
+    /**
         @notice Returns the loan metadata, this field can be set by the creator of the loan with his own criteria.
 
         @param index Index of the loan
@@ -184,6 +193,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         mapping(address => bool) approbations;
     }
 
+    mapping(address => mapping(address => bool)) private operators;
     Loan[] private loans;
 
     /**
@@ -402,7 +412,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         Loan storage loan = loans[index];
         
         require(loan.status != Status.destroyed && loan.status != Status.paid);
-        require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer);
+        require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer || operators[loan.lender][msg.sender]);
         require(to != address(0));
         loan.lender = to;
         loan.approvedTransfer = address(0);
@@ -462,6 +472,18 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(msg.sender == loan.lender);
         loan.approvedTransfer = to;
         Approval(msg.sender, to, index);
+        return true;
+    }
+
+    /**
+        @notice Enable or disable approval for a third party ("operator") to manage
+
+        @param _approved True if the operator is approved, false to revoke approval
+        @param _operator Address to add to the set of authorized operators.
+    */
+    function setApprovalForAll(address _operator, bool _approved) public returns (bool) {
+        operators[msg.sender][_operator] = _approved;
+        ApprovalForAll(msg.sender, _operator, _approved);
         return true;
     }
 
