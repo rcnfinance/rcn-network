@@ -12,14 +12,10 @@ import "./Token.sol";
 contract Oracle is Ownable {
     uint256 public constant VERSION = 4;
 
-    event NewSymbol(bytes32 _currency, string _ticker);
-    
-    struct Symbol {
-        string ticker;
-        bool supported;
-    }
+    event NewSymbol(bytes32 _currency);
 
-    mapping(bytes32 => Symbol) public currencies;
+    mapping(bytes32 => bool) public supported;
+    bytes32[] public currencies;
 
     /**
         @dev Returns the url where the oracle exposes a valid "oracleData" if needed
@@ -43,16 +39,10 @@ contract Oracle is Ownable {
     */
     function addCurrency(string ticker) public onlyOwner returns (bool) {
         bytes32 currency = encodeCurrency(ticker);
-        NewSymbol(currency, ticker);
-        currencies[currency] = Symbol(ticker, true);
+        NewSymbol(currency);
+        supported[currency] = true;
+        currencies.push(currency);
         return true;
-    }
-
-    /**
-        @return true If the currency is supported
-    */
-    function supported(bytes32 symbol) public view returns (bool) {
-        return currencies[symbol].supported;
     }
 
     /**
