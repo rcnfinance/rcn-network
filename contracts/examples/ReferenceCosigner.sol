@@ -12,6 +12,9 @@ import './../utils/SimpleDelegable.sol';
 contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils {
     Token public rcn;
     
+    uint256 constant internal RCN_DECIMALS = 18;
+    uint256 constant internal PRECISION = 10**RCN_DECIMALS;
+    
     uint private constant INDEX_COST = 0;
     uint private constant INDEX_COVERAGE = 1;
     uint private constant INDEX_REQUIRED_ARREARS = 2;
@@ -127,14 +130,29 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
         require(engine.takeOwnership(index));
 
         Oracle oracle = engine.getOracle(index);
-        uint256 rate = 1;
-
-        if (oracle != address(0)) {
-            rate = oracle.getRate(engine.getCurrency(index), oracleData);
-        }
-
-        require(rcn.transfer(msg.sender, safeMult(rate, premium)));
+        require(rcn.transfer(msg.sender, convertRate(oracle, engine.getCurrency(index), oracleData, premium)));
         return true;
+    }
+
+    /**
+        @notice Converts an amount to RCN using the loan oracle.
+        
+        @dev If the loan has no oracle the currency must be RCN so the rate is 1
+
+        @return The result of the convertion
+    */
+    function convertRate(Oracle oracle, bytes32 currency, bytes data, uint256 amount) public returns (uint256) {
+        if (oracle == address(0)) {
+            return amount;
+        } else {
+            uint256 rate;
+            uint256 decimals;
+            
+            (rate, decimals) = oracle.getRate(currency, data);
+
+            require(decimals <= RCN_DECIMALS);
+            return (safeMult(safeMult(amount, rate), (10**(RCN_DECIMALS-decimals)))) / PRECISION;
+        }
     }
 
     /**
