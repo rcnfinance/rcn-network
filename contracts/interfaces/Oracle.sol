@@ -10,7 +10,7 @@ import "./Token.sol";
     it's primarily used by the exchange but could be used by any other agent.
 */
 contract Oracle is Ownable {
-    uint256 public constant VERSION = 3;
+    uint256 public constant VERSION = 4;
 
     event NewSymbol(bytes32 _currency, string _ticker);
     
@@ -39,13 +39,13 @@ contract Oracle is Ownable {
 
         @param ticker Symbol of the currency
 
-        @return the hash of the currency, calculated keccak256(ticker)
+        @return if the creation was done successfully
     */
-    function addCurrency(string ticker) public onlyOwner returns (bytes32) {
+    function addCurrency(string ticker) public onlyOwner returns (bool) {
+        bytes32 currency = encodeCurrency(ticker);
         NewSymbol(currency, ticker);
-        bytes32 currency = keccak256(ticker);
         currencies[currency] = Symbol(ticker, true);
-        return currency;
+        return true;
     }
 
     /**
@@ -54,4 +54,30 @@ contract Oracle is Ownable {
     function supported(bytes32 symbol) public view returns (bool) {
         return currencies[symbol].supported;
     }
+
+    /**
+        @return the currency encoded as a bytes32
+    */
+    function encodeCurrency(string currency) public pure returns (bytes32 o) {
+        require(bytes(currency).length <= 32);
+        assembly {
+            o := mload(add(currency, 32))
+        }
+    }
+    
+    /**
+        @return the currency string from a encoded bytes32
+    */
+    function decodeCurrency(bytes32 b) public pure returns (string o) {
+        uint256 ns = 256;
+        while (true) { if (ns == 0 || (b<<ns-8) != 0) break; ns -= 8; }
+        assembly {
+            ns := div(ns, 8)
+            o := mload(0x40)
+            mstore(0x40, add(o, and(add(add(ns, 0x20), 0x1f), not(0x1f))))
+            mstore(o, ns)
+            mstore(add(o, 32), b)
+        }
+    }
+    
 }
