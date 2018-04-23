@@ -12,18 +12,18 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal RCN_DECIMALS = 18;
 
-    uint256 public constant VERSION = 211;
+    uint256 public constant VERSION = 212;
     string public constant VERSION_NAME = "Basalt";
 
     uint256 private activeLoans = 0;
     mapping(address => uint256) private lendersBalance;
 
     function name() public view returns (string _name) {
-        _name = "RCN - Nano loan engine - Basalt 211";
+        _name = "RCN - Nano loan engine - Basalt 212";
     }
 
     function symbol() public view returns (string _symbol) {
-        _symbol = "RCN-NLE-211";
+        _symbol = "RCN-NLE-212";
     }
 
     /**
@@ -411,7 +411,6 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function transfer(address to, uint256 index) public returns (bool) {
         Loan storage loan = loans[index];
         
-        require(loan.status != Status.destroyed && loan.status != Status.paid);
         require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer || operators[loan.lender][msg.sender]);
         require(to != address(0));
         loan.lender = to;
