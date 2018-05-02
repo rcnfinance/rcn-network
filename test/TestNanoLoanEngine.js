@@ -41,10 +41,10 @@ contract('NanoLoanEngine', function(accounts) {
     }
 
     async function createLoan(engine, oracle, borrower, currency, amount, interestRate, interestRatePunitory, duration, 
-        cancelableAt, expireTime, from) {
+        cancelableAt, expireTime, from, metadata) {
         let prevLoans = (await engine.getTotalLoans()).toNumber()
         await engine.createLoan(oracle, borrower, currency, amount, interestRate, interestRatePunitory,
-            duration, cancelableAt, expireTime, "", { from: from })
+            duration, cancelableAt, expireTime, metadata, { from: from })
         let newLoans = (await engine.getTotalLoans()).toNumber()
         assert.equal(prevLoans, newLoans - 1, "No more than 1 loan should be created in parallel, during tests")
         return newLoans - 1;
@@ -61,6 +61,70 @@ contract('NanoLoanEngine', function(accounts) {
     }
     
     function toInterestRate(interest) { return (10000000 / interest) * 360 * 86400;  }
+
+    it("It should fail creating two identical loans", async() => {
+        // create a new loan
+        let loanId1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
+            86400, 0, 10 * 10**20, accounts[0], "");
+        assert.equal(loanId1, 1)
+
+        // create one a little bit different
+        let loanId2 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
+            86400, 0, 10 * 10**20, accounts[0], ":)");
+        assert.equal(loanId2, 2)
+        
+        // create a new identical
+        await assertThrow(createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
+            86400, 0, 10 * 10**20, accounts[0], ""));
+    })
+
+    it("Should allow reference loans with their signature", async() => {
+        let sampleCurrency = 0x4d414e4100000000000000000000000000000000000000000000000000000000
+        let sampleOracle = accounts[2]
+
+        // create a new loan
+        let loanId1Signature = await engine.getLoanSignature(sampleOracle, accounts[1], accounts[0], sampleCurrency, web3.toWei(2),
+            toInterestRate(27), toInterestRate(40), 86400, 0, 10 * 10**20, "")
+        let loanId1 = await createLoan(engine, sampleOracle, accounts[1], sampleCurrency, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
+            86400, 0, 10 * 10**20, accounts[0], "");
+        
+        assert.equal(loanId1, 1)
+        assert.equal(await engine.signatureToLoan(loanId1Signature), 1)
+
+        // create one a little bit different
+        let loanId2 = await createLoan(engine, 0x0, accounts[3], 0x0, web3.toWei(4), toInterestRate(17), toInterestRate(46), 
+            86405, 2, 11 * 10**20, accounts[3], "Test");
+        let loanId2Signature = await engine.getLoanSignature(0x0, accounts[3], accounts[3], 0x0, web3.toWei(4),
+            toInterestRate(17), toInterestRate(46), 86405, 2, 11 * 10**20, "Test")
+
+        assert.equal(loanId2, 2)
+        assert.equal(await engine.signatureToLoan(loanId2Signature), 2)
+    })
+
+    it("Should approve a loan using it's signature", async() => {
+        let loanIdSignature = await engine.getLoanSignature(0x0, accounts[3], accounts[4], 0x0, web3.toWei(4),
+            toInterestRate(17), toInterestRate(46), 86405, 2, 11 * 10**20, "Test")
+
+        let loanId = await createLoan(engine, 0x0, accounts[3], 0x0, web3.toWei(4), toInterestRate(17), toInterestRate(46), 
+            86405, 2, 11 * 10**20, accounts[4], "Test");
+
+        assert.isFalse(await engine.isApproved(loanId))
+
+        await engine.approveLoanSig(loanIdSignature, {from: accounts[3]})
+        assert.isTrue(await engine.isApproved(loanId))
+    })
+
+    it("Should destroy a loan using it's signature", async() => {
+        let loanIdSignature = await engine.getLoanSignature(0x0, accounts[3], accounts[4], 0x0, web3.toWei(4),
+            toInterestRate(17), toInterestRate(46), 86405, 2, 11 * 10**20, "Test")
+
+        let loanId = await createLoan(engine, 0x0, accounts[3], 0x0, web3.toWei(4), toInterestRate(17), toInterestRate(46), 
+            86405, 2, 11 * 10**20, accounts[4], "Test");
+
+        await engine.destroySig(loanIdSignature, {from: accounts[3]})
+        assert.equal(await engine.getStatus(loanId), 3)
+    })
+
 
     it("Lend should fail if loan not approved", async() => {        
         // create a new loan

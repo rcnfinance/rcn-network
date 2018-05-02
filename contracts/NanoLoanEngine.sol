@@ -161,6 +161,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function NanoLoanEngine(Token _rcn) public {
         owner = msg.sender;
         rcn = _rcn;
+        // The loan with ID 0 is a Invalid loan
+        loans.length++;
     }
 
     struct Loan {
@@ -194,6 +196,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     mapping(address => mapping(address => bool)) private operators;
+
+    mapping(bytes32 => uint256) public signatureToLoan;
     Loan[] private loans;
 
     /**
@@ -201,6 +205,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         it must call the "approve" function. If the creator of the loan is the borrower the approve is done automatically.
 
         @dev The creator of the loan is the caller of this function; this is useful to track which wallet created the loan.
+            Two identical loans cannot exist, a clone of another loan will fail.
 
         @param _oracleContract Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
         @param _borrower Address of the borrower
@@ -232,8 +237,15 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         var loan = Loan(Status.initial, _oracleContract, _borrower, 0x0, msg.sender, 0x0, _amount, 0, 0, 0, 0, _interestRate,
             _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest, _metadata);
+
         uint index = loans.push(loan) - 1;
         CreatedLoan(index, _borrower, msg.sender);
+
+        bytes32 signature = getLoanSignature(_oracleContract, _borrower, msg.sender, _currency, _amount, _interestRate, _interestRatePunitory,
+            _duesIn, _cancelableAt, _expirationRequest, _metadata);
+
+        require(signatureToLoan[signature] == 0);
+        signatureToLoan[signature] = index;
 
         if (msg.sender == _borrower) {
             approveLoan(index);
@@ -266,6 +278,19 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function getInterest(uint index) public view returns (uint256) { return loans[index].interest; }
 
     /**
+        @notice Used to reference a loan that is not yet created, and by that does not have an ID
+
+        @dev Two identical loans cannot exist, only one loan per signature is allowed
+
+        @return The signature hash of the loan configuration
+    */
+    function getLoanSignature(Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
+        uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string metadata) pure returns (bytes32) {
+        return keccak256(oracle, borrower, creator, currency, amount, interestRate, interestRatePunitory, duesIn,
+                        cancelableAt, expirationRequest, metadata); 
+    }
+
+    /**
         @notice Used to know if a loan is ready to lend
 
         @param index Index of the loan
@@ -293,6 +318,19 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         loan.approbations[msg.sender] = true;
         ApprovedBy(index, msg.sender);
         return true;
+    }
+
+    /**
+        @notice Approves a loan using the signature and not the ID
+
+        @param signature Signature of the loan
+
+        @return true if the approve was done successfully
+    */
+    function approveLoanSig(bytes32 signature) public returns (bool) {
+        uint256 id = signatureToLoan[signature];
+        require(id != 0);
+        return approveLoan(id);
     }
 
     /**
@@ -395,6 +433,19 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         loan.status = Status.destroyed;
         return true;
+    }
+
+    /**
+        @notice Destroys a loan using the signature and not the ID
+
+        @param signature Signature of the loan
+
+        @return true if the destroy was done successfully
+    */
+    function destroySig(bytes32 signature) public returns (bool) {
+        uint256 id = signatureToLoan[signature];
+        require(id != 0);
+        return destroy(id);
     }
 
     /**
