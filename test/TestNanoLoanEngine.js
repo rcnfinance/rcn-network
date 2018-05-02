@@ -399,15 +399,15 @@ contract('NanoLoanEngine', function(accounts) {
 
         // Create 5 loans
         let loanId1 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0], "");
+        86400, 0, 10 * 10**20, accounts[0], "Loan 1");
         let loanId2 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0], "");
+        86400, 0, 10 * 10**20, accounts[0], "Loan 2");
         let loanId3 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0], "");
+        86400, 0, 10 * 10**20, accounts[0], "Loan 3");
         let loanId4 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0], "");
+        86400, 0, 10 * 10**20, accounts[0], "Loan 4");
         let loanId5 = await createLoan(engine, 0x0, accounts[0], 0x0, 4000, toInterestRate(27), toInterestRate(40), 
-        86400, 0, 10 * 10**20, accounts[0], "");
+        86400, 0, 10 * 10**20, accounts[0], "Loan 5");
 
         // Total supply should remain 0 until one loan activates
         totalSupply = await engine.totalSupply()
