@@ -334,6 +334,25 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
+        @notice Register an approvation made by a borrower in the past
+
+        @dev The loan should exist and have an ID
+
+        @param signature Signature identifying the loan
+
+        @return true if the approve was done successfully
+    */
+    function registerApprove(bytes32 signature, uint8 v, bytes32 r, bytes32 s) public returns (bool) {
+        uint256 index = signatureToLoan[signature];
+        require(index != 0);
+        Loan storage loan = loans[index];
+        require(loan.borrower == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", signature), v, r, s));
+        loan.approbations[loan.borrower] = true;
+        ApprovedBy(index, loan.borrower);
+        return true;
+    }
+
+    /**
         @notice Performs the lend of the RCN equivalent to the requested amount, and transforms the msg.sender in the new lender.
 
         @dev The loan must be previously approved by the borrower; before calling this function, the lender candidate must 
