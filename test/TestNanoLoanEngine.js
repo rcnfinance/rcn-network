@@ -131,6 +131,43 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(await engine.getStatus(loanId), 3)
     })
 
+    it("Should register an approve", async() => {
+        let loanIdIdentifier = await engine.buildIdentifier(0x0, accounts[3], accounts[4], 0x0, web3.toWei(4),
+            toInterestRate(17), toInterestRate(46), 86405, 2, 11 * 10**20, "Test")
+
+        let loanId = await createLoan(engine, 0x0, accounts[3], 0x0, web3.toWei(4), toInterestRate(17), toInterestRate(46), 
+            86405, 2, 11 * 10**20, accounts[4], "Test")
+
+        assert.isFalse(await engine.isApproved(loanId))
+
+        let approveSignature = await web3.eth.sign(accounts[3], loanIdIdentifier).slice(2)
+
+        let r = `0x${approveSignature.slice(0, 64)}`
+        let s = `0x${approveSignature.slice(64, 128)}`
+        let v = web3.toDecimal(approveSignature.slice(128, 130)) + 27
+
+        await engine.registerApprove(loanIdIdentifier, v, r, s)
+        assert.isTrue(await engine.isApproved(loanId))
+    })
+
+    it("Should reject an invalid approve", async() => {
+        let loanIdIdentifier = await engine.buildIdentifier(0x0, accounts[3], accounts[4], 0x0, web3.toWei(4),
+            toInterestRate(17), toInterestRate(46), 86405, 2, 11 * 10**20, "Test")
+
+        let loanId = await createLoan(engine, 0x0, accounts[3], 0x0, web3.toWei(4), toInterestRate(17), toInterestRate(46), 
+            86405, 2, 11 * 10**20, accounts[4], "Test")
+
+        assert.isFalse(await engine.isApproved(loanId))
+
+        let approveSignature = await web3.eth.sign(accounts[4], loanIdIdentifier).slice(2)
+
+        let r = `0x${approveSignature.slice(0, 64)}`
+        let s = `0x${approveSignature.slice(64, 128)}`
+        let v = web3.toDecimal(approveSignature.slice(128, 130)) + 27
+
+        await assertThrow(engine.registerApprove(loanIdIdentifier, v, r, s))
+        assert.isFalse(await engine.isApproved(loanId))
+    })
 
     it("Lend should fail if loan not approved", async() => {        
         // create a new loan
