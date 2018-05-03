@@ -78,31 +78,33 @@ contract('NanoLoanEngine', function(accounts) {
             86400, 0, 10 * 10**20, accounts[0], ""));
     })
 
-    it("Should allow reference loans with their signature", async() => {
+    it("Should allow reference loans with their identifier", async() => {
         let sampleCurrency = 0x4d414e4100000000000000000000000000000000000000000000000000000000
         let sampleOracle = accounts[2]
 
         // create a new loan
-        let loanId1Signature = await engine.getLoanSignature(sampleOracle, accounts[1], accounts[0], sampleCurrency, web3.toWei(2),
+        let loanId1Identifier = await engine.buildIdentifier(sampleOracle, accounts[1], accounts[0], sampleCurrency, web3.toWei(2),
             toInterestRate(27), toInterestRate(40), 86400, 0, 10 * 10**20, "")
         let loanId1 = await createLoan(engine, sampleOracle, accounts[1], sampleCurrency, web3.toWei(2), toInterestRate(27), toInterestRate(40), 
             86400, 0, 10 * 10**20, accounts[0], "");
         
         assert.equal(loanId1, 1)
-        assert.equal(await engine.signatureToLoan(loanId1Signature), 1)
+        assert.equal(await engine.identifierToIndex(loanId1Identifier), loanId1)
+        assert.equal(await engine.getIdentifier(loanId1), loanId1Identifier)
 
         // create one a little bit different
         let loanId2 = await createLoan(engine, 0x0, accounts[3], 0x0, web3.toWei(4), toInterestRate(17), toInterestRate(46), 
             86405, 2, 11 * 10**20, accounts[3], "Test");
-        let loanId2Signature = await engine.getLoanSignature(0x0, accounts[3], accounts[3], 0x0, web3.toWei(4),
+        let loanId2Identifier = await engine.buildIdentifier(0x0, accounts[3], accounts[3], 0x0, web3.toWei(4),
             toInterestRate(17), toInterestRate(46), 86405, 2, 11 * 10**20, "Test")
 
         assert.equal(loanId2, 2)
-        assert.equal(await engine.signatureToLoan(loanId2Signature), 2)
+        assert.equal(await engine.identifierToIndex(loanId2Identifier), 2)
+        assert.equal(await engine.getIdentifier(loanId2), loanId2Identifier)
     })
 
-    it("Should approve a loan using it's signature", async() => {
-        let loanIdSignature = await engine.getLoanSignature(0x0, accounts[3], accounts[4], 0x0, web3.toWei(4),
+    it("Should approve a loan using it's identifier", async() => {
+        let loanIdIdentifier = await engine.buildIdentifier(0x0, accounts[3], accounts[4], 0x0, web3.toWei(4),
             toInterestRate(17), toInterestRate(46), 86405, 2, 11 * 10**20, "Test")
 
         let loanId = await createLoan(engine, 0x0, accounts[3], 0x0, web3.toWei(4), toInterestRate(17), toInterestRate(46), 
@@ -110,18 +112,22 @@ contract('NanoLoanEngine', function(accounts) {
 
         assert.isFalse(await engine.isApproved(loanId))
 
-        await engine.approveLoanSig(loanIdSignature, {from: accounts[3]})
+        await engine.approveLoanIdentifier(loanIdIdentifier, {from: accounts[3]})
+
+        assert.equal(await engine.getIdentifier(loanId), loanIdIdentifier)
         assert.isTrue(await engine.isApproved(loanId))
     })
 
-    it("Should destroy a loan using it's signature", async() => {
-        let loanIdSignature = await engine.getLoanSignature(0x0, accounts[3], accounts[4], 0x0, web3.toWei(4),
+    it("Should destroy a loan using it's identifier", async() => {
+        let loanIdIdentifier = await engine.buildIdentifier(0x0, accounts[3], accounts[4], 0x0, web3.toWei(4),
             toInterestRate(17), toInterestRate(46), 86405, 2, 11 * 10**20, "Test")
 
         let loanId = await createLoan(engine, 0x0, accounts[3], 0x0, web3.toWei(4), toInterestRate(17), toInterestRate(46), 
             86405, 2, 11 * 10**20, accounts[4], "Test");
 
-        await engine.destroySig(loanIdSignature, {from: accounts[3]})
+        await engine.destroyIdentifier(loanIdIdentifier, {from: accounts[3]})
+
+        assert.equal(await engine.getIdentifier(loanId), loanIdIdentifier)
         assert.equal(await engine.getStatus(loanId), 3)
     })
 

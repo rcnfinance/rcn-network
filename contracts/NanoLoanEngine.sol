@@ -56,7 +56,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @param _owner The owner address
         @param _index Loan index for the owner
 
-        @return tokenId Real token id
+        @return tokenId Real token index
     */
     function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint tokenId) {
         uint256 tokenCount = balanceOf(_owner);
@@ -161,7 +161,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function NanoLoanEngine(Token _rcn) public {
         owner = msg.sender;
         rcn = _rcn;
-        // The loan with ID 0 is a Invalid loan
+        // The loan 0 is a Invalid loan
         loans.length++;
     }
 
@@ -197,7 +197,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
     mapping(address => mapping(address => bool)) private operators;
 
-    mapping(bytes32 => uint256) public signatureToLoan;
+    mapping(bytes32 => uint256) public identifierToIndex;
     Loan[] private loans;
 
     /**
@@ -241,11 +241,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         uint index = loans.push(loan) - 1;
         CreatedLoan(index, _borrower, msg.sender);
 
-        bytes32 signature = getLoanSignature(_oracleContract, _borrower, msg.sender, _currency, _amount, _interestRate, _interestRatePunitory,
-            _duesIn, _cancelableAt, _expirationRequest, _metadata);
-
-        require(signatureToLoan[signature] == 0);
-        signatureToLoan[signature] = index;
+        bytes32 identifier = getIdentifier(index);
+        require(identifierToIndex[identifier] == 0);
+        identifierToIndex[identifier] = index;
 
         if (msg.sender == _borrower) {
             approveLoan(index);
@@ -277,14 +275,20 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function getExpirationRequest(uint index) public view returns (uint256) { return loans[index].expirationRequest; }
     function getInterest(uint index) public view returns (uint256) { return loans[index].interest; }
 
+    function getIdentifier(uint index) public view returns (bytes32) {
+        Loan memory loan = loans[index];
+        return buildIdentifier(loan.oracle, loan.borrower, loan.creator, loan.currency, loan.amount, loan.interestRate,
+            loan.interestRatePunitory, loan.duesIn, loan.cancelableAt, loan.expirationRequest, loan.metadata);
+    }
+
     /**
-        @notice Used to reference a loan that is not yet created, and by that does not have an ID
+        @notice Used to reference a loan that is not yet created, and by that does not have an index
 
         @dev Two identical loans cannot exist, only one loan per signature is allowed
 
         @return The signature hash of the loan configuration
     */
-    function getLoanSignature(Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
+    function buildIdentifier(Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
         uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string metadata) pure returns (bytes32) {
         return keccak256(oracle, borrower, creator, currency, amount, interestRate, interestRatePunitory, duesIn,
                         cancelableAt, expirationRequest, metadata); 
@@ -321,32 +325,32 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @notice Approves a loan using the signature and not the ID
+        @notice Approves a loan using the Identifier and not the index
 
-        @param signature Signature of the loan
+        @param identifier Identifier of the loan
 
         @return true if the approve was done successfully
     */
-    function approveLoanSig(bytes32 signature) public returns (bool) {
-        uint256 id = signatureToLoan[signature];
-        require(id != 0);
-        return approveLoan(id);
+    function approveLoanIdentifier(bytes32 identifier) public returns (bool) {
+        uint256 index = identifierToIndex[identifier];
+        require(index != 0);
+        return approveLoan(index);
     }
 
     /**
         @notice Register an approvation made by a borrower in the past
 
-        @dev The loan should exist and have an ID
+        @dev The loan should exist and have an index
 
-        @param signature Signature identifying the loan
+        @param identifier Identifier of the loan
 
         @return true if the approve was done successfully
     */
-    function registerApprove(bytes32 signature, uint8 v, bytes32 r, bytes32 s) public returns (bool) {
-        uint256 index = signatureToLoan[signature];
+    function registerApprove(bytes32 identifier, uint8 v, bytes32 r, bytes32 s) public returns (bool) {
+        uint256 index = identifierToIndex[identifier];
         require(index != 0);
         Loan storage loan = loans[index];
-        require(loan.borrower == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", signature), v, r, s));
+        require(loan.borrower == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", identifier), v, r, s));
         loan.approbations[loan.borrower] = true;
         ApprovedBy(index, loan.borrower);
         return true;
@@ -455,16 +459,16 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @notice Destroys a loan using the signature and not the ID
+        @notice Destroys a loan using the signature and not the Index
 
-        @param signature Signature of the loan
+        @param identifier Identifier of the loan
 
         @return true if the destroy was done successfully
     */
-    function destroySig(bytes32 signature) public returns (bool) {
-        uint256 id = signatureToLoan[signature];
-        require(id != 0);
-        return destroy(id);
+    function destroyIdentifier(bytes32 identifier) public returns (bool) {
+        uint256 index = identifierToIndex[identifier];
+        require(index != 0);
+        return destroy(index);
     }
 
     /**
