@@ -474,13 +474,6 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(allLoans[0], loanId1, "Should have loan 1")
         assert.equal(allLoans[1], loanId2, "Should have loan 2")
 
-        // Test all loans by index of account 1
-        let tokenIndex0 = await engine.tokenOfOwnerByIndex(accounts[1], 0)
-        assert.equal(tokenIndex0, loanId1, "Token 0 should be loan 1")
-
-        let tokenIndex1 = await engine.tokenOfOwnerByIndex(accounts[1], 1)
-        assert.equal(tokenIndex1, loanId2, "Token 1 should be loan 2")
-
         // lend 1 more loan from another lender
         await lendLoan(rcn, engine, accounts[2], loanId3, 4000)
 
