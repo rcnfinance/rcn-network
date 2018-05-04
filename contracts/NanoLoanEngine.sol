@@ -12,18 +12,18 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal RCN_DECIMALS = 18;
 
-    uint256 public constant VERSION = 230;
+    uint256 public constant VERSION = 232;
     string public constant VERSION_NAME = "Basalt";
 
     uint256 private activeLoans = 0;
     mapping(address => uint256) private lendersBalance;
 
     function name() public view returns (string _name) {
-        _name = "RCN - Nano loan engine - Basalt 230";
+        _name = "RCN - Nano loan engine - Basalt 232";
     }
 
     function symbol() public view returns (string _symbol) {
-        _symbol = "RCN-NLE-230";
+        _symbol = "RCN-NLE-232";
     }
 
     /**
@@ -744,8 +744,6 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         unlockTokens(rcn, amount);
         return true;
     }
-
-
 
     /**
         @notice Withdraw lender funds in batch, it walks by all the loans passed to the function and withdraws all
