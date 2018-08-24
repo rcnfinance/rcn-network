@@ -47,11 +47,22 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         return true;
     }
 
+    /**
+        @dev Sets the url to retrieve the data for 'getRate'
+
+        @param _url New url
+    */
     function setUrl(string _url) public onlyOwner returns (bool) {
         infoUrl = _url;
         return true;
     }
 
+    /**
+        @dev Sets another oracle as the replacement to this oracle
+        All 'getRate' calls will be forwarded to this new oracle
+
+        @param _fallback New oracle
+    */
     function setFallback(Oracle _fallback) public onlyOwner returns (bool) {
         fallback = _fallback;
         return true;
