@@ -68,6 +68,16 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         return true;
     }
 
+    /**
+        @dev Invalidates the cache of a given currency
+
+        @param currency Currency to invalidate the cache
+    */
+    function invalidateCache(bytes32 currency) public onlyOwner returns (bool) {
+        delete cache[currency].timestamp;
+        return true;
+    }
+
     function isExpired(uint256 timestamp) internal view returns (bool) {
         return timestamp <= now - expiration;
     }
