@@ -116,6 +116,39 @@ contract('ReferenceOracle', function(accounts) {
     }
   });
 
+  it("Test: getRate() with diferent timestamps", async() => {
+    let vrs = await signGetRate(admin, BTC);
+    let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
+    await oracle.getRate(BTC.id, data, {from: user});
+
+    let BTCold = {
+        id: "0x4254430000000000000000000000000000000000000000000000000000000000",
+        rate: Helper.toBytes32(1),
+        decimals: Helper.toBytes32(1),
+        timestamp: 1
+    }
+    vrs = await signGetRate(admin, BTCold);
+    data = Helper.arrayToBytesOfBytes32([BTCold.timestamp, BTCold.rate, BTCold.decimals, vrs[0], vrs[1], vrs[2]]);
+    let tx = await oracle.getRate(BTCold.id, data, {from: user});
+    let args = tx.logs[0].args;
+    assert.equal(tx.logs[0].event, 'CacheHit');
+    assert.equal(args.requester, user);
+    assert.equal(args.currency, BTC.id);
+    assert.equal(args.requestTimestamp.toString(), BTCold.timestamp);
+    assert.equal(args.deliverTimestamp.toString(), BTC.timestamp);
+    assert.equal(args.rate.toString(), web3.toDecimal(BTC.rate).toString());
+    assert.equal(args.decimals.toString(), web3.toDecimal(BTC.decimals).toString());
+
+    try { // try get rate with expired timestamp
+      await Helper.timeTravel(15*60);// 15 minutes foward in time
+      vrs = await signGetRate(admin, BTCold);
+      data = Helper.arrayToBytesOfBytes32([BTCold.timestamp, BTCold.rate, BTCold.decimals, vrs[0], vrs[1], vrs[2]]);
+      await oracle.getRate(BTCold.id, data, {from: user});
+      assert(false, "throw was expected in line above.")
+    } catch(e){
+      assert(Helper.isRevertErrorMessage(e), "expected throw but got: " + e);
+    }
+  });
   async function signGetRate(signer, currency){
     let sign = [oracle.address, currency.id, currency.rate, currency.decimals, Helper.toBytes32(web3.toHex(currency.timestamp))];
     sign = web3.sha3(sign.map(x => x.slice(2)).join(""), {encoding:"hex"});
