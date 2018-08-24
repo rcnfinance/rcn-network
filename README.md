@@ -795,9 +795,6 @@ for many ideas and projects all over the world come to fruition.
       <img src="https://github.com/c0chi/rcn-network/blob/master/images/linkedin.svg" width=auto height="18"></a>
     </p>
 
- *  <p> Nicolás Collebechi: Head of Marketing
-      <a href="https://www.linkedin.com/in/ncollebechi/">
-      <img src="https://github.com/c0chi/rcn-network/blob/master/images/linkedin.svg" width=auto height="18"></a>
-    </p>
+
 
 
