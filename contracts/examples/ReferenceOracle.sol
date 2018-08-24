@@ -18,6 +18,7 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
 
     string private infoUrl;
 
+    Oracle public fallback;
     mapping(bytes32 => RateCache) private cache;
 
     struct RateCache {
@@ -47,6 +48,11 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         return true;
     }
 
+    function setFallback(Oracle _fallback) public onlyOwner returns (bool) {
+        fallback = _fallback;
+        return true;
+    }
+
     function isExpired(uint256 timestamp) internal view returns (bool) {
         return timestamp <= now - expiration;
     }
@@ -63,6 +69,10 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         @return the rate and decimals of the currency convertion
     */
     function getRate(bytes32 currency, bytes data) public returns (uint256, uint256) {
+        if (fallback != address(0)) {
+            return fallback.getRate(currency, data);
+        }
+
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
         RateCache memory rateCache = cache[currency];
         if (rateCache.timestamp >= timestamp && !isExpired(rateCache.timestamp)) {
