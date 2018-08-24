@@ -7,6 +7,10 @@ import './../utils/BytesUtils.sol';
 import './../interfaces/Oracle.sol';
 
 contract ReferenceOracle is Oracle, Delegable, BytesUtils {
+    event DelegatedCall(address requester, address to);
+    event CacheHit(address requester, bytes32 currency, uint256 requestTimestamp, uint256 deliverTimestamp, uint256 rate, uint256 decimals);
+    event DeliveredRate(address requester, bytes32 currency, address signer, uint256 requestTimestamp, uint256 rate, uint256 decimals);
+
     uint256 public expiration = 15 minutes;
 
     uint constant private INDEX_TIMESTAMP = 0;
@@ -70,12 +74,14 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
     */
     function getRate(bytes32 currency, bytes data) public returns (uint256, uint256) {
         if (fallback != address(0)) {
+            emit DelegatedCall(msg.sender, fallback);
             return fallback.getRate(currency, data);
         }
 
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
         RateCache memory rateCache = cache[currency];
         if (rateCache.timestamp >= timestamp && !isExpired(rateCache.timestamp)) {
+            emit CacheHit(msg.sender, currency, timestamp, rateCache.timestamp, rateCache.rate, rateCache.decimals);
             return (rateCache.rate, rateCache.decimals);
         } else {
             require(!isExpired(timestamp), "The rate provided is expired");
@@ -92,6 +98,7 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
 
             cache[currency] = RateCache(timestamp, rate, decimals);
 
+            emit DeliveredRate(msg.sender, currency, signer, timestamp, rate, decimals);
             return (rate, decimals);
         }
     }
