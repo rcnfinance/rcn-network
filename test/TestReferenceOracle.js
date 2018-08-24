@@ -12,16 +12,7 @@ let oracleView;
 let user;
 let admin;
 // currencies
-const ETH = {
-    id: "0x4554480000000000000000000000000000000000000000000000000000000000",
-    decimals: Helper.toBytes32(18),
-
-}
 let BTC;
-const ARS = {
-    id: "0x4152530000000000000000000000000000000000000000000000000000000000",
-    decimals: Helper.toBytes32(2)
-}
 
 contract('ReferenceOracle', function(accounts) {
   before("Assign accounts", async function(){
