@@ -59,6 +59,7 @@ contract('ReferenceOracle', function(accounts) {
     data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
     let tx = await oracle.getRate(BTC.id, data, {from: user});
     let args = tx.logs[0].args;
+    assert.equal(tx.logs[0].event, 'DeliveredRate');
     assert.equal(args.requester, user);
     assert.equal(args.currency, BTC.id);
     assert.equal(args.signer, admin);
