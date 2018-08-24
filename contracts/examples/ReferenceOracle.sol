@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.24;
 
 import './../utils/Delegable.sol';
 import './../interfaces/Token.sol';
@@ -47,6 +47,10 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
         return true;
     }
 
+    function isExpired(uint256 timestamp) internal view returns (bool) {
+        return timestamp <= now - expiration;
+    }
+
     /**
         @dev Retrieves the convertion rate of a given currency, the information of the rate is carried over the 
         data field. If there is a newer rate on the cache, that rate is delivered and the data field is ignored.
@@ -60,13 +64,11 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
     */
     function getRate(bytes32 currency, bytes data) public returns (uint256, uint256) {
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
-        require(timestamp <= block.timestamp);
-        require(timestamp > block.timestamp - expiration);
-
-        if (cache[currency].timestamp >= timestamp) {
-            RateCache memory rateCache = cache[currency];
+        RateCache memory rateCache = cache[currency];
+        if (rateCache.timestamp >= timestamp && !isExpired(rateCache.timestamp)) {
             return (rateCache.rate, rateCache.decimals);
         } else {
+            require(!isExpired(timestamp), "The rate provided is expired");
             uint256 rate = uint256(readBytes32(data, INDEX_RATE));
             uint256 decimals = uint256(readBytes32(data, INDEX_DECIMALS));
             uint8 v = uint8(readBytes32(data, INDEX_V));
