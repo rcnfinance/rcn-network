@@ -23,7 +23,7 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
     string private infoUrl;
 
     Oracle public fallback;
-    mapping(bytes32 => RateCache) private cache;
+    mapping(bytes32 => RateCache) public cache;
 
     struct RateCache {
         uint256 timestamp;
