@@ -88,7 +88,7 @@ contract ReferenceOracle is Oracle, Delegable, BytesUtils {
             bytes32 _hash = keccak256(this, currency, rate, decimals, timestamp);
             address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _hash),v,r,s);
 
-            require(isDelegate(signer));
+            require(isDelegate(signer), "Signature is not valid");
 
             cache[currency] = RateCache(timestamp, rate, decimals);
 
