@@ -5,7 +5,7 @@ import "truffle/DeployedAddresses.sol";
 import "../contracts/utils/BytesUtils.sol";
 
 interface BytesUtilsInterface {
-    function pReadBytes32(bytes data, uint256 index) public;
+    function pReadBytes32(bytes data, uint256 index) external;
 }
 
 contract TestBytesUtils is BytesUtils {
