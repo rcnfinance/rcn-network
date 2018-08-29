@@ -35,6 +35,10 @@ contract('LoanEngine', function(accounts) {
 
   function toInterestRate(interest) { return (10000000 / interest) * 360 * 86400;  }
 
+  async function increaseTime(delta) {
+      await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 0});
+  }
+
   async function buyTokens(account, amount) {
       let prevAmount = await rcn.balanceOf(account);
       let buyResult = await rcn.buyTokens(account, { from: account, value: amount / 4000 });
@@ -166,7 +170,7 @@ contract('LoanEngine', function(accounts) {
       toInterestRate(240),
       300,
       3,
-      31 * 86400,
+      30 * 86400,
       10 ** 10,
       "Really really quick loan"
     ));
@@ -198,7 +202,7 @@ contract('LoanEngine', function(accounts) {
       toInterestRate(240),
       1000,
       10,
-      31 * 86400,
+      30 * 86400,
       10 ** 10,
       ""
     ));
@@ -285,5 +289,43 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 2, "Loan should be still paid");
     assert.equal(await engine.getCheckpoint(loanId), 10, "Current period should be 10");
     assert.equal(await engine.periodPending(loanId), 0, "Current period debt should be 0 RCN");
+  })
+  it("It should handle a loan payment after debt", async function(){
+    let loanId = await readLoanId(await engine.requestLoan(
+      0x0,
+      accounts[8],
+      0x0,
+      toInterestRate(120),
+      toInterestRate(240),
+      10000,
+      10,
+      30 * 86400,
+      10 ** 10,
+      "I am not going to default this"
+    ));
+
+    await engine.approveLoan(loanId, { from: accounts[1] })
+
+    await buyTokens(accounts[3], 12000);
+    await rcn.approve(engine.address, 10000, { from: accounts[3] });
+    await engine.lend(loanId, 0x0, 0x0, 0x0, { from: accounts[3] });
+
+    assert.equal(await engine.ownerOf(loanId), accounts[3], "Account 2 should be the new lender");
+    assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
+    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first period");
+    assert.equal(await engine.getPeriodDebt(loanId), 1100, "Period debt should be 1000 plus interest")
+    
+    // Pass 2 installments
+    await increaseTime(30 * 86400 * 2);
+
+    await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
+
+    await buyTokens(accounts[8], 4000);
+    await rcn.approve(engine.address, 4, { from: accounts[8] });
+    await engine.pay(loanId, 4, accounts[8], 0x0, { from: accounts[8] });
+
+    assert.equal((await engine.getPaid(loanId)).toNumber(), 4, "Paid should be 4 RCN");
+    assert.equal(await engine.getStatus(loanId), 1, "Loan should be still ongoing");
+    assert.equal(await engine.getCheckpoint(loanId), 3, "Current period should be 3");
   })
 })

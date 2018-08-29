@@ -725,7 +725,7 @@ contract LoanEngine is Ownable, ERC721Base {
         uint256 fromPeriod = loan.checkpoint;
         uint256 toPeriod = periodAt(loan, to);
 
-        for(uint256 i = fromPeriod; i < toPeriod; i++) {
+        for(uint256 i = fromPeriod; i <= toPeriod; i++) {
             movePeriod(loan);
         }
     }
