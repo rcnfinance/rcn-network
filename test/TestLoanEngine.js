@@ -277,13 +277,13 @@ contract('LoanEngine', function(accounts) {
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
     await buyTokens(accounts[8], 4000);
-    await rcn.approve(engine.address, 150, { from: accounts[8] });
-    await engine.pay(loanId, 150, accounts[8], 0x0, { from: accounts[8] });
+    await rcn.approve(engine.address, 4000, { from: accounts[8] });
+    await engine.pay(loanId, 4000, accounts[8], 0x0, { from: accounts[8] });
 
-    assert.equal((await engine.getPaid(loanId)).toNumber(), 110 * 3 + 150, "Paid should be 480 RCN");
-    assert.equal(await rcn.balanceOf(accounts[8]), 4000 - 150, "Expended amount should be 1100 RCN");
-    assert.equal(await engine.getStatus(loanId), 1, "Loan should be still ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 5, "Current period should be 5");
-    assert.equal(await engine.periodPending(loanId), 70, "Current period debt should be 70 RCN");
+    assert.equal((await engine.getPaid(loanId)).toNumber(), 1100, "Paid should be 1100 RCN");
+    assert.equal(await rcn.balanceOf(accounts[8]), 4000 - 620, "Expended amount should be 620 RCN");
+    assert.equal(await engine.getStatus(loanId), 2, "Loan should be still paid");
+    assert.equal(await engine.getCheckpoint(loanId), 10, "Current period should be 10");
+    assert.equal(await engine.periodPending(loanId), 0, "Current period debt should be 0 RCN");
   })
 })
