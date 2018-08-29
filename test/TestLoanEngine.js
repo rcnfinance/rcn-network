@@ -272,5 +272,18 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be still ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 5, "Current period should be 5");
     assert.equal(await engine.periodPending(loanId), 70, "Current period debt should be 70 RCN");
+
+    // Pay the rest of the loan
+    await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
+
+    await buyTokens(accounts[8], 4000);
+    await rcn.approve(engine.address, 150, { from: accounts[8] });
+    await engine.pay(loanId, 150, accounts[8], 0x0, { from: accounts[8] });
+
+    assert.equal((await engine.getPaid(loanId)).toNumber(), 110 * 3 + 150, "Paid should be 480 RCN");
+    assert.equal(await rcn.balanceOf(accounts[8]), 4000 - 150, "Expended amount should be 1100 RCN");
+    assert.equal(await engine.getStatus(loanId), 1, "Loan should be still ongoing");
+    assert.equal(await engine.getCheckpoint(loanId), 5, "Current period should be 5");
+    assert.equal(await engine.periodPending(loanId), 70, "Current period debt should be 70 RCN");
   })
 })
