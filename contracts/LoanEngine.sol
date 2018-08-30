@@ -412,6 +412,7 @@ contract LoanEngine is Ownable, ERC721Base {
     
     enum Status { request, ongoing, paid, destroyed }
 
+    address public deprecated;
     Loan[] private loans;
     mapping(bytes32 => uint256) public identifierToIndex;
 
@@ -487,7 +488,7 @@ contract LoanEngine is Ownable, ERC721Base {
         uint64 requestExpiration,
         string metadata
     ) public returns (uint256) {
-        // require(!deprecated);
+        require(deprecated == address(0), "The engine is deprectaed");
         require(borrower != address(0), "Borrower can't be 0x0");
         require(interestRatePunitory != 0, "P Interest rate wrong encoded");
         require(interestRate != 0, "Interest rate wrong encoded");
@@ -928,5 +929,10 @@ contract LoanEngine is Ownable, ERC721Base {
         require(token.transfer(to, totalWithdraw), "Token transfer failed");
 
         return totalWithdraw;
+    }
+
+    function setDeprecated(address _new) external onlyOwner returns (bool) {
+        deprecated = _new;
+        return true;
     }
 }

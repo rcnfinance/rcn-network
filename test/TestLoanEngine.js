@@ -327,5 +327,50 @@ contract('LoanEngine', function(accounts) {
     assert.equal((await engine.getPaid(loanId)).toNumber(), 4, "Paid should be 4 RCN");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be still ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 3, "Current period should be 3");
+    assert.equal((await engine.periodPending(loanId)).toNumber(), 3637, "Current period debt should be 3637 RCN");
+  })
+  it("It should fail to create a loan if deprecated", async function(){
+    await readLoanId(await engine.requestLoan(
+      0x0,
+      accounts[1],
+      0x0,
+      toInterestRate(10),
+      toInterestRate(20),
+      web3.toWei(100),
+      1,
+      360 * 86400,
+      10 ** 10,
+      "Test create loan pre-deprecated"
+    ));
+
+    await engine.setDeprecated(accounts[9]);
+
+    await assertThrow(engine.requestLoan(
+      0x0,
+      accounts[1],
+      0x0,
+      toInterestRate(10),
+      toInterestRate(20),
+      web3.toWei(100),
+      1,
+      360 * 86400,
+      10 ** 10,
+      "This loan should fail, the engine is deprecated"
+    ))
+
+    await engine.setDeprecated(0x0);
+
+    await readLoanId(await engine.requestLoan(
+      0x0,
+      accounts[1],
+      0x0,
+      toInterestRate(10),
+      toInterestRate(20),
+      web3.toWei(100),
+      1,
+      360 * 86400,
+      10 ** 10,
+      "Test create loan post-deprecated"
+    ));
   })
 })
