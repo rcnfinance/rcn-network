@@ -417,29 +417,29 @@ contract LoanEngine is Ownable, ERC721Base {
     mapping(bytes32 => uint256) public identifierToIndex;
 
     struct Loan {
-        address borrower;
-        address creator;
-        address oracle;
-        address cosigner;
-        bytes32 currency;
-        uint256 interestRate;
-        uint256 interestRatePunitory;
-        uint128 amount;
-        uint128 paid;
+        // State
+        bool approved;
+        Status status;
+        uint32 periods;
+        uint32 checkpoint;
         uint64 index;
         uint64 periodDuration;
         uint64 lentTime;
         uint64 requestExpiration;
-        uint32 periods;
-        uint32 checkpoint;
-        // State
-        Status status;
-        bool approved;
+        bytes16 currency;
         uint128 accrued;
+        uint128 amount;
+        uint128 paid;
         // Internal
         uint128 periodDebt;
         uint128 periodPaid;
         uint128 lenderBalance;
+        address borrower;
+        address creator;
+        address oracle;
+        address cosigner;
+        uint256 interestRate;
+        uint256 interestRatePunitory;
         string metadata;
     }
     
@@ -479,7 +479,7 @@ contract LoanEngine is Ownable, ERC721Base {
     function requestLoan(
         address oracle,
         address borrower,
-        bytes32 currency,
+        bytes16 currency,
         uint256 interestRate,
         uint256 interestRatePunitory,
         uint128 amount,
