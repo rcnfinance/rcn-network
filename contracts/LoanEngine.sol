@@ -420,8 +420,8 @@ contract LoanEngine is Ownable, ERC721Base {
         // State
         bool approved;
         Status status;
-        uint32 periods;
-        uint32 checkpoint;
+        uint16 periods;
+        uint64 clock;
         uint64 index;
         uint64 periodDuration;
         uint64 lentTime;
@@ -430,15 +430,16 @@ contract LoanEngine is Ownable, ERC721Base {
         uint128 accrued;
         uint128 amount;
         uint128 paid;
+        uint128 cuota;
         // Internal
         uint128 periodDebt;
         uint128 periodPaid;
+        uint128 periodInterest;
         uint128 lenderBalance;
         address borrower;
         address creator;
         address oracle;
         address cosigner;
-        uint256 interestRate;
         uint256 interestRatePunitory;
         string metadata;
     }
@@ -449,7 +450,7 @@ contract LoanEngine is Ownable, ERC721Base {
     function getOracle(uint256 id) external view returns (address) { return loans[id].oracle; }
     function getCosigner(uint256 id) external view returns (address) { return loans[id].cosigner; }
     function getCurrency(uint256 id) external view returns (bytes32) { return loans[id].currency; }
-    function getInterestRate(uint256 id) external view returns (uint256) { return loans[id].interestRate; }
+    function getCuota(uint256 id) external view returns (uint256) { return loans[id].cuota; }
     function getInterestRatePunitory(uint256 id) external view returns (uint256) { return loans[id].interestRatePunitory; }
     function getAmount(uint256 id) external view returns (uint256) { return loans[id].amount; }
     function getPaid(uint256 id) external view returns (uint256) { return loans[id].paid; }
@@ -461,7 +462,8 @@ contract LoanEngine is Ownable, ERC721Base {
     function getDueTime(uint256 id) external view returns (uint256) { return loans[id].periods * loans[id].periodDuration; }
     function getPeriodDebt(uint256 id) external view returns (uint256) { return loans[id].periodDebt; }
     function getStatus(uint256 id) external view returns (Status) { return loans[id].status; }
-    function getCheckpoint(uint256 id) external view returns (uint256) { return loans[id].checkpoint; }
+    function getCheckpoint(uint256 id) external view returns (uint256) { return loans[id].clock / loans[id].periodDuration; }
+    function getLenderBalance(uint256 id) external view returns (uint256) { return loans[id].lenderBalance; }
     function getDuesIn(uint256 id) external view returns (uint256) {
         Loan memory loan = loans[id];
         if (loan.lentTime == 0) { return 0; }
@@ -480,10 +482,10 @@ contract LoanEngine is Ownable, ERC721Base {
         address oracle,
         address borrower,
         bytes16 currency,
-        uint256 interestRate,
         uint256 interestRatePunitory,
         uint128 amount,
-        uint32 periods,
+        uint128 cuota,
+        uint16 periods,
         uint64 periodDuration,
         uint64 requestExpiration,
         string metadata
@@ -491,8 +493,10 @@ contract LoanEngine is Ownable, ERC721Base {
         require(deprecated == address(0), "The engine is deprectaed");
         require(borrower != address(0), "Borrower can't be 0x0");
         require(interestRatePunitory != 0, "P Interest rate wrong encoded");
-        require(interestRate != 0, "Interest rate wrong encoded");
         require(requestExpiration > now, "Request is already expired");
+        require(periodDuration > 0, "Period should have a duration");
+        require(periods > 0, "Min periods is 1");
+        require(cuota * periods >= amount, "Negative interest is not allowed");
 
         Loan memory loan = Loan({
             index: uint64(loans.length),
@@ -501,19 +505,20 @@ contract LoanEngine is Ownable, ERC721Base {
             oracle: oracle,
             cosigner: address(0),
             currency: currency,
-            interestRate: interestRate,
+            cuota: cuota,
             interestRatePunitory: interestRatePunitory,
             amount: amount,
             paid: 0,
             lentTime: 0,
             periods: periods,
             periodDuration: periodDuration,
-            checkpoint: 0,
+            clock: 0,
             status: Status.request,
             approved: msg.sender == borrower,
             accrued: 0,
             periodDebt: 0,
             periodPaid: 0,
+            periodInterest: 0,
             lenderBalance: 0,
             requestExpiration: requestExpiration,
             metadata: metadata
@@ -541,7 +546,7 @@ contract LoanEngine is Ownable, ERC721Base {
             loan.oracle,
             loan.currency,
             loan.amount,
-            loan.interestRate,
+            loan.cuota,
             loan.interestRatePunitory,
             loan.periods,
             loan.periodDuration,
@@ -563,7 +568,7 @@ contract LoanEngine is Ownable, ERC721Base {
         address oracle,
         bytes32 currency,
         uint128 amount,
-        uint256 interestRate,
+        uint128 cuota,
         uint256 interestRatePunitory,
         uint32 periods,
         uint64 periodDuration,
@@ -578,7 +583,7 @@ contract LoanEngine is Ownable, ERC721Base {
                 oracle,
                 currency,
                 amount,
-                interestRate,
+                cuota,
                 interestRatePunitory,
                 periods,
                 periodDuration,
@@ -673,7 +678,7 @@ contract LoanEngine is Ownable, ERC721Base {
     }
 
     function _periodPending(Loan memory loan) internal pure returns (uint256) {
-        return subMax(loan.periodDebt, loan.periodPaid);
+        return subMax(loan.periodDebt + loan.periodInterest, loan.periodPaid);
     }
 
     function periodAt(Loan memory loan, uint256 timestamp) internal pure returns (uint256 number) {
@@ -684,34 +689,34 @@ contract LoanEngine is Ownable, ERC721Base {
     function periodStarts(Loan memory loan, uint256 period) internal pure returns (uint256 starts) {
         return loan.periodDuration * (period) + loan.lentTime;
     }
-    
-    function movePeriod(Loan storage loan) internal returns (bool) {
-        loan.checkpoint += 1;
 
-        uint128 fixDebt;
-        if (loan.checkpoint <= loan.periods) {
-            fixDebt = loan.amount / loan.periods;
+    event AccruedInterest(uint64 from, uint64 delta, uint128 debt, uint128 newInterest);
+    event ChangedPeriod(uint32 to, uint128 cuota, uint128 periodDebt, uint128 totalPeriodInterest);
+    function advanceClock(Loan storage loan, uint64 targetDelta) internal returns (bool) {
+        // Advance no more than the next period
+        uint64 nextPeriodDelta = loan.periodDuration - loan.clock % loan.periodDuration;
+        uint64 delta = nextPeriodDelta < targetDelta ? nextPeriodDelta : targetDelta;
+
+        // Get the current ongoing debt and apply the interest
+        uint128 runningDebt = loan.periodDebt > loan.periodPaid ? loan.periodDebt - loan.periodPaid : 0; 
+        loan.periodInterest += uint128(calculateInterest(delta, loan.interestRatePunitory, runningDebt));
+        emit AccruedInterest(loan.clock, delta, runningDebt, loan.periodInterest);
+
+        loan.clock += delta;
+        
+        if (delta == nextPeriodDelta) {
+            uint32 period = uint32(loan.clock / loan.periodDuration);
+            uint128 cuota = period <= loan.periods ? loan.cuota : 0;
+            loan.periodDebt = cuota + loan.periodInterest + loan.periodDebt - loan.periodPaid;
+            emit ChangedPeriod(period, cuota, loan.periodDebt, loan.periodInterest);
+            loan.periodInterest = 0;
+            loan.periodPaid = 0;
         }
-
-        uint128 newDebt = subMax(loan.periodDebt, loan.periodPaid) + fixDebt;
-        uint128 newPaid = subMax(loan.periodPaid, loan.periodDebt);
-        uint128 newAccrued = uint128(calculateInterest(loan.periodDuration, loan.interestRate, newDebt));
-
-        emit ChangedPeriod({
-            _index: loan.index,
-            _toPeriod: loan.checkpoint,
-            _paid: loan.periodPaid,
-            _debt: loan.periodDebt,
-            _fixDebt: fixDebt,
-            _accrued: newAccrued
-        });
-
-        loan.periodDebt = newDebt + newAccrued;
-        loan.periodPaid = newPaid;
     }
     
     function checkFullyPaid(Loan storage loan) internal returns (bool) {
-        if (loan.checkpoint >= loan.periods) {
+        uint32 currentPeriod = uint32((loan.clock / loan.periodDuration));
+        if (currentPeriod >= loan.periods) {
             uint256 newDebt = subMax(loan.periodDebt, loan.periodPaid);
             if (newDebt == 0) {
                 // Loan paid!
@@ -722,16 +727,14 @@ contract LoanEngine is Ownable, ERC721Base {
         }
     }
 
-    function moveCheckpoint(Loan storage loan, uint256 to) internal {
-        uint256 fromPeriod = loan.checkpoint;
-        uint256 toPeriod = periodAt(loan, to);
-
-        for(uint256 i = fromPeriod; i <= toPeriod; i++) {
-            movePeriod(loan);
+    function moveCheckpoint(Loan storage loan, uint64 to) internal {
+        uint64 targetDelta = to - loan.lentTime;
+        while (loan.clock < targetDelta) {
+            advanceClock(loan, targetDelta - loan.clock);
         }
     }
     
-    function fixAdvance(uint256 loan, uint256 to) external returns (bool) {
+    function fixAdvance(uint256 loan, uint64 to) external returns (bool) {
         require(to <= now, "Can't advance a loan into the future");
         moveCheckpoint(loans[loan], to);
         return true;
@@ -742,12 +745,13 @@ contract LoanEngine is Ownable, ERC721Base {
         require(loan.approved, "The loan is not approved by the borrower");
         require(loan.status == Status.request, "The loan is not a request");
         require(now < loan.requestExpiration, "Request is expired");
-        movePeriod(loan);
         uint256 requiredTransfer = convertRate(loan.oracle, loan.currency, oracleData, loan.amount);
         require(token.transferFrom(msg.sender, loan.borrower, requiredTransfer), "Error pulling tokens");
         _generate(loanId, msg.sender);
         loan.status = Status.ongoing;
         loan.lentTime = uint64(now);
+        loan.clock = loan.periodDuration;
+        loan.periodDebt = loan.cuota;
         if (cosigner != address(0)) {
             // The cosigner it's temporary set to the next address (cosigner + 2), it's expected that the cosigner will
             // call the method "cosign" to accept the conditions; that method also sets the cosigner to the right
@@ -805,11 +809,10 @@ contract LoanEngine is Ownable, ERC721Base {
         loan.status = Status.destroyed;
         return true;
     }
-
     function pay(uint256 loanId, uint128 amount, address from, bytes oracleData) external returns (bool) {
         Loan storage loan = loans[loanId];
         require(loan.status == Status.ongoing, "The loan is not ongoing");
-        moveCheckpoint(loan, now);
+        moveCheckpoint(loan, uint64(now));
         if (loan.status == Status.ongoing) {
             uint128 available = amount;
             uint128 pending;
@@ -831,7 +834,7 @@ contract LoanEngine is Ownable, ERC721Base {
 
                 // If current period was fully paid move to the next one
                 if (pending == target) {
-                    movePeriod(loan);
+                    advanceClock(loan, loan.periodDuration);
                 }
             } while (available != 0);
 
