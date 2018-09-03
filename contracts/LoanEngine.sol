@@ -675,17 +675,14 @@ contract LoanEngine is Ownable, ERC721Base {
     function tokenMetadataHash(uint256 index) external view returns (bytes32) {
         return keccak256(abi.encodePacked(loans[index].metadata));
     }
-    
-    function subMax(uint128 x, uint128 y) internal pure returns (uint128) {
-        if (x > y) { return x - y; } else { return 0; }
-    }
 
     function periodPending(uint256 loanId) external view returns (uint256) {
         return _periodPending(loans[loanId]);
     }
 
     function _periodPending(Loan memory loan) internal pure returns (uint256) {
-        return subMax(_baseDebt(loan) + loan.periodInterest, loan.paid);
+        uint128 debt = _baseDebt(loan) + loan.periodInterest;
+        return loan.paid < debt ? debt - loan.paid : 0;
     }
 
     function periodAt(Loan memory loan, uint256 timestamp) internal pure returns (uint256 number) {
@@ -720,8 +717,7 @@ contract LoanEngine is Ownable, ERC721Base {
     function checkFullyPaid(Loan storage loan) internal returns (bool) {
         uint32 currentPeriod = uint32((loan.clock / loan.periodDuration));
         if (currentPeriod >= loan.periods) {
-            uint256 newDebt = subMax(_baseDebt(loan) + loan.periodInterest, loan.paid);
-            if (newDebt == 0) {
+            if (_baseDebt(loan) + loan.periodInterest <= loan.paid) {
                 // Loan paid!
                 emit TotalPayment(loan.index);
                 loan.status = Status.paid;
