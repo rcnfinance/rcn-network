@@ -408,7 +408,7 @@ contract LoanEngine is Ownable, ERC721Base {
     function symbol() external pure returns (string _symbol) {
         _symbol = "RCN-LE-300";
     }
-    
+
     enum Status { request, ongoing, paid, destroyed }
 
     address public deprecated;
@@ -441,7 +441,7 @@ contract LoanEngine is Ownable, ERC721Base {
         uint256 interestRatePunitory;
         string metadata;
     }
-    
+
     function getTotalLoans() external view returns (uint256) { return loans.length; }
 
     // Configuration
@@ -481,7 +481,7 @@ contract LoanEngine is Ownable, ERC721Base {
         // The loan 0 is a Invalid loan
         loans.length++;
     }
-    
+
     function requestLoan(
         address oracle,
         address borrower,
@@ -540,7 +540,7 @@ contract LoanEngine is Ownable, ERC721Base {
 
         return index;
     }
-    
+
     function getIdentifier(uint index) public view returns (bytes32) {
         Loan memory loan = loans[index];
         return buildIdentifier(
@@ -557,7 +557,7 @@ contract LoanEngine is Ownable, ERC721Base {
             loan.metadata
         );
     }
-    
+
     /**
         @notice Used to reference a loan that is not yet created, and by that does not have an index
 
@@ -593,13 +593,13 @@ contract LoanEngine is Ownable, ERC721Base {
                 requestExpiration,
                 metadata
             )
-        ); 
+        );
     }
-    
+
     /**
         @notice Called by the members of the loan to show that they agree with the terms of the loan; the borrower
         must call this method before any lender could call the method "lend".
-            
+
         @dev Any address can call this method to be added to the "approbations" mapping.
 
         @param index Index of the loan
@@ -648,7 +648,7 @@ contract LoanEngine is Ownable, ERC721Base {
         emit ApprovedBy(index, loan.borrower);
         return true;
     }
-    
+
     /**
         @notice Returns the loan metadata, this field can be set by the creator of the loan with his own criteria.
 
@@ -701,7 +701,7 @@ contract LoanEngine is Ownable, ERC721Base {
             return true;
         }
     }
-    
+
     function checkFullyPaid(Loan storage loan) internal returns (bool) {
         uint32 currentInstallment = uint32((loan.clock / loan.installmentDuration));
         if (currentInstallment >= loan.installments) {
@@ -721,7 +721,7 @@ contract LoanEngine is Ownable, ERC721Base {
             advanced = advanceClock(loan, targetDelta - loan.clock);
         }
     }
-    
+
     function fixAdvance(uint256 loanId, uint64 to) external returns (bool) {
         Loan storage loan = loans[loanId];
         require(loan.status == Status.ongoing, "The loan should be ongoing");
@@ -730,7 +730,7 @@ contract LoanEngine is Ownable, ERC721Base {
         moveCheckpoint(loan, to);
         return true;
     }
-    
+
     function lend(uint256 loanId, bytes oracleData, address cosigner, bytes cosignerData) external {
         Loan storage loan = loans[loanId];
         require(loan.approved, "The loan is not approved by the borrower");
@@ -752,13 +752,13 @@ contract LoanEngine is Ownable, ERC721Base {
             require(Cosigner(cosigner).requestCosign(Engine(this), loanId, cosignerData, oracleData), "Cosign method returned false");
             require(loan.cosigner == cosigner, "Cosigner didn't called callback");
         }
-        
+
         emit Lent(loanId, msg.sender, cosigner);
     }
-    
+
     /**
         @notice The cosigner must call this method to accept the conditions of a loan, this method pays the cosigner his fee.
-        
+
         @dev If the cosigner does not call this method the whole "lend" call fails.
 
         @param loanId Index of the loan
@@ -775,13 +775,13 @@ contract LoanEngine is Ownable, ERC721Base {
         require(token.transferFrom(_ownerOf(loanId), msg.sender, cost), "Error paying cosigner");
         return true;
     }
-    
+
     /**
-        @notice Destroys a loan, the borrower could call this method if they performed an accidental or regretted 
+        @notice Destroys a loan, the borrower could call this method if they performed an accidental or regretted
         "approve" of the loan, this method only works for them if the loan is in "pending" status.
 
-        The lender can call this method at any moment, in case of a loan with status "lent" the lender is pardoning 
-        the debt. 
+        The lender can call this method at any moment, in case of a loan with status "lent" the lender is pardoning
+        the debt.
 
         @param loanId Index of the loan
 
@@ -817,11 +817,11 @@ contract LoanEngine is Ownable, ERC721Base {
                 target = pending < available ? pending : available;
                 loan.paid += target;
                 loan.lenderBalance += target;
-                
+
                 // Calc paid base
                 prevInterest = loan.interest - prevInterest;
                 loan.paidBase += target > prevInterest ? target - prevInterest : 0;
-                
+
                 available -= target;
                 emit PartialPayment(loanId, msg.sender, from, target);
 
@@ -842,10 +842,10 @@ contract LoanEngine is Ownable, ERC721Base {
         }
         return true;
     }
-    
+
     /**
         @notice Converts an amount to RCN using the loan oracle.
-        
+
         @dev If the loan has no oracle the currency must be RCN so the rate is 1
 
         @return The result of the convertion
@@ -856,13 +856,13 @@ contract LoanEngine is Ownable, ERC721Base {
         } else {
             uint256 rate;
             uint256 decimals;
-            
+
             (rate, decimals) = Oracle(oracle).getRate(currency, data);
 
             return rate.mult(amount).mult((10**(TOKEN_DECIMALS.sub(decimals)))) / PRECISION;
         }
     }
-    
+
     /**
         @notice Calculates the interest of a given amount, interest rate and delta time.
 
@@ -881,11 +881,11 @@ contract LoanEngine is Ownable, ERC721Base {
         @notice Withdraw lender funds
 
         When a loan is paid, the funds are not transferred automatically to the lender, the funds are stored on the
-        engine contract, and the lender must call this function specifying the amount desired to transfer and the 
+        engine contract, and the lender must call this function specifying the amount desired to transfer and the
         destination.
 
         @dev This behavior is defined to allow the temporary transfer of the loan to a smart contract, without worrying that
-        the contract will receive tokens that are not traceable; and it allows the development of decentralized 
+        the contract will receive tokens that are not traceable; and it allows the development of decentralized
         autonomous organizations.
 
         @param loanId Index of the loan
@@ -912,7 +912,7 @@ contract LoanEngine is Ownable, ERC721Base {
         @param loanIds Array of the loans to withdraw
         @param to Destination of the tokens
 
-        @return the total withdrawed 
+        @return the total withdrawed
     */
     function withdrawalList(uint256[] memory loanIds, address to) public returns (uint256) {
         uint256 inputId;
