@@ -683,9 +683,10 @@ contract LoanEngine is Ownable, ERC721Base {
     event AccruedInterest(uint64 from, uint64 delta, uint128 debt, uint128 newInterest, uint128 loanPaid, uint128 paidInterest);
     event ChangedPeriod(uint32 to, uint128 cuota, uint128 periodDebt, uint128 totalPeriodInterest);
     function advanceClock(Loan storage loan, uint64 targetDelta) internal returns (bool) {
-        // Advance no more than the next period
+        // Advance no more than the next period unless we passed the last one
         uint64 nextPeriodDelta = loan.periodDuration - loan.clock % loan.periodDuration;
-        uint64 delta = nextPeriodDelta < targetDelta ? nextPeriodDelta : targetDelta;
+        uint64 currentPeriod = loan.clock / loan.periodDuration;
+        uint64 delta = nextPeriodDelta < targetDelta && currentPeriod < loan.periods ? nextPeriodDelta : targetDelta;
 
         uint128 runningDebt = _baseDebt(loan) - loan.paidBase;
         uint128 newInterest = uint128(calculateInterest(delta, loan.interestRatePunitory, runningDebt));
