@@ -96,7 +96,7 @@ contract('LoanEngine', function(accounts) {
       "This is the a loan"
     ));
   })
-  it("It should handle a loan with a single period", async function(){
+  it("It should handle a loan with a single installment", async function(){
     let loanId = await readLoanId(await engine.requestLoan(
       0x0,
       accounts[1],
@@ -118,8 +118,8 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal(await engine.ownerOf(loanId), accounts[2], "Account 2 should be the new lender");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
-    assert.equal(await engine.getPeriods(loanId), 1, "The loan should be in the first period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), web3.toWei(110), "Period debt should be 100 plus interest")
+    assert.equal(await engine.getInstallments(loanId), 1, "The loan should be in the first installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), web3.toWei(110), "installment debt should be 100 plus interest")
     
     await buyTokens(accounts[1], web3.toWei(10));
     await rcn.approve(engine.address, web3.toWei(110), { from: accounts[1] });
@@ -128,7 +128,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getPaid(loanId), web3.toWei(110), "Paid should be 110 RCN");
     assert.equal(await engine.getStatus(loanId), 2, "Loan should be paid");
   })
-  it("It should return the tokens if an extra paid is made on a loan of a single period", async function(){
+  it("It should return the tokens if an extra paid is made on a loan of a single installment", async function(){
     let loanId = await readLoanId(await engine.requestLoan(
       0x0,
       accounts[1],
@@ -150,8 +150,8 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal(await engine.ownerOf(loanId), accounts[2], "Account 2 should be the new lender");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
-    assert.equal((await engine.getCheckpoint(loanId)).toNumber(), 1, "The loan should be in the first period");
-    assert.equal(await engine.getCurrentDebt(loanId), web3.toWei(110), "Period debt should be 100 plus interest")
+    assert.equal((await engine.getCheckpoint(loanId)).toNumber(), 1, "The loan should be in the first installment");
+    assert.equal(await engine.getCurrentDebt(loanId), web3.toWei(110), "installment debt should be 100 plus interest")
     
     await buyTokens(accounts[1], web3.toWei(20));
     await rcn.approve(engine.address, web3.toWei(120), { from: accounts[1] });
@@ -161,7 +161,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 2, "Loan should be paid");
     assert.equal(await rcn.balanceOf(accounts[1]), web3.toWei(10), "The borrower should have it's 10 RCN back")
   })
-  it("It should handle a loan with more than a period", async function(){
+  it("It should handle a loan with more than a installment", async function(){
     let loanId = await readLoanId(await engine.requestLoan(
       0x0,
       accounts[1],
@@ -183,8 +183,8 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal(await engine.ownerOf(loanId), accounts[2], "Account 2 should be the new lender");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first period");
-    assert.equal(await engine.getCurrentDebt(loanId), 330 / 3, "Period debt should be 100 plus interest = 110")
+    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
+    assert.equal(await engine.getCurrentDebt(loanId), 330 / 3, "installment debt should be 100 plus interest = 110")
     
     await buyTokens(accounts[8], 4000);
     await rcn.approve(engine.address, 110, { from: accounts[8] });
@@ -193,7 +193,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getPaid(loanId), 110, "Paid should be 110 RCN");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be still ongoing");
   })
-  it("It should handle a loan with more than a period in advance, totally", async function(){
+  it("It should handle a loan with more than a installment in advance, totally", async function(){
     let loanId = await readLoanId(await engine.requestLoan(
       0x0,
       accounts[8],
@@ -215,8 +215,8 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal(await engine.ownerOf(loanId), accounts[3], "Account 2 should be the new lender");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first period");
-    assert.equal(await engine.getCurrentDebt(loanId), 110, "Period debt should be 100 plus interest = 110")
+    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
+    assert.equal(await engine.getCurrentDebt(loanId), 110, "installment debt should be 100 plus interest = 110")
     
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
@@ -228,7 +228,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal((await engine.getPaid(loanId)).toNumber(), 110 * 10, "Paid should be 1100 RCN");
     assert.equal(await rcn.balanceOf(accounts[8]), 4000 - 1100, "Expended amount should be 1100 RCN");
   })
-  it("It should handle a loan with more than a period in advance, partially", async function(){
+  it("It should handle a loan with more than a installment in advance, partially", async function(){
     let loanId = await readLoanId(await engine.requestLoan(
       0x0,
       accounts[8],
@@ -250,8 +250,8 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal(await engine.ownerOf(loanId), accounts[3], "Account 2 should be the new lender");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first period");
-    assert.equal(await engine.getCurrentDebt(loanId), 110, "Period debt should be 100 plus interest = 110")
+    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
+    assert.equal(await engine.getCurrentDebt(loanId), 110, "installment debt should be 100 plus interest = 110")
     
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
@@ -262,8 +262,8 @@ contract('LoanEngine', function(accounts) {
     assert.equal((await engine.getPaid(loanId)).toNumber(), 110 * 3, "Paid should be 330 RCN");
     assert.equal(await rcn.balanceOf(accounts[8]), 4000 - 330, "Expended amount should be 1100 RCN");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be still ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 4, "Current period should be 4");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 110, "Current period debt should be 110 RCN");
+    assert.equal(await engine.getCheckpoint(loanId), 4, "Current installment should be 4");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 110, "Current installment debt should be 110 RCN");
 
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
@@ -274,8 +274,8 @@ contract('LoanEngine', function(accounts) {
     assert.equal((await engine.getPaid(loanId)).toNumber(), 110 * 3 + 150, "Paid should be 480 RCN");
     assert.equal(await rcn.balanceOf(accounts[8]), 4000 - 150, "Expended amount should be 1100 RCN");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be still ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 5, "Current period should be 5");
-    assert.equal(await engine.getCurrentDebt(loanId), 70, "Current period debt should be 70 RCN");
+    assert.equal(await engine.getCheckpoint(loanId), 5, "Current installment should be 5");
+    assert.equal(await engine.getCurrentDebt(loanId), 70, "Current installment debt should be 70 RCN");
 
     // Pay the rest of the loan
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
@@ -287,8 +287,8 @@ contract('LoanEngine', function(accounts) {
     assert.equal((await engine.getPaid(loanId)).toNumber(), 1100, "Paid should be 1100 RCN");
     assert.equal(await rcn.balanceOf(accounts[8]), 4000 - 620, "Expended amount should be 620 RCN");
     assert.equal(await engine.getStatus(loanId), 2, "Loan should be still paid");
-    assert.equal(await engine.getCheckpoint(loanId), 10, "Current period should be 10");
-    assert.equal(await engine.getCurrentDebt(loanId), 0, "Current period debt should be 0 RCN");
+    assert.equal(await engine.getCheckpoint(loanId), 10, "Current installment should be 10");
+    assert.equal(await engine.getCurrentDebt(loanId), 0, "Current installment debt should be 0 RCN");
   })
   it("Should only charge the exact extra interest", async function(){
     const loanId = await readLoanId(await engine.requestLoan(
@@ -310,7 +310,7 @@ contract('LoanEngine', function(accounts) {
     await rcn.approve(engine.address, 1000000, { from: accounts[3] });
     await engine.lend(loanId, 0x0, 0x0, 0x0, { from: accounts[3] });
 
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "All periods should be base 99963")
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "All installments should be base 99963")
   })
   it("It should calculate the interest like the test doc test 1", async function() {
     const loanId = await readLoanId(await engine.requestLoan(
@@ -334,20 +334,20 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal(await engine.ownerOf(loanId), accounts[3], "Account 2 should be the new lender");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first period");
-    assert.equal(await engine.getCurrentDebt(loanId), 99963, "Period debt should be 99963");
+    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
+    assert.equal(await engine.getCurrentDebt(loanId), 99963, "installment debt should be 99963");
 
     // Pay the full next installment in a couple of days
     await increaseTime(7 * 86400);
 
-    assert.equal(await engine.getCurrentDebt(loanId), 99963, "Period debt should still be 99963");
+    assert.equal(await engine.getCurrentDebt(loanId), 99963, "installment debt should still be 99963");
 
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
     await buyTokens(accounts[8], 100000);
     await rcn.approve(engine.address, 99963, { from: accounts[8] });
     await engine.pay(loanId, 99963, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 2, "The loan should installmentinstallmentbe in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 2, "The loan should installmentinstallmentbe in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait a month and a week
     await increaseTime((30 + 7) * 86400);
@@ -356,8 +356,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 100000);
     await rcn.approve(engine.address, 99963, { from: accounts[8] });
     await engine.pay(loanId, 99963, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 3, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 3, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait a month and a week
     await increaseTime(30 * 86400);
@@ -366,8 +366,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 100000);
     await rcn.approve(engine.address, 99963, { from: accounts[8] });
     await engine.pay(loanId, 99963, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 4, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 4, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait to the next payment, exactly
     await increaseTime(30 * 86400);
@@ -382,8 +382,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 400000);
     await rcn.approve(engine.address, 100691, { from: accounts[8] });
     await engine.pay(loanId, 100691, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 5, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 5, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait to the next payment, exactly
     await increaseTime(25 * 86400);
@@ -395,8 +395,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 400000);
     await rcn.approve(engine.address, 102878, { from: accounts[8] });
     await engine.pay(loanId, 102878, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 6, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 6, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait to the next payment minus 1 day
     await increaseTime(9 * 86400);
@@ -406,8 +406,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 100000);
     await rcn.approve(engine.address, 99963, { from: accounts[8] });
     await engine.pay(loanId, 99963, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 7, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 7, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait to the next payment
     await increaseTime(30 * 86400);
@@ -417,8 +417,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 100000);
     await rcn.approve(engine.address, 99963, { from: accounts[8] });
     await engine.pay(loanId, 99963, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 8, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 8, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait to exactly the payment date
     await increaseTime(30 * 86400);
@@ -431,8 +431,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 400000);
     await rcn.approve(engine.address, 102149, { from: accounts[8] });
     await engine.pay(loanId, 102149, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 9, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 9, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait for the next payment date
     await increaseTime(14 * 86400);
@@ -442,8 +442,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 100000);
     await rcn.approve(engine.address, 99963, { from: accounts[8] });
     await engine.pay(loanId, 99963, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 10, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 10, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait to the next payment
     await increaseTime(30 * 86400);
@@ -453,8 +453,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 100000);
     await rcn.approve(engine.address, 99963, { from: accounts[8] });
     await engine.pay(loanId, 99963, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 11, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 11, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait to the next payment
     await increaseTime(30 * 86400);
@@ -464,8 +464,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 100000);
     await rcn.approve(engine.address, 99963, { from: accounts[8] });
     await engine.pay(loanId, 99963, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 12, "The loan should be in the next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 12, "The loan should be in the next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
 
     // Wait to the next payment
     await increaseTime(30 * 86400);
@@ -500,16 +500,16 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal(await engine.ownerOf(loanId), accounts[3], "Account 2 should be the new lender");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first period");
-    assert.equal(await engine.getCurrentDebt(loanId), 99963, "Period debt should be 99963");
+    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
+    assert.equal(await engine.getCurrentDebt(loanId), 99963, "installment debt should be 99963");
 
     // Pay the next 3 months in advance
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
     await buyTokens(accounts[8], 10 ** 18);
     await rcn.approve(engine.address, 99963 * 3, { from: accounts[8] });
     await engine.pay(loanId, 99963 * 3, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 4, "The loan should be in the 4 next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 4, "The loan should be in the 4 next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
     assert.equal(await engine.getPaid(loanId), 99963 * 3, "Paid should be the amount of 3 installments");
     assert.equal(await engine.getLenderBalance(loanId), 99963 * 3, "Lender balance should equal pay");
 
@@ -524,8 +524,8 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 10 ** 18);
     await rcn.approve(engine.address, 101712, { from: accounts[8] });
     await engine.pay(loanId, 101712, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 5, "The loan should now be in the 5 next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal(await engine.getCheckpoint(loanId), 5, "The loan should now be in the 5 next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
     
     // Advance to the next month
     await increaseTime(18 * 86400);
@@ -541,7 +541,7 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 10 ** 18);
     await rcn.approve(engine.address, 250000, { from: accounts[8] });
     await engine.pay(loanId, 250000, accounts[8], 0x0, { from: accounts[8] }); // 299889
-    assert.equal(await engine.getCheckpoint(loanId), 7, "The loan should now be in the 7 period");
+    assert.equal(await engine.getCheckpoint(loanId), 7, "The loan should now be in the 7 installment");
 
     // Advance to the next month
     await increaseTime(30 * 86400);
@@ -555,7 +555,7 @@ contract('LoanEngine', function(accounts) {
     await rcn.approve(engine.address, 10 ** 18, { from: accounts[8] });
     await engine.pay(loanId, 10 ** 18, accounts[8], 0x0, { from: accounts[8] });
     assert.equal(await engine.getStatus(loanId), 2, "The loan should be fully paid");
-    assert.equal(await engine.getCheckpoint(loanId), 12, "The loan should now be in the 12 next period");
+    assert.equal(await engine.getCheckpoint(loanId), 12, "The loan should now be in the 12 next installment");
     assert.equal((await engine.getPaid(loanId)).toNumber(), 1214616, "Paid should be the amount be 1214717");
     assert.equal(await engine.getLenderBalance(loanId), 1214616, "Lender balance should equal pay");
   })
@@ -580,16 +580,16 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal(await engine.ownerOf(loanId), accounts[3], "Account 2 should be the new lender");
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
-    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first period");
-    assert.equal(await engine.getCurrentDebt(loanId), 99963, "Period debt should be 99963");
+    assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
+    assert.equal(await engine.getCurrentDebt(loanId), 99963, "installment debt should be 99963");
 
     // Pay the next 3 months in advance
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
     await buyTokens(accounts[8], 10 ** 18);
     await rcn.approve(engine.address, 99963 * 4, { from: accounts[8] });
     await engine.pay(loanId, 99963 * 4, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal((await engine.getCheckpoint(loanId)).toNumber(), 5, "The loan should be in the 5 next period");
-    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
+    assert.equal((await engine.getCheckpoint(loanId)).toNumber(), 5, "The loan should be in the 5 next installment");
+    assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
     assert.equal(await engine.getPaid(loanId), 99963 * 4, "Paid should be the amount of 3 installments");
     assert.equal(await engine.getLenderBalance(loanId), 99963 * 4, "Lender balance should equal pay");
 
@@ -600,7 +600,7 @@ contract('LoanEngine', function(accounts) {
     // Awake the loan
     // pay 0 tokens
     await engine.pay(loanId, 0, 0x0, 0x0);
-    assert.equal(await engine.getCheckpoint(loanId), 8, "The loan should be in the 7 next period");
+    assert.equal(await engine.getCheckpoint(loanId), 8, "The loan should be in the 7 next installment");
     assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 426091);
 
     // Advance the last 4 months
@@ -609,7 +609,7 @@ contract('LoanEngine', function(accounts) {
     // Awake the loan
     // pay 0 tokens
     await engine.pay(loanId, 0, 0x0, 0x0);
-    assert.equal(await engine.getCheckpoint(loanId), 12, "The loan should be in the 12 next period");
+    assert.equal(await engine.getCheckpoint(loanId), 12, "The loan should be in the 12 next installment");
     assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 922155); // 922159
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
   })
