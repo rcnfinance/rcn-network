@@ -462,11 +462,14 @@ contract LoanEngine is Ownable, ERC721Base {
     function getStatus(uint256 id) external view returns (Status) { return loans[id].status; }
     function getCheckpoint(uint256 id) external view returns (uint256) { return loans[id].clock / loans[id].periodDuration; }
     function getLenderBalance(uint256 id) external view returns (uint256) { return loans[id].lenderBalance; }
-    function getPeriodDebt(uint256 id) external view returns (uint256) { return _periodDebt(loans[id]) + loans[id].periodInterest - loans[id].paid; }
     function getDuesIn(uint256 id) external view returns (uint256) {
         Loan memory loan = loans[id];
         if (loan.lentTime == 0) { return 0; }
         return loan.lentTime + loan.periods * loan.periodDuration;
+    }
+
+    function getCurrentDebt(uint256 loanId) external view returns (uint256) {
+        return _currentDebt(loans[loanId]);
     }
 
     Token public token;
@@ -655,10 +658,6 @@ contract LoanEngine is Ownable, ERC721Base {
         return loans[index].metadata;
     }
 
-    function _periodDebt(Loan memory loan) internal pure returns (uint128) {
-        return (loan.clock / loan.periodDuration) * loan.cuota;
-    }
-
     function _baseDebt(Loan memory loan) internal pure returns (uint128) {
         uint32 period = uint32(loan.clock / loan.periodDuration);
         return period < loan.periods ? period * loan.cuota : loan.periods * loan.cuota;
@@ -676,22 +675,9 @@ contract LoanEngine is Ownable, ERC721Base {
         return keccak256(abi.encodePacked(loans[index].metadata));
     }
 
-    function periodPending(uint256 loanId) external view returns (uint256) {
-        return _periodPending(loans[loanId]);
-    }
-
-    function _periodPending(Loan memory loan) internal pure returns (uint256) {
+    function _currentDebt(Loan memory loan) internal pure returns (uint256) {
         uint128 debt = _baseDebt(loan) + loan.periodInterest;
         return loan.paid < debt ? debt - loan.paid : 0;
-    }
-
-    function periodAt(Loan memory loan, uint256 timestamp) internal pure returns (uint256 number) {
-        uint256 totalElapsed = timestamp - loan.lentTime;
-        number = totalElapsed / loan.periodDuration;
-    }
-    
-    function periodStarts(Loan memory loan, uint256 period) internal pure returns (uint256 starts) {
-        return loan.periodDuration * (period) + loan.lentTime;
     }
 
     event AccruedInterest(uint64 from, uint64 delta, uint128 debt, uint128 newInterest, uint128 loanPaid, uint128 paidInterest);
@@ -824,7 +810,7 @@ contract LoanEngine is Ownable, ERC721Base {
             uint128 target;
             do {
                 // Pay the full period or the max ammount possible
-                pending = uint128(_periodPending(loan));
+                pending = uint128(_currentDebt(loan));
                 target = pending < available ? pending : available;
                 loan.paid += target;
                 loan.lenderBalance += target;
