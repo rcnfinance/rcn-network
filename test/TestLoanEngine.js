@@ -312,7 +312,7 @@ contract('LoanEngine', function(accounts) {
 
     assert.equal((await engine.getPeriodDebt(loanId)).toNumber(), 99963, "All periods should be base 99963")
   })
-  it("It should calculate the interest like the test doc", async function() {
+  it("It should calculate the interest like the test doc test 1", async function() {
     const loanId = await readLoanId(await engine.requestLoan(
       0x0,
       accounts[1],
@@ -429,8 +429,8 @@ contract('LoanEngine', function(accounts) {
 
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
     await buyTokens(accounts[8], 400000);
-    await rcn.approve(engine.address, 102150, { from: accounts[8] });
-    await engine.pay(loanId, 102150, accounts[8], 0x0, { from: accounts[8] });
+    await rcn.approve(engine.address, 102149, { from: accounts[8] });
+    await engine.pay(loanId, 102149, accounts[8], 0x0, { from: accounts[8] });
     assert.equal(await engine.getCheckpoint(loanId), 9, "The loan should be in the next period");
     assert.equal((await engine.getPeriodDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
 
@@ -478,7 +478,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 2, "The loan should be fully paid");
     assert.equal((await engine.getPaid(loanId)).toNumber(), 1205385, "The borrower should have paid 1205385 in total");
   })
-  it("It should calculate the interest like the test doc", async function() {
+  it("It should calculate the interest like the test doc test 3", async function() {
     const loanId = await readLoanId(await engine.requestLoan(
       0x0,
       accounts[1],
@@ -489,7 +489,7 @@ contract('LoanEngine', function(accounts) {
       12,
       30 * 86400,
       10 ** 10,
-      "Test table example 2"
+      "Test table example 3"
     ), { from: accounts[1] });
 
     await engine.approveLoan(loanId, { from: accounts[1] })
@@ -539,10 +539,15 @@ contract('LoanEngine', function(accounts) {
     // Pay the total of the current debt
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
     await buyTokens(accounts[8], 10 ** 18);
-    await rcn.approve(engine.address, 313301, { from: accounts[8] });
-    await engine.pay(loanId, 313301, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal((await engine.getPeriodDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
-    assert.equal(await engine.getCheckpoint(loanId), 8, "The loan should now be in the 8 next period");
+    await rcn.approve(engine.address, 250000, { from: accounts[8] });
+    await engine.pay(loanId, 250000, accounts[8], 0x0, { from: accounts[8] }); // 299889
+    assert.equal(await engine.getCheckpoint(loanId), 7, "The loan should now be in the 7 period");
+
+    // Advance to the next month
+    await increaseTime(30 * 86400);
+    // Poke the contract
+    await engine.pay(loanId, 0, 0x0, 0x0);
+    assert.equal((await engine.getPeriodDebt(loanId)).toNumber(), 163264)
 
     // Pay thr rest of the loan
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
@@ -554,7 +559,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal((await engine.getPaid(loanId)).toNumber(), 1214616, "Paid should be the amount be 1214717");
     assert.equal(await engine.getLenderBalance(loanId), 1214616, "Lender balance should equal pay");
   })
-  it("It should calculate the interest like the test doc", async function() {
+  it("It should calculate the interest like the test doc test 4", async function() {
     const loanId = await readLoanId(await engine.requestLoan(
       0x0,
       accounts[1],
@@ -583,7 +588,7 @@ contract('LoanEngine', function(accounts) {
     await buyTokens(accounts[8], 10 ** 18);
     await rcn.approve(engine.address, 99963 * 4, { from: accounts[8] });
     await engine.pay(loanId, 99963 * 4, accounts[8], 0x0, { from: accounts[8] });
-    assert.equal(await engine.getCheckpoint(loanId), 5, "The loan should be in the 5 next period");
+    assert.equal((await engine.getCheckpoint(loanId)).toNumber(), 5, "The loan should be in the 5 next period");
     assert.equal((await engine.getPeriodDebt(loanId)).toNumber(), 99963, "Period debt now be 99963 again, the next installment");
     assert.equal(await engine.getPaid(loanId), 99963 * 4, "Paid should be the amount of 3 installments");
     assert.equal(await engine.getLenderBalance(loanId), 99963 * 4, "Lender balance should equal pay");
@@ -596,7 +601,17 @@ contract('LoanEngine', function(accounts) {
     // pay 0 tokens
     await engine.pay(loanId, 0, 0x0, 0x0);
     assert.equal(await engine.getCheckpoint(loanId), 8, "The loan should be in the 7 next period");
-    assert.equal((await engine.getPeriodDebt(loanId)).toNumber(), 380213);
+    assert.equal((await engine.getPeriodDebt(loanId)).toNumber(), 426091);
+
+    // Advance the last 4 months
+    await increaseTime(4 * 30 * 86400);
+
+    // Awake the loan
+    // pay 0 tokens
+    await engine.pay(loanId, 0, 0x0, 0x0);
+    assert.equal(await engine.getCheckpoint(loanId), 12, "The loan should be in the 12 next period");
+    assert.equal((await engine.getPeriodDebt(loanId)).toNumber(), 922155); // 922159
+    assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
   })
   it("It should fail to create a loan if deprecated", async function(){
     await readLoanId(await engine.requestLoan(
