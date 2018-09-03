@@ -799,7 +799,7 @@ contract LoanEngine is Ownable, ERC721Base {
         loan.status = Status.destroyed;
         return true;
     }
-    event Debug1(uint128 paidBase, uint128 target, uint128 loanPeriodInterest, uint128 prevInterest);
+
     function pay(uint256 loanId, uint128 amount, address from, bytes oracleData) external returns (bool) {
         Loan storage loan = loans[loanId];
         require(loan.status == Status.ongoing, "The loan is not ongoing");
