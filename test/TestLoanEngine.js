@@ -2,6 +2,7 @@ var TestToken = artifacts.require("./utils/TestToken.sol");
 var LoanEngine = artifacts.require("./LoanEngine.sol");
 var TestOracle = artifacts.require("./examples/TestOracle.sol");
 var TestCosigner = artifacts.require("./examples/TestCosigner.sol");
+const Helper = require('./Helper.js');
 
 contract('LoanEngine', function(accounts) {
   let rcn;
@@ -47,8 +48,7 @@ contract('LoanEngine', function(accounts) {
   }
 
   async function readLoanId(recepit) {
-    // FIXME: Read event logs
-    return (await engine.getTotalLoans()).toNumber() - 1;
+    return Helper.toEvents(recepit.logs, Helper.CREATEDLOAN)[0].index;
   }
 
   it("It should fail creating two identical loans", async() => {
@@ -120,7 +120,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getInstallments(loanId), 1, "The loan should be in the first installment");
     assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), web3.toWei(110), "installment debt should be 100 plus interest")
-    
+
     await buyTokens(accounts[1], web3.toWei(10));
     await rcn.approve(engine.address, web3.toWei(110), { from: accounts[1] });
     await engine.pay(loanId, web3.toWei(110), accounts[1], 0x0, { from: accounts[1] });
@@ -152,7 +152,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal((await engine.getCheckpoint(loanId)).toNumber(), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), web3.toWei(110), "installment debt should be 100 plus interest")
-    
+
     await buyTokens(accounts[1], web3.toWei(20));
     await rcn.approve(engine.address, web3.toWei(120), { from: accounts[1] });
     await engine.pay(loanId, web3.toWei(120), accounts[1], 0x0, { from: accounts[1] });
@@ -185,7 +185,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), 330 / 3, "installment debt should be 100 plus interest = 110")
-    
+
     await buyTokens(accounts[8], 4000);
     await rcn.approve(engine.address, 110, { from: accounts[8] });
     await engine.pay(loanId, 110, accounts[8], 0x0, { from: accounts[8] });
@@ -217,7 +217,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), 110, "installment debt should be 100 plus interest = 110")
-    
+
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
     await buyTokens(accounts[8], 4000);
@@ -252,7 +252,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), 110, "installment debt should be 100 plus interest = 110")
-    
+
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
     await buyTokens(accounts[8], 4000);
@@ -526,13 +526,13 @@ contract('LoanEngine', function(accounts) {
     await engine.pay(loanId, 101712, accounts[8], 0x0, { from: accounts[8] });
     assert.equal(await engine.getCheckpoint(loanId), 5, "The loan should now be in the 5 next installment");
     assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
-    
+
     // Advance to the next month
     await increaseTime(18 * 86400);
 
     // And to the next...
     await increaseTime(30 * 86400);
-    
+
     // And to the next...
     await increaseTime(30 * 86400);
 
