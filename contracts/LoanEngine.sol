@@ -650,7 +650,7 @@ contract LoanEngine is Ownable, ERC721Base {
         address signer = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", identifier)), v, r, s);
         require(loan.borrower == signer, "The approve is not signed by the borrower");
         loan.approved = true;
-        emit ApprovedBy(index, loan.borrower);
+        emit ApprovedBy(index, signer);
         return true;
     }
 
