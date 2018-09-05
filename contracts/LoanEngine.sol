@@ -608,6 +608,8 @@ contract LoanEngine is Ownable, ERC721Base {
     */
     function approveLoan(uint index) external returns (bool) {
         Loan storage loan = loans[index];
+        require(loan.status == Status.request, "The loan is not a request");
+        require(loan.borrower == msg.sender, "The loan should be the borrower");
         loan.approved = true;
         emit ApprovedBy(index, msg.sender);
         return true;
@@ -624,11 +626,13 @@ contract LoanEngine is Ownable, ERC721Base {
         uint256 index = identifierToIndex[identifier];
         require(index != 0, "Loan does not exist");
         Loan storage loan = loans[index];
+        require(loan.status == Status.request, "The loan is not a request");
+        require(loan.borrower == msg.sender, "The loan should be the borrower");
         loan.approved = true;
         emit ApprovedBy(index, msg.sender);
         return true;
     }
-
+    
     /**
         @notice Register an approvation made by a borrower in the past
 
@@ -642,6 +646,7 @@ contract LoanEngine is Ownable, ERC721Base {
         uint256 index = identifierToIndex[identifier];
         require(index != 0, "The loan does not exist");
         Loan storage loan = loans[index];
+        require(loan.status == Status.request, "The loan is not a request");
         address signer = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", identifier)), v, r, s);
         require(loan.borrower == signer, "The approve is not signed by the borrower");
         loan.approved = true;
