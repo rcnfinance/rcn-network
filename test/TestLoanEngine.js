@@ -2,6 +2,7 @@ const LoanEngine = artifacts.require("./LoanEngine.sol");
 const TestToken = artifacts.require("./utils/test/TestToken.sol");
 const TestOracle = artifacts.require("./utils/test/TestOracle.sol");
 const TestCosigner = artifacts.require("./utils/test/TestCosigner.sol");
+const Helper = require('./Helper.js');
 
 contract('LoanEngine', function(accounts) {
   let rcn;
@@ -47,10 +48,76 @@ contract('LoanEngine', function(accounts) {
   }
 
   async function readLoanId(recepit) {
-    // FIXME: Read event logs
-    return (await engine.getTotalLoans()).toNumber() - 1;
+    return Helper.toEvents(recepit.logs, Helper.CREATEDLOAN)[0].index;
   }
 
+  it("check events", async function(){
+    const txRequestLoan = await engine.requestLoan(
+      0x0,                 // oracle
+      accounts[8],         // borrower
+      0x0,                 // currency
+      toInterestRate(240), // interestRatePunitory
+      2000,                // amount
+      2000,                // cuota
+      1,                   // installments
+      30 * 86400,          // installmentDuration
+      10 ** 10,            // requestExpiration
+      "events test",       // metadata
+      { from: accounts[9] }
+    );
+    // Created loan
+    const createdLoan = Helper.toEvents(txRequestLoan.logs, Helper.CREATEDLOAN)[0];
+    assert.equal(createdLoan.index, (await engine.getTotalLoans()).toNumber() - 1);
+    assert.equal(createdLoan.borrower, accounts[8], "The borrower of the event should be the borrower of the loan" );
+    assert.equal(createdLoan.creator, accounts[9], "The creator of the event should be the creator of the loan" );
+    const loanId = createdLoan.index;
+    // Approve a loan
+    const txApproveLoan = await engine.approveLoan(loanId, { from: accounts[8] });
+    const ApprovedBy = Helper.toEvents(txApproveLoan.logs, Helper.APPROVEDBY)[0];
+    assert.equal(ApprovedBy.index, loanId, "The index of the event should be the " + loanId.toString());
+    assert.equal(ApprovedBy.address, accounts[8], "The address of the event should be the borrower");
+    // Lent a loan
+    await buyTokens(accounts[2], 8000);
+    await rcn.approve(engine.address, 8000, { from: accounts[2] });
+    const cosignerData = Helper.hexArrayToBytesOfBytes32([web3.sha3("test_oracle"), loanId]);
+    const txLendLoan = await engine.lend(loanId, [], cosigner.address, cosignerData, { from: accounts[2] });
+    const Lent = Helper.toEvents(txLendLoan.logs, Helper.LENT)[0];
+    assert.equal(Lent.index, loanId, "The index of the event should be the " + loanId.toString());
+    assert.equal(Lent.lender, accounts[2], "The lender of the event should be the lender");
+    assert.equal(Lent.cosigner, cosigner.address, "The cosigner of the event should be the cosigner");
+    // Partial pay to a loan
+    await buyTokens(accounts[3], 8000);
+    await rcn.approve(engine.address, 8000, { from: accounts[3] });
+    const txPayLoan = await engine.pay(loanId, 10, accounts[4], 0x0, { from: accounts[2] })
+    const PartialPayment = Helper.toEvents(txPayLoan.logs, Helper.PARTIALPAYMENT)[0];
+    assert.equal(PartialPayment.index, loanId, "The index of the event should be the " + loanId.toString());
+    assert.equal(PartialPayment.sender, accounts[2], "The lender of the event should be the lender");
+    assert.equal(PartialPayment.from, accounts[4], "The cosigner of the event should be the cosigner");
+    assert.equal(PartialPayment.amount, 10, "The amount of the event should be 10");
+    // total pay to a loan
+    await buyTokens(accounts[3], 8000);
+    await rcn.approve(engine.address, 8000, { from: accounts[3] });
+    const txTotalPayLoan = await engine.pay(loanId, 3000, accounts[4], 0x0, { from: accounts[2] })
+    const TotalPayment = Helper.toEvents(txTotalPayLoan.logs, Helper.TOTALPAYMENT)[0];
+    assert.equal(TotalPayment.index, loanId, "The index of the event should be the " + loanId.toString());
+    // create and destroy a loan
+    const loanId2 = await readLoanId(await engine.requestLoan(
+      0x0,                 // oracle
+      accounts[8],         // borrower
+      0x0,                 // currency
+      toInterestRate(240), // interestRatePunitory
+      2000,                // amount
+      100,                 // cuota
+      20,                  // installments
+      30 * 86400,          // installmentDuration
+      10 ** 10,            // requestExpiration
+      "destroy test",      // metadata
+    ));
+    const txDestroyLoan = await engine.destroy(loanId2, { from: accounts[8] });
+    const DestroyedBy = Helper.toEvents(txDestroyLoan.logs, Helper.DESTROYEDBY)[0];
+    assert.equal(DestroyedBy.index, loanId2, "The index of the event should be the " + loanId2.toString());
+    assert.equal(ApprovedBy.address, accounts[8], "The address of the event should be the borrower");
+})
   it("It should fail creating two identical loans", async() => {
     // create a new loan
     let loanId1 = await readLoanId(await engine.requestLoan(
