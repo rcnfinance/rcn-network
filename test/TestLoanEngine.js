@@ -1,7 +1,7 @@
-var TestToken = artifacts.require("./utils/TestToken.sol");
-var LoanEngine = artifacts.require("./LoanEngine.sol");
-var TestOracle = artifacts.require("./examples/TestOracle.sol");
-var TestCosigner = artifacts.require("./examples/TestCosigner.sol");
+const LoanEngine = artifacts.require("./LoanEngine.sol");
+const TestToken = artifacts.require("./utils/test/TestToken.sol");
+const TestOracle = artifacts.require("./utils/test/TestOracle.sol");
+const TestCosigner = artifacts.require("./utils/test/TestCosigner.sol");
 
 contract('LoanEngine', function(accounts) {
   let rcn;
