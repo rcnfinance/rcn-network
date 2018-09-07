@@ -2,6 +2,7 @@ var TestToken = artifacts.require("./utils/TestToken.sol");
 var LoanEngine = artifacts.require("./LoanEngine.sol");
 var TestOracle = artifacts.require("./examples/TestOracle.sol");
 var TestCosigner = artifacts.require("./examples/TestCosigner.sol");
+const Helper = require('./Helper.js');
 
 contract('LoanEngine', function(accounts) {
   let rcn;
@@ -47,9 +48,62 @@ contract('LoanEngine', function(accounts) {
   }
 
   async function readLoanId(recepit) {
-    // FIXME: Read event logs
-    return (await engine.getTotalLoans()).toNumber() - 1;
+    return Helper.toEvents(recepit.logs, Helper.CREATEDLOAN)[0].index;
   }
+
+  it("approve loan test", async function(){
+    const loanId = await readLoanId(await engine.requestLoan(
+      0x0,                 // oracle
+      accounts[8],         // borrower
+      0x0,                 // currency
+      toInterestRate(240), // interestRatePunitory
+      100,                 // amount
+      10,                  // cuota
+      10,                  // installments
+      30 * 86400,          // installmentDuration
+      10 ** 10,            // requestExpiration
+      "approveLoan()"      // metadata
+    ));
+    assert.equal(await engine.getApproved(loanId), false, "The loan must not be approved");
+    // try approve a loan with other account
+    await assertThrow(engine.approveLoan(loanId, { from: accounts[1] }));
+    // approve a loan approveLoan()
+    await engine.approveLoan(loanId, { from: accounts[8] });
+    assert.equal(await engine.getApproved(loanId), true, "The loan should be approved");
+
+    // try approve an appoved loan
+    await assertThrow(engine.approveLoan(loanId, { from: accounts[8] }));
+    // try to approve a loan with a status other than request
+    const loanId2 = await readLoanId(await engine.requestLoan(
+      0x0,                 // oracle
+      accounts[8],         // borrower
+      0x0,                 // currency
+      toInterestRate(240), // interestRatePunitory
+      100,                 // amount
+      10,                  // cuota
+      10,                  // installments
+      30 * 86400,          // installmentDuration
+      10 ** 10,            // requestExpiration
+      "approveLoan2()"     // metadata
+    ));
+    await engine.destroy(loanId2, { from: accounts[8] });
+    // approve a loan with identifier approveLoanIdentifier()
+    const loanId3 = await readLoanId(await engine.requestLoan(
+      0x0,                      // oracle
+      accounts[8],              // borrower
+      0x0,                      // currency
+      toInterestRate(240),      // interestRatePunitory
+      100,                      // amount
+      10,                       // cuota
+      10,                       // installments
+      30 * 86400,               // installmentDuration
+      10 ** 10,                 // requestExpiration
+      "approveLoanIdentifier()" // metadata
+    ));
+    const identifier3 = await engine.getIdentifier(loanId3);
+    await engine.approveLoanIdentifier(identifier3, { from: accounts[8] });
+    assert.equal(await engine.getApproved(loanId3), true, "The loan should be approved");
+  })
 
   it("It should fail creating two identical loans", async() => {
     // create a new loan
@@ -65,7 +119,7 @@ contract('LoanEngine', function(accounts) {
       10 ** 10,
       "This is the a loan"
     ));
-    assert.equal(loanId1, 1)
+    assert.equal(loanId1, (await engine.getTotalLoans()).toNumber() - 1);
 
     // create one a little bit different
     let loanId2 = await readLoanId(await engine.requestLoan(
@@ -80,7 +134,7 @@ contract('LoanEngine', function(accounts) {
       10 ** 10,
       "This is the a loan"
     ));
-    assert.equal(loanId2, 2)
+    assert.equal(loanId2, (await engine.getTotalLoans()).toNumber() - 1)
 
     // create a new identical
     await assertThrow(engine.requestLoan(
@@ -96,6 +150,7 @@ contract('LoanEngine', function(accounts) {
       "This is the a loan"
     ));
   })
+
   it("It should handle a loan with a single installment", async function(){
     let loanId = await readLoanId(await engine.requestLoan(
       0x0,
@@ -120,7 +175,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getInstallments(loanId), 1, "The loan should be in the first installment");
     assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), web3.toWei(110), "installment debt should be 100 plus interest")
-    
+
     await buyTokens(accounts[1], web3.toWei(10));
     await rcn.approve(engine.address, web3.toWei(110), { from: accounts[1] });
     await engine.pay(loanId, web3.toWei(110), accounts[1], 0x0, { from: accounts[1] });
@@ -152,7 +207,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal((await engine.getCheckpoint(loanId)).toNumber(), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), web3.toWei(110), "installment debt should be 100 plus interest")
-    
+
     await buyTokens(accounts[1], web3.toWei(20));
     await rcn.approve(engine.address, web3.toWei(120), { from: accounts[1] });
     await engine.pay(loanId, web3.toWei(120), accounts[1], 0x0, { from: accounts[1] });
@@ -185,7 +240,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), 330 / 3, "installment debt should be 100 plus interest = 110")
-    
+
     await buyTokens(accounts[8], 4000);
     await rcn.approve(engine.address, 110, { from: accounts[8] });
     await engine.pay(loanId, 110, accounts[8], 0x0, { from: accounts[8] });
@@ -207,7 +262,7 @@ contract('LoanEngine', function(accounts) {
       ""
     ));
 
-    await engine.approveLoan(loanId, { from: accounts[1] })
+    await engine.approveLoan(loanId, { from: accounts[8] })
 
     await buyTokens(accounts[3], 4000);
     await rcn.approve(engine.address, 1000, { from: accounts[3] });
@@ -217,7 +272,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), 110, "installment debt should be 100 plus interest = 110")
-    
+
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
     await buyTokens(accounts[8], 4000);
@@ -228,6 +283,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal((await engine.getPaid(loanId)).toNumber(), 110 * 10, "Paid should be 1100 RCN");
     assert.equal(await rcn.balanceOf(accounts[8]), 4000 - 1100, "Expended amount should be 1100 RCN");
   })
+
   it("It should handle a loan with more than a installment in advance, partially", async function(){
     let loanId = await readLoanId(await engine.requestLoan(
       0x0,
@@ -242,7 +298,7 @@ contract('LoanEngine', function(accounts) {
       "2!"
     ));
 
-    await engine.approveLoan(loanId, { from: accounts[1] })
+    await engine.approveLoan(loanId, { from: accounts[8] })
 
     await buyTokens(accounts[3], 4000);
     await rcn.approve(engine.address, 1000, { from: accounts[3] });
@@ -252,7 +308,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), 110, "installment debt should be 100 plus interest = 110")
-    
+
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
     await buyTokens(accounts[8], 4000);
@@ -290,6 +346,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getCheckpoint(loanId), 10, "Current installment should be 10");
     assert.equal(await engine.getCurrentDebt(loanId), 0, "Current installment debt should be 0 RCN");
   })
+
   it("Should only charge the exact extra interest", async function(){
     const loanId = await readLoanId(await engine.requestLoan(
       0x0,
@@ -526,13 +583,13 @@ contract('LoanEngine', function(accounts) {
     await engine.pay(loanId, 101712, accounts[8], 0x0, { from: accounts[8] });
     assert.equal(await engine.getCheckpoint(loanId), 5, "The loan should now be in the 5 next installment");
     assert.equal((await engine.getCurrentDebt(loanId)).toNumber(), 99963, "installment debt now be 99963 again, the next installment");
-    
+
     // Advance to the next month
     await increaseTime(18 * 86400);
 
     // And to the next...
     await increaseTime(30 * 86400);
-    
+
     // And to the next...
     await increaseTime(30 * 86400);
 
