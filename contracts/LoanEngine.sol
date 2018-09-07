@@ -645,9 +645,8 @@ contract LoanEngine is Ownable, ERC721Base {
         @return true if the approve was done successfully
     */
     function registerApprove(bytes32 identifier, uint8 v, bytes32 r, bytes32 s) external returns (bool) {
-        uint256 index = identifierToIndex[identifier];
         address signer = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", identifier)), v, r, s);
-        _approveLoan(index, signer);
+        _approveLoan(identifierToIndex[identifier], signer);
 
         return true;
     }
