@@ -616,7 +616,7 @@ contract LoanEngine is Ownable, ERC721Base {
         require(index != 0, "The loan does not exist");
         Loan storage loan = loans[index];
         require(loan.status == Status.request, "The loan is not a request");
-        require(loan.borrower == sender, "The borrower of the loan should be the sender");
+        require(loan.borrower == sender, "The borrower of the loan should be the sender/signer");
         require(!loan.approved, "The loan should be not approved");
         loan.approved = true;
         emit ApprovedBy(index, sender);
