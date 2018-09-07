@@ -65,7 +65,7 @@ contract('LoanEngine', function(accounts) {
       10 ** 10,
       "This is the a loan"
     ));
-    assert.equal(loanId1, 1)
+    assert.equal(loanId1, (await engine.getTotalLoans()).toNumber() - 1);
 
     // create one a little bit different
     let loanId2 = await readLoanId(await engine.requestLoan(
@@ -80,7 +80,7 @@ contract('LoanEngine', function(accounts) {
       10 ** 10,
       "This is the a loan"
     ));
-    assert.equal(loanId2, 2)
+    assert.equal(loanId2, (await engine.getTotalLoans()).toNumber() - 1)
 
     // create a new identical
     await assertThrow(engine.requestLoan(
@@ -96,6 +96,7 @@ contract('LoanEngine', function(accounts) {
       "This is the a loan"
     ));
   })
+  
   it("It should handle a loan with a single installment", async function(){
     let loanId = await readLoanId(await engine.requestLoan(
       0x0,
@@ -217,7 +218,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), 110, "installment debt should be 100 plus interest = 110")
-
+    
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
     await buyTokens(accounts[8], 4000);
@@ -252,7 +253,7 @@ contract('LoanEngine', function(accounts) {
     assert.equal(await engine.getStatus(loanId), 1, "Loan should be ongoing");
     assert.equal(await engine.getCheckpoint(loanId), 1, "The loan should be in the first installment");
     assert.equal(await engine.getCurrentDebt(loanId), 110, "installment debt should be 100 plus interest = 110")
-
+    
     await rcn.transfer(accounts[9], await rcn.balanceOf(accounts[8]), { from: accounts[8] });
 
     await buyTokens(accounts[8], 4000);
