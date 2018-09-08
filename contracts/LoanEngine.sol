@@ -736,7 +736,17 @@ contract LoanEngine is Ownable, ERC721Base {
         require(loan.approved, "The loan is not approved by the borrower");
         require(loan.status == Status.request, "The loan is not a request");
         require(now < loan.requestExpiration, "Request is expired");
-        uint256 requiredTransfer = convertRate(loan.oracle, loan.currency, oracleData, loan.amount);
+        uint256 requiredTransfer;
+
+        if (loan.oracle == address(0)) {
+            requiredTransfer = loan.amount;
+        } else {
+            uint rate;
+            uint decimals;
+            (rate, decimals) = Oracle(loan.oracle).getRate(loan.currency, oracleData);
+            requiredTransfer = uint128(toToken(loan.amount, rate, decimals));
+        }
+
         require(token.transferFrom(msg.sender, loan.borrower, requiredTransfer), "Error pulling tokens");
         _generate(loanId, msg.sender);
 
@@ -805,10 +815,58 @@ contract LoanEngine is Ownable, ERC721Base {
     function pay(uint256 loanId, uint128 amount, address from, bytes oracleData) external returns (bool) {
         Loan storage loan = loans[loanId];
         require(loan.status == Status.ongoing, "The loan is not ongoing");
+
+        if (loan.status == Status.ongoing) {
+            uint128 available = payProgresive(loan, amount, loanId, from);
+
+            if (loan.oracle == address(0)) {
+                available = amount - available;
+            } else {
+                uint rate;
+                uint decimals;
+                (rate, decimals) = Oracle(loan.oracle).getRate(loan.currency, oracleData);
+                available = uint128(toToken(amount - available, rate, decimals));
+            }
+
+            require(token.transferFrom(msg.sender, this, available), "Error pulling tokens");
+        }
+
+        return true;
+    }
+
+    function payTokens(uint256 loanId, uint128 amount, address from, bytes oracleData) external returns (bool) {
+        Loan storage loan = loans[loanId];
+        require(loan.status == Status.ongoing, "The loan is not ongoing");
+        Oracle oracle = Oracle(loan.oracle);
+
+        if (loan.status == Status.ongoing) {
+            uint128 available;
+            uint256 rate;
+            uint256 decimals;
+
+            if (oracle == address(0)) {
+                available = amount;
+            } else {
+                (rate, decimals) = oracle.getRate(loan.currency, oracleData);
+                available = uint128(fromToken(amount, rate, decimals));
+            }
+
+            available = payProgresive(loan, available, loanId, from);
+
+            if (oracle != address(0))
+                available = uint128(toToken(available, rate, decimals));
+            available = amount - available;
+
+            require(token.transferFrom(msg.sender, this, available), "Error pulling tokens");
+        }
+
+        return true;
+    }
+
+    function payProgresive(Loan storage loan, uint128 available, uint256 loanId, address from) internal returns(uint128){
         uint128 prevInterest = loan.interest;
         moveCheckpoint(loan, uint64(now));
-        if (loan.status == Status.ongoing) {
-            uint128 available = amount;
+
         uint128 pending;
         uint128 target;
         do {
@@ -837,27 +895,8 @@ contract LoanEngine is Ownable, ERC721Base {
             }
         } while (available != 0);
 
-            uint256 requiredTransfer = convertRate(loan.oracle, loan.currency, oracleData, amount - available);
-            require(token.transferFrom(msg.sender, this, requiredTransfer), "Error pulling tokens");
+        return available;
     }
-        return true;
-    }
-    
-    /**
-        @notice Converts an amount to RCN using the loan oracle.
-        
-        @dev If the loan has no oracle the currency must be RCN so the rate is 1
-
-        @return The result of the convertion
-    */
-    function convertRate(address oracle, bytes32 currency, bytes data, uint256 amount) public returns (uint256) {
-        if (oracle == address(0)) {
-            return amount;
-        } else {
-            uint256 rate;
-            uint256 decimals;
-            
-            (rate, decimals) = Oracle(oracle).getRate(currency, data);
 
     // from X to Token
     function toToken(uint256 amount, uint256 rate, uint256 decimals) internal pure returns (uint256) {
