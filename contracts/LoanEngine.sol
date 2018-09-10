@@ -398,7 +398,7 @@ contract LoanEngine is Ownable, ERC721Base {
     event ApprovedBy(uint _index, address _address);
     event Lent(uint _index, address _lender, address _cosigner);
     event DestroyedBy(uint _index, address _address);
-    event PartialPayment(uint _index, address _sender, address _from, uint256 _amount);
+    event PartialPayment(uint _index, address _sender, address _from, uint256 _total, uint256 _interest);
     event TotalPayment(uint _index);
 
     function name() external pure returns (string _name) {
@@ -608,6 +608,7 @@ contract LoanEngine is Ownable, ERC721Base {
     */
     function approveLoan(uint index) external returns (bool) {
         Loan storage loan = loans[index];
+        require(loan.borrower == msg.sender, "Only the borrower can approve the loan");
         loan.approved = true;
         emit ApprovedBy(index, msg.sender);
         return true;
@@ -623,6 +624,7 @@ contract LoanEngine is Ownable, ERC721Base {
     function approveLoanIdentifier(bytes32 identifier) external returns (bool) {
         uint256 index = identifierToIndex[identifier];
         require(index != 0, "Loan does not exist");
+        require(loan.borrower == msg.sender, "Only the borrower can approve the loan");
         Loan storage loan = loans[index];
         loan.approved = true;
         emit ApprovedBy(index, msg.sender);
@@ -805,25 +807,26 @@ contract LoanEngine is Ownable, ERC721Base {
     function pay(uint256 loanId, uint128 amount, address from, bytes oracleData) external returns (bool) {
         Loan storage loan = loans[loanId];
         require(loan.status == Status.ongoing, "The loan is not ongoing");
-        uint128 prevInterest = loan.interest;
         moveCheckpoint(loan, uint64(now));
         if (loan.status == Status.ongoing) {
             uint128 available = amount;
+            uint128 unpaidInterest;
             uint128 pending;
             uint128 target;
             do {
                 // Pay the full installment or the max ammount possible
                 pending = uint128(_currentDebt(loan));
                 target = pending < available ? pending : available;
-                loan.paid += target;
-                loan.lenderBalance += target;
                 
                 // Calc paid base
-                prevInterest = loan.interest - prevInterest;
-                loan.paidBase += target > prevInterest ? target - prevInterest : 0;
+                unpaidInterest = loan.interest - (loan.paid - loan.paidBase);
+                loan.paidBase += target > unpaidInterest ? target - unpaidInterest : 0;
                 
+                loan.paid += target;
+                loan.lenderBalance += target;
                 available -= target;
-                emit PartialPayment(loanId, msg.sender, from, target);
+
+                emit PartialPayment(loanId, msg.sender, from, target, unpaidInterest);
 
                 // If the loan is fully paid stop paying
                 if (checkFullyPaid(loan)) {
@@ -832,7 +835,6 @@ contract LoanEngine is Ownable, ERC721Base {
 
                 // If current installment was fully paid move to the next one
                 if (pending == target) {
-                    prevInterest = loan.interest;
                     advanceClock(loan, loan.installmentDuration);
                 }
             } while (available != 0);
