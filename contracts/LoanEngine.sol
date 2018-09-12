@@ -13,23 +13,47 @@ interface IERC721Receiver {
 }
 
 library SafeMath {
+
+    /**
+    * //TODO: (jpgonzalezra) return error status instead of revert the operation
+    * @dev Adds two number, returns an error status on overflow.
+    */
     function add(uint256 x, uint256 y) internal pure returns (uint256) {
         uint256 z = x + y;
         require((z >= x) && (z >= y), "Add overflow");
         return z;
     }
 
+    /**
+    * //TODO: (jpgonzalezra) return error status instead of revert the operation
+    * @dev Subtracts two numbers, returns an error status on overflow.
+    */
     function sub(uint256 x, uint256 y) internal pure returns (uint256) {
         require(x >= y, "Sub underflow");
         uint256 z = x - y;
         return z;
     }
 
+    /**
+    * //TODO: (jpgonzalezra) return error status instead of revert the operation
+    * @dev Multiplies two numbers, returns an error status on overflow.
+    */
     function mult(uint256 x, uint256 y) internal pure returns (uint256) {
         uint256 z = x * y;
         require((x == 0)||(z/x == y), "Mult overflow");
         return z;
     }
+  
+    /**
+    * //TODO: (jpgonzalezra) return error status instead of revert the operation
+    * @dev Integer division of two numbers truncating the quotient, returns an error status on overflow.
+    */
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b > 0, "div overflow"); // Solidity only automatically asserts when dividing by 0
+        uint256 c = a / b;
+        return c;
+    }
+
 }
 
 contract ERC721Base {
@@ -388,6 +412,9 @@ contract ERC721Base {
 }
 
 contract LoanEngine is Ownable, ERC721Base {
+    
+    using SafeMath for *;
+
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal TOKEN_DECIMALS = 18;
 
@@ -400,6 +427,8 @@ contract LoanEngine is Ownable, ERC721Base {
     event DestroyedBy(uint _index, address _address);
     event PartialPayment(uint _index, address _sender, address _from, uint256 _total, uint256 _interest);
     event TotalPayment(uint _index);
+    event ConvertRate(address indexed _oracle, uint256 _amount, uint256 _rate);
+    event AccruedInterest(uint64 from, uint64 delta, uint128 debt, uint128 newInterest, uint128 loanPaid, uint128 paidInterest);
 
     function name() external pure returns (string _name) {
         _name = "RCN - Loan engine - Cobalt 300";
@@ -467,7 +496,7 @@ contract LoanEngine is Ownable, ERC721Base {
     function getDuesIn(uint256 id) external view returns (uint256) {
         Loan memory loan = loans[id];
         if (loan.lentTime == 0) { return 0; }
-        return loan.lentTime + loan.installments * loan.installmentDuration;
+        return loan.lentTime.add(loan.installments).mult(loan.installmentDuration);
     }
 
     function getCurrentDebt(uint256 loanId) external view returns (uint256) {
@@ -663,8 +692,8 @@ contract LoanEngine is Ownable, ERC721Base {
     }
 
     function _baseDebt(Loan memory loan) internal pure returns (uint128) {
-        uint32 installment = uint32(loan.clock / loan.installmentDuration);
-        return installment < loan.installments ? installment * loan.cuota : loan.installments * loan.cuota;
+        uint32 installment = uint32(loan.clock.div(loan.installmentDuration));
+        return uint128(installment < loan.installments ? installment.mult(loan.cuota) : loan.installments.mult(loan.cuota));
     }
 
     /**
@@ -684,7 +713,6 @@ contract LoanEngine is Ownable, ERC721Base {
         return loan.paid < debt ? debt - loan.paid : 0;
     }
 
-    event AccruedInterest(uint64 from, uint64 delta, uint128 debt, uint128 newInterest, uint128 loanPaid, uint128 paidInterest);
     function advanceClock(Loan storage loan, uint64 targetDelta) internal returns (bool) {
         // Advance no more than the next installment unless we passed the last one
         uint64 nextInstallmentDelta = loan.installmentDuration - loan.clock % loan.installmentDuration;
@@ -706,13 +734,11 @@ contract LoanEngine is Ownable, ERC721Base {
     
     function checkFullyPaid(Loan storage loan) internal returns (bool) {
         uint32 currentInstallment = uint32((loan.clock / loan.installmentDuration));
-        if (currentInstallment >= loan.installments) {
-            if (_baseDebt(loan) + loan.interest <= loan.paid) {
-                // Loan paid!
-                emit TotalPayment(loan.index);
-                loan.status = Status.paid;
-                return true;
-            }
+        if ((currentInstallment >= loan.installments) && (_baseDebt(loan) + loan.interest <= loan.paid)) {
+            // Loan paid!
+            emit TotalPayment(loan.index);
+            loan.status = Status.paid;
+            return true;
         }
     }
 
@@ -819,12 +845,12 @@ contract LoanEngine is Ownable, ERC721Base {
                 target = pending < available ? pending : available;
                 
                 // Calc paid base
-                unpaidInterest = loan.interest - (loan.paid - loan.paidBase);
-                loan.paidBase += target > unpaidInterest ? target - unpaidInterest : 0;
+                unpaidInterest = uint128(loan.interest.sub(loan.paid.sub(loan.paidBase)));
+                loan.paidBase = uint128(loan.paidBase.add(target > unpaidInterest ? target.sub(unpaidInterest) : 0));
                 
-                loan.paid += target;
-                loan.lenderBalance += target;
-                available -= target;
+                loan.paid = uint128(loan.paid.add(target));
+                loan.lenderBalance = uint128(loan.lenderBalance.add(target));
+                available = uint128(available.sub(target));
 
                 emit PartialPayment(loanId, msg.sender, from, target, unpaidInterest);
 
@@ -839,12 +865,13 @@ contract LoanEngine is Ownable, ERC721Base {
                 }
             } while (available != 0);
 
-            uint256 requiredTransfer = convertRate(loan.oracle, loan.currency, oracleData, amount - available);
+            uint128 missing = uint128(amount - available);
+            uint256 requiredTransfer = convertRate(loan.oracle, loan.currency, oracleData, missing);
             require(token.transferFrom(msg.sender, this, requiredTransfer), "Error pulling tokens");
         }
         return true;
     }
-    
+
     /**
         @notice Converts an amount to RCN using the loan oracle.
         
@@ -853,16 +880,20 @@ contract LoanEngine is Ownable, ERC721Base {
         @return The result of the convertion
     */
     function convertRate(address oracle, bytes32 currency, bytes data, uint256 amount) public returns (uint256) {
+        
         if (oracle == address(0)) {
             return amount;
-        } else {
-            uint256 rate;
-            uint256 decimals;
-            
-            (rate, decimals) = Oracle(oracle).getRate(currency, data);
-
-            return rate.mult(amount).mult((10**(TOKEN_DECIMALS.sub(decimals)))) / PRECISION;
         }
+
+        uint256 rate;
+        uint256 decimals;
+        uint256 newRate;
+
+        (rate, decimals) = Oracle(oracle).getRate(currency, data);
+        newRate = rate.mult(amount).mult((10**(TOKEN_DECIMALS.sub(decimals)))) / PRECISION;
+        
+        emit ConvertRate(oracle, amount, newRate);            
+        return newRate;
     }
     
     /**
@@ -876,7 +907,7 @@ contract LoanEngine is Ownable, ERC721Base {
         @return interest The interest gained in the realDelta time
     */
     function calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) internal pure returns (uint256 interest) {
-        interest = amount.mult(100000).mult(timeDelta) / interestRate;
+        interest = (amount.mult(100000).mult(timeDelta)).div(interestRate);
     }
 
     /**
@@ -925,7 +956,7 @@ contract LoanEngine is Ownable, ERC721Base {
             loanId = loanIds[inputId];
             if (_isAuthorized(msg.sender, loanId)) {
                 Loan storage loan = loans[loanId];
-                totalWithdraw += loan.lenderBalance;
+                totalWithdraw = totalWithdraw.add(loan.lenderBalance);
                 loan.lenderBalance = 0;
             }
         }
