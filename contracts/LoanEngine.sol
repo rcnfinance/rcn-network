@@ -13,45 +13,94 @@ interface IERC721Receiver {
 }
 
 library SafeMath {
-
-    /**
-    * //TODO: (jpgonzalezra) return error status instead of revert the operation
-    * @dev Adds two number, returns an error status on overflow.
-    */
     function add(uint256 x, uint256 y) internal pure returns (uint256) {
         uint256 z = x + y;
         require((z >= x) && (z >= y), "Add overflow");
         return z;
     }
 
-    /**
-    * //TODO: (jpgonzalezra) return error status instead of revert the operation
-    * @dev Subtracts two numbers, returns an error status on overflow.
-    */
     function sub(uint256 x, uint256 y) internal pure returns (uint256) {
         require(x >= y, "Sub underflow");
         uint256 z = x - y;
         return z;
     }
 
-    /**
-    * //TODO: (jpgonzalezra) return error status instead of revert the operation
-    * @dev Multiplies two numbers, returns an error status on overflow.
-    */
     function mult(uint256 x, uint256 y) internal pure returns (uint256) {
         uint256 z = x * y;
         require((x == 0)||(z/x == y), "Mult overflow");
         return z;
     }
-  
-    /**
-    * //TODO: (jpgonzalezra) return error status instead of revert the operation
-    * @dev Integer division of two numbers truncating the quotient, returns an error status on overflow.
-    */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b > 0, "div overflow"); // Solidity only automatically asserts when dividing by 0
+        require(b > 0, "Div overflow");
         uint256 c = a / b;
         return c;
+    }
+}
+
+library SafeMathWrapper {
+
+    struct Result { 
+        bool err;
+    }
+
+    /**
+    * @dev Adds two number, returns an error status on overflow.
+    * Gas optimization: if exist an error not evaluate the operation and return 0.
+    */
+    function safeAdd(uint256 a, uint256 b, Result memory self) internal returns (uint256) {
+        if (self.err) {
+            return 0;
+        }
+        uint256 c = a + b;
+        if (c >= a) {
+            return c;
+        }  
+        self.err = true;
+    }
+
+    /**
+    * @dev Subtracts two numbers, returns an error status on overflow.
+    * Gas optimization: if exist an error not evaluate the operation and return 0.
+    */
+    function safeSub(uint256 x, uint256 y, Result memory self) internal returns (uint256) {
+        if (self.err) { 
+            return 0;
+        }
+        if (x >= y) {
+            uint256 z = x - y;
+            return z;
+        }
+        self.err = true;
+    }
+
+    /**
+    * @dev Multiplies two numbers, returns an error status on overflow.
+    * Gas optimization: if exist an error not evaluate the operation and return 0.
+    */
+    function safeMul(uint256 a, uint256 b, Result memory self) internal returns (uint256) {
+        if (a == 0 || self.err) {
+            return 0;
+        }
+        uint256 c = a * b;
+        if (c / a == b) {
+            return c;
+        }
+        self.err = true;
+    }
+  
+    /**
+    * @dev Integer division of two numbers truncating the quotient, returns an error status on overflow.
+    * Gas optimization: if exist an error not evaluate the operation and return 0.
+    */
+    function safeDiv(uint256 a, uint256 b, Result memory self) internal returns (uint256) {
+        if (self.err) {
+            return 0;
+        }
+        if (b > 0) { 
+            uint256 c = a / b;
+            return c;
+        }
+        self.err = true;
     }
 
 }
@@ -412,14 +461,16 @@ contract ERC721Base {
 }
 
 contract LoanEngine is Ownable, ERC721Base {
-    
+      
     using SafeMath for *;
+    using SafeMathWrapper for *;
 
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal TOKEN_DECIMALS = 18;
 
     uint256 public constant VERSION = 300;
     string public constant VERSION_NAME = "Cobalt";
+
 
     event CreatedLoan(uint _index, address _borrower, address _creator);
     event ApprovedBy(uint _index, address _address);
@@ -438,7 +489,7 @@ contract LoanEngine is Ownable, ERC721Base {
         _symbol = "RCN-LE-300";
     }
     
-    enum Status { request, ongoing, paid, destroyed }
+    enum Status { request, ongoing, paid, destroyed, error }
 
     address public deprecated;
     Loan[] private loans;
@@ -496,7 +547,7 @@ contract LoanEngine is Ownable, ERC721Base {
     function getDuesIn(uint256 id) external view returns (uint256) {
         Loan memory loan = loans[id];
         if (loan.lentTime == 0) { return 0; }
-        return loan.lentTime.add(loan.installments).mult(loan.installmentDuration);
+        return loan.lentTime + loan.installments * loan.installmentDuration;
     }
 
     function getCurrentDebt(uint256 loanId) external view returns (uint256) {
@@ -835,6 +886,9 @@ contract LoanEngine is Ownable, ERC721Base {
         require(loan.status == Status.ongoing, "The loan is not ongoing");
         moveCheckpoint(loan, uint64(now));
         if (loan.status == Status.ongoing) {
+            
+            SafeMathWrapper.Result memory result = SafeMathWrapper.Result(false);
+  
             uint128 available = amount;
             uint128 unpaidInterest;
             uint128 pending;
@@ -845,12 +899,12 @@ contract LoanEngine is Ownable, ERC721Base {
                 target = pending < available ? pending : available;
                 
                 // Calc paid base
-                unpaidInterest = uint128(loan.interest.sub(loan.paid.sub(loan.paidBase)));
-                loan.paidBase = uint128(loan.paidBase.add(target > unpaidInterest ? target.sub(unpaidInterest) : 0));
+                unpaidInterest = uint128(loan.interest.safeSub(loan.paid.safeSub(loan.paidBase, result), result));
+                loan.paidBase = uint128(loan.paidBase.safeAdd(target > unpaidInterest ? target.safeSub(unpaidInterest, result) : 0, result));
                 
-                loan.paid = uint128(loan.paid.add(target));
-                loan.lenderBalance = uint128(loan.lenderBalance.add(target));
-                available = uint128(available.sub(target));
+                loan.paid = uint128(loan.paid.safeAdd(target, result));
+                loan.lenderBalance = uint128(loan.lenderBalance.safeAdd(target, result));
+                available = uint128(available.safeSub(target, result));
 
                 emit PartialPayment(loanId, msg.sender, from, target, unpaidInterest);
 
@@ -865,9 +919,13 @@ contract LoanEngine is Ownable, ERC721Base {
                 }
             } while (available != 0);
 
-            uint128 missing = uint128(amount - available);
+            uint128 missing = uint128(amount.safeSub(available, result));
             uint256 requiredTransfer = convertRate(loan.oracle, loan.currency, oracleData, missing);
             require(token.transferFrom(msg.sender, this, requiredTransfer), "Error pulling tokens");
+        }
+
+        if (result.err) {
+          loan.status = Status.error;
         }
         return true;
     }
@@ -890,7 +948,7 @@ contract LoanEngine is Ownable, ERC721Base {
         uint256 newRate;
 
         (rate, decimals) = Oracle(oracle).getRate(currency, data);
-        newRate = rate.mult(amount).mult((10**(TOKEN_DECIMALS.sub(decimals)))) / PRECISION;
+        newRate = (rate.mult(amount).mult((10**(TOKEN_DECIMALS.sub(decimals))))).div(PRECISION);
         
         emit ConvertRate(oracle, amount, newRate);            
         return newRate;
@@ -931,7 +989,7 @@ contract LoanEngine is Ownable, ERC721Base {
         Loan storage loan = loans[loanId];
         require(_isAuthorized(msg.sender, loanId), "Sender not authorized");
         require(loan.lenderBalance >= amount, "Lender balance is not enought");
-        loan.lenderBalance = loan.lenderBalance - amount;
+        loan.lenderBalance = uint128(loan.lenderBalance.sub(amount));
         require(token.transfer(to, amount), "Token transfer failed");
         return true;
     }
