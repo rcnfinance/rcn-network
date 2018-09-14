@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "./interfaces/Oracle.sol";
 import "./interfaces/Cosigner.sol";
 import "./utils/Ownable.sol";
+import "./interfaces/LoanStatus.sol";
 
 interface IERC721Receiver {
     function onERC721Received(
@@ -387,7 +388,7 @@ contract ERC721Base {
     }
 }
 
-contract LoanEngine is Ownable, ERC721Base {
+contract LoanEngine is Ownable, ERC721Base, LoanStatus {
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal TOKEN_DECIMALS = 18;
 
@@ -408,8 +409,6 @@ contract LoanEngine is Ownable, ERC721Base {
     function symbol() external pure returns (string _symbol) {
         _symbol = "RCN-LE-300";
     }
-    
-    enum Status { request, ongoing, paid, destroyed }
 
     address public deprecated;
     Loan[] private loans;
