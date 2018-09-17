@@ -836,6 +836,35 @@ contract LoanEngine is Ownable, ERC721Base {
         return true;
     }
 
+    function payTokens(uint256 loanId, uint128 amount, address from, bytes oracleData) external returns (bool) {
+        Loan storage loan = loans[loanId];
+        require(loan.status == Status.ongoing, "The loan is not ongoing");
+        Oracle oracle = Oracle(loan.oracle);
+
+        if (loan.status == Status.ongoing) {
+            uint128 available;
+            uint256 rate;
+            uint256 decimals;
+
+            if (oracle == address(0)) {
+                available = amount;
+            } else {
+                (rate, decimals) = oracle.getRate(loan.currency, oracleData);
+                available = uint128(fromToken(amount, rate, decimals));
+            }
+
+            available = payProgresive(loan, available, loanId, from);
+
+            if (oracle != address(0))
+                available = uint128(toToken(available, rate, decimals));
+            available = amount - available;
+
+            require(token.transferFrom(msg.sender, this, available), "Error pulling tokens");
+        }
+
+        return true;
+    }
+
     function payProgresive(Loan storage loan, uint128 available, uint256 loanId, address from) internal returns(uint128){
         uint128 unpaidInterest = loan.interest;
         moveCheckpoint(loan, uint64(now));
