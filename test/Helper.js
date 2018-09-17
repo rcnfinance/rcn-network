@@ -25,14 +25,15 @@ function toEvent(log) {
     return {
       index: log.args._index.toString(),
       lender: log.args._lender,
-      cosigner: log.args._cosigner,
+      cosigner: log.args._cosigner
     };
   } else if (log.event == PARTIALPAYMENT) {
     return {
       index: log.args._index.toString(),
       sender: log.args._sender,
       from: log.args._from,
-      amount: log.args._amount.toString(),
+      total: log.args._total.toString(),
+      interest: log.args._interest.toString()
     };
   } else if (log.event == TOTALPAYMENT) {
     return {

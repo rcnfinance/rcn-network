@@ -93,7 +93,15 @@ contract('LoanEngine', function(accounts) {
     assert.equal(PartialPayment.index, loanId, "The index of the event should be the " + loanId.toString());
     assert.equal(PartialPayment.sender, accounts[2], "The lender of the event should be the lender");
     assert.equal(PartialPayment.from, accounts[4], "The cosigner of the event should be the cosigner");
-    assert.equal(PartialPayment.amount, 10, "The amount of the event should be 10");
+    assert.equal(PartialPayment.total, 10, "The amount of the event should be 10");
+    assert.equal(PartialPayment.interest, 0, "The interest of the event should be 0");
+    // Partial pay to a loan with interest
+    await increaseTime(31 * 86400);
+    await buyTokens(accounts[3], 8000);
+    await rcn.approve(engine.address, 8000, { from: accounts[3] });
+    const txPayLoanWithInterest = await engine.pay(loanId, 100, accounts[4], 0x0, { from: accounts[2] })
+    const PartialPaymentWithInterest = Helper.toEvents(txPayLoanWithInterest.logs, Helper.PARTIALPAYMENT)[0];
+    assert.equal(PartialPaymentWithInterest.interest, 13, "The interest of the event should be 13");
     // total pay to a loan
     await buyTokens(accounts[3], 8000);
     await rcn.approve(engine.address, 8000, { from: accounts[3] });
