@@ -818,21 +818,17 @@ contract LoanEngine is Ownable, ERC721Base {
         Loan storage loan = loans[loanId];
         require(loan.status == Status.ongoing, "The loan is not ongoing");
 
-        if (loan.status == Status.ongoing) {
-            uint128 available = payProgresive(loan, amount, loanId, from);
+        uint128 available = payProgresive(loan, amount, loanId, from);
 
-            if (loan.oracle == address(0)) {
-                available = amount - available;
-            } else {
-                uint rate;
-                uint decimals;
-                (rate, decimals) = Oracle(loan.oracle).getRate(loan.currency, oracleData);
-                available = uint128(toToken(amount - available, rate, decimals));
-            }
-
-            require(token.transferFrom(msg.sender, this, available), "Error pulling tokens");
+        if (loan.oracle == address(0)) {
+            available = amount - available;
+        } else {
+            uint rate;
+            uint decimals;
+            (rate, decimals) = Oracle(loan.oracle).getRate(loan.currency, oracleData);
+            available = uint128(toToken(amount - available, rate, decimals));
         }
-
+        require(token.transferFrom(msg.sender, this, available), "Error pulling tokens");
         return true;
     }
 
@@ -857,9 +853,8 @@ contract LoanEngine is Ownable, ERC721Base {
 
             if (oracle != address(0))
                 available = uint128(toToken(available, rate, decimals));
-            available = amount - available;
 
-            require(token.transferFrom(msg.sender, this, available), "Error pulling tokens");
+            require(token.transferFrom(msg.sender, this, amount - available), "Error pulling tokens");
         }
 
         return true;
