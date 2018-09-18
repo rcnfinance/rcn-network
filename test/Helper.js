@@ -48,29 +48,29 @@ function toEvent(log) {
     console.log('-----------Event not found------------');
 }
 
-function hexArrayToBytesOfBytes32(array) {
-    let bytes = "0x";
-    for(let i = 0; i < array.length; i++){
-        let bytes32 = array[i].toString().replace("0x", "");
-        if (bytes32.length < 64) {
-            const diff = 64 - bytes32.length;
-            bytes32 = "0".repeat(diff) + bytes32;
-        }
-        bytes += bytes32;
+function arrayToBytesOfBytes32(array) {
+  let bytes = "0x";
+  for(let i = 0; i < array.length; i++){
+    let bytes32 = toBytes32(array[i]).toString().replace("0x", "");
+    if (bytes32.length < 64) {
+      const diff = 64 - bytes32.length;
+      bytes32 = "0".repeat(diff) + bytes32;
     }
+    bytes += bytes32;
+  }
 
-    return bytes;
+  return bytes;
 }
 
 function toBytes32(source) {
-    source = web3.toHex(source);
-    const rl = 64;
-    source = source.toString().replace("0x", "");
-    if (source.length < rl) {
-        const diff = 64 - source.length;
-        source = "0".repeat(diff) + source;
-    }
-    return "0x" + source;
+  source = web3.toHex(source);
+  const rl = 64;
+  source = source.toString().replace("0x", "");
+  if (source.length < rl) {
+    const diff = 64 - source.length;
+    source = "0".repeat(diff) + source;
+  }
+  return "0x" + source;
 }
 
 module.exports = { hexArrayToBytesOfBytes32, toEvents, CREATEDLOAN, APPROVEDBY, LENT, PARTIALPAYMENT, TOTALPAYMENT, DESTROYEDBY };
