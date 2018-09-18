@@ -1,5 +1,5 @@
 const ReferenceOracle = artifacts.require("./examples/ReferenceOracle.sol");
-const Helper = require("./helper.js");
+const Helper = require("./Helper.js");
 
 const abiGetRateView = [{"constant":true,"inputs":[{"name":"currency","type":"bytes32"},{"name":"data","type":"bytes"}],"name":"getRate","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}];
 
@@ -84,7 +84,7 @@ contract('ReferenceOracle', function(accounts) {
     }
     try { // try change rate sign
       let vrs = await signGetRate(admin, BTC);
-      let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, Helper.toBytes32(1), BTC.decimals, vrs[0], vrs[1], vrs[2]]);
+      let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, 1, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
       await oracleView.getRate(BTC.id, data);
       assert(false, "throw was expected in line above.")
     } catch(e){
@@ -92,7 +92,7 @@ contract('ReferenceOracle', function(accounts) {
     }
     try { // try change decimals sign
       let vrs = await signGetRate(admin, BTC);
-      let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, Helper.toBytes32(1), vrs[0], vrs[1], vrs[2]]);
+      let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, 1, vrs[0], vrs[1], vrs[2]]);
       await oracleView.getRate(BTC.id, data);
       assert(false, "throw was expected in line above.")
     } catch(e){
@@ -140,7 +140,7 @@ contract('ReferenceOracle', function(accounts) {
     assert.equal(args.decimals.toString(), web3.toDecimal(BTC.decimals).toString());
 
     try { // try get rate with expired timestamp
-      await Helper.timeTravel(15*60);// 15 minutes foward in time
+      await Helper.increaseTime(15*60);// 15 minutes foward in time
       vrs = await signGetRate(admin, BTCold);
       data = Helper.arrayToBytesOfBytes32([BTCold.timestamp, BTCold.rate, BTCold.decimals, vrs[0], vrs[1], vrs[2]]);
       await oracle.getRate(BTCold.id, data, {from: user});
