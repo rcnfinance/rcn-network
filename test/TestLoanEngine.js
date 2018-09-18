@@ -787,4 +787,33 @@ contract('LoanEngine', function(accounts) {
       "Test create loan post-deprecated"
     ));
   })
+  it("test payTokens function", async function(){
+    const loanId = await readLoanId(await engine.requestLoan(
+      0x0,                      // oracle
+      accounts[8],              // borrower
+      0x0,                      // currency
+      toInterestRate(1),        // interestRatePunitory
+      100,                      // amount
+      50,                       // cuota
+      2,                        // installments
+      30 * 86400,               // installmentDuration
+      10 ** 10,                 // requestExpiration
+      "test pay with RCN Token",// metadata
+      { from: accounts[8] }
+    ));
+    await buyTokens(accounts[3], 4000);
+    await rcn.approve(engine.address, 100, { from: accounts[3] });
+    const oracleData = await oracle.dummyDataBytes2();
+    await engine.lend(loanId, oracleData, 0x0, 0x0, { from: accounts[3] });
+
+    await buyTokens(accounts[7], 4000);
+    await rcn.approve(engine.address, 50, { from: accounts[7] });
+    const oracleData1 = await oracle.dummyDataBytes1();
+    const prevBal = (await rcn.balanceOf(accounts[7])).toNumber();
+    await engine.payTokens(loanId, 50, accounts[7], oracleData1, { from: accounts[7] });
+
+    //assert.equal(await engine.getStatus(loanId), 2, "Loan should be paid");
+    assert.equal((await engine.getPaid(loanId)).toNumber(), 50, "Paid should be 50 RCN");
+    assert.equal((await rcn.balanceOf(accounts[7])).toNumber(), prevBal - 50, "Expended amount should be 50 RCN less");
+  })
 })
