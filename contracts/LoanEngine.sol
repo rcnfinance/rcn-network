@@ -611,7 +611,7 @@ contract LoanEngine is Ownable, ERC721Base {
         return true;
     }
 
-    function _approveLoan(uint256 index, address sender) internal {
+    function _approveLoan(uint256 index, address sender) internal returns (bool) {
         require(index != 0, "The loan does not exist");
         Loan storage loan = loans[index];
         require(loan.status == Status.request, "The loan is not a request");
@@ -619,6 +619,7 @@ contract LoanEngine is Ownable, ERC721Base {
         require(!loan.approved, "The loan should be not approved");
         loan.approved = true;
         emit ApprovedBy(index, sender);
+        return true;
     }
 
     /**
