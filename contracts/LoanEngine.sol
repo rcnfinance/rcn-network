@@ -607,8 +607,7 @@ contract LoanEngine is Ownable, ERC721Base {
         @return true if the approve was done successfully
     */
     function approveLoan(uint index) external returns (bool) {
-        _approveLoan(index, msg.sender);
-        return true;
+        return _approveLoan(index, msg.sender);
     }
 
     function _approveLoan(uint256 index, address sender) internal returns (bool) {
@@ -630,8 +629,7 @@ contract LoanEngine is Ownable, ERC721Base {
         @return true if the approve was done successfully
     */
     function approveLoanIdentifier(bytes32 identifier) external returns (bool) {
-        _approveLoan(identifierToIndex[identifier], msg.sender);
-        return true;
+        return _approveLoan(identifierToIndex[identifier], msg.sender);
     }
 
     /**
@@ -644,11 +642,10 @@ contract LoanEngine is Ownable, ERC721Base {
         @return true if the approve was done successfully
     */
     function registerApprove(bytes32 identifier, uint8 v, bytes32 r, bytes32 s) external returns (bool) {
-        _approveLoan(
+        return _approveLoan(
             identifierToIndex[identifier],
             ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", identifier)), v, r, s)
         );
-        return true;
     }
     
     /**
