@@ -607,10 +607,17 @@ contract LoanEngine is Ownable, ERC721Base {
         @return true if the approve was done successfully
     */
     function approveLoan(uint index) external returns (bool) {
+        return _approveLoan(index, msg.sender);
+    }
+
+    function _approveLoan(uint256 index, address sender) internal returns (bool) {
+        require(index != 0, "The loan does not exist");
         Loan storage loan = loans[index];
-        require(loan.borrower == msg.sender, "Only the borrower can approve the loan");
+        require(loan.status == Status.request, "The loan is not a request");
+        require(loan.borrower == sender, "Only the borrower can approve the loan");
+        require(!loan.approved, "The loan should be not approved");
         loan.approved = true;
-        emit ApprovedBy(index, msg.sender);
+        emit ApprovedBy(index, sender);
         return true;
     }
 
@@ -622,13 +629,7 @@ contract LoanEngine is Ownable, ERC721Base {
         @return true if the approve was done successfully
     */
     function approveLoanIdentifier(bytes32 identifier) external returns (bool) {
-        uint256 index = identifierToIndex[identifier];
-        require(index != 0, "Loan does not exist");
-        require(loan.borrower == msg.sender, "Only the borrower can approve the loan");
-        Loan storage loan = loans[index];
-        loan.approved = true;
-        emit ApprovedBy(index, msg.sender);
-        return true;
+        return _approveLoan(identifierToIndex[identifier], msg.sender);
     }
 
     /**
@@ -641,14 +642,10 @@ contract LoanEngine is Ownable, ERC721Base {
         @return true if the approve was done successfully
     */
     function registerApprove(bytes32 identifier, uint8 v, bytes32 r, bytes32 s) external returns (bool) {
-        uint256 index = identifierToIndex[identifier];
-        require(index != 0, "The loan does not exist");
-        Loan storage loan = loans[index];
-        address signer = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", identifier)), v, r, s);
-        require(loan.borrower == signer, "The approve is not signed by the borrower");
-        loan.approved = true;
-        emit ApprovedBy(index, loan.borrower);
-        return true;
+        return _approveLoan(
+            identifierToIndex[identifier],
+            ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", identifier)), v, r, s)
+        );
     }
     
     /**
