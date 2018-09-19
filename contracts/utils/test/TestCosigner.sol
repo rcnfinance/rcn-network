@@ -2,7 +2,7 @@ pragma solidity ^0.4.15;
 
 import "./../../interfaces/Cosigner.sol";
 import "./../../utils/BytesUtils.sol";
-import "./../../interfaces/Engine.sol";
+import "./../../basalt/interfaces/Engine.sol";
 import "./../../interfaces/Token.sol";
 
 contract TestCosigner is Cosigner, BytesUtils {

@@ -1,4 +1,4 @@
-const LoanEngine = artifacts.require("./LoanEngine.sol");
+const LoanEngine = artifacts.require("./cobalt/LoanEngine.sol");
 const TestToken = artifacts.require("./utils/test/TestToken.sol");
 const TestOracle = artifacts.require("./utils/test/TestOracle.sol");
 const TestCosigner = artifacts.require("./utils/test/TestCosigner.sol");

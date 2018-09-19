@@ -4,17 +4,17 @@ import './../utils/BytesUtils.sol';
 import './../utils/RpSafeMath.sol';
 import './../interfaces/Oracle.sol';
 import './../interfaces/Token.sol';
-import './../interfaces/Engine.sol';
+import './../basalt/interfaces/Engine.sol';
 import './../interfaces/Cosigner.sol';
 import './../utils/Ownable.sol';
 import './../utils/SimpleDelegable.sol';
 
 contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils {
     Token public rcn;
-    
+
     uint256 constant internal RCN_DECIMALS = 18;
     uint256 constant internal PRECISION = 10**RCN_DECIMALS;
-    
+
     uint private constant INDEX_COST = 0;
     uint private constant INDEX_COVERAGE = 1;
     uint private constant INDEX_REQUIRED_ARREARS = 2;
@@ -85,7 +85,7 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
         address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32",hash),uint8(readBytes32(data, INDEX_V)),
             readBytes32(data, INDEX_R),readBytes32(data, INDEX_S));
         require(isDelegate(signer));
-        
+
         liabilities[engine][index] = Liability(coverage, requiredArrears, false);
         require(engine.cosign(index, currentCost));
 
@@ -125,7 +125,7 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
         liability.claimed = true;
 
         require(isDefaulted(engine, index));
-        
+
         uint256 premium = safeMult(engine.getPendingAmount(index), liability.coverage) / 100;
         require(engine.takeOwnership(index));
 
@@ -136,7 +136,7 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
 
     /**
         @notice Converts an amount to RCN using the loan oracle.
-        
+
         @dev If the loan has no oracle the currency must be RCN so the rate is 1
 
         @return The result of the convertion
@@ -147,7 +147,7 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
         } else {
             uint256 rate;
             uint256 decimals;
-            
+
             (rate, decimals) = oracle.getRate(currency, data);
 
             require(decimals <= RCN_DECIMALS);

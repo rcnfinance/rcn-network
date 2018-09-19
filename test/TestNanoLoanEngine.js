@@ -1,5 +1,5 @@
 var TestToken = artifacts.require("./utils/TestToken.sol");
-var NanoLoanEngine = artifacts.require("./NanoLoanEngine.sol");
+var NanoLoanEngine = artifacts.require("./basalt/NanoLoanEngine.sol");
 var TestOracle = artifacts.require("./examples/TestOracle.sol");
 var TestCosigner = artifacts.require("./examples/TestCosigner.sol");
 const Helper = require('./Helper.js');
@@ -32,7 +32,7 @@ contract('NanoLoanEngine', function(accounts) {
         await rcn.approve(engine.address, max, {from:account})
         await engine.lend(index, [], 0x0, [], {from:account})
     }
-    
+
     it("It should fail creating two identical loans", async() => {
         // create a new loan
         let loanId1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
