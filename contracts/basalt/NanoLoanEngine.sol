@@ -6,7 +6,7 @@ import "../utils/Ownable.sol";
 import "../utils/TokenLockable.sol";
 import "../interfaces/Cosigner.sol";
 import "./interfaces/Engine.sol";
-import "../interfaces/ERC721.sol";
+import "./interfaces/ERC721.sol";
 
 contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     uint256 constant internal PRECISION = (10**18);
