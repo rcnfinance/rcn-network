@@ -1,10 +1,10 @@
 pragma solidity ^0.4.19;
 
-import './interfaces/Oracle.sol';
-import "./interfaces/Token.sol";
-import "./utils/Ownable.sol";
-import "./utils/TokenLockable.sol";
-import "./interfaces/Cosigner.sol";
+import "../interfaces/Oracle.sol";
+import "../interfaces/Token.sol";
+import "../utils/Ownable.sol";
+import "../utils/TokenLockable.sol";
+import "../interfaces/Cosigner.sol";
 import "./interfaces/Engine.sol";
 import "./interfaces/ERC721.sol";
 
@@ -41,8 +41,8 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @dev Required for ERC-721 compliance
 
         @param _owner The owner address to search
-        
-        @return _balance Amount of loans  
+
+        @return _balance Amount of loans
     */
     function balanceOf(address _owner) public view returns (uint _balance) {
         _balance = lendersBalance[_owner];
@@ -50,7 +50,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
     /**
         @notice Returns all the loans that a lender possess
-        @dev This method MUST NEVER be called by smart contract code; 
+        @dev This method MUST NEVER be called by smart contract code;
             it walks the entire loans array, and will probably create a transaction bigger than the gas limit.
 
         @param _owner The owner address
@@ -84,7 +84,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     /**
         @notice Returns true if the _operator can transfer the loans of the _owner
 
-        @dev Required for ERC-721 compliance 
+        @dev Required for ERC-721 compliance
     */
     function isApprovedForAll(address _owner, address _operator) public view returns (bool) {
         return operators[_owner][_operator];
@@ -138,7 +138,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         address lender;
         address creator;
         address cosigner;
-        
+
         uint256 amount;
         uint256 interest;
         uint256 punitoryInterest;
@@ -182,9 +182,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @param _interestRatePunitory The punitory interest rate by second, defined as a denominator of 10 000 000.
             Ej: interestRate 11108571428571 = 28% Anual interest
         @param _duesIn The time in seconds that the borrower has in order to pay the debt after the lender lends the money.
-        @param _cancelableAt Delta in seconds specifying how much interest should be added in advance, if the borrower pays 
+        @param _cancelableAt Delta in seconds specifying how much interest should be added in advance, if the borrower pays
         entirely or partially the loan before this term, no extra interest will be deducted.
-        @param _expirationRequest Timestamp of when the loan request expires, if the loan is not filled before this date, 
+        @param _expirationRequest Timestamp of when the loan request expires, if the loan is not filled before this date,
             the request is no longer valid.
         @param _metadata String with loan metadata.
     */
@@ -216,7 +216,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         return index;
     }
-    
+
     function ownerOf(uint256 index) public view returns (address owner) { owner = loans[index].lender; }
     function getTotalLoans() public view returns (uint256) { return loans.length; }
     function getOracle(uint index) public view returns (Oracle) { return loans[index].oracle; }
@@ -256,7 +256,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     function buildIdentifier(Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
         uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string metadata) view returns (bytes32) {
         return keccak256(this, oracle, borrower, creator, currency, amount, interestRate, interestRatePunitory, duesIn,
-                        cancelableAt, expirationRequest, metadata); 
+                        cancelableAt, expirationRequest, metadata);
     }
 
     /**
@@ -274,7 +274,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     /**
         @notice Called by the members of the loan to show that they agree with the terms of the loan; the borrower
         must call this method before any lender could call the method "lend".
-            
+
         @dev Any address can call this method to be added to the "approbations" mapping.
 
         @param index Index of the loan
@@ -324,10 +324,10 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     /**
         @notice Performs the lend of the RCN equivalent to the requested amount, and transforms the msg.sender in the new lender.
 
-        @dev The loan must be previously approved by the borrower; before calling this function, the lender candidate must 
+        @dev The loan must be previously approved by the borrower; before calling this function, the lender candidate must
         call the "approve" function on the RCN Token, specifying an amount sufficient enough to pay the equivalent of
         the requested amount, and the cosigner fee.
-        
+
         @param index Index of the loan
         @param oracleData Data required by the oracle to return the rate, the content of this field must be provided
             by the url exposed in the url() method of the oracle.
@@ -352,7 +352,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         Transfer(0x0, loan.lender, index);
         activeLoans += 1;
         lendersBalance[loan.lender] += 1;
-        
+
         if (loan.cancelableAt > 0)
             internalAddInterest(loan, safeAdd(block.timestamp, loan.cancelableAt));
 
@@ -360,7 +360,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         // so the cosigner could require a specific usage for that money.
         uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, loan.amount);
         require(rcn.transferFrom(msg.sender, loan.borrower, transferValue));
-        
+
         if (cosigner != address(0)) {
             // The cosigner it's temporary set to the next address (cosigner + 2), it's expected that the cosigner will
             // call the method "cosign" to accept the conditions; that method also sets the cosigner to the right
@@ -369,7 +369,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             require(cosigner.requestCosign(this, index, cosignerData, oracleData));
             require(loan.cosigner == address(cosigner));
         }
-                
+
         Lent(index, loan.lender, cosigner);
 
         return true;
@@ -377,7 +377,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
     /**
         @notice The cosigner must call this method to accept the conditions of a loan, this method pays the cosigner his fee.
-        
+
         @dev If the cosigner does not call this method the whole "lend" call fails.
 
         @param index Index of the loan
@@ -396,11 +396,11 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @notice Destroys a loan, the borrower could call this method if they performed an accidental or regretted 
+        @notice Destroys a loan, the borrower could call this method if they performed an accidental or regretted
         "approve" of the loan, this method only works for them if the loan is in "pending" status.
 
-        The lender can call this method at any moment, in case of a loan with status "lent" the lender is pardoning 
-        the debt. 
+        The lender can call this method at any moment, in case of a loan with status "lent" the lender is pardoning
+        the debt.
 
         @param index Index of the loan
 
@@ -449,7 +449,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     */
     function transfer(address to, uint256 index) public returns (bool) {
         Loan storage loan = loans[index];
-        
+
         require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer || operators[loan.lender][msg.sender]);
         require(to != address(0));
 
@@ -527,7 +527,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     }
 
     /**
-        @notice Returns the pending amount to complete de payment of the loan, keep in mind that this number increases 
+        @notice Returns the pending amount to complete de payment of the loan, keep in mind that this number increases
         every second.
 
         @dev This method also computes the interest and updates the loan
@@ -579,7 +579,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @notice Computes loan interest
 
         Computes the punitory and non-punitory interest of a given loan and only applies the change.
-        
+
         @param loan Loan to compute interest
         @param timestamp Target absolute unix time to calculate interest.
     */
@@ -621,7 +621,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
                 newPunitoryInterest = safeAdd(newPunitoryInterest, calculatedInterest);
                 newTimestamp = startPunitory + realDelta;
             }
-            
+
             if (newInterest != loan.interest || newPunitoryInterest != loan.punitoryInterest) {
                 loan.interestTimestamp = newTimestamp;
                 loan.interest = newInterest;
@@ -632,9 +632,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
     /**
         @notice Updates the loan accumulated interests up to the current Unix time.
-        
+
         @param index Index of the loan
-    
+
         @return true If the interest was updated
     */
     function addInterest(uint index) public returns (bool) {
@@ -642,7 +642,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(loan.status == Status.lent);
         internalAddInterest(loan, block.timestamp);
     }
-    
+
     /**
         @notice Pay loan
 
@@ -659,14 +659,14 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         spending. If the RCN spent results to be less, the extra tokens are never debited from the msg.sender.
 
         * The RCN rate can fluctuate on the same block, and it is impossible to know in advance the exact time of the
-        confirmation of the transaction. 
+        confirmation of the transaction.
 
         @param index Index of the loan
         @param _amount Amount to pay, specified in the loan currency; or in RCN if the loan has no oracle
         @param _from The identity of the payer
         @param oracleData Data required by the oracle to return the rate, the content of this field must be provided
             by the url exposed in the url() method of the oracle.
-            
+
         @return true if the payment was executed successfully
     */
     function pay(uint index, uint256 _amount, address _from, bytes oracleData) public returns (bool) {
@@ -701,7 +701,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
     /**
         @notice Converts an amount to RCN using the loan oracle.
-        
+
         @dev If the loan has no oracle the currency must be RCN so the rate is 1
 
         @return The result of the convertion
@@ -712,7 +712,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         } else {
             uint256 rate;
             uint256 decimals;
-            
+
             (rate, decimals) = oracle.getRate(currency, data);
 
             require(decimals <= RCN_DECIMALS);
@@ -724,11 +724,11 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @notice Withdraw lender funds
 
         When a loan is paid, the funds are not transferred automatically to the lender, the funds are stored on the
-        engine contract, and the lender must call this function specifying the amount desired to transfer and the 
+        engine contract, and the lender must call this function specifying the amount desired to transfer and the
         destination.
 
         @dev This behavior is defined to allow the temporary transfer of the loan to a smart contract, without worrying that
-        the contract will receive tokens that are not traceable; and it allows the development of decentralized 
+        the contract will receive tokens that are not traceable; and it allows the development of decentralized
         autonomous organizations.
 
         @param index Index of the loan
@@ -755,7 +755,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @param loanIds Array of the loans to withdraw
         @param to Destination of the tokens
 
-        @return the total withdrawed 
+        @return the total withdrawed
     */
     function withdrawalList(uint256[] memory loanIds, address to) public returns (uint256) {
         uint256 inputId;
