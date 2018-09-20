@@ -94,52 +94,52 @@ contract('LoanEngine', function(accounts) {
   })
 
   it("approve loan test", async function(){
-    const loanId = await readLoanId(await engine.requestLoan(
-      0x0,                 // oracle
-      accounts[8],         // borrower
-      0x0,                 // currency
-      toInterestRate(240), // interestRatePunitory
-      100,                 // amount
-      10,                  // cuota
-      10,                  // installments
-      30 * 86400,          // installmentDuration
-      10 ** 10,            // requestExpiration
-      "approveLoan()"      // metadata
+    const loanId = await Helper.readLoanId(await engine.requestLoan(
+      0x0,                        // oracle
+      accounts[8],                // borrower
+      0x0,                        // currency
+      Helper.toInterestRate(240), // interestRatePunitory
+      100,                        // amount
+      10,                         // cuota
+      10,                         // installments
+      30 * 86400,                 // installmentDuration
+      10 ** 10,                   // requestExpiration
+      "approveLoan()"             // metadata
     ));
     assert.equal(await engine.getApproved(loanId), false, "The loan must not be approved");
     // try approve a loan with other account
-    await assertThrow(engine.approveLoan(loanId, { from: accounts[1] }));
+    await Helper.assertThrow(engine.approveLoan(loanId, { from: accounts[1] }));
     // approve a loan approveLoan()
     await engine.approveLoan(loanId, { from: accounts[8] });
     assert.equal(await engine.getApproved(loanId), true, "The loan should be approved");
      // try approve an appoved loan
-    await assertThrow(engine.approveLoan(loanId, { from: accounts[8] }));
+    await Helper.assertThrow(engine.approveLoan(loanId, { from: accounts[8] }));
     // try to approve a loan with a status other than request
-    const loanId2 = await readLoanId(await engine.requestLoan(
-      0x0,                 // oracle
-      accounts[8],         // borrower
-      0x0,                 // currency
-      toInterestRate(240), // interestRatePunitory
-      100,                 // amount
-      10,                  // cuota
-      10,                  // installments
-      30 * 86400,          // installmentDuration
-      10 ** 10,            // requestExpiration
-      "approveLoan2()"     // metadata
+    const loanId2 = await Helper.readLoanId(await engine.requestLoan(
+      0x0,                        // oracle
+      accounts[8],                // borrower
+      0x0,                        // currency
+      Helper.toInterestRate(240), // interestRatePunitory
+      100,                        // amount
+      10,                         // cuota
+      10,                         // installments
+      30 * 86400,                 // installmentDuration
+      10 ** 10,                   // requestExpiration
+      "approveLoan2()"            // metadata
     ));
     await engine.destroy(loanId2, { from: accounts[8] });
     // approve a loan with identifier approveLoanIdentifier()
-    const loanId3 = await readLoanId(await engine.requestLoan(
-      0x0,                      // oracle
-      accounts[8],              // borrower
-      0x0,                      // currency
-      toInterestRate(240),      // interestRatePunitory
-      100,                      // amount
-      10,                       // cuota
-      10,                       // installments
-      30 * 86400,               // installmentDuration
-      10 ** 10,                 // requestExpiration
-      "approveLoanIdentifier()" // metadata
+    const loanId3 = await Helper.readLoanId(await engine.requestLoan(
+      0x0,                        // oracle
+      accounts[8],                // borrower
+      0x0,                        // currency
+      Helper.toInterestRate(240), // interestRatePunitory
+      100,                        // amount
+      10,                         // cuota
+      10,                         // installments
+      30 * 86400,                 // installmentDuration
+      10 ** 10,                   // requestExpiration
+      "approveLoanIdentifier()"   // metadata
     ));
     const identifier3 = await engine.getIdentifier(loanId3);
     await engine.approveLoanIdentifier(identifier3, { from: accounts[8] });
