@@ -338,9 +338,7 @@ contract ERC721Base {
                 )
             );
 
-            if (success == 1) {
-                require(result == ERC721_RECEIVED);
-            } else {
+            if (success != 1 || result != ERC721_RECEIVED) {
                 // Try legacy safe call
                 // onERC721Received(address,uint256,bytes)
                 (success, result) = _noThrowCall(
@@ -354,11 +352,7 @@ contract ERC721Base {
                     )
                 );
 
-                if (success == 1) {
-                    require(result == ERC721_RECEIVED_LEGACY);
-                } else {
-                    revert();
-                }
+                require(success == 1 && result == ERC721_RECEIVED_LEGACY);
             }
         }
 

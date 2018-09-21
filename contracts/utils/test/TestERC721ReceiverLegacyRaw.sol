@@ -8,7 +8,7 @@ interface IERC721ReceiverLegacy {
     ) external returns (bytes4);
 }
 
-contract TestERC721ReceiverLegacy is IERC721ReceiverLegacy {
+contract TestERC721ReceiverLegacyRaw is IERC721ReceiverLegacy {
     address public lastFrom;
     uint256 public lastTokenId;
     bytes public lastData;
@@ -24,10 +24,5 @@ contract TestERC721ReceiverLegacy is IERC721ReceiverLegacy {
         lastTokenId = _tokenId;
         lastData = _userData;
         return bytes4(0xf0b9e5ba);
-    }
-
-    function() external {
-        emit CalledFallback();
-        // STUB!
     }
 }
