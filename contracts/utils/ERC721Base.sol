@@ -393,7 +393,7 @@ contract ERC721Base {
             success := call(
                             gas,                  // Send all gas
                             _contract,            // To addr
-                            0,              // Send ETH
+                            0,                    // Send ETH
                             add(0x20, _data),     // Input is data past the first 32 bytes
                             mload(_data),         // Input size is the lenght of data
                             x,                    // Store the ouput on x
