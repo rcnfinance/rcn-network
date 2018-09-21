@@ -328,7 +328,6 @@ contract ERC721Base {
             // onERC721Received(address,address,uint256,bytes)
             (success, result) = _noThrowCall(
                 to,
-                0,
                 abi.encodeWithSelector(
                     ERC721_RECEIVED,
                     msg.sender,
@@ -343,7 +342,6 @@ contract ERC721Base {
                 // onERC721Received(address,uint256,bytes)
                 (success, result) = _noThrowCall(
                     to,
-                    0,
                     abi.encodeWithSelector(
                         ERC721_RECEIVED_LEGACY,
                         holder,
@@ -387,7 +385,6 @@ contract ERC721Base {
 
     function _noThrowCall(
         address _contract,
-        uint256 _amount,
         bytes _data
     ) internal returns (uint256 success, bytes32 result) {
         assembly {
@@ -396,7 +393,7 @@ contract ERC721Base {
             success := call(
                             gas,                  // Send all gas
                             _contract,            // To addr
-                            _amount,              // Send ETH
+                            0,              // Send ETH
                             add(0x20, _data),     // Input is data past the first 32 bytes
                             mload(_data),         // Input size is the lenght of data
                             x,                    // Store the ouput on x
