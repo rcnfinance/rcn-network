@@ -1,6 +1,8 @@
 pragma solidity ^0.4.24;
 
-interface DebtModel {
+import "./../../interfaces/ERC165.sol";
+
+contract DebtModel is ERC165 {
     event Created(bytes32 indexed _id);
     event ChangedClock(bytes32 indexed _id, uint64 _to);
     event ChangedPaid(bytes32 indexed _id, uint256 _paid);
@@ -8,9 +10,18 @@ interface DebtModel {
     event ChangedStatus(bytes32 indexed _id, uint256 _status);
     event ChangedDueTime(bytes32 indexed _id, uint64 _dueTime);
 
+    bytes4 internal debtModelInterface = this.validate.selector
+                                ^ this.getStatus.selector
+                                ^ this.getPaid.selector
+                                ^ this.getDebt.selector
+                                ^ this.getClock.selector
+                                ^ this.getDueTime.selector
+                                ^ this.create.selector
+                                ^ this.addPaid.selector
+                                ^ this.advanceClock.selector;
+
     // Meta
-    function getVersion() external returns (bytes32);
-    function getOwner() external returns (address);
+    function owner() external returns (address);
     function validate(bytes32[] loanData) external view returns (bool);
     // Getters
     function getStatus(bytes32 id) external view returns (uint256);
