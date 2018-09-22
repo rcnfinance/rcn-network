@@ -31,7 +31,7 @@ contract LoanCreator {
     function getDueTime(uint256 id) external view returns (uint256) { return DebtModel(requests[bytes32(id)].model).getDueTime(bytes32(id)); }
 
     function getStatus(uint256 id) external view returns (uint256) {
-        Request memory request = requests[bytes32(id)];
+        Request storage request = requests[bytes32(id)];
         return request.open ? 0 : DebtModel(request.model).getStatus(bytes32(id));
     }
 
@@ -265,7 +265,7 @@ contract LoanCreator {
         // Call the cosigner
         if (cosigner != address(0)) {
             request.cosigner = address(uint256(cosigner) + 2);
-            require(Cosigner(cosigner).requestCosign(address(this), uint256(futureDebt), cosignerData, oracleData), "Cosign method returned false");
+            require(Cosigner(cosigner).requestCosign(Cosigner(address(this)), uint256(futureDebt), cosignerData, oracleData), "Cosign method returned false");
             require(request.cosigner == cosigner, "Cosigner didn't callback");
             request.nonce = internalNonce;
         }
