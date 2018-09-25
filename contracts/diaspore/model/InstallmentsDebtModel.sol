@@ -5,14 +5,14 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {
-        _supportedInterface[this.owner.selector] = true;
-        _supportedInterface[this.validate.selector] = true;
-        _supportedInterface[this.getStatus.selector] = true;
-        _supportedInterface[this.getPaid.selector] = true;
-        _supportedInterface[this.getDebt.selector] = true;
-        _supportedInterface[this.getDueTime.selector] = true;
-        _supportedInterface[this.create.selector] = true;
-        _supportedInterface[this.addPaid.selector] = true;
+        // _supportedInterface[this.owner.selector] = true;
+        // _supportedInterface[this.validate.selector] = true;
+        // _supportedInterface[this.getStatus.selector] = true;
+        // _supportedInterface[this.getPaid.selector] = true;
+        // _supportedInterface[this.getDebt.selector] = true;
+        // _supportedInterface[this.getDueTime.selector] = true;
+        // _supportedInterface[this.create.selector] = true;
+        // _supportedInterface[this.addPaid.selector] = true;
     }
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
@@ -38,7 +38,7 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
     uint256 private constant U_40_OVERFLOW = 2 ** 40;
     uint256 private constant U_24_OVERFLOW = 2 ** 24;
 
-    event _setClock(bytes32 _id, uint64 _to);
+    event _setClock(bytes32 _id, uint64 _prev, uint64 _to);
     event _setStatus(bytes32 _id, uint8 _status);
     event _setPaidBase(bytes32 _id, uint128 _paidBase);
     event _setInterest(bytes32 _id, uint128 _interest);
@@ -87,29 +87,23 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
         return states[id].paid;
     }
 
-    function getObligation(bytes32 id, uint256 timestamp) external view returns (uint256, bool) {
+    function getObligation(bytes32 id, uint64 timestamp) external view returns (uint256, bool) {
         State storage state = states[id];
         Config storage config = configs[id];
 
-        uint64 lentTime = config.lentTime;
-
         // Can't be before creation
-        if (timestamp < lentTime) {
+        if (timestamp < config.lentTime) {
             return (0, true);
         } 
 
-        // Static storage loads
-        uint40 duration = config.duration;
-        uint256 installments = config.installments;
-        uint128 cuota = config.cuota;
-        
-        uint64 currentClock = uint64(timestamp) - lentTime;
+        // Static storage loads        
+        uint64 currentClock = timestamp - config.lentTime;
 
         uint128 base = _baseDebt(
             currentClock,
-            duration,
-            installments,
-            cuota
+            config.duration,
+            config.installments,
+            config.cuota
         );
 
         uint128 interest;
@@ -125,9 +119,9 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
             (interest, currentClock) = _runAdvanceClock({
                 _clock: clock,
                 _interest: prevInterest,
-                _duration: duration,
-                _cuota: cuota,
-                _installments: installments,
+                _duration: config.duration,
+                _cuota: config.cuota,
+                _installments: config.installments,
                 _paidBase: state.paidBase,
                 _interestRate: config.interestRate,
                 _targetClock: currentClock
@@ -147,15 +141,8 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
 
     function getDueTime(bytes32 id) external view returns (uint256) {
         Config storage config = configs[id];
-        State storage state = states[id];
-
-        return (state.clock / config.duration) + config.lentTime;
-    }
-
-    function getBaseDebt(bytes32 id) external view returns (uint256) {
-        Config storage config = configs[id];
-        uint64 clock = uint64(now) - config.lentTime;
-        return _baseDebt(clock, config.duration, config.installments, config.cuota);
+        uint256 clock = states[id].clock;
+        return clock - (clock % config.duration) + config.lentTime;
     }
 
     function getFinalTime(bytes32 id) external view returns (uint256) {
@@ -171,16 +158,17 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
         return _getClosingObligation(id);
     }
 
+    function addDebt(bytes32 id, uint256 amount) external onlyEngine returns (bool) {
+        revert("Not implemented!");
+    }
+
     function _getClosingObligation(bytes32 id) internal view returns (uint256) {
         State storage state = states[id];
         Config storage config = configs[id];
 
         // Static storage loads
-        uint40 duration = config.duration;
         uint256 installments = config.installments;
         uint128 cuota = config.cuota;
-        
-        uint128 base = uint128(cuota) * uint128(installments);
         uint64 currentClock = uint64(now) - config.lentTime;
 
         uint128 interest;
@@ -192,7 +180,7 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
             (interest,) = _runAdvanceClock({
                 _clock: clock,
                 _interest: state.interest,
-                _duration: duration,
+                _duration: config.duration,
                 _cuota: cuota,
                 _installments: installments,
                 _paidBase: state.paidBase,
@@ -201,14 +189,14 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
             });
         }
 
-        uint128 debt = base + interest;
+        uint128 debt = uint128(cuota) * uint128(installments) + interest;
         uint128 paid = state.paid;
         return debt > paid ? debt - paid : 0;
     }
 
     function run(bytes32 id) external returns (bool) {
         Config storage config = configs[id];
-        return _advanceClock(config, states[id], uint64(now) - config.lentTime);
+        return _advanceClock(id, uint64(now) - config.lentTime);
     }
 
     function fixClock(bytes32 id, uint64 target) external returns (bool) {
@@ -219,7 +207,7 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
             require(lentTime >= target, "Clock can't go negative");
             uint64 targetClock = config.lentTime - target;
             require(targetClock > state.clock, "Clock is ahead of target");
-            return _advanceClock(config, state, targetClock);
+            return _advanceClock(id, targetClock);
         }
     }
 
@@ -241,14 +229,17 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
         states[id].clock = duration;
 
         emit Created(id, data);
+        emit _setClock(id, 0, duration);
 
         return true;
     }
 
-    function _advanceClock(Config storage config, State storage state, uint64 _target) internal returns (bool) {
+    function _advanceClock(bytes32 id, uint64 _target) internal returns (bool) {
+        Config storage config = configs[id];
+        State storage state = states[id];
+
         uint64 clock = state.clock;
         if (clock < _target) {
-            bytes32 id = config.id;
             emit _advancedClock(id, _target);
 
             (uint128 newInterest, uint64 newClock) = _runAdvanceClock({
@@ -262,11 +253,11 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
                 _targetClock: _target
             });
 
+            emit _setClock(id, state.clock, newClock);
+            emit _setInterest(id, newInterest);
+
             state.clock = newClock;
             state.interest = newInterest;
-
-            emit _setClock(id, newClock);
-            emit _setInterest(id, newInterest);
 
             return true;
         }
@@ -327,7 +318,7 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
         uint256 _installments
     ) internal pure returns (uint64 delta, bool installmentCompleted) {
         uint64 nextInstallmentDelta = _duration - _clock % _duration;
-        if (nextInstallmentDelta < _targetDelta && _clock / _duration < _installments) {
+        if (nextInstallmentDelta <=_targetDelta && _clock / _duration < _installments) {
             delta = nextInstallmentDelta;
             installmentCompleted = true;
         } else {
@@ -355,13 +346,13 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
         Config storage config = configs[id];
         State storage state = states[id];
 
-        _advanceClock(config, state, uint64(now) - config.lentTime);
+        _advanceClock(id, uint64(now) - config.lentTime);
 
         if (state.status != STATUS_PAID) {
             // State & config memory load
-            uint128 installments = config.installments;
             uint128 paid = state.paid;
             uint64 duration = config.duration;
+            uint128 interest = state.interest;
 
             // Payment aux
             require(available < U_128_OVERFLOW, "Amount overflow");
@@ -377,14 +368,14 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
             do {
                 clock = state.clock;
 
-                baseDebt = _baseDebt(clock, duration, installments, config.cuota);
-                pending = _currentDebt(baseDebt, state.interest, state.paid);
+                baseDebt = _baseDebt(clock, config.duration, config.installments, config.cuota);
+                pending = baseDebt + interest - paid;
 
                 // min(pending, available)
                 target = pending < available ? pending : available;
 
                 // Calc paid base
-                unpaidInterest = state.interest - (paid - state.paidBase);
+                unpaidInterest = interest - (paid - state.paidBase);
 
                 // max(target - unpaidInterest, 0)
                 state.paidBase += target > unpaidInterest ? target - unpaidInterest : 0;
@@ -395,7 +386,7 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
 
                 // Check fully paid
                 // All installments paid + interest
-                if (clock / duration >= installments && baseDebt + state.interest <= paid) {
+                if (clock / duration >= config.installments && baseDebt + interest <= paid) {
                     // Loan paid!
                     state.status = uint8(STATUS_PAID);
                     emit _setStatus(id, uint8(STATUS_PAID));
@@ -404,10 +395,11 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
 
                 // If installment fully paid, advance to next one
                 if (pending == target) {
-                    _advanceClock(config, state, clock + duration);
+                    _advanceClock(id, clock + duration);
                 }
             } while (available != 0);
 
+            emit ChangedPaid(id, paid);
             state.paid = paid;
             return amount - available;
         }
@@ -419,13 +411,8 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
         uint256 installments,
         uint256 cuota
     ) internal pure returns (uint128 base) {
-        uint256 installment = (clock / duration) + 1;
+        uint256 installment = clock / duration;
         return uint128(installment < installments ? installment * cuota : installments * cuota);
-    }
-
-    function _currentDebt(uint128 base, uint128 interest, uint128 paid) internal pure returns (uint128) {
-        uint128 debt = base + interest;
-        return paid < debt ? debt - paid : 0;
     }
 
     function validate(bytes32[] data) external view returns (bool) {

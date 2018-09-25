@@ -23,11 +23,15 @@ contract('Installments model', function(accounts) {
     
     await model.create(id, data);
 
-    // await model.advanceClock(id, targetClock);
-    assert.equal((await model.getBaseDebt(id)).toNumber(), 110, "Base debt should be 1 installment");
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 0, "First obligation should be 0");
+    assert.equal((await model.getDueTime(id)).toNumber(), await Helper.getBlockTime() + 30 * 86400, "Next due time should be in 1 installments");
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 110, "Obligation on due time should be 110");
+    assert.equal((await model.getObligation(id, await model.getDueTime(id) - 1))[0].toNumber(), 0, "Obligation before due time should be 0");
+
     await model.addPaid(id, 330);
 
-    assert.equal((await model.getPaid(id)).toNumber(), 330, "Paid amount should be 330");
-    assert.equal((await model.getDebt(id)).toNumber(), 0, "Current debt should be 110");
+    assert.equal(await model.getPaid(id), 330, "Paid amount should be 330");
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0], 0, "Current obligation should be 0");
+    assert.equal((await model.getDueTime(id)).toNumber(), await Helper.getBlockTime() + 4 * 30 * 86400, "Next due time should be in 4 installments");
   })
 })
