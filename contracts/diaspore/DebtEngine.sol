@@ -36,7 +36,19 @@ contract DebtEngine is ERC721Base {
         bytes16 currency,
         bytes32[] loanData
     ) external returns (bytes32 id) {
-        return _create(model, owner, oracle, currency, nonces[msg.sender]++, loanData);
+        uint256 nonce = nonces[msg.sender]++;
+        id = _buildId(msg.sender, nonce, false);
+
+        debts[id] = Debt({
+            currency: currency,
+            balance: 0,
+            creator: msg.sender,
+            model: model,
+            oracle: oracle
+        });
+
+        _generate(uint256(id), owner);
+        require(model.create(id, loanData), "Error creating debt in model");
     }
 
     function create2(
@@ -47,18 +59,7 @@ contract DebtEngine is ERC721Base {
         uint256 nonce,
         bytes32[] loanData
     ) external returns (bytes32 id) {
-        return _create(model, owner, oracle, currency, nonce, loanData);
-    }
-
-    function _create(
-      DebtModel model,
-      address owner,
-      address oracle,
-      bytes16 currency,
-      uint256 nonce,
-      bytes32[] loanData
-    ) internal returns (bytes32 id) {
-        id = _buildId(msg.sender, nonce, false);
+        id = _buildId(msg.sender, nonce, true);
 
         debts[id] = Debt({
             currency: currency,
@@ -77,7 +78,7 @@ contract DebtEngine is ERC721Base {
         uint256 nonce,
         bool method2
     ) external pure returns (bytes32) {
-        return _buildId(creator, nonce, method2);
+        return keccak256(abi.encodePacked(creator, nonce, method2));
     }
 
     function _buildId(
