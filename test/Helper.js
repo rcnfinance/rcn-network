@@ -84,6 +84,10 @@ function isRevertErrorMessage( error ) {
   return false;
 }
 
+async function getBlockTime() {
+  return (await web3.eth.getBlock("pending")).timestamp;
+}
+
 async function assertThrow(promise) {
   try {
     await promise;
@@ -117,7 +121,7 @@ async function readLoanId(recepit) {
 }
 
 module.exports = {
-  toEvents, arrayToBytesOfBytes32,
+  toEvents, arrayToBytesOfBytes32, getBlockTime,
   toBytes32, increaseTime, isRevertErrorMessage, assertThrow,
   toInterestRate, buyTokens, readLoanId, isRevertErrorMessage,
   CREATEDLOAN, APPROVEDBY, LENT, PARTIALPAYMENT, TOTALPAYMENT, DESTROYEDBY
