@@ -2,7 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./../../interfaces/ERC165.sol";
 
-contract DebtModel is ERC165 {
+contract Model is ERC165 {
     event Created(bytes32 indexed _id, bytes32[] _data);
     event ChangedStatus(bytes32 indexed _id, uint256 _status);
     event ChangedPaid(bytes32 indexed _id, uint256 _paid);
@@ -11,7 +11,7 @@ contract DebtModel is ERC165 {
     event ChangedDueTime(bytes32 indexed _id, uint256 _status);
     event ChangedFinalTime(bytes32 indexed _id, uint64 _dueTime);
 
-    // Debt model interface selector
+    // Model interface selector
     bytes4 internal debtModelInterface = 
     this.isOperator.selector
     ^ this.validate.selector

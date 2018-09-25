@@ -1,4 +1,4 @@
-const InstallmentsDebtModel = artifacts.require("./diaspore/model/InstallmentsDebtModel.sol");
+const InstallmentsDebtModel = artifacts.require("./diaspore/model/InstallmentsModel.sol");
 const Helper = require('./Helper.js');
 
 contract('Installments model', function(accounts) {

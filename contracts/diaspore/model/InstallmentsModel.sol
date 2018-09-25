@@ -1,7 +1,7 @@
-import "./../interfaces/DebtModel.sol";
+import "./../interfaces/Model.sol";
 import "./../../utils/Ownable.sol";
 
-contract InstallmentsDebtModel is Ownable, DebtModel {
+contract InstallmentsModel is Ownable, Model {
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {

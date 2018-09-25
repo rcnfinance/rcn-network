@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./DebtEngine.sol";
+import "./interfaces/LoanRequester.sol";
 
 contract LoanCreator {
     DebtEngine public debtEngine;
@@ -28,11 +29,11 @@ contract LoanCreator {
 
     function getExpirationRequest(uint256 id) external view returns (uint256) { return requests[bytes32(id)].expiration; }
     function getApproved(uint256 id) external view returns (bool) { return requests[bytes32(id)].approved; }
-    function getDueTime(uint256 id) external view returns (uint256) { return DebtModel(requests[bytes32(id)].model).getDueTime(bytes32(id)); }
+    function getDueTime(uint256 id) external view returns (uint256) { return Model(requests[bytes32(id)].model).getDueTime(bytes32(id)); }
 
     function getStatus(uint256 id) external view returns (uint256) {
         Request storage request = requests[bytes32(id)];
-        return request.open ? 0 : DebtModel(request.model).getStatus(bytes32(id));
+        return request.open ? 0 : Model(request.model).getStatus(bytes32(id));
     }
 
     struct Request {
@@ -73,7 +74,7 @@ contract LoanCreator {
         bytes32[] loanData
     ) external returns (bytes32 futureDebt) {
         require(borrower != address(0), "The request should have a borrower");
-        require(DebtModel(model).validate(loanData), "The loan data is not valid");
+        require(Model(model).validate(loanData), "The loan data is not valid");
 
         uint256 internalNonce = uint256(keccak256(abi.encodePacked(msg.sender, nonce)));
         futureDebt = debtEngine.buildId(
@@ -144,7 +145,7 @@ contract LoanCreator {
         // Generate the debt
         require(
             debtEngine.create2(
-                DebtModel(request.model),
+                Model(request.model),
                 msg.sender,
                 request.oracle,
                 request.currency,
@@ -370,7 +371,7 @@ contract LoanCreator {
         uint256 internalNonce
     ) internal returns (bytes32) {
         return debtEngine.create2(
-            DebtModel(address(requestData[R_MODEL])),
+            Model(address(requestData[R_MODEL])),
             msg.sender,
             address(requestData[R_ORACLE]),
             bytes16(requestData[R_CURRENCY]),

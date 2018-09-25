@@ -4,7 +4,7 @@ import "./../interfaces/Token.sol";
 import "./../interfaces/Oracle.sol";
 import "./../interfaces/Cosigner.sol";
 import "./../utils/ERC721Base.sol";
-import "./interfaces/DebtModel.sol";
+import "./interfaces/Model.sol";
 
 contract DebtEngine is ERC721Base {
     Token public token;
@@ -15,7 +15,7 @@ contract DebtEngine is ERC721Base {
     struct Debt {
         bytes16 currency;
         uint128 balance;
-        DebtModel model;
+        Model model;
         address creator;
         address oracle;
     }
@@ -29,7 +29,7 @@ contract DebtEngine is ERC721Base {
     }
 
     function create(
-        DebtModel model,
+        Model model,
         address owner,
         address oracle,
         bytes16 currency,
@@ -51,7 +51,7 @@ contract DebtEngine is ERC721Base {
     }
 
     function create2(
-        DebtModel model,
+        Model model,
         address owner,
         address oracle,
         bytes16 currency,
