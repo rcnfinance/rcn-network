@@ -169,7 +169,7 @@ contract LoanCreator {
             uint256 auxNonce = request.nonce;
             request.cosigner = address(uint256(cosigner) + 2);
             request.nonce = cosignerLimit; // Risky ?
-            require(Cosigner(cosigner).requestCosign(address(this), uint256(futureDebt), cosignerData, oracleData), "Cosign method returned false");
+            require(Cosigner(cosigner).requestCosign(Engine(address(this)), uint256(futureDebt), cosignerData, oracleData), "Cosign method returned false");
             require(request.cosigner == cosigner, "Cosigner didn't callback");
             request.nonce = auxNonce;
         }
@@ -265,7 +265,7 @@ contract LoanCreator {
         // Call the cosigner
         if (cosigner != address(0)) {
             request.cosigner = address(uint256(cosigner) + 2);
-            require(Cosigner(cosigner).requestCosign(Cosigner(address(this)), uint256(futureDebt), cosignerData, oracleData), "Cosign method returned false");
+            require(Cosigner(cosigner).requestCosign(Engine(address(this)), uint256(futureDebt), cosignerData, oracleData), "Cosign method returned false");
             require(request.cosigner == cosigner, "Cosigner didn't callback");
             request.nonce = internalNonce;
         }
