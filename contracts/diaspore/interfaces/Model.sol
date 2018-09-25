@@ -22,6 +22,7 @@ contract Model is ERC165 {
     ^ this.getDueTime.selector
     ^ this.getFinalTime.selector
     ^ this.getFrecuency.selector
+    ^ this.getEstimateObligation.selector
     ^ this.create.selector
     ^ this.addPaid.selector
     ^ this.addDebt.selector

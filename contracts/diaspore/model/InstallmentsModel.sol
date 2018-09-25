@@ -5,14 +5,24 @@ contract InstallmentsModel is Ownable, Model {
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {
-        // _supportedInterface[this.owner.selector] = true;
-        // _supportedInterface[this.validate.selector] = true;
-        // _supportedInterface[this.getStatus.selector] = true;
-        // _supportedInterface[this.getPaid.selector] = true;
-        // _supportedInterface[this.getDebt.selector] = true;
-        // _supportedInterface[this.getDueTime.selector] = true;
-        // _supportedInterface[this.create.selector] = true;
-        // _supportedInterface[this.addPaid.selector] = true;
+        _supportedInterface[this.owner.selector] = true;
+        _supportedInterface[this.validate.selector] = true;
+        _supportedInterface[this.getStatus.selector] = true;
+        _supportedInterface[this.getPaid.selector] = true;
+        _supportedInterface[this.getObligation.selector] = true;
+        _supportedInterface[this.getClosingObligation.selector] = true;
+        _supportedInterface[this.getDueTime.selector] = true;
+        _supportedInterface[this.getFinalTime.selector] = true;
+        _supportedInterface[this.getFrecuency.selector] = true;
+        _supportedInterface[this.getEstimateObligation.selector] = true;
+        _supportedInterface[this.addDebt.selector] = true; // ??? Not supported
+        _supportedInterface[this.run.selector] = true;
+        _supportedInterface[this.fixClock.selector] = true;
+        _supportedInterface[this.create.selector] = true;
+        _supportedInterface[this.addPaid.selector] = true;
+        _supportedInterface[this.configs.selector] = true;
+        _supportedInterface[this.states.selector] = true;
+        _supportedInterface[this.engine.selector] = true;
     }
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
