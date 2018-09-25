@@ -386,7 +386,7 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
                 // Check fully paid
                 // All installments paid + interest
                 if (clock / duration >= config.installments && baseDebt + interest <= paid) {
-                    // Loan paid!
+                    // Registry paid!
                     state.status = uint8(STATUS_PAID);
                     emit _setStatus(id, uint8(STATUS_PAID));
                     break;
@@ -420,7 +420,7 @@ contract InstallmentsDebtModel is Ownable, DebtModel {
     }
 
     function _validate(bytes32[] data) internal pure returns (bool) {
-        require(data.length == C_PARAMS, "Wrong loan data arguments count");
+        require(data.length == C_PARAMS, "Wrong data arguments count");
         require(uint256(data[C_CUOTA]) < U_128_OVERFLOW, "Cuota too high");
         require(uint128(data[C_CUOTA]) > 0, "Cuota can't be 0");
         require(uint256(data[C_INTEREST_RATE]) > 1000, "Interest rate too high");

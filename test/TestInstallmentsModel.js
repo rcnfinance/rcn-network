@@ -35,7 +35,7 @@ contract('Installments model', function(accounts) {
     assert.equal((await model.getDueTime(id)).toNumber(), await Helper.getBlockTime() + 4 * 30 * 86400, "Next due time should be in 4 installments");
   })
 
-  it("Test pay loan in advance", async function() {
+  it("Test pay in advance", async function() {
     let id = Helper.toBytes32(3);
     let data = [
         Helper.toBytes32(110),
@@ -51,7 +51,7 @@ contract('Installments model', function(accounts) {
     assert.equal(await model.getPaid(id), 1100, "Paid should be cuota * installments");
   });
 
-  it("Test pay loan single installment", async function() {
+  it("Test pay single installment", async function() {
     let id = Helper.toBytes32(2);
     let data = [
         Helper.toBytes32(web3.toWei(110)),

@@ -5,7 +5,6 @@ import "./../interfaces/Oracle.sol";
 import "./../interfaces/Cosigner.sol";
 import "./../utils/ERC721Base.sol";
 import "./interfaces/DebtModel.sol";
-import "./interfaces/LoanRequester.sol";
 
 contract DebtEngine is ERC721Base {
     Token public token;
@@ -34,7 +33,7 @@ contract DebtEngine is ERC721Base {
         address owner,
         address oracle,
         bytes16 currency,
-        bytes32[] loanData
+        bytes32[] data
     ) external returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
         id = _buildId(msg.sender, nonce, false);
@@ -48,7 +47,7 @@ contract DebtEngine is ERC721Base {
         });
 
         _generate(uint256(id), owner);
-        require(model.create(id, loanData), "Error creating debt in model");
+        require(model.create(id, data), "Error creating debt in model");
     }
 
     function create2(
@@ -57,7 +56,7 @@ contract DebtEngine is ERC721Base {
         address oracle,
         bytes16 currency,
         uint256 nonce,
-        bytes32[] loanData
+        bytes32[] data
     ) external returns (bytes32 id) {
         id = _buildId(msg.sender, nonce, true);
 
@@ -70,7 +69,7 @@ contract DebtEngine is ERC721Base {
         });
 
         _generate(uint256(id), owner);
-        require(model.create(id, loanData), "Error creating debt in model");
+        require(model.create(id, data), "Error creating debt in model");
     }
 
     function buildId(
