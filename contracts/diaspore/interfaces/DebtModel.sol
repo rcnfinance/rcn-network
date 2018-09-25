@@ -13,20 +13,26 @@ contract DebtModel is ERC165 {
 
     // Debt model interface selector
     bytes4 internal debtModelInterface = 
-    this.isOperator.selector;
+    this.isOperator.selector
     ^ this.validate.selector
     ^ this.getStatus.selector
     ^ this.getPaid.selector
-    ^ this.getDebt.selector
-    ^ this.getDebtTotal.selector
-    ^ this.get.selector;
+    ^ this.getObligation.selector
+    ^ this.getClosingObligation.selector
+    ^ this.getDueTime.selector
+    ^ this.getFinalTime.selector
+    ^ this.getFrecuency.selector
+    ^ this.create.selector
+    ^ this.addPaid.selector
+    ^ this.addDebt.selector
+    ^ this.run.selector;
 
     uint256 public constant STATUS_ONGOING = 1;
     uint256 public constant STATUS_PAID = 2;
 
     // Meta
     function isOperator(address operator) external view returns (bool);
-    function validate(bytes32[] loanData) external view returns (bool);
+    function validate(bytes32[] data) external view returns (bool);
     // Getters
     function getStatus(bytes32 id) external view returns (uint256);
     function getPaid(bytes32 id) external view returns (uint256);
@@ -38,7 +44,7 @@ contract DebtModel is ERC165 {
     function getFrecuency(bytes32 id) external view returns (uint256);
     function getEstimateObligation(bytes32 id) external view returns (uint256);
     // Interface
-    function create(bytes32 id, bytes32[] loanData) external returns (bool);
+    function create(bytes32 id, bytes32[] data) external returns (bool);
     function addPaid(bytes32 id, uint256 amount) external returns (uint256 real);
     function addDebt(bytes32 id, uint256 amount) external returns (bool);
     // Helpers
