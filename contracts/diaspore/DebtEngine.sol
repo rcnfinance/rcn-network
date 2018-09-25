@@ -77,7 +77,7 @@ contract DebtEngine is ERC721Base {
         uint256 nonce,
         bool method2
     ) external pure returns (bytes32) {
-        return keccak256(abi.encodePacked(creator, nonce, method2));
+        return _buildId(creator, nonce, method2);
     }
 
     function _buildId(
