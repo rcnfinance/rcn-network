@@ -70,14 +70,117 @@ contract InstallmentsModel is Ownable, Model {
         uint128 interest;
     }
 
+    modifier onlyEngine {
+        require(msg.sender == engine, "Only engine allowed");
+        _;
+    }
+
     function setEngine(address _engine) external onlyOwner returns (bool) {
         engine = _engine;
         return true;
     }
 
-    modifier onlyEngine {
-        require(msg.sender == engine, "Only engine allowed");
-        _;
+    function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
+        require(configs[id].cuota == 0, "Entry already exist");
+        _validate(data);
+        
+        uint40 duration = uint40(data[C_INSTALLMENT_DURATION]);
+
+        configs[id] = Config({
+            installments: uint24(data[C_INSTALLMENTS]),
+            duration: duration,
+            lentTime: uint64(now),
+            cuota: uint128(data[C_CUOTA]),
+            interestRate: uint256(data[C_INTEREST_RATE]),
+            id: id
+        });
+
+        states[id].clock = duration;
+
+        emit Created(id, data);
+        emit _setClock(id, duration);
+
+        return true;
+    }
+
+    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256) {
+        Config storage config = configs[id];
+        State storage state = states[id];
+
+        _advanceClock(id, uint64(now) - config.lentTime);
+
+        if (state.status != STATUS_PAID) {
+            // State & config memory load
+            uint256 paid = state.paid;
+            uint256 duration = config.duration;
+            uint256 interest = state.interest;
+
+            // Payment aux
+            require(available < U_128_OVERFLOW, "Amount overflow");
+            uint256 available = amount;
+
+            // Aux variables
+            uint256 unpaidInterest;
+            uint256 pending;
+            uint256 target;
+            uint256 baseDebt;
+            uint256 clock;
+
+            do {
+                clock = state.clock;
+
+                baseDebt = _baseDebt(clock, config.duration, config.installments, config.cuota);
+                pending = baseDebt + interest - paid;
+
+                // min(pending, available)
+                target = pending < available ? pending : available;
+
+                // Calc paid base
+                unpaidInterest = interest - (paid - state.paidBase);
+
+                // max(target - unpaidInterest, 0)
+                state.paidBase += uint128(target > unpaidInterest ? target - unpaidInterest : 0);
+                emit _setPaidBase(id, state.paidBase);
+
+                paid += target;
+                available -= target;
+
+                // Check fully paid
+                // All installments paid + interest
+                if (clock / duration >= config.installments && baseDebt + interest <= paid) {
+                    // Registry paid!
+                    state.status = uint8(STATUS_PAID);
+                    emit _setStatus(id, uint8(STATUS_PAID));
+                    break;
+                }
+
+                // If installment fully paid, advance to next one
+                if (pending == target) {
+                    _advanceClock(id, clock + duration);
+                }
+            } while (available != 0);
+
+            emit ChangedPaid(id, paid);
+            require(paid < U_128_OVERFLOW, "Paid overflow");
+            state.paid = uint128(paid);
+            return amount - available;
+        }
+    }
+
+    function addDebt(bytes32 id, uint256 amount) external onlyEngine returns (bool) {
+        revert("Not implemented!");
+    }
+
+    function fixClock(bytes32 id, uint64 target) external returns (bool) {
+        if (target <= now) {
+            Config storage config = configs[id];
+            State storage state = states[id];
+            uint64 lentTime = config.lentTime;
+            require(lentTime >= target, "Clock can't go negative");
+            uint64 targetClock = config.lentTime - target;
+            require(targetClock > state.clock, "Clock is ahead of target");
+            return _advanceClock(id, targetClock);
+        }
     }
 
     function isOperator(address _target) external view returns (bool) {
@@ -143,6 +246,15 @@ contract InstallmentsModel is Ownable, Model {
         return (debt > paid ? debt - paid : 0, defined);
     }
 
+    function run(bytes32 id) external returns (bool) {
+        Config storage config = configs[id];
+        return _advanceClock(id, uint64(now) - config.lentTime);
+    }
+
+    function validate(bytes32[] data) external view returns (bool) {
+        return _validate(data);
+    }
+
     function getClosingObligation(bytes32 id) external view returns (uint256) {
         return _getClosingObligation(id);
     }
@@ -166,8 +278,34 @@ contract InstallmentsModel is Ownable, Model {
         return _getClosingObligation(id);
     }
 
-    function addDebt(bytes32 id, uint256 amount) external onlyEngine returns (bool) {
-        revert("Not implemented!");
+    function _advanceClock(bytes32 id, uint256 _target) internal returns (bool) {
+        Config storage config = configs[id];
+        State storage state = states[id];
+
+        uint256 clock = state.clock;
+        if (clock < _target) {
+            (uint256 newInterest, uint256 newClock) = _runAdvanceClock({
+                _clock: state.clock,
+                _interest: state.interest,
+                _duration: config.duration,
+                _cuota: config.cuota,
+                _installments: config.installments,
+                _paidBase: state.paidBase,
+                _interestRate: config.interestRate,
+                _targetClock: _target
+            });
+
+            require(newClock < U_64_OVERFLOW, "Clock overflow");
+            require(newInterest < U_128_OVERFLOW, "Interest overflow");
+
+            emit _setClock(id, uint64(newClock));
+            emit _setInterest(id, uint128(newInterest));
+
+            state.clock = uint64(newClock);
+            state.interest = uint128(newInterest);
+
+            return true;
+        }
     }
 
     function _getClosingObligation(bytes32 id) internal view returns (uint256) {
@@ -202,75 +340,6 @@ contract InstallmentsModel is Ownable, Model {
         return debt > paid ? debt - paid : 0;
     }
 
-    function run(bytes32 id) external returns (bool) {
-        Config storage config = configs[id];
-        return _advanceClock(id, uint64(now) - config.lentTime);
-    }
-
-    function fixClock(bytes32 id, uint64 target) external returns (bool) {
-        if (target <= now) {
-            Config storage config = configs[id];
-            State storage state = states[id];
-            uint64 lentTime = config.lentTime;
-            require(lentTime >= target, "Clock can't go negative");
-            uint64 targetClock = config.lentTime - target;
-            require(targetClock > state.clock, "Clock is ahead of target");
-            return _advanceClock(id, targetClock);
-        }
-    }
-
-    function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
-        require(configs[id].cuota == 0, "Entry already exist");
-        _validate(data);
-        
-        uint40 duration = uint40(data[C_INSTALLMENT_DURATION]);
-
-        configs[id] = Config({
-            installments: uint24(data[C_INSTALLMENTS]),
-            duration: duration,
-            lentTime: uint64(now),
-            cuota: uint128(data[C_CUOTA]),
-            interestRate: uint256(data[C_INTEREST_RATE]),
-            id: id
-        });
-
-        states[id].clock = duration;
-
-        emit Created(id, data);
-        emit _setClock(id, duration);
-
-        return true;
-    }
-
-    function _advanceClock(bytes32 id, uint256 _target) internal returns (bool) {
-        Config storage config = configs[id];
-        State storage state = states[id];
-
-        uint256 clock = state.clock;
-        if (clock < _target) {
-            (uint256 newInterest, uint256 newClock) = _runAdvanceClock({
-                _clock: state.clock,
-                _interest: state.interest,
-                _duration: config.duration,
-                _cuota: config.cuota,
-                _installments: config.installments,
-                _paidBase: state.paidBase,
-                _interestRate: config.interestRate,
-                _targetClock: _target
-            });
-
-            require(newClock < U_64_OVERFLOW, "Clock overflow");
-            require(newInterest < U_128_OVERFLOW, "Interest overflow");
-
-            emit _setClock(id, uint64(newClock));
-            emit _setInterest(id, uint128(newInterest));
-
-            state.clock = uint64(newClock);
-            state.interest = uint128(newInterest);
-
-            return true;
-        }
-    }
 
     function _runAdvanceClock(
         uint256 _clock,
@@ -351,70 +420,6 @@ contract InstallmentsModel is Ownable, Model {
         return newInterest;
     }
 
-    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256) {
-        Config storage config = configs[id];
-        State storage state = states[id];
-
-        _advanceClock(id, uint64(now) - config.lentTime);
-
-        if (state.status != STATUS_PAID) {
-            // State & config memory load
-            uint256 paid = state.paid;
-            uint256 duration = config.duration;
-            uint256 interest = state.interest;
-
-            // Payment aux
-            require(available < U_128_OVERFLOW, "Amount overflow");
-            uint256 available = amount;
-
-            // Aux variables
-            uint256 unpaidInterest;
-            uint256 pending;
-            uint256 target;
-            uint256 baseDebt;
-            uint256 clock;
-
-            do {
-                clock = state.clock;
-
-                baseDebt = _baseDebt(clock, config.duration, config.installments, config.cuota);
-                pending = baseDebt + interest - paid;
-
-                // min(pending, available)
-                target = pending < available ? pending : available;
-
-                // Calc paid base
-                unpaidInterest = interest - (paid - state.paidBase);
-
-                // max(target - unpaidInterest, 0)
-                state.paidBase += uint128(target > unpaidInterest ? target - unpaidInterest : 0);
-                emit _setPaidBase(id, state.paidBase);
-
-                paid += target;
-                available -= target;
-
-                // Check fully paid
-                // All installments paid + interest
-                if (clock / duration >= config.installments && baseDebt + interest <= paid) {
-                    // Registry paid!
-                    state.status = uint8(STATUS_PAID);
-                    emit _setStatus(id, uint8(STATUS_PAID));
-                    break;
-                }
-
-                // If installment fully paid, advance to next one
-                if (pending == target) {
-                    _advanceClock(id, clock + duration);
-                }
-            } while (available != 0);
-
-            emit ChangedPaid(id, paid);
-            require(paid < U_128_OVERFLOW, "Paid overflow");
-            state.paid = uint128(paid);
-            return amount - available;
-        }
-    }
-
     function _baseDebt(
         uint256 clock,
         uint256 duration,
@@ -423,10 +428,6 @@ contract InstallmentsModel is Ownable, Model {
     ) internal pure returns (uint256 base) {
         uint256 installment = clock / duration;
         return uint128(installment < installments ? installment * cuota : installments * cuota);
-    }
-
-    function validate(bytes32[] data) external view returns (bool) {
-        return _validate(data);
     }
 
     function _validate(bytes32[] data) internal pure returns (bool) {
