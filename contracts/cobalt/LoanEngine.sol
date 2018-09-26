@@ -359,7 +359,7 @@ contract LoanEngine is Ownable, ERC721Base {
             requiredTransfer = loan.amount;
         } else {
             (uint256 rate, uint256 decimals) = Oracle(loan.oracle).getRate(loan.currency, oracleData);
-            requiredTransfer = uint128(toToken(loan.amount, rate, decimals));
+            requiredTransfer = toToken(loan.amount, rate, decimals);
         }
 
         require(token.transferFrom(msg.sender, loan.borrower, requiredTransfer), "Error pulling tokens");
