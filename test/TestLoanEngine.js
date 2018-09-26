@@ -756,4 +756,80 @@ contract('LoanEngine', function(accounts) {
       "Test create loan post-deprecated"
     ));
   })
+
+  it("test payTokens function", async function(){
+    const loanId = await Helper.readLoanId(await engine.requestLoan(
+      0x0,                      // oracle
+      accounts[8],              // borrower
+      0x0,                      // currency
+      Helper.toInterestRate(1), // interestRatePunitory
+      100,                      // amount
+      50,                       // cuota
+      2,                        // installments
+      30 * 86400,               // installmentDuration
+      10 ** 10,                 // requestExpiration
+      "test pay with RCN Token",// metadata
+      { from: accounts[8] }
+    ));
+    // try pay a loan with non ongoing status
+    await Helper.buyTokens(rcn, 4000, accounts[4]);
+    await rcn.approve(engine.address, 50, { from: accounts[4] });
+    await Helper.assertThrow(engine.payTokens(loanId, 50, accounts[4], [], { from: accounts[4] }));
+    // lend the loan
+    await Helper.buyTokens(rcn, 4000, accounts[3]);
+    await rcn.approve(engine.address, 100, { from: accounts[3] });
+    await engine.lend(loanId, [], 0x0, 0x0, { from: accounts[3] });
+    // pay loan with tokens
+    await Helper.buyTokens(rcn, 4000, accounts[7]);
+    await rcn.approve(engine.address, 100, { from: accounts[7] });
+    let prevBal = (await rcn.balanceOf(accounts[7])).toNumber();
+    await engine.payTokens(loanId, 50, accounts[7], [], { from: accounts[7] });
+
+    assert.equal((await engine.getPaid(loanId)).toNumber(), 50, "Paid should be 50 RCN");
+    assert.equal((await rcn.balanceOf(accounts[7])).toNumber(), prevBal - 50, "Expended amount should be 50 RCN less");
+    // total pay loan with tokens
+    prevBal = (await rcn.balanceOf(accounts[7])).toNumber();
+    await engine.payTokens(loanId, 50, accounts[7], [], { from: accounts[7] });
+
+    assert.equal(await engine.getStatus(loanId), 2, "Loan should be paid");
+    assert.equal((await engine.getPaid(loanId)).toNumber(), 100, "Paid should be 100 RCN");
+    assert.equal((await rcn.balanceOf(accounts[7])).toNumber(), prevBal - 50, "Expended amount should be 50 RCN less");
+  })
+
+  it("test payTokens function with oracle", async function(){
+    const loanId = await Helper.readLoanId(await engine.requestLoan(
+      oracle.address,           // oracle
+      accounts[8],              // borrower
+      0x0,                      // currency
+      Helper.toInterestRate(1), // interestRatePunitory
+      100,                      // amount
+      50,                       // cuota
+      2,                        // installments
+      30 * 86400,               // installmentDuration
+      10 ** 10,                 // requestExpiration
+      "test pay with RCN Token",// metadata
+      { from: accounts[8] }
+    ));
+    const oracleData1 = await oracle.dummyDataBytes1();
+    const oracleData2 = await oracle.dummyDataBytes2();
+    // lend the loan
+    await Helper.buyTokens(rcn, 4000, accounts[3]);
+    await rcn.approve(engine.address, 4000, { from: accounts[3] });
+    await engine.lend(loanId, oracleData2, 0x0, 0x0, { from: accounts[3] });
+    // pay loan with tokens
+    await Helper.buyTokens(rcn, 6000 * 100, accounts[7]);
+    await rcn.approve(engine.address, 6000 * 100, { from: accounts[7] });
+    let prevBal = (await rcn.balanceOf(accounts[7])).toNumber();
+    await engine.payTokens(loanId, 6000 * 50, accounts[7], oracleData1, { from: accounts[7] });
+
+    assert.equal((await engine.getPaid(loanId)).toNumber(), 50, "Paid should be 50 ETH");
+    assert.equal((await rcn.balanceOf(accounts[7])).toNumber(), prevBal - 6000 * 50, "Expended amount should be 300000 RCN less");
+    // total pay loan with tokens
+    prevBal = (await rcn.balanceOf(accounts[7])).toNumber();
+    await engine.payTokens(loanId, 6000 * 50, accounts[7], oracleData1, { from: accounts[7] });
+
+    assert.equal(await engine.getStatus(loanId), 2, "Loan should be paid");
+    assert.equal((await engine.getPaid(loanId)).toNumber(), 100, "Paid should be 100 ETH");
+    assert.equal((await rcn.balanceOf(accounts[7])).toNumber(), prevBal - 6000 * 50, "Expended amount should be 300000 RCN less");
+  })
 })
