@@ -2,14 +2,6 @@ pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
 
-interface IERC721Receiver {
-    function onERC721Received(
-        address _oldOwner,
-        uint256 _tokenId,
-        bytes   _userData
-    ) external returns (bytes4);
-}
-
 contract ERC721Base {
     using SafeMath for uint256;
 
@@ -20,6 +12,9 @@ contract ERC721Base {
     mapping(address => mapping(address => bool)) private _operators;
     mapping(uint256 => address) private _approval;
     mapping(uint256 => uint256) private _indexOfAsset;
+
+    bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
+    bytes4 private constant ERC721_RECEIVED_LEGACY = 0xf0b9e5ba;
 
     event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
     event Approval(address indexed _owner, address indexed _approved, uint256 _tokenId);
@@ -326,13 +321,37 @@ contract ERC721Base {
         _addAssetTo(to, assetId);
 
         if (doCheck && _isContract(to)) {
-            // Equals to bytes4(keccak256("onERC721Received(address,uint256,bytes)"))
-            bytes4 ERC721_RECEIVED = bytes4(0xf0b9e5ba);
-            require(
-                IERC721Receiver(to).onERC721Received(
-                    holder, assetId, userData
-                ) == ERC721_RECEIVED
+            // Call dest contract
+            uint256 success;
+            bytes32 result;
+            // Perform check with the new safe call
+            // onERC721Received(address,address,uint256,bytes)
+            (success, result) = _noThrowCall(
+                to,
+                abi.encodeWithSelector(
+                    ERC721_RECEIVED,
+                    msg.sender,
+                    holder,
+                    assetId,
+                    userData
+                )
             );
+
+            if (success != 1 || result != ERC721_RECEIVED) {
+                // Try legacy safe call
+                // onERC721Received(address,uint256,bytes)
+                (success, result) = _noThrowCall(
+                    to,
+                    abi.encodeWithSelector(
+                        ERC721_RECEIVED_LEGACY,
+                        holder,
+                        assetId,
+                        userData
+                    )
+                );
+
+                require(success == 1 && result == ERC721_RECEIVED_LEGACY);
+            }
         }
 
         emit Transfer(holder, to, assetId);
@@ -362,5 +381,26 @@ contract ERC721Base {
         uint size;
         assembly { size := extcodesize(addr) }
         return size > 0;
+    }
+
+    function _noThrowCall(
+        address _contract,
+        bytes _data
+    ) internal returns (uint256 success, bytes32 result) {
+        assembly {
+            let x := mload(0x40)
+
+            success := call(
+                            gas,                  // Send all gas
+                            _contract,            // To addr
+                            0,                    // Send ETH
+                            add(0x20, _data),     // Input is data past the first 32 bytes
+                            mload(_data),         // Input size is the lenght of data
+                            x,                    // Store the ouput on x
+                            0x20                  // Output is a single bytes32, has 32 bytes
+                        )
+
+            result := mload(x)
+        }
     }
 }
