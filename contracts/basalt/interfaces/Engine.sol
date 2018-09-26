@@ -1,6 +1,6 @@
 pragma solidity ^0.4.19;
 
-import './Oracle.sol';
+import '../../interfaces/Oracle.sol';
 
 contract Engine {
     uint256 public VERSION;
