@@ -42,6 +42,13 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         _supportedInterface[this.engine.selector] = true;
     }
 
+    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
+        return
+            interfaceId == this.supportsInterface.selector ||
+            interfaceId == debtModelInterface ||
+            _supportedInterface[interfaceId];
+    }
+
     struct Config {
         uint128 amount;
         uint256 interestRate;
