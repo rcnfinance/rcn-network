@@ -22,6 +22,10 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
 
+    event _setPaid(bytes32 _id, uint128 _paid);
+    event _setInterest(bytes32 _id, uint128 _interest);
+    event _setPunitoryInterest(bytes32 _id, uint128 _punitoryInterest);
+    event _setInterestTimestamp(bytes32 _id, uint64 _interestTimestamp);
     event _setStatus(bytes32 _id, uint8 _status);
 
     constructor() public {
@@ -169,17 +173,18 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     }
 
     function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 toPay) {
-        Config storage config = configs[id];
         State storage state = states[id];
 
         require(state.status == STATUS_ONGOING, "The loan status should be Ongoing");
-        _addInterest(config, state, block.timestamp);
+        _addInterest(id, block.timestamp);
 
-        uint256 totalDebt = safeAdd( safeAdd( config.amount, state.interest ), state.punitoryInterest );
+        uint256 totalDebt = safeAdd( safeAdd( configs[id].amount, state.interest ), state.punitoryInterest );
         toPay = min(safeSubtract(totalDebt , state.paid ), amount);
 
         require(toPay < U_128_OVERFLOW, "toPay overflow");
         state.paid = uint128(safeAdd(state.paid, toPay));
+
+        emit _setPaid(id, state.paid);
 
         if (safeSubtract(totalDebt , state.paid ) == 0) {
             state.status = uint8(STATUS_PAID);
@@ -187,7 +192,10 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         }
     }
 
-    function _addInterest(Config storage config, State storage state, uint256 timestamp) internal {
+    function _addInterest(bytes32 id, uint256 timestamp) internal {
+        Config storage config = configs[id];
+        State storage state = states[id];
+
         if (timestamp > state.interestTimestamp) {
             uint256 newInterest = state.interest;
             uint256 newPunitoryInterest = state.punitoryInterest;
@@ -233,6 +241,10 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
                 state.interestTimestamp = uint64(newTimestamp);
                 state.interest = uint128(newInterest);
                 state.punitoryInterest = uint128(newPunitoryInterest);
+
+                emit _setInterestTimestamp(id, state.interestTimestamp);
+                emit _setInterest(id, state.interest);
+                emit _setPunitoryInterest(id, state.punitoryInterest);
             }
         }
     }
@@ -252,7 +264,7 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     }
 
     function run(bytes32 id) external returns (bool) {
-        _addInterest(configs[id], states[id], now);
+        _addInterest(id, now);
         return true;
     }
 }
