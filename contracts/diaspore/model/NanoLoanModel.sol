@@ -22,11 +22,9 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
 
-    event _setPaid(bytes32 _id, uint128 _paid);
     event _setInterest(bytes32 _id, uint128 _interest);
     event _setPunitoryInterest(bytes32 _id, uint128 _punitoryInterest);
     event _setInterestTimestamp(bytes32 _id, uint64 _interestTimestamp);
-    event _setStatus(bytes32 _id, uint8 _status);
 
     constructor() public {
         _supportedInterface[this.owner.selector] = true;
@@ -167,7 +165,7 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         states[id].status = uint8(STATUS_ONGOING);
 
         emit Created(id, data);
-        emit _setStatus(id, uint8(STATUS_ONGOING));
+        emit ChangedStatus(id, uint8(STATUS_ONGOING));
 
         return true;
     }
@@ -184,11 +182,11 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         require(toPay < U_128_OVERFLOW, "toPay overflow");
         state.paid = uint128(safeAdd(state.paid, toPay));
 
-        emit _setPaid(id, state.paid);
+        emit ChangedPaid(id, state.paid);
 
         if (safeSubtract(totalDebt , state.paid ) == 0) {
             state.status = uint8(STATUS_PAID);
-            emit _setStatus(id, uint8(STATUS_PAID));
+            emit ChangedStatus(id, uint8(STATUS_PAID));
         }
     }
 
