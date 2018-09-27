@@ -160,6 +160,8 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
 
         states[id].status = uint8(STATUS_ONGOING);
 
+        emit Created(id, data);
+
         return true;
     }
 
