@@ -22,6 +22,8 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
 
+    event _setStatus(bytes32 _id, uint8 _status);
+
     constructor() public {
         _supportedInterface[this.owner.selector] = true;
         _supportedInterface[this.validate.selector] = true;
@@ -161,31 +163,28 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         states[id].status = uint8(STATUS_ONGOING);
 
         emit Created(id, data);
+        emit _setStatus(id, uint8(STATUS_ONGOING));
 
         return true;
     }
 
-    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256) {
+    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 toPay) {
         Config storage config = configs[id];
         State storage state = states[id];
 
         require(state.status == STATUS_ONGOING, "The loan status should be Ongoing");
         _addInterest(config, state, block.timestamp);
 
-        uint256 pendingAmount = safeSubtract(
-            safeAdd(
-                safeAdd(
-                    config.amount,
-                    state.interest
-                ), state.punitoryInterest
-            ), state.paid
-        );
+        uint256 totalDebt = safeAdd( safeAdd( config.amount, state.interest ), state.punitoryInterest );
+        toPay = min(safeSubtract(totalDebt , state.paid ), amount);
 
-        uint256 toPay = min(pendingAmount, amount);
         require(toPay < U_128_OVERFLOW, "toPay overflow");
         state.paid = uint128(safeAdd(state.paid, toPay));
 
-        return toPay;
+        if (safeSubtract(totalDebt , state.paid ) == 0) {
+            state.status = uint8(STATUS_PAID);
+            emit _setStatus(id, uint8(STATUS_PAID));
+        }
     }
 
     function _addInterest(Config storage config, State storage state, uint256 timestamp) internal {
