@@ -153,12 +153,12 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
             amount: uint128(data[C_AMOUNT]),
             interestRate: uint256(data[C_INTEREST_RATE]),
             interestRatePunitory: uint256(data[C_INTEREST_RATE_PUNITORY]),
-            dueTime: now + uint64(data[C_DUES_IN]),
+            dueTime: uint64(now) + uint64(data[C_DUES_IN]),
             cancelableAt: uint64(data[C_CANCELABLE_AT]),
             id: id
         });
 
-        states[id].status = STATUS_ONGOING;
+        states[id].status = uint8(STATUS_ONGOING);
 
         return true;
     }
@@ -181,7 +181,7 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
 
         uint256 toPay = min(pendingAmount, amount);
         require(toPay < U_128_OVERFLOW, "toPay overflow");
-        state.paid = safeAdd(state.paid, toPay);
+        state.paid = uint128(safeAdd(state.paid, toPay));
 
         return toPay;
     }
@@ -225,9 +225,13 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
             }
 
             if (newInterest != state.interest || newPunitoryInterest != state.punitoryInterest) {
-                state.interestTimestamp = newTimestamp;
-                state.interest = newInterest;
-                state.punitoryInterest = newPunitoryInterest;
+                require(newTimestamp < U_64_OVERFLOW, "newTimestamp overflow");
+                require(newInterest < U_128_OVERFLOW, "newInterest overflow");
+                require(newPunitoryInterest < U_128_OVERFLOW, "newPunitoryInterest overflow");
+
+                state.interestTimestamp = uint64(newTimestamp);
+                state.interest = uint128(newInterest);
+                state.punitoryInterest = uint128(newPunitoryInterest);
             }
         }
     }
