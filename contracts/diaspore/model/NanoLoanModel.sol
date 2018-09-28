@@ -117,18 +117,25 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     function _getObligation(bytes32 id, uint256 timestamp) internal returns (uint256 total){
         Config storage config = configs[id];
         State storage state = states[id];
-
-        total = config.amount - state.paid; // without interest
+        total = config.amount - state.paid;
         // add interest
-        ( , total) = _calculateInterest(
+        ( , uint256 interest) = _calculateInterest(
             timestamp - state.interestTimestamp,
             config.interestRate,
             total
         );
+        // add punitory interest
+        if( timestamp > config.dueTime )
+            ( , uint256 interestPunitory) = _calculateInterest(
+                timestamp - state.interestTimestamp,
+                config.interestRatePunitory,
+                total
+            );
+        total += state.interest + interest + interestPunitory + state.punitoryInterest;
     }
 
     function getClosingObligation(bytes32 id) external view returns (uint256 total){
-        return _getObligation(id, now);
+        return _getObligation(id, max(configs[id].cancelableAt, now));
     }
 
     function getDueTime(bytes32 id) external view returns (uint256) {
@@ -250,7 +257,6 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
 
     function _calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) internal pure returns (uint256 realDelta, uint256 interest) {
         if (amount == 0) {
-            interest = 0;
             realDelta = timeDelta;
         } else {
             interest = safeMult(safeMult(100000, amount), timeDelta) / interestRate;
