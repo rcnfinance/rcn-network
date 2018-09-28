@@ -232,3 +232,26 @@ await engine.pay(
     }
 );
 ```
+
+## Withdraw payments
+
+The tokens used to pay the loan don't go directly to the Lender address, they stay on the NanoLoanEngine until the withdrawal method is called.
+
+This behavior is designed to allow lenders to keep track of the payments, as pushing tokens to a smart contract can't be detected from itself.
+
+**Notice:** The funds will remain tied to the Loan and no to the lender account, if the loan is transferred the funds not withdrawn will also be transferred.
+
+```javascript
+// Read funds on the loan
+const funds = await engine.getLenderBalance(loan_id);
+
+// Withdraw!
+await engine.withdrawal(
+    loan_id,                                               // Loan id
+    "0x09274ac7c07687ceb108a392b26affc3e5723670",          // Destination of the funds
+    funds,                                                 // Amount to withdraw
+    {
+        from: "0x09274ac7c07687ceb108a392b26affc3e5723670" // Address of the current owner
+    }
+);
+```
