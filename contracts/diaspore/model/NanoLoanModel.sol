@@ -186,8 +186,7 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         uint256 totalDebt = safeAdd( safeAdd( configs[id].amount, state.interest ), state.punitoryInterest );
         toPay = min(safeSubtract(totalDebt , state.paid ), amount);
 
-        require(toPay < U_128_OVERFLOW, "toPay overflow");
-        state.paid = uint128(safeAdd(state.paid, toPay));
+        state.paid += uint128(toPay);
 
         emit ChangedPaid(id, state.paid);
 
