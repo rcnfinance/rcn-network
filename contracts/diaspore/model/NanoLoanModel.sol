@@ -142,7 +142,6 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         return states[id].status == STATUS_ONGOING ? configs[id].dueTime : 0;
     }
 
-
     function getFinalTime(bytes32 id) external view returns (uint256) {
         return configs[id].dueTime;
     }
@@ -152,7 +151,7 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     }
 
     function getEstimateObligation(bytes32 id) external view returns (uint256 total) {
-        return _getObligation(id, configs[id].dueTime);
+        return _getObligation(id, max(configs[id].cancelableAt, now));
     }
 
     function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
