@@ -103,8 +103,7 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     }
 
     function getStatus(bytes32 id) external view returns (uint256) {
-        require(configs[id].dueTime != 0, "The registry does not exist");
-        return states[id].status == STATUS_PAID ? STATUS_PAID : STATUS_ONGOING;
+        return states[id].status;
     }
 
     function getPaid(bytes32 id) external view returns (uint256) {
