@@ -194,6 +194,40 @@ await engine.lend(
 
 **Notice**: This loan has no Cosigner, in case of having a Cosigner the address should be provided along with the Cosigner data.
 
+## Reading the status
+
+The loan has internal variables to keep track of the debt lifecycle; these variables don't change between calls, and the current status is calculated upon any observation or interaction.
+
+The most important read methods are:
+
+| Field                 	| Getter                                      	| Note                                                                          	|
+|-----------------------	|---------------------------------------------	|-------------------------------------------------------------------------------	|
+| Amount                	| getAmount(loan_id) -> Integer               	| Amount requested                                                              	|
+| Approved by borrower  	| getApproved(loan_id) -> Bool                	| True if approved by borrower                                                  	|
+| Borrower              	| getBorrower(loan_id) -> Address             	| Set on the request                                                            	|
+| Cosigner              	| getCosigner(loan_id) -> Address             	| If used on lend()                                                             	|
+| Creator               	| getCreator(loan_id) -> Address              	| Who created the request                                                       	|
+| Currency              	| getCurrency(loan_id) -> Bytes32             	| Set on the request                                                            	|
+| Duration              	| getDuesIn(loan_id) -> Integer               	| Set on the request                                                            	|
+| Due time              	| getDueTime(loan_id) -> Integer              	| Equals duration + lent_timestamp                                              	|
+| Expiration            	| getExpiration(loan_id) -> Integer           	| Timestamp expiration of the request                                           	|
+| First payment         	| getCancelableAt(loan_id) -> Integer         	| Set on the request                                                            	|
+| Interest rate         	| getInterestRate(loan_id) -> Integer         	| Set on the request                                                            	|
+| Is approved           	| getApprobation(loan_id, address) -> Bool    	| True if the address approved the request                                      	|
+| Lender balance        	| getLenderBalance(loan_id)                   	| Paid tokens pending to withdraw                                               	|
+| Oracle                	| getOracle(loan_id) -> Address               	| Set on the request                                                            	|
+| Paid                  	| getPaid(loan_id) -> Integer                 	| Total paid until now, on loan currency                                        	|
+| Penalty interest rate 	| getInterestRatePunitory(loan_id) -> Integer 	| Set on the request                                                            	|
+| Pending payment       	| getPendingAmount(loan_id) -> Integer        	| This view modifies the state, use with care when called from another contract 	|
+| Status                	| getStatus(loan_id) -> Integer               	| 0 = Request; 1 = Ongoing; 2 = Paid; 3 = Destroyed                             	|
+
+
+Getters can be called quickly using Web3:
+```javascript
+// Due time of the loan
+await engine.getDueTime(loan_id);
+```
+
 ## Paying a loan
 
 Loans in the RCN protocol can be paid and fully paid at any moment, similarly to the lender; the payer has to send the equivalent RCN to the amount desired to pay. The payer can be any address.
