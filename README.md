@@ -193,3 +193,42 @@ await engine.lend(
 ```
 
 **Notice**: This loan has no Cosigner, in case of having a Cosigner the address should be provided along with the Cosigner data.
+
+## Paying a loan
+
+Loans in the RCN protocol can be paid and fully paid at any moment, similarly to the lender; the payer has to send the equivalent RCN to the amount desired to pay. The payer can be any address.
+
+Not all loans will discount interest on early payments, that depends on the configuration of the debt.
+
+**Notice:** Some loans increment their accrued interest seconds by seconds, so to fully pay a debt an amount larger than the current remaining should be paid. The exceeding amount will never be pulled from the payer
+
+```javascript
+// User input (full payment)
+const pay_amount = 2200;
+
+// Load the updated oracle data
+const response = await (await fetch("https://oracle.ripio.com/rate/")).json();
+const oracle_data = response.find(i => i.currency == "0x4554480000000000000000000000000000000000000000000000000000000000")["data"];
+
+// Get rate estimation
+const rate_response = await oracle.getRate("0x4554480000000000000000000000000000000000000000000000000000000000", oracle_data);
+const rate = rate_response[0];
+const decimals = rate_response[1];
+
+// Get amount to lend
+const amount_tokens =  pay_amount * rate * 10 ** (18 - decimals) / 10 ** 18;
+
+// Approve the RCN tokens debit
+await rcn_token.approve(engine_address, amount_tokens);
+
+// Pay!
+await engine.pay(
+    loan_id,                                               // Loan id
+    pay_amount,                                            // Amount to pay in the loan currency
+    "0x09274ac7c07687ceb108a392b26affc3e5723670",          // Symbolic payer
+    oracle_data,                                           // Oracle data
+    {
+        from: "0x09274ac7c07687ceb108a392b26affc3e5723670" // Sender of the payment
+    }
+);
+```
