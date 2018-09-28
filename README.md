@@ -46,18 +46,18 @@ On the Basalt engine loans are requested strictly on-chain and initiated by the 
 Calling createLoan on the NanoLoanEngine creates a new loan request; this loan request is only valid right away if the caller of the method is the borrower.
 
 ```solidity
-    function createLoan(
-        address _oracle,
-        address _borrower,
-        bytes32 _currency,
-        uint256 _amount,
-        uint256 _interestRate,
-        uint256 _penaltyInterestRate,
-        uint256 _duesIn,
-        uint256 _firstPayment,
-        uint256 _expiration,
-        string _metadata
-    ) public returns (uint256 id) {
+function createLoan(
+    address _oracle,
+    address _borrower,
+    bytes32 _currency,
+    uint256 _amount,
+    uint256 _interestRate,
+    uint256 _penaltyInterestRate,
+    uint256 _duesIn,
+    uint256 _firstPayment,
+    uint256 _expiration,
+    string _metadata
+) public returns (uint256 id) {
 ```
 
 #### Example
@@ -143,8 +143,6 @@ let v = web3.toDecimal(signature.slice(128, 130)) + 27
 await engine.registerApprove(loan_identifier, v, r, s)
 ```
 **Notice:** Contracts can't sign messages, this method only works if the Borrower is an EOA
-
----
 
 One the request is approved it's ready to be filled! The loan request now should be visible on https://rcn.loans/
 
@@ -289,3 +287,68 @@ await engine.withdrawal(
     }
 );
 ```
+
+---
+
+# Core components
+
+The RCN protocol has two special agents who provide services to borrowers/lenders. This services are optional and aren't part of the core system; nonetheless, any new implementation will be compatible with the existing protocol without needing to be approved.
+
+## Oracle
+
+An oracle provides the ability to use any currency on the RCN Engine; the Oracle should give the conversion rate between RCN Token and the supported currencies.
+
+The most important method on the interface is:
+
+```solidity
+contract OracleInterface {
+    function getRate(
+        bytes32 currency,
+        bytes data
+    ) external returns (uint256 rate, uint256 decimals);
+}
+```
+
+The **getRate** should return the conversion rate between RCN and the bytes32 currency; this conversion rate is delivered as a pair of **rate** and **decimals**, the formula used to apply the rate is:
+
+```
+rate / 10 ** (18 - decimals) = 1 RCN [10 ** 18 Wei]
+Ej: decimals = 2; rate = 966180569582171264
+966180569582171264 / 10 ** (18 - 2) [ARS] = ~96,61 [RCN]
+```
+
+The rate can never be 0 and decimals has to be between 0 and 18 (inclusive). This method is **not a view** and it's allowed to modify the state.
+
+**Notice:** The rate has to be delivered on the minimum possible unit of the bytes32 currency, Ej: cents for ARS.
+
+#### Data
+
+The data parameter can be used to get any required information to calculate the rate, (Ej: the rate can be retrieved from a signed message). The data should be available on the URL provided by the **URL()** method, this endpoint should return a JSON array with all the currencies available on the Oracle and their corresponding data, Ej:
+
+```json
+[
+  {
+    "currency": "0x4554480000000000000000000000000000000000000000000000000000000000", 
+    "data": "0x000000000000000000000000000000000000000000000000000000005bae7b950000000000000000000000000000000000000000000001ed3ec265a0ba8000000000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001bbf6285cc2b6cda53b292f604672d74828d226fa46a30fb775776756b06003cba6dfb84dc2921b76cf9d9ee88f57a056119a59583da9ffad0877560ac16cc6c1c", 
+    "decimals": 18, 
+    "rate": 9098767117055640469504, 
+    "timestamp": 1538161557, 
+  }, 
+  {
+    "currency": "0x4254430000000000000000000000000000000000000000000000000000000000", 
+    "data": "0x000000000000000000000000000000000000000000000000000000005bae7b950000000000000000000000000000000000000000000038f9800e8f10860000000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001b9be101f867a5aa9f2281e7c36b844222bfa87fd40ec64edd2a64aaf2faaf140e1222991eda27e1e8f20c7a8e0eb39b5a4702da47ad5b5cb9a1b6c6738290ea06", 
+    "decimals": 8, 
+    "rate": 269054989785041469440000, 
+    "timestamp": 1538161557, 
+  }, 
+  {
+    "currency": "0x4152530000000000000000000000000000000000000000000000000000000000", 
+    "data": "0x000000000000000000000000000000000000000000000000000000005bae7b950000000000000000000000000000000000000000000000000d6ea37b23a71a800000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000001bb408203f95d536453bd25e8f36b724969b22053d30ee1386da16393387e45ed152b6ec14dd097d5c584972fe634ebc7dde4d2030fb0c8bc637cb15e5f25b491c", 
+    "decimals": 2, 
+    "rate": 967890719205694080, 
+    "timestamp": 1538161557, 
+  }
+]
+```
+
+**Notice:** If the URL is not provided or the JSON doesn't contain the required currency, an empty data will be presumed.
