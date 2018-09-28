@@ -25,8 +25,7 @@ contract('NanoLoanModel', function(accounts) {
   })
 
   it("Test create function", async function() {
-    let id = Helper.toBytes32(1);
-
+    const id = Helper.toBytes32(1);
     const tx = await model.create(id, defaulParams, { from: owner });
     const timestamp = (await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp;
     const config = await model.configs(id);
@@ -43,7 +42,7 @@ contract('NanoLoanModel', function(accounts) {
     assert.equal(state[0], 0, "The paid should be 0");
     assert.equal(state[1], 0, "The interest should be 0");
     assert.equal(state[2], 0, "The punitoryInterest should be 0");
-    assert.equal(state[3], 0, "The interestTimestamp should be 0");
+    assert.equal(state[3], timestamp, "The interestTimestamp should be the timestamp of block of addPaid transaction");
     assert.equal(state[4], STATUS_ONGOING, "The status should be on going");
   });
 })

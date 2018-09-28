@@ -163,9 +163,11 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         });
 
         states[id].status = uint8(STATUS_ONGOING);
+        states[id].interestTimestamp = uint64(now);
 
         emit Created(id, data);
         emit ChangedStatus(id, uint8(STATUS_ONGOING));
+        emit _setInterestTimestamp(id, uint64(now));
 
         return true;
     }
