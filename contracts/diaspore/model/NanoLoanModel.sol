@@ -182,12 +182,11 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
             id: id
         });
 
-        if (uint256(data[C_CANCELABLE_AT]) != 0) {
+        states[id].interestTimestamp = uint64(now);
+        emit _setInterestTimestamp(id, uint64(now));
+
+        if (uint256(data[C_CANCELABLE_AT]) != 0)
             _addInterest(id, now.add(uint256(data[C_CANCELABLE_AT])));
-        } else {
-            states[id].interestTimestamp = uint64(now);
-            emit _setInterestTimestamp(id, uint64(now));
-        }
 
         states[id].status = uint8(STATUS_ONGOING);
 
