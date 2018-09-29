@@ -127,6 +127,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
 
     function _getObligation(bytes32 id, uint256 timestamp) internal returns (uint256 total){
         State storage state = states[id];
+        require(timestamp >= state.interestTimestamp, "timestamp underflow");
         Config storage config = configs[id];
 
         total = config.amount - state.paid;
