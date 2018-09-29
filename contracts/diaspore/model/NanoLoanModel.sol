@@ -221,15 +221,13 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
 
         if (timestamp > state.interestTimestamp) {
             uint256 newInterest = state.interest;
-            uint256 newPunitoryInterest = state.punitoryInterest;
 
-            uint256 newTimestamp;
             uint256 realDelta;
             uint256 calculatedInterest;
 
+            uint256 newTimestamp;
             uint256 deltaTime;
             uint256 pending;
-
             uint256 endNonPunitory = min(timestamp, config.dueTime);
             if (endNonPunitory > state.interestTimestamp) {
                 deltaTime = endNonPunitory - state.interestTimestamp;
@@ -239,8 +237,11 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
                 }
 
                 (realDelta, calculatedInterest) = _calculateInterest(deltaTime, config.interestRate, pending);
-
                 newInterest = calculatedInterest.add(newInterest);
+                require(newInterest < U_128_OVERFLOW, "newInterest overflow");
+                state.interest = uint128(newInterest);
+                emit _setInterest(id, state.interest);
+
                 newTimestamp = state.interestTimestamp + realDelta;
             }
 
@@ -249,26 +250,20 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
                 deltaTime = timestamp - startPunitory;
 
                 uint256 debt = config.amount.add(newInterest);
+                uint256 newPunitoryInterest = state.punitoryInterest;
                 pending = min(debt, (debt.add(newPunitoryInterest)).sub(state.paid));
 
                 (realDelta, calculatedInterest) = _calculateInterest(deltaTime, config.interestRatePunitory, pending);
                 newPunitoryInterest = newPunitoryInterest.add(calculatedInterest);
-                newTimestamp = startPunitory + realDelta;
-            }
-
-            if (newInterest != state.interest || newPunitoryInterest != state.punitoryInterest) {
-                require(newTimestamp < U_64_OVERFLOW, "newTimestamp overflow");
-                require(newInterest < U_128_OVERFLOW, "newInterest overflow");
                 require(newPunitoryInterest < U_128_OVERFLOW, "newPunitoryInterest overflow");
-
-                state.interestTimestamp = uint64(newTimestamp);
-                state.interest = uint128(newInterest);
                 state.punitoryInterest = uint128(newPunitoryInterest);
-
-                emit _setInterestTimestamp(id, state.interestTimestamp);
-                emit _setInterest(id, state.interest);
                 emit _setPunitoryInterest(id, state.punitoryInterest);
+                newTimestamp = now; // startPunitory+ realDelta;
             }
+
+            require(newTimestamp < U_64_OVERFLOW, "newTimestamp overflow");
+            state.interestTimestamp = uint64(newTimestamp);
+            emit _setInterestTimestamp(id, state.interestTimestamp);
         }
     }
 
