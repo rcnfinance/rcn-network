@@ -106,7 +106,7 @@ async function assertThrow(promise) {
 };
 
 function toInterestRate(interest) {
-  return (10000000 / interest) * 360 * 86400;
+  return Math.floor((10000000 / interest) * 360 * 86400);
 }
 
 async function buyTokens(token, amount, account) {

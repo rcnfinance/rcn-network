@@ -70,29 +70,30 @@ contract('NanoLoanModel', function(accounts) {
     assert.equal(state[4].toString(), STATUS_ONGOING, "The status should be on going");
   });
 
-  //                                               amount , interest      , punitoryInterest, duesIn , d1, v1     , d2, v2     , d3, v3
-  it("Test E2 28% Anual interest, 91 days", e_test(10000  , 11108571428571, 7405714285714   , 7862400, 30, 10233  , 31, 10474  , 91, 11469));
-  it("Test E3 28% Anual interest, 30 days", e_test(800000 , 11108571428571, 7405714285714   , 2592000, 10, 806222 , 10, 812444 , 30, 837768));
-  it("Test E4 27% Anual interest, 30 days", e_test(10000  , 11520000000000, 7680000000000   , 2592000, 10, 10075  , 10, 10150  , 30, 10455));
-  it("Test E5 40% Anual interest, 30 days", e_test(500000 , 7776000000000 , 5184000000000   , 2592000, 10, 505555 , 10, 511111 , 30, 533888));
-  it("Test E6 40% Anual interest, 30 days", e_test(80000  , 7776000000000 , 5184000000000   , 2592000, 10, 80889  , 10, 81778  , 30, 85422));
-  it("Test E7 42% Anual interest, 30 days", e_test(1000000, 7405714285714 , 4937142857142   , 2592000, 10, 1011667, 10, 1023333, 30, 1071225));
-  it("Test E8 27% Anual interset, 30 days", e_test(70000  , 11520000000000, 7680000000000   , 2592000, 10, 70525  , 10, 71050  , 30, 73185));
-  it("Test E9 42% Anual interset, 30 days", e_test(500000 , 7405714285714 , 4937142857142   , 2592000, 10, 505833 , 10, 511667 , 30, 535613));
-  it("Test E10 30% Anual interset, 30 days", e_test(300000, 10368000000000, 6912000000000   , 2592000, 10, 302500 , 10, 305000 , 30, 315188));
+
+  //                                                mount , interest , punitoryInterest, duesIn , d1, v1     , d2, v2     , d3, v3
+  it("Test E2 28% Anual interest, 91 days", e_test(10000  , 28       , 42              , 7862400, 30, 10233  , 31, 10474  , 91, 11469));
+  it("Test E3 28% Anual interest, 30 days", e_test(800000 , 28       , 42              , 2592000, 10, 806222 , 10, 812444 , 30, 837768));
+  it("Test E4 27% Anual interest, 30 days", e_test(10000  , 27       , 40.5            , 2592000, 10, 10075  , 10, 10150  , 30, 10455));
+  it("Test E5 40% Anual interest, 30 days", e_test(500000 , 40       , 60              , 2592000, 10, 505555 , 10, 511111 , 30, 533888));
+  it("Test E6 40% Anual interest, 30 days", e_test(80000  , 40       , 60              , 2592000, 10, 80889  , 10, 81778  , 30, 85422));
+  it("Test E7 42% Anual interest, 30 days", e_test(1000000, 42       , 63              , 2592000, 10, 1011667, 10, 1023333, 30, 1071225));
+  it("Test E8 27% Anual interset, 30 days", e_test(70000  , 27       , 40.5            , 2592000, 10, 70525  , 10, 71050  , 30, 73185));
+  it("Test E9 42% Anual interset, 30 days", e_test(500000 , 42       , 63              , 2592000, 10, 505833 , 10, 511667 , 30, 535613));
+  it("Test E10 30% Anual interset, 30 days", e_test(300000, 30       , 45              , 2592000, 10, 302500 , 10, 305000 , 30, 315188));
   // with punitory interest
-  it("Test E11 30% Anual interset,  5 days", e_test(300000, 10368000000000, 10368000000000  , 5*86400, 10, 302505 , 10, 305015 , 30, 312546));
+  it("Test E11 30% Anual interset,  5 days", e_test(300000, 30       , 30              , 5*86400, 10, 302505 , 10, 305015 , 30, 312546));
 
   function e_test(amount, interest, punitoryInterest, duesIn, d1, v1, d2, v2, d3, v3) {
     return async() => {
       // Create a new loan with the received params
       const id = Helper.toBytes32(idCounter++);
       const params = [
-        Helper.toBytes32(amount),           // amount
-        Helper.toBytes32(interest),         // interest rate
-        Helper.toBytes32(punitoryInterest), // interest rate punitory
-        Helper.toBytes32(duesIn),           // dues in
-        Helper.toBytes32(0)                 // cancelable at
+        Helper.toBytes32(amount),                                 // amount
+        Helper.toBytes32(Helper.toInterestRate(interest)),        // interest rate
+        Helper.toBytes32(Helper.toInterestRate(punitoryInterest)),// interest rate punitory
+        Helper.toBytes32(duesIn),                                 // dues in
+        Helper.toBytes32(0)                                       // cancelable at
       ]
       await model.create(id, params, { from: owner });
 
