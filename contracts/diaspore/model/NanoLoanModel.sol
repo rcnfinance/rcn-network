@@ -126,27 +126,28 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
 
     function _getObligation(bytes32 id, uint256 timestamp) internal returns (uint256 total){
         State storage state = states[id];
-        require(timestamp >= state.interestTimestamp, "timestamp underflow");
         Config storage config = configs[id];
+        if (state.status != STATUS_ONGOING)
+            return 0;
 
-        total = config.amount - state.paid;
-        // add interest
+        uint256 calcInterest;
+        uint256 deltaTime;
         uint256 endNonPunitory = min(timestamp, config.dueTime);
-        if (endNonPunitory > state.interestTimestamp) {
-            ( , uint256 newInterest) = _calculateInterest(
-                timestamp - state.interestTimestamp,
-                config.interestRate,
-                total
-            );
+
+        if (state.paid < config.amount)
+            total = config.amount - state.paid;
+
+        if (endNonPunitory > state.interestTimestamp)
+            (, calcInterest) = _calculateInterest(endNonPunitory - state.interestTimestamp, config.interestRate, total);
+
+        if (timestamp > config.dueTime && timestamp > state.interestTimestamp) {
+            uint256 debt = config.amount.add(calcInterest.add(state.interest));
+            uint256 pending = min(debt, (debt.add(state.punitoryInterest)).sub(state.paid));
+
+            (, debt) = _calculateInterest(timestamp - max(config.dueTime, state.interestTimestamp), config.interestRatePunitory, pending);
+            calcInterest += debt;
         }
-        // add punitory interest
-        if( timestamp > config.dueTime )
-            ( , uint256 newInterestPunitory) = _calculateInterest(
-                timestamp - state.interestTimestamp,
-                config.interestRatePunitory,
-                total
-            );
-        total += newInterest + newInterestPunitory + state.interest + state.punitoryInterest;
+        total += calcInterest + state.interest + state.punitoryInterest;
     }
 
     function getClosingObligation(bytes32 id) external view returns (uint256 total){
