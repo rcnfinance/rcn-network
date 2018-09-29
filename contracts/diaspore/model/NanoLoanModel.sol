@@ -132,19 +132,22 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
 
         total = config.amount - state.paid;
         // add interest
-        ( , uint256 interest) = _calculateInterest(
-            timestamp - state.interestTimestamp,
-            config.interestRate,
-            total
-        );
+        uint256 endNonPunitory = min(timestamp, config.dueTime);
+        if (endNonPunitory > state.interestTimestamp) {
+            ( , uint256 newInterest) = _calculateInterest(
+                timestamp - state.interestTimestamp,
+                config.interestRate,
+                total
+            );
+        }
         // add punitory interest
         if( timestamp > config.dueTime )
-            ( , uint256 interestPunitory) = _calculateInterest(
+            ( , uint256 newInterestPunitory) = _calculateInterest(
                 timestamp - state.interestTimestamp,
                 config.interestRatePunitory,
                 total
             );
-        total += state.interest + interest + interestPunitory + state.punitoryInterest;
+        total += newInterest + newInterestPunitory + state.interest + state.punitoryInterest;
     }
 
     function getClosingObligation(bytes32 id) external view returns (uint256 total){
