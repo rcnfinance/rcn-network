@@ -69,7 +69,6 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         uint256 interestRate;
         uint256 interestRatePunitory;
         uint64 dueTime;
-        uint64 cancelableAt;
         bytes32 id;
     }
 
@@ -151,7 +150,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
     }
 
     function getClosingObligation(bytes32 id) external view returns (uint256 total){
-        return _getObligation(id, max(configs[id].cancelableAt, now));
+        return _getObligation(id, now);
     }
 
     function getDueTime(bytes32 id) external view returns (uint256) {
@@ -163,11 +162,11 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
     }
 
     function getFrecuency(bytes32 id) external view returns (uint256){
-        return configs[id].cancelableAt == 0 ? 0 : 1;
+        return configs[id].dueTime == 0 ? 0 : 1;
     }
 
     function getEstimateObligation(bytes32 id) external view returns (uint256 total) {
-        return _getObligation(id, max(configs[id].cancelableAt, now));
+        return _getObligation(id, now);
     }
 
     function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
@@ -179,16 +178,20 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
             interestRate: uint256(data[C_INTEREST_RATE]),
             interestRatePunitory: uint256(data[C_INTEREST_RATE_PUNITORY]),
             dueTime: uint64(now) + uint64(data[C_DUES_IN]),
-            cancelableAt: uint64(data[C_CANCELABLE_AT]),
             id: id
         });
 
+        if (uint256(data[C_CANCELABLE_AT]) != 0) {
+            _addInterest(id, now.add(uint256(data[C_CANCELABLE_AT])));
+        } else {
+            states[id].interestTimestamp = uint64(now);
+            emit _setInterestTimestamp(id, uint64(now));
+        }
+
         states[id].status = uint8(STATUS_ONGOING);
-        states[id].interestTimestamp = uint64(now);
 
         emit Created(id, data);
         emit ChangedStatus(id, uint8(STATUS_ONGOING));
-        emit _setInterestTimestamp(id, uint64(now));
 
         return true;
     }
@@ -197,7 +200,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         State storage state = states[id];
 
         require(state.status == STATUS_ONGOING, "The loan status should be Ongoing");
-        _addInterest(id, block.timestamp);
+        _addInterest(id, now);
 
         uint256 totalDebt = configs[id].amount.add(state.interest).add(state.punitoryInterest);
         toPay = min(totalDebt.sub(state.paid), amount);
