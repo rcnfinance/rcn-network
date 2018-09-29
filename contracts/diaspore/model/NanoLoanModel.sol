@@ -2,11 +2,22 @@ pragma solidity ^0.4.24;
 
 import "./../interfaces/Model.sol";
 import "./../../utils/Ownable.sol";
-import "./../../utils/RpSafeMath.sol";
+import "./../../utils/SafeMath.sol";
 
+contract MinMax {
+    function min(uint256 a, uint256 b) internal pure returns(uint256) {
+        return (a < b) ? a : b;
+    }
 
-contract NanoLoanModel is Ownable, Model, RpSafeMath {
+    function max(uint256 a, uint256 b) internal pure returns(uint256) {
+        return (a > b) ? a : b;
+    }
+}
+
+contract NanoLoanModel is Ownable, Model, MinMax  {
     address public engine;
+    using SafeMath for uint256;
+    using SafeMath for uint128;
 
     mapping(bytes32 => Config) public configs;
     mapping(bytes32 => State) public states;
@@ -115,8 +126,9 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
     }
 
     function _getObligation(bytes32 id, uint256 timestamp) internal returns (uint256 total){
-        Config storage config = configs[id];
         State storage state = states[id];
+        Config storage config = configs[id];
+
         total = config.amount - state.paid;
         // add interest
         ( , uint256 interest) = _calculateInterest(
@@ -183,14 +195,14 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         require(state.status == STATUS_ONGOING, "The loan status should be Ongoing");
         _addInterest(id, block.timestamp);
 
-        uint256 totalDebt = safeAdd( safeAdd( configs[id].amount, state.interest ), state.punitoryInterest );
-        toPay = min(safeSubtract(totalDebt , state.paid ), amount);
+        uint256 totalDebt = configs[id].amount.add(state.interest).add(state.punitoryInterest);
+        toPay = min(totalDebt.sub(state.paid), amount);
 
         state.paid += uint128(toPay);
 
         emit ChangedPaid(id, state.paid);
 
-        if (safeSubtract(totalDebt , state.paid ) == 0) {
+        if (totalDebt.sub(state.paid) == 0) {
             state.status = uint8(STATUS_PAID);
             emit ChangedStatus(id, uint8(STATUS_PAID));
         }
@@ -221,7 +233,7 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
 
                 (realDelta, calculatedInterest) = _calculateInterest(deltaTime, config.interestRate, pending);
 
-                newInterest = safeAdd(calculatedInterest, newInterest);
+                newInterest = calculatedInterest.add(newInterest);
                 newTimestamp = state.interestTimestamp + realDelta;
             }
 
@@ -229,11 +241,11 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
                 uint256 startPunitory = max(config.dueTime, state.interestTimestamp);
                 deltaTime = timestamp - startPunitory;
 
-                uint256 debt = safeAdd(config.amount, newInterest);
-                pending = min(debt, safeSubtract(safeAdd(debt, newPunitoryInterest), state.paid));
+                uint256 debt = config.amount.add(newInterest);
+                pending = min(debt, (debt.add(newPunitoryInterest)).sub(state.paid));
 
                 (realDelta, calculatedInterest) = _calculateInterest(deltaTime, config.interestRatePunitory, pending);
-                newPunitoryInterest = safeAdd(newPunitoryInterest, calculatedInterest);
+                newPunitoryInterest = newPunitoryInterest.add(calculatedInterest);
                 newTimestamp = startPunitory + realDelta;
             }
 
@@ -257,8 +269,8 @@ contract NanoLoanModel is Ownable, Model, RpSafeMath {
         if (amount == 0) {
             realDelta = timeDelta;
         } else {
-            interest = safeMult(safeMult(100000, amount), timeDelta) / interestRate;
-            realDelta = safeMult(interest, interestRate) / (amount * 100000);
+            interest = amount.mult(100000).mult(timeDelta) / interestRate;
+            realDelta = interest.mult(interestRate) / (amount * 100000);
         }
     }
 
