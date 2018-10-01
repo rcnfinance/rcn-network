@@ -145,7 +145,6 @@ contract('NanoLoanModel', function(accounts) {
 
       // check that the interest accumulated it's close to the defined by the test
       const d4PendingAmount = await model.getClosingObligation(id);
-            await model.a(id);
       const d4Diff = Math.abs(d4PendingAmount.toNumber() - v4);
       assert.isBelow(d4Diff, 2, "The v4 should aprox the interest rate in the d4 timestamp");
     }
