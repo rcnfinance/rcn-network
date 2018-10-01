@@ -30,6 +30,33 @@ contract('NanoLoanModel', function(accounts) {
     assert.equal(await model.engine(), owner);
   })
 
+  it("Test validate function", async function() {
+    const MAX_UINT128 = 2 ** 128;
+    const MAX_UINT64  = 2 ** 64;
+    async function tryValidate(changeIndex, value) {
+      let params = JSON.parse(JSON.stringify(defaulParams));
+      params[changeIndex] = Helper.toBytes32(value);
+      await Helper.assertThrow(model.validate(params));
+    }
+    // try validate a wrong data length
+    await Helper.assertThrow(model.validate(defaulParams.slice(1)));
+    // try validate a data with amount 0
+    await tryValidate(0, 0);
+    // try validate a data with dues in more than cancelable at
+    let params = JSON.parse(JSON.stringify(defaulParams));;
+    params[3] = Helper.toBytes32(1); // dues in
+    params[4] = Helper.toBytes32(2); // cancelable at
+    await Helper.assertThrow(model.validate(params));
+    // try validate a data with interest rate less than 1000
+    await tryValidate(1, 999);
+    // try validate a data with interest rate punitory less than 1000
+    await tryValidate(2, 999);
+    // check overflows
+    await tryValidate(0, MAX_UINT128);
+    await tryValidate(3, MAX_UINT64);
+    await tryValidate(4, MAX_UINT64);
+  });
+
   it("Test create function", async function() {
     const id = Helper.toBytes32(idCounter++);
     const tx = await model.create(id, defaulParams, { from: owner });
