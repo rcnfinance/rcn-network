@@ -33,7 +33,7 @@ const engine_address = "0xba5a17f8ad40dc2c955d95c0547f3e6318bd72e7";
 const engine = web3.eth.contract(engineAbi).at(engine_address);
 ```
 
-With the *engine* object we are going to interact with the NanoLoanEngine contract, the *engineAbi* is a json that specifies all the contract methods and their signature, a copy can be found here [NanoLoanEngine.json](#)
+With the *engine* object we are going to interact with the NanoLoanEngine contract, the *engineAbi* specifies all the contract methods and their signature, a copy can be found here [NanoLoanEngine.json](./contracts/compiled/NanoLoanEngine.json)
 
 **Notice:** This setup will be able to read information on the RCN network, to write new transactions additional steps to create an account and fund it with ETH must be taken.
 <!-- TODO: Add link to configure account on web3 -->
