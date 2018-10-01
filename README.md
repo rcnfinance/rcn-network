@@ -26,7 +26,7 @@ The activity of the network can be monitored on the [dApp](https://github.com/ri
 Web3 is a library used to interact with an Ethereum node, in this case, we will use it to interact with the RCN contracts on the Ethereum mainnet.
 
 For this example we will be using the Javascript implementation of the library, to install: [web3js](https://github.com/ethereum/web3.js/)
-```
+```javascript
 npm install web3
 ```
 
