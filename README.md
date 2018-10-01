@@ -7,7 +7,7 @@ More information on the  [Whitepaper](./WHITEPAPER.md) page.
 
 # **V2 Basalt** - 233
 
-The Basalt is the last stable version of the RCN protocol, currently working on the Ethereum mainnet allows borrowers, lender, and cosigners to request, lend and pay bullet loans.  These loans are configured defining an interest rate, a punitive interest rate, a duration, and a first payment date; all the accrued interests are calculated on-chain.
+The Basalt is the last stable version of the RCN protocol it's currently working on the Ethereum mainnet; allows borrowers, lenders, and cosigners to request, lend and pay bullet loans. These loans are configured with an interest rate, a punitive interest rate, a duration, and a first payment date; all the accrued interests are calculated on-chain.
 
 ### Deployed contracts
 
@@ -23,9 +23,9 @@ The activity of the network can be monitored on the [dApp](https://github.com/ri
 
 ## Setup Web3
 
-Web3 is a library used to interact with an Ethereum node, in this case, we will use it to interact with the contracts of RCN on the Ethereum mainnet.
+Web3 is a library used to interact with an Ethereum node, in this case, we will use it to interact with the RCN contracts on the Ethereum mainnet.
 
-We will be using the Javascript implementation of the library for this example.
+For this example we will be using the Javascript implementation of the library.
 
 ### Setup engine connector
 
@@ -35,17 +35,18 @@ const engine_address = "0xba5a17f8ad40dc2c955d95c0547f3e6318bd72e7";
 const engine = web3.eth.contract(engineAbi).at(engine_address);
 ```
 
-With the *engine* object we are going to interact with the NanoLoanEngine contract, the *engineAbi* specifies all the contract methods and their signature, a copy can be found here [NanoLoanEngine.json](./contracts/compiled/NanoLoanEngine.json)
+With the *engine* object we are going to interact with the NanoLoanEngine contract, the *engineAbi* specifies all the contract methods and their signatures, a copy can be found here [NanoLoanEngine.json](./contracts/compiled/NanoLoanEngine.json)
 
-**Notice:** This setup will be able to read information on the RCN network, to write new transactions additional steps to create an account and fund it with ETH must be taken.
+**Notice:** This setup will be able to read information of the RCN network, to write new transactions additional steps must be taken (Create address and fund with ETH).
+
 <!-- TODO: Add link to configure account on web3 -->
 
 ## Request a loan
 
-On the Basalt engine loans are requested strictly on-chain and initiated by the borrower or a third address called the *creator*, the creator gives context on the loan creation, usually is provided by the wallet of the borrower.
+On the Basalt engine loans are requested strictly on-chain and initiated by the borrower or a third address called the *creator*, the creator gives context on the loan creation, usually is provided by borrower's wallet.
 
 
-Calling createLoan on the NanoLoanEngine creates a new loan request; this loan request is only valid right away if the caller of the method is the borrower.
+Calling **createLoan** on the NanoLoanEngine creates a new loan request; this loan request is only valid right away if the caller of the method is the borrower.
 
 ```solidity
 function createLoan(
@@ -103,11 +104,11 @@ const loan_id = ...; // TODO: Read loan id
 
 ## Approve a request
 
-Requests are by-default non-ready to be lent (unless the creator of the loan is the borrower itself). To change the status of a loan to approved the approveLoan **or** approveLoanIdentifier methods must be called.
+Requests are by-default non-ready to be lent (unless the creator is the borrower itself). To change the status of a loan to approved the approveLoan **or** approveLoanIdentifier methods must be called.
 
 #### Direct approval
 
-The method **approveLoan** approves the request if the caller is the Borrower, any other address could call this method, but it will not affect the request.
+The **approveLoan** method approves the request if the caller is the Borrower, any other address could call this method, but it will not affect the request.
 
 ```javascript
 const r_approve = await engine.approveLoan(loan_id);
@@ -115,7 +116,7 @@ const r_approve = await engine.approveLoan(loan_id);
 
 #### Settle offline approval
 
-The method **approveLoanIdentifier** approves the request using a message signed by the borrower; this allows the borrower to request a loan without needing to have ETH in advance.
+The **approveLoanIdentifier** method approves the request using a message signed by the borrower; this allows the borrower to request a loan without needing to have ETH in advance.
 
 ```javascript
 // Calculate the request identifier/hash using the method provided by the contract
@@ -146,7 +147,7 @@ await engine.registerApprove(loan_identifier, v, r, s)
 ```
 **Notice:** Contracts can't sign messages, this method only works if the Borrower is an EOA
 
-One the request is approved it's ready to be filled! The loan request now should be visible on https://rcn.loans/
+Once the request is approved it's ready to be filled! The loan request now should be visible on https://rcn.loans/
 
 ## Lend a loan
 
@@ -230,11 +231,11 @@ await engine.getDueTime(loan_id);
 
 ## Paying a loan
 
-Loans in the RCN protocol can be paid and fully paid at any moment, similarly to the lender; the payer has to send the equivalent RCN to the amount desired to pay. The payer can be any address.
+Loans can be paid, fully or partially at any moment, similarly to the lender; the payer has to send the equivalent RCN to the amount desired to pay. The payer can be any address.
 
 Not all loans will discount interest on early payments, that depends on the configuration of the debt.
 
-**Notice:** Some loans increment their accrued interest seconds by seconds, so to fully pay a debt an amount larger than the current remaining should be paid. The exceeding amount will never be pulled from the payer
+**Notice:** Some loans increment their accrued interest second by second, so to fully pay a debt an amount larger than the current remaining should be paid. The exceeding amount will never be pulled from the payer
 
 ```javascript
 // User input (full payment)
