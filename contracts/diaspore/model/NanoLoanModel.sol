@@ -102,7 +102,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         require(data.length == C_PARAMS, "Wrong loan data arguments count");
         require(uint64(data[C_CANCELABLE_AT]) <= uint64(data[C_DUES_IN]), "The cancelableAt should be less or equal than duesIn");
         require(uint256(data[C_INTEREST_RATE]) > 1000, "Interest rate too high");
-        require(uint128(data[C_INTEREST_RATE_PUNITORY]) > 1000, "Punitory interest rate too high");
+        require(uint256(data[C_INTEREST_RATE_PUNITORY]) > 1000, "Punitory interest rate too high");
         require(uint128(data[C_AMOUNT]) != 0, "amount can't be 0");
         // check overflows
         require(uint256(data[C_AMOUNT]) < U_128_OVERFLOW, "Amount too high");
@@ -131,7 +131,6 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
             return 0;
 
         uint256 calcInterest;
-        uint256 deltaTime;
         uint256 endNonPunitory = min(timestamp, config.dueTime);
 
         if (state.paid < config.amount)
