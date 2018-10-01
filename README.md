@@ -12,7 +12,9 @@ The Basalt is the last stable version of the RCN protocol, currently working on 
 ### Deployed contracts
 
 RCN Token: [0xf970b8e36e23f7fc3fd752eea86f8be8d83375a6](https://etherscan.io/token/0xf970b8e36e23f7fc3fd752eea86f8be8d83375a6)
+
 NanoLoanEngine: [0xba5a17f8ad40dc2c955d95c0547f3e6318bd72e7](https://etherscan.io/address/0xba5a17f8ad40dc2c955d95c0547f3e6318bd72e7)
+
 The activity of the network can be monitored on the [dApp](https://github.com/ripio/rcn.loans) https://rcn.loans/
 
 ----
@@ -358,6 +360,7 @@ The data parameter can be used to get any required information to calculate the 
 #### Examples
 
 **Mana** oracle: [0x2aaf69a2df2828b55fa4a5e30ee8c3c7cd9e5d5b](https://etherscan.io/address/0x2aaf69a2df2828b55fa4a5e30ee8c3c7cd9e5d5b)
+
 **ARS** / **ETH** / **BTC** Oracle by Ripio:  [0x33332025ad35a821eec5f1e10459222c8e4c62c3](https://etherscan.io/address/0x33332025ad35a821eec5f1e10459222c8e4c62c3)
 
 ## Cosigner
@@ -400,4 +403,5 @@ The **cosignerData** and **URL()** are handled similarly as the Oracle; the cosi
 #### Examples
 
 Mortgages cosigner: [0x74ce62f642d491f87c2c6119dd6cc12a05434c87](https://etherscan.io/address/0x74ce62f642d491f87c2c6119dd6cc12a05434c87)
+
 Example implementation: [ReferenceCosigner.sol](./contracts/examples/ReferenceCosigner.sol)
