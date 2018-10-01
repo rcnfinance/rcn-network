@@ -302,6 +302,8 @@ The most important method on the interface is:
 
 ```solidity
 contract OracleInterface {
+    function url() external view returns (string);
+
     function getRate(
         bytes32 currency,
         bytes data
@@ -358,3 +360,44 @@ The data parameter can be used to get any required information to calculate the 
 **Mana** oracle: [0x2aaf69a2df2828b55fa4a5e30ee8c3c7cd9e5d5b](https://etherscan.io/address/0x2aaf69a2df2828b55fa4a5e30ee8c3c7cd9e5d5b)
 **ARS** / **ETH** / **BTC** Oracle by Ripio:  [0x33332025ad35a821eec5f1e10459222c8e4c62c3](https://etherscan.io/address/0x33332025ad35a821eec5f1e10459222c8e4c62c3)
 
+## Cosigner
+
+Cosigners give insurance to Lenders on the RCN Network; for a cosigner to work is mandatory to be implemented as a contract.
+
+Cosigners can charge a fee to provide protection, the terms of the coverage are an agreement between the Lender and the Cosigner, the RCN protocol does not require a specific type of insurance.
+
+#### Handshake
+
+If the lender chooses to use the Cosigner, the NanoLoanEngine will call the **requestCosign()** method; the contract should evaluate if is going to accept the application and in case of taking it, it should call **cosign()** on the Engine contract, on this method the cosigner should pass how many tokens is requesting as payment.
+
+The engine will also check if the **requestCosign()** call returns true.
+
+```solidity
+interface CosignerInterface {
+    function url() external view returns (string);
+
+    function requestCosign(
+        address engine,
+        uint256 index,
+        bytes cosignerData,
+        bytes oracleData
+    ) external returns (bool);
+
+    function claim(
+        address engine,
+        uint256 index,
+        bytes oracleData
+    ) external returns (bool);
+}
+```
+
+**Notice:** The **requestCosign()** method is called after sending the funds to the borrower, and the cosigner could make use of the received tokens.
+
+#### Data
+
+The **cosignerData** and **URL()** are handled similarly as the Oracle; the cosigner can use this tools to create offers without making any transactions.
+
+#### Examples
+
+Mortgages cosigner: [0x74ce62f642d491f87c2c6119dd6cc12a05434c87](https://etherscan.io/address/0x74ce62f642d491f87c2c6119dd6cc12a05434c87)
+Example implementation: [ReferenceCosigner.sol](./contracts/examples/ReferenceCosigner.sol)
