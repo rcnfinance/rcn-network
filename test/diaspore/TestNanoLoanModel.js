@@ -81,7 +81,7 @@ contract('NanoLoanModel', function(accounts) {
     assert.equal(state[0].toString(), total, "The paid should be 10762");
     assert.equal(state[1].toString(), interestTotal, "The interest should be 250");
     assert.equal(state[2].toString(), interestPTotal, "The punitoryInterest should be 512");
-    assert.equal(state[3].toString(), timestampPaid, "The interestTimestamp should be the timestamp of block of create transaction plus the delta");
+    assert.equal(state[3].toString(), timestampPaid, "The interestTimestamp should be the timestamp of block of addPaid transaction");
     assert.equal(state[4].toString(), STATUS_PAID, "The status should be paid");
   });
 
