@@ -1,12 +1,15 @@
 const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require("./utils/test/TestToken.sol");
+const TestOracle = artifacts.require("./examples/TestOracle.sol");
+
 const Helper = require('./Helper.js');
 
 contract('Test DebtEngine Diaspore', function(accounts) {
     let rcn;
     let debtEngine;
     let testModel;
+    let oracle;
 
     async function getId(promise) {
         const receipt = await promise;
@@ -19,6 +22,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         debtEngine = await DebtEngine.new(rcn.address);
         testModel = await TestModel.new();
         await testModel.setEngine(debtEngine.address);
+        oracle = await TestOracle.new();
     });
 
     it("Should create a debt using create", async function() {
@@ -344,5 +348,121 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             ]
         ));
         assert.notEqual(id1, id2);
+    });
+
+    it("Should pay using an Oracle", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            oracle.address,
+            0xd25aa221,
+            [
+                Helper.toBytes32(10000),
+                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
+            ]
+        ));
+
+        const dummyData1 = await oracle.dummyData1();
+        const dummyData2 = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[2], 60000);
+        await rcn.approve(debtEngine.address, 60000, { from: accounts[2] });
+        await debtEngine.pay(id, 10, accounts[1], dummyData1, { from: accounts[2] });
+
+        assert.equal(await rcn.balanceOf(accounts[2]), 0);
+        assert.equal(await testModel.getPaid(id), 10);
+
+        await rcn.approve(debtEngine.address, 500, { from: accounts[3] });
+        await rcn.setBalance(accounts[3], 500);
+        await debtEngine.pay(id, 1000, 0x0, dummyData2, { from: accounts[3] });
+
+        assert.equal(await rcn.balanceOf(accounts[3]), 0);
+        assert.equal(await testModel.getPaid(id), 1010);
+
+        await rcn.approve(debtEngine.address, 6000, { from: accounts[3] });
+        await rcn.setBalance(accounts[3], 10000);
+        await debtEngine.pay(id, 10000, accounts[0], dummyData2, { from: accounts[3] });
+
+        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 10000 - (10000 - 1010) / 2);
+        assert.equal(await testModel.getPaid(id), 10000);
+        assert.equal(await debtEngine.getStatus(id), 2);
+    });
+
+    it("Should pay using an Oracle and withdraw", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            oracle.address,
+            0xd25aa221,
+            [
+                Helper.toBytes32(10000),
+                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
+            ]
+        ));
+
+        const dummyData1 = await oracle.dummyData1();
+        const dummyData2 = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[2], 60000);
+        await rcn.approve(debtEngine.address, 60000, { from: accounts[2] });
+        await debtEngine.pay(id, 10, accounts[1], dummyData1, { from: accounts[2] });
+
+        await rcn.approve(debtEngine.address, 500, { from: accounts[3] });
+        await rcn.setBalance(accounts[3], 500);
+        await debtEngine.pay(id, 1000, 0x0, dummyData2, { from: accounts[3] });
+
+        await rcn.approve(debtEngine.address, 6000, { from: accounts[3] });
+        await rcn.setBalance(accounts[3], 10000);
+        await debtEngine.pay(id, 10000, accounts[0], dummyData2, { from: accounts[3] });
+
+        // Withdraw
+        await debtEngine.transferFrom(accounts[0], accounts[9], id);
+        await rcn.setBalance(accounts[9], 0);
+        await debtEngine.withdrawalList([id], accounts[9], { from: accounts[9] });
+        assert.equal(await rcn.balanceOf(accounts[9]), 60000 + 500 + 10000 - (10000 - 1010) / 2);
+
+        // Withdraw again should transfer 0
+        await rcn.setBalance(accounts[9], 0);
+        await debtEngine.approve(accounts[3], id, { from: accounts[9] });
+        await debtEngine.withdrawalList([id], accounts[9], { from: accounts[3] });
+        assert.equal(await rcn.balanceOf(accounts[9], 0));
+    });
+
+    it("Should payToken using an Oracle", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            oracle.address,
+            0xd25aa221,
+            [
+                Helper.toBytes32(10000),
+                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
+            ]
+        ));
+
+        const dummyData1 = await oracle.dummyData1();
+        const dummyData2 = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[2], 60000);
+        await rcn.approve(debtEngine.address, 60000, { from: accounts[2] });
+        await debtEngine.payToken(id, 60000, accounts[1], dummyData1, { from: accounts[2] });
+
+        assert.equal(await rcn.balanceOf(accounts[2]), 0);
+        assert.equal(await testModel.getPaid(id), 10);
+
+        await rcn.approve(debtEngine.address, 500, { from: accounts[3] });
+        await rcn.setBalance(accounts[3], 500);
+        await debtEngine.payToken(id, 500, 0x0, dummyData2, { from: accounts[3] });
+
+        assert.equal(await rcn.balanceOf(accounts[3]), 0);
+        assert.equal(await testModel.getPaid(id), 1010);
+
+        await rcn.approve(debtEngine.address, 6000, { from: accounts[3] });
+        await rcn.setBalance(accounts[3], 10000);
+        await debtEngine.payToken(id, 19000, accounts[0], dummyData2, { from: accounts[3] });
+
+        assert.equal(await rcn.balanceOf(accounts[3]), 10000 - (10000 - 1010) / 2);
+        assert.equal(await testModel.getPaid(id), 10000);
+        assert.equal(await debtEngine.getStatus(id), 2);
     });
 });
