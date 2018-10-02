@@ -15,10 +15,10 @@ import "./../../interfaces/ERC165.sol";
     @author Agustin Aguilar
 */
 contract Model is ERC165 {
-    event Created(bytes32 indexed _id, bytes32[] _data);
+    event Created(bytes32 indexed _id);
     event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
     event ChangedObligation(bytes32 indexed _id, uint256 _timestamp, uint256 _debt);
-    event ChangedFrecuency(bytes32 indexed _id, uint256 _timestamp, uint256 _frecuency);
+    event ChangedFrecuencalcy(bytes32 indexed _id, uint256 _timestamp, uint256 _frecuency);
     event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
     event ChangedFinalTime(bytes32 indexed _id, uint256 _timestamp, uint64 _dueTime);
     event AddedDebt(bytes32 indexed _id, uint256 _amount);
