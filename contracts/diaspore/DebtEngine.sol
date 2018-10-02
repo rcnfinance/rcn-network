@@ -158,7 +158,7 @@ contract DebtEngine is ERC721Base {
             _tokens: paidToken
         });
     }
-
+    
     function payToken(
         bytes32 id,
         uint256 amount,
@@ -227,8 +227,8 @@ contract DebtEngine is ERC721Base {
         @return Amount in tokens
     */
     function toToken(uint256 amount, uint256 rate, uint256 decimals) internal pure returns (uint256) {
-        require(decimals <= TOKEN_DECIMALS, "Decimals limit reached");
-        return rate.mult(amount).mult((10 ** (TOKEN_DECIMALS - decimals))) / PRECISION;
+        require(decimals <= 18, "Decimals limit reached");
+        return rate.mult(amount).mult((10 ** (18 - decimals))) / 1000000000000000000;
     }
 
     /**
@@ -241,8 +241,8 @@ contract DebtEngine is ERC721Base {
         @return Amount in rate currency
     */
     function fromToken(uint256 amount, uint256 rate, uint256 decimals) internal pure returns (uint256) {
-        require(decimals <= TOKEN_DECIMALS, "Decimals limit reached");
-        return amount.mult((10 ** (TOKEN_DECIMALS - decimals))) / (rate.mult(PRECISION));
+        require(decimals <= 18, "Decimals limit reached");
+        return (amount.mult(1000000000000000000) / rate) / 10 ** (18 - decimals);
     }
 
     function withdrawal(bytes32 id, address to) external returns (uint256 amount) {
