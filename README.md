@@ -9,6 +9,8 @@ More information on the  [Whitepaper](./WHITEPAPER.md) page.
 
 The Basalt is the last stable version of the RCN protocol it's currently working on the Ethereum mainnet; allows borrowers, lenders, and cosigners to request, lend and pay bullet loans. These loans are configured with an interest rate, a punitive interest rate, a duration, and a first payment date; all the accrued interests are calculated on-chain.
 
+![](./images/01.png)
+
 ### Deployed contracts
 
 RCN Token: [0xf970b8e36e23f7fc3fd752eea86f8be8d83375a6](https://etherscan.io/token/0xf970b8e36e23f7fc3fd752eea86f8be8d83375a6)
