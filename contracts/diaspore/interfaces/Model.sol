@@ -16,12 +16,13 @@ import "./../../interfaces/ERC165.sol";
 */
 contract Model is ERC165 {
     event Created(bytes32 indexed _id, bytes32[] _data);
-    event ChangedStatus(bytes32 indexed _id, uint256 _status);
-    event ChangedPaid(bytes32 indexed _id, uint256 _paid);
-    event ChangedObligation(bytes32 indexed _id, uint256 _debt);
-    event ChangedFrecuency(bytes32 indexed _id, uint256 _frecuency);
-    event ChangedDueTime(bytes32 indexed _id, uint256 _status);
-    event ChangedFinalTime(bytes32 indexed _id, uint64 _dueTime);
+    event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+    event ChangedObligation(bytes32 indexed _id, uint256 _timestamp, uint256 _debt);
+    event ChangedFrecuency(bytes32 indexed _id, uint256 _timestamp, uint256 _frecuency);
+    event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+    event ChangedFinalTime(bytes32 indexed _id, uint256 _timestamp, uint64 _dueTime);
+    event AddedDebt(bytes32 indexed _id, uint256 _amount);
+    event AddedPaid(bytes32 indexed _id, uint256 _paid);
 
     // Model interface selector
     bytes4 internal debtModelInterface = 
