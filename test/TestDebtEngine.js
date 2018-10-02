@@ -419,13 +419,13 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await debtEngine.transferFrom(accounts[0], accounts[9], id);
         await rcn.setBalance(accounts[9], 0);
         await debtEngine.withdrawalList([id], accounts[9], { from: accounts[9] });
-        assert.equal(await rcn.balanceOf(accounts[9]), 60000 + 500 + 10000 - (10000 - 1010) / 2);
+        assert.equal(await rcn.balanceOf(accounts[9]), 60000 + 500 + (10000 - 1010) / 2);
 
         // Withdraw again should transfer 0
         await rcn.setBalance(accounts[9], 0);
         await debtEngine.approve(accounts[3], id, { from: accounts[9] });
         await debtEngine.withdrawalList([id], accounts[9], { from: accounts[3] });
-        assert.equal(await rcn.balanceOf(accounts[9], 0));
+        assert.equal(await rcn.balanceOf(accounts[9]), 0);
     });
 
     it("Should payToken using an Oracle", async function() {
