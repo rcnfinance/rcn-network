@@ -13,6 +13,12 @@ contract DebtEngine is ERC721Base {
     uint256 constant internal TOKEN_DECIMALS = 18;
     uint256 constant internal PRECISION = 10 ** TOKEN_DECIMALS;
 
+    event Created(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
+    event Created2(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
+    event Paid(bytes32 indexed _id, address _sender, address _origin, uint256 _requested, uint256 _requestedTokens, uint256 _paid, uint256 _tokens);
+    event ReadedOracle(bytes32 indexed _id, address _oracle, bytes32 _currency, uint256 _amount, uint256 _decimals);
+    event Withdrawn(bytes32 indexed _id, address _sender, address _to, uint256 _amount);
+
     Token public token;
 
     mapping(bytes32 => Debt) public debts;
@@ -58,6 +64,12 @@ contract DebtEngine is ERC721Base {
 
         _generate(uint256(id), owner);
         require(model.create(id, data), "Error creating debt in model");
+
+        emit Created({
+            _id: id,
+            _nonce: nonce,
+            _data: data
+        });
     }
 
     function create2(
@@ -80,6 +92,12 @@ contract DebtEngine is ERC721Base {
 
         _generate(uint256(id), owner);
         require(model.create(id, data), "Error creating debt in model");
+
+        emit Created2({
+            _id: id,
+            _nonce: nonce,
+            _data: data
+        });
     }
 
     function buildId(
@@ -113,7 +131,9 @@ contract DebtEngine is ERC721Base {
         IOracle oracle = IOracle(debt.oracle);
         if (oracle != address(0)) {
             // Convert
-            (uint256 rate, uint256 decimals) = oracle.getRate(debt.currency, oracleData);
+            bytes32 currency = debt.currency;
+            (uint256 rate, uint256 decimals) = oracle.getRate(currency, oracleData);
+            emit ReadedOracle(id, oracle, currency, rate, decimals);
             paidToken = toToken(paid, rate, decimals);
         } else {
             paidToken = paid;
@@ -124,8 +144,19 @@ contract DebtEngine is ERC721Base {
 
         // Add balance to the debt
         uint256 newBalance = paidToken.add(debt.balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uin128 Overflow");
+        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
         debt.balance = uint128(newBalance);
+
+        // Emit pay event
+        emit Paid({
+            _id: id,
+            _sender: msg.sender,
+            _origin: origin,
+            _requested: amount,
+            _requestedTokens: 0,
+            _paid: paid,
+            _tokens: paidToken
+        });
     }
 
     function payToken(
@@ -146,6 +177,8 @@ contract DebtEngine is ERC721Base {
         // Get available <currency> amount
         if (oracle != address(0)) {
             (rate, decimals) = oracle.getRate(debt.currency, oracleData);
+            // TODO: Fix double storage read debt.currency
+            emit ReadedOracle(id, oracle, debt.currency, rate, decimals);
             available = fromToken(amount, rate, decimals);
         } else {
             available = amount;
@@ -167,9 +200,21 @@ contract DebtEngine is ERC721Base {
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling tokens");
 
         // Add balance to the debt
-        uint256 newBalance = paidToken.add(debt.balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uin128 Overflow");
-        debt.balance = uint128(newBalance);
+        // WARNING: Reusing variable **available**
+        available = paidToken.add(debt.balance);
+        require(available < 340282366920938463463374607431768211456, "uint128 Overflow");
+        debt.balance = uint128(available);
+
+        // Emit pay event
+        emit Paid({
+            _id: id,
+            _sender: msg.sender,
+            _origin: origin,
+            _requested: 0,
+            _requestedTokens: amount,
+            _paid: paid,
+            _tokens: paidToken
+        });
     }
 
     /**
@@ -206,17 +251,36 @@ contract DebtEngine is ERC721Base {
         amount = debt.balance;
         debt.balance = 0;
         require(token.transfer(to, amount), "Error sending tokens");
+        emit Withdrawn({
+            _id: id,
+            _sender: msg.sender,
+            _to: to,
+            _amount: amount
+        });
     }
 
     function withdrawalList(bytes32[] ids, address to) external returns (uint256 amount) {
         bytes32 target;
+        uint256 balance;
         for (uint256 i = 0; i < ids.length; i++) {
             target = ids[i];
             if(_isAuthorized(msg.sender, uint256(target))) {
-                amount += debts[target].balance;
+                balance = debts[target].balance;
                 debts[target].balance = 0;
+                amount += balance;
+                emit Withdrawn({
+                    _id: target,
+                    _sender: msg.sender,
+                    _to: to,
+                    _amount: balance
+                });
             }
         }
         require(token.transfer(to, amount), "Error sending tokens");
+    }
+
+    function getStatus(bytes32 id) external view returns (uint256) {
+        // TODO: Check and return error
+        return debts[id].model.getStatus(id);
     }
 }
