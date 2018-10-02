@@ -219,7 +219,7 @@ contract ERC721Base {
     //
 
     function _generate(uint256 assetId, address beneficiary) internal {
-        require(_holderOf[assetId] == 0);
+        require(_holderOf[assetId] == 0, "Asset already exists");
 
         _addAssetTo(beneficiary, assetId);
 
