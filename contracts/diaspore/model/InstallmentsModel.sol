@@ -103,7 +103,7 @@ contract InstallmentsModel is Ownable, Model {
         return true;
     }
 
-    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256) {
+    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 real) {
         Config storage config = configs[id];
         State storage state = states[id];
 
@@ -160,10 +160,11 @@ contract InstallmentsModel is Ownable, Model {
                 }
             } while (available != 0);
 
-            emit ChangedPaid(id, paid);
             require(paid < U_128_OVERFLOW, "Paid overflow");
             state.paid = uint128(paid);
-            return amount - available;
+
+            real = amount - available;
+            emit AddedPaid(id, real);
         }
     }
 

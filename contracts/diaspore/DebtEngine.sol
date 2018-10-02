@@ -26,6 +26,10 @@ contract DebtEngine is ERC721Base {
         address oracle;
     }
 
+    constructor(Token _token) public {
+        token = _token;
+    }
+
     function name() external pure returns (string _name) {
         _name = "RCN Debt Record";
     }
