@@ -115,19 +115,21 @@ contract TestModel is Ownable, Model {
     function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
         _validate(data);
 
-        emit Created(id, data);
+        emit Created(id);
+
+        uint64 dueTime = uint64(data[C_DUE]);
 
         registry[id] = Entry({
             errorFlag: 0,
-            dueTime: uint64(data[C_DUE]),
+            dueTime: dueTime,
             lastPing: uint64(now),
             total: uint128(data[C_TOTAL]),
             paid: 0
         });
 
         emit ChangedStatus(id, now, STATUS_ONGOING);
-        emit ChangedDueTime(id, now, uint64(data[C_DUE]));
-        emit ChangedFinalTime(id, now, uint64(data[C_DUE]));
+        emit ChangedDueTime(id, now, dueTime);
+        emit ChangedFinalTime(id, now, dueTime);
 
         return true;
     }
@@ -141,7 +143,7 @@ contract TestModel is Ownable, Model {
         uint256 paid = entry.paid;
 
         uint256 pending = total - paid;
-        real = pending <= amount ? amount : pending;
+        real = pending <= amount ? pending : amount;
 
         paid += real;
         require(paid < U_128_OVERFLOW, "Paid overflow");
