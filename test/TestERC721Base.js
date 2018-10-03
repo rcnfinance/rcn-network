@@ -17,7 +17,7 @@ contract('ERC721 Base', function(accounts) {
         let assetId = 2;
 
         let receiver = await TestERC721Receiver.new();
-        
+
         await token.generate(assetId, accounts[0]);
         await token.safeTransferFrom(accounts[0], receiver.address, assetId);
 
@@ -31,7 +31,7 @@ contract('ERC721 Base', function(accounts) {
         let assetId = 4;
 
         let receiver = await TestERC721ReceiverLegacy.new();
-        
+
         await token.generate(assetId, accounts[0]);
         await token.safeTransferFrom(accounts[0], receiver.address, assetId);
 
@@ -44,7 +44,7 @@ contract('ERC721 Base', function(accounts) {
         let assetId = 5;
 
         let receiver = await TestERC721ReceiverLegacyRaw.new();
-        
+
         await token.generate(assetId, accounts[0]);
         await token.safeTransferFrom(accounts[0], receiver.address, assetId);
 
@@ -58,9 +58,9 @@ contract('ERC721 Base', function(accounts) {
         let assetId = 6;
 
         let receiver = await TestNoReceive.new();
-        
+
         await token.generate(assetId, accounts[0]);
-        await Helper.assertThrow(token.safeTransferFrom(accounts[0], receiver.address, assetId));
+        await Helper.tryCatchRevert(() => token.safeTransferFrom(accounts[0], receiver.address, assetId), "");
 
         assert.equal(await token.ownerOf(assetId), accounts[0]);
     });
@@ -69,7 +69,7 @@ contract('ERC721 Base', function(accounts) {
         let assetId = 8;
 
         let receiver = await TestERC721ReceiverMultiple.new();
-        
+
         await token.generate(assetId, accounts[0]);
         await token.safeTransferFrom(accounts[0], receiver.address, assetId);
 
