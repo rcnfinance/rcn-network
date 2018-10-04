@@ -15,9 +15,9 @@ contract MinMax {
 }
 
 contract NanoLoanModel is Ownable, Model, MinMax  {
-    address public engine;
     using SafeMath for uint256;
     using SafeMath for uint128;
+    address public engine;
 
     mapping(bytes32 => Config) public configs;
     mapping(bytes32 => State) public states;
@@ -35,7 +35,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
 
     event _setInterest(bytes32 _id, uint128 _interest);
     event _setPunitoryInterest(bytes32 _id, uint128 _punitoryInterest);
-    event _setInterestTimestamp(bytes32 _id, uint64 _interestTimestamp);
+    event _setInterestTimestamp(bytes32 _id, uint256 _interestTimestamp);
 
     constructor() public {
         _supportedInterface[this.owner.selector] = true;
@@ -98,7 +98,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         return _validate(data);
     }
 
-    function _validate(bytes32[] data) internal pure returns (bool) {
+    function _validate(bytes32[] data) internal returns (bool) {
         require(data.length == C_PARAMS, "Wrong loan data arguments count");
         require(uint64(data[C_CANCELABLE_AT]) <= uint64(data[C_DUES_IN]), "The cancelableAt should be less or equal than duesIn");
         require(uint256(data[C_INTEREST_RATE]) > 1000, "Interest rate too high");
@@ -106,8 +106,12 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         require(uint128(data[C_AMOUNT]) != 0, "amount can't be 0");
         // check overflows
         require(uint256(data[C_AMOUNT]) < U_128_OVERFLOW, "Amount too high");
+        // because cancelableAt should be less than duesIn i only check duesIn overflow
         require(uint256(data[C_DUES_IN]) < U_64_OVERFLOW, "Dues in duration too long");
-        require(uint256(data[C_CANCELABLE_AT]) < U_64_OVERFLOW, "Cancelable at duration too long");
+        require(now + uint256(data[C_DUES_IN]) > now, "duesIn should be not 0 or overflow now plus duesIn");
+        // cancelableAt cant make overflow because:
+        //     cancelableAt <= duesIn < 2 ** 64
+        // and we check the sum of duesIn and now in the previus requiere
 
         return true;
     }
@@ -124,11 +128,11 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         return (_getObligation(id, timestamp), false);
     }
 
-    function _getObligation(bytes32 id, uint256 timestamp) internal returns (uint256 total){
+    function _getObligation(bytes32 id, uint256 timestamp) internal view returns (uint256 total){
         State storage state = states[id];
-        Config storage config = configs[id];
-        if (state.status != STATUS_ONGOING)
+        if (state.status == STATUS_PAID)
             return 0;
+        Config storage config = configs[id];
 
         uint256 calcInterest;
         uint256 endNonPunitory = min(timestamp, config.dueTime);
@@ -136,17 +140,18 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         if (state.paid < config.amount)
             total = config.amount - state.paid;
 
-        if (endNonPunitory > state.interestTimestamp)
+        if (state.interestTimestamp < endNonPunitory)
             (, calcInterest) = _calculateInterest(endNonPunitory - state.interestTimestamp, config.interestRate, total);
 
         if (timestamp > config.dueTime && timestamp > state.interestTimestamp) {
-            uint256 debt = config.amount.add(calcInterest.add(state.interest));
-            uint256 pending = min(debt, (debt.add(state.punitoryInterest)).sub(state.paid));
+            uint256 debt = config.amount.add(calcInterest).add(state.interest);
+            uint256 pending = min(debt, debt.add(state.punitoryInterest).sub(state.paid));
 
-            (, debt) = _calculateInterest(timestamp - max(config.dueTime, state.interestTimestamp), config.interestRatePunitory, pending);
-            calcInterest += debt;
+            (, debt) = _calculateInterest(timestamp - max(config.dueTime, state.interestTimestamp), config.interestRatePunitory, pending);// cant underflow, check in the previus if
+            calcInterest = debt.add(calcInterest);
         }
-        total += calcInterest + state.interest + state.punitoryInterest;
+
+        total = total.add(calcInterest).add(state.interest).add(state.punitoryInterest);
     }
 
     function getClosingObligation(bytes32 id) external view returns (uint256 total){
@@ -154,7 +159,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
     }
 
     function getDueTime(bytes32 id) external view returns (uint256) {
-        return states[id].status == STATUS_ONGOING ? configs[id].dueTime : 0;
+        return states[id].status == STATUS_PAID ? 0 : configs[id].dueTime;
     }
 
     function getFinalTime(bytes32 id) external view returns (uint256) {
@@ -177,20 +182,16 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
             amount: uint128(data[C_AMOUNT]),
             interestRate: uint256(data[C_INTEREST_RATE]),
             interestRatePunitory: uint256(data[C_INTEREST_RATE_PUNITORY]),
-            dueTime: uint64(now) + uint64(data[C_DUES_IN]),
+            dueTime: uint64(now) + uint64(data[C_DUES_IN]), // check overflow in validate
             id: id
         });
+        emit Created(id, data);
 
         states[id].interestTimestamp = uint64(now);
-        emit _setInterestTimestamp(id, uint64(now));
+        emit _setInterestTimestamp(id, now);
 
         if (uint256(data[C_CANCELABLE_AT]) != 0)
-            _addInterest(id, now.add(uint256(data[C_CANCELABLE_AT])));
-
-        states[id].status = uint8(STATUS_ONGOING);
-
-        emit Created(id, data);
-        emit ChangedStatus(id, uint8(STATUS_ONGOING));
+            _addInterest(id, now + uint256(data[C_CANCELABLE_AT])); // check overflow in validate
 
         return true;
     }
@@ -198,19 +199,18 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
     function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 toPay) {
         State storage state = states[id];
 
-        require(state.status == STATUS_ONGOING, "The loan status should be Ongoing");
+        require(state.status != STATUS_PAID, "The loan status should not be paid");
         _addInterest(id, now);
 
         uint256 totalDebt = configs[id].amount.add(state.interest).add(state.punitoryInterest);
+
         toPay = min(totalDebt.sub(state.paid), amount);
+        state.paid = uint128(toPay.add(state.paid));
+        emit AddedPaid(id, state.paid);
 
-        state.paid += uint128(toPay);
-
-        emit ChangedPaid(id, state.paid);
-
-        if (totalDebt.sub(state.paid) == 0) {
+        if (totalDebt - state.paid == 0) { // check underflow in min
             state.status = uint8(STATUS_PAID);
-            emit ChangedStatus(id, uint8(STATUS_PAID));
+            emit ChangedStatus(id, now, uint8(STATUS_PAID));
         }
     }
 
@@ -218,51 +218,46 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         Config storage config = configs[id];
         State storage state = states[id];
 
-        if (timestamp > state.interestTimestamp) {
+        uint256 interestTimestamp = state.interestTimestamp;
+        if (interestTimestamp < timestamp) {
             uint256 newInterest = state.interest;
 
             uint256 realDelta;
             uint256 calculatedInterest;
 
             uint256 newTimestamp;
-            uint256 deltaTime;
             uint256 pending;
             uint256 endNonPunitory = min(timestamp, config.dueTime);
-            if (endNonPunitory > state.interestTimestamp) {
-                deltaTime = endNonPunitory - state.interestTimestamp;
+            if (interestTimestamp < endNonPunitory) {
+                if (state.paid < config.amount)
+                    pending = config.amount - state.paid;// cant underflow, check in if-condition
 
-                if (state.paid < config.amount) {
-                    pending = config.amount - state.paid;
-                }
-
-                (realDelta, calculatedInterest) = _calculateInterest(deltaTime, config.interestRate, pending);
+                (realDelta, calculatedInterest) = _calculateInterest(endNonPunitory - interestTimestamp, config.interestRate, pending);// cant underflow, check in if-condition
                 newInterest = calculatedInterest.add(newInterest);
                 require(newInterest < U_128_OVERFLOW, "newInterest overflow");
                 state.interest = uint128(newInterest);
-                emit _setInterest(id, state.interest);
+                emit _setInterest(id, uint128(newInterest));
 
-                newTimestamp = state.interestTimestamp + realDelta;
+                newTimestamp = interestTimestamp.add(realDelta);
             }
 
-            if (timestamp > config.dueTime) {
-                uint256 startPunitory = max(config.dueTime, state.interestTimestamp);
-                deltaTime = timestamp - startPunitory;
-
+            if (config.dueTime < timestamp) {
+                uint256 startPunitory = max(config.dueTime, interestTimestamp);
                 uint256 debt = config.amount.add(newInterest);
                 uint256 newPunitoryInterest = state.punitoryInterest;
-                pending = min(debt, (debt.add(newPunitoryInterest)).sub(state.paid));
+                pending = min(debt, debt.add(newPunitoryInterest).sub(state.paid));
 
-                (realDelta, calculatedInterest) = _calculateInterest(deltaTime, config.interestRatePunitory, pending);
+                (realDelta, calculatedInterest) = _calculateInterest(timestamp - startPunitory, config.interestRatePunitory, pending);// cant underflow, check in the previus if
                 newPunitoryInterest = newPunitoryInterest.add(calculatedInterest);
                 require(newPunitoryInterest < U_128_OVERFLOW, "newPunitoryInterest overflow");
                 state.punitoryInterest = uint128(newPunitoryInterest);
-                emit _setPunitoryInterest(id, state.punitoryInterest);
-                newTimestamp = now; // startPunitory+ realDelta;
+                emit _setPunitoryInterest(id, uint128(newPunitoryInterest));
+                newTimestamp = startPunitory.add(realDelta);
             }
 
             require(newTimestamp < U_64_OVERFLOW, "newTimestamp overflow");
             state.interestTimestamp = uint64(newTimestamp);
-            emit _setInterestTimestamp(id, state.interestTimestamp);
+            emit _setInterestTimestamp(id, newTimestamp);
         }
     }
 
@@ -270,7 +265,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         if (amount == 0) {
             realDelta = timeDelta;
         } else {
-            interest = amount.mult(100000).mult(timeDelta) / interestRate;
+            interest = timeDelta.mult(amount * 100000) / interestRate;
             realDelta = interest.mult(interestRate) / (amount * 100000);
         }
     }
