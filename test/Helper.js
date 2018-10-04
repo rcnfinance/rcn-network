@@ -87,7 +87,7 @@ async function tryCatchRevert(promiseFunction, message) {
     await promiseFunction();
   } catch (error) {
     assert(
-      error.message.search(headMsg + message) > 0,
+      error.message.search(headMsg + message) >= 0,
       "Expected a revert '" + headMsg + message + "', got '" + error.message + "' instead"
     );
     return;
