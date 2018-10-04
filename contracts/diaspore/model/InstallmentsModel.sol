@@ -97,7 +97,7 @@ contract InstallmentsModel is Ownable, Model {
 
         states[id].clock = duration;
 
-        emit Created(id, data);
+        emit Created(id);
         emit _setClock(id, duration);
 
         return true;
