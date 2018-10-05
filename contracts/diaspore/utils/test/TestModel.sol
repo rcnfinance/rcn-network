@@ -25,7 +25,7 @@ contract TestModel is Ownable, Model {
         _supportedInterface[this.getClosingObligation.selector] = true;
         _supportedInterface[this.getDueTime.selector] = true;
         _supportedInterface[this.getFinalTime.selector] = true;
-        _supportedInterface[this.getFrecuency.selector] = true;
+        _supportedInterface[this.getFrequency.selector] = true;
         _supportedInterface[this.getEstimateObligation.selector] = true;
         _supportedInterface[this.addDebt.selector] = true; // ??? Not supported
         _supportedInterface[this.run.selector] = true;
@@ -103,7 +103,7 @@ contract TestModel is Ownable, Model {
         return registry[id].dueTime;
     }
 
-    function getFrecuency(bytes32) external view returns (uint256) {
+    function getFrequency(bytes32) external view returns (uint256) {
         return 0;
     }
 
