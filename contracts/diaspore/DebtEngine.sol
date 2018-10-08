@@ -25,7 +25,8 @@ contract DebtEngine is ERC721Base {
     mapping(address => uint256) public nonces;
 
     struct Debt {
-        bytes16 currency;
+        bool error;
+        bytes8 currency;
         uint128 balance;
         Model model;
         address creator;
@@ -48,13 +49,14 @@ contract DebtEngine is ERC721Base {
         Model model,
         address owner,
         address oracle,
-        bytes16 currency,
+        bytes8 currency,
         bytes32[] data
     ) external returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
         id = _buildId(msg.sender, nonce, false);
 
         debts[id] = Debt({
+            error: false,
             currency: currency,
             balance: 0,
             creator: msg.sender,
@@ -76,13 +78,14 @@ contract DebtEngine is ERC721Base {
         Model model,
         address owner,
         address oracle,
-        bytes16 currency,
+        bytes8 currency,
         uint256 nonce,
         bytes32[] data
     ) external returns (bytes32 id) {
         id = _buildId(msg.sender, nonce, true);
 
         debts[id] = Debt({
+            error: false,
             currency: currency,
             balance: 0,
             creator: msg.sender,
@@ -125,7 +128,7 @@ contract DebtEngine is ERC721Base {
         Debt storage debt = debts[id];
 
         // Paid only required amount
-        paid = debt.model.addPaid(id, amount);
+        paid = _safePay(id, debt.model, amount);
         require(paid <= amount, "Paid can't be more than requested");
 
         IOracle oracle = IOracle(debt.oracle);
@@ -184,8 +187,8 @@ contract DebtEngine is ERC721Base {
             available = amount;
         }
 
-        // Pay the debt
-        paid = debt.model.addPaid(id, available);
+        // Call addPaid on model
+        paid = _safePay(id, debt.model, available);
         require(paid <= available, "Paid can't exceed available");
 
         // Convert back to required pull amount
@@ -215,6 +218,28 @@ contract DebtEngine is ERC721Base {
             _paid: paid,
             _tokens: paidToken
         });
+    }
+
+    function _safePay(
+        bytes32 _id,
+        Model _model,
+        uint256 _available
+    ) internal returns (uint256) {
+        (uint256 success, bytes32 paid) = _safeGasCall(
+            _model,
+            abi.encodeWithSelector(
+                _model.addPaid.selector,
+                _id,
+                _available
+            )
+        );
+
+        if (success != 0) {
+            return uint256(paid);
+        } else {
+            // Todo emit error event
+            debts[_id].error = true;
+        }
     }
 
     /**
@@ -279,8 +304,31 @@ contract DebtEngine is ERC721Base {
         require(token.transfer(to, amount), "Error sending tokens");
     }
 
-    function getStatus(bytes32 id) external view returns (uint256) {
-        // TODO: Check and return error
-        return debts[id].model.getStatus(id);
+    function getStatus(bytes32 _id) external view returns (uint256) {
+        // TODO: Call simRun
+        Debt storage debt = debts[_id];
+        return debt.error ? 4 : debt.model.getStatus(_id);
+    }
+
+    function _safeGasCall(
+        address _contract,
+        bytes _data
+    ) internal returns (uint256 success, bytes32 result) {
+        uint256 _gas = (block.gaslimit * 80) / 100;
+        _gas = gasleft() < _gas ? gasleft() : _gas;
+        assembly {
+            let x := mload(0x40)
+            success := call(
+                            _gas,                 // Send almost all gas
+                            _contract,            // To addr
+                            0,                    // Send ETH
+                            add(0x20, _data),     // Input is data past the first 32 bytes
+                            mload(_data),         // Input size is the lenght of data
+                            x,                    // Store the ouput on x
+                            0x20                  // Output is a single bytes32, has 32 bytes
+                        )
+
+            result := mload(x)
+        }
     }
 }

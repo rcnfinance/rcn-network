@@ -43,6 +43,7 @@ contract Model is ERC165 {
 
     uint256 public constant STATUS_ONGOING = 1;
     uint256 public constant STATUS_PAID = 2;
+    uint256 public constant STATUS_ERROR = 4;
 
     // ///
     // Meta
