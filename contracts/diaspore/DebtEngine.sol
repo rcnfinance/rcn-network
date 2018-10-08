@@ -18,6 +18,7 @@ contract DebtEngine is ERC721Base {
     event Paid(bytes32 indexed _id, address _sender, address _origin, uint256 _requested, uint256 _requestedTokens, uint256 _paid, uint256 _tokens);
     event ReadedOracle(bytes32 indexed _id, address _oracle, bytes32 _currency, uint256 _amount, uint256 _decimals);
     event Withdrawn(bytes32 indexed _id, address _sender, address _to, uint256 _amount);
+    event Error(bytes32 indexed _id, address _sender, uint256 _value, uint256 _gasLeft, uint256 _gasLimit, bytes _callData);
 
     Token public token;
 
@@ -237,7 +238,14 @@ contract DebtEngine is ERC721Base {
         if (success != 0) {
             return uint256(paid);
         } else {
-            // Todo emit error event
+            emit Error({
+                _id: _id,
+                _sender: msg.sender,
+                _value: msg.value,
+                _gasLeft: gasleft(),
+                _gasLimit: block.gaslimit,
+                _callData: msg.data
+            });
             debts[_id].error = true;
         }
     }
