@@ -98,6 +98,25 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         return _validate(data);
     }
 
+    /**
+        @dev Validate the data input, check:
+            The length of data should be 5
+            The duesIn should be less or equal than cancelableAt and not 0
+            The interestRate should be more than 1000
+            The interestRatePunitory should be more than 1000
+            The amount should not be 0
+
+
+        @param id Index of the loan
+        @param data Array of bytes32 with 5 length, used to create a loan
+            0: The requested amount
+            1: The non-punitory interest rate by second, defined as a denominator of 10 000 000.
+            2: The punitory interest rate by second, defined as a denominator of 10 000 000.
+                Ej: interestRate 11108571428571 = 28% Anual interest
+            3: The time in seconds that the borrower has in order to pay the debt after the lender lends the money.
+            4: Delta in seconds specifying how much interest should be added in advance, if the borrower pays
+                entirely or partially the loan before this term, no extra interest will be deducted.
+    */
     function _validate(bytes32[] data) internal returns (bool) {
         require(data.length == C_PARAMS, "Wrong loan data arguments count");
         require(uint64(data[C_CANCELABLE_AT]) <= uint64(data[C_DUES_IN]), "The cancelableAt should be less or equal than duesIn");
@@ -174,6 +193,19 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         return _getObligation(id, now);
     }
 
+    /**
+        @dev Before create the loan the data should be validate with call _validate function
+
+        @param id Index of the loan
+        @param data Array of bytes32 with 5 length, used to create a loan
+            0: The requested amount
+            1: The non-punitory interest rate by second, defined as a denominator of 10 000 000.
+            2: The punitory interest rate by second, defined as a denominator of 10 000 000.
+                Ej: interestRate 11108571428571 = 28% Anual interest
+            3: The time in seconds that the borrower has in order to pay the debt after the lender lends the money.
+            4: Delta in seconds specifying how much interest should be added in advance, if the borrower pays
+                entirely or partially the loan before this term, no extra interest will be deducted.
+    */
     function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
         require(configs[id].interestRate == 0, "Entry already exist");
         _validate(data);
@@ -196,6 +228,19 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         return true;
     }
 
+    /**
+        @notice Pay loan
+
+        Does a payment of a given Loan, before performing the payment the accumulated
+        interest is computed and added to the total pending amount.
+
+        If the paid pending amount equals zero, the loan changes status to "paid" and it is considered closed.
+
+        @param id Index of the loan
+        @param amount Amount to pay
+
+        @return toPay if the payment was executed successfully
+    */
     function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 toPay) {
         State storage state = states[id];
 
@@ -214,6 +259,14 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         }
     }
 
+    /**
+        @notice Computes loan interest
+
+        Computes the punitory and non-punitory interest of a given loan and only applies the change.
+
+        @param id Index of the loan to compute interest
+        @param timestamp Target absolute unix time to calculate interest.
+    */
     function _addInterest(bytes32 id, uint256 timestamp) internal {
         Config storage config = configs[id];
         State storage state = states[id];
@@ -261,6 +314,16 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         }
     }
 
+    /**
+        @notice Calculates the interest of a given amount, interest rate and delta time.
+
+        @param timeDelta Elapsed time
+        @param interestRate Interest rate expressed as the denominator of 10 000 000.
+        @param amount Amount to apply interest
+
+        @return realDelta The real timeDelta applied
+        @return interest The interest gained in the realDelta time
+    */
     function _calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) internal pure returns (uint256 realDelta, uint256 interest) {
         if (amount == 0) {
             realDelta = timeDelta;
@@ -274,6 +337,13 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         revert("Not implemented!");
     }
 
+    /**
+        @notice Updates the loan accumulated interests up to the current Unix time.
+
+        @param id Index of the loan
+
+        @return true If the interest was updated
+    */
     function run(bytes32 id) external returns (bool) {
         _addInterest(id, now);
         return true;
