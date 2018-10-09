@@ -354,7 +354,10 @@ contract DebtEngine is ERC721Base {
         } else {
             (uint256 success, bytes32 result) = _safeGasStaticCall(
                 debt.model,
-                abi.encodeWithSelector(debt.model.getStatus.selector, _id)
+                abi.encodeWithSelector(
+                    debt.model.getStatus.selector,
+                    _id
+                )
             );
             return success == 1 ? uint256(result) : 4;
         }
