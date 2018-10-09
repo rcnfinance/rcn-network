@@ -127,6 +127,7 @@ contract DebtEngine is ERC721Base {
         bytes oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
+        if (debt.error) delete debt.error;
 
         // Paid only required amount
         paid = _safePay(id, debt.model, amount);
@@ -170,6 +171,7 @@ contract DebtEngine is ERC721Base {
         bytes oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
+        if (debt.error) delete debt.error;
 
         // Read storage
         IOracle oracle = IOracle(debt.oracle);
@@ -278,6 +280,33 @@ contract DebtEngine is ERC721Base {
         return (amount.mult(1000000000000000000) / rate) / 10 ** (18 - decimals);
     }
 
+    function run(bytes32 _id) external returns (bool) {
+        Debt storage debt = debts[_id];
+        if (debt.error) delete debt.error;
+
+        (uint256 success, bytes32 result) = _safeGasCall(
+            debt.model,
+            abi.encodeWithSelector(
+                debt.model.run.selector,
+                _id
+            )
+        );
+
+        if (success != 0) {
+            return result == bytes32(1);
+        } else {
+            emit Error({
+                _id: _id,
+                _sender: msg.sender,
+                _value: 0,
+                _gasLeft: gasleft(),
+                _gasLimit: block.gaslimit,
+                _callData: msg.data
+            });
+            debt.error = true;
+        }
+    }
+
     function withdrawal(bytes32 id, address to) external returns (uint256 amount) {
         require(_isAuthorized(msg.sender, uint256(id)), "Sender not authorized");
         Debt storage debt = debts[id];
@@ -313,9 +342,37 @@ contract DebtEngine is ERC721Base {
     }
 
     function getStatus(bytes32 _id) external view returns (uint256) {
-        // TODO: Call simRun
         Debt storage debt = debts[_id];
-        return debt.error ? 4 : debt.model.getStatus(_id);
+        if (debt.error) {
+            return 4;
+        } else {
+            (uint256 success, bytes32 result) = _safeGasStaticCall(
+                debt.model,
+                abi.encodeWithSelector(debt.model.getStatus.selector, _id)
+            );
+            return success == 1 ? uint256(result) : 4;
+        }
+    }
+
+    function _safeGasStaticCall(
+        address _contract,
+        bytes _data
+    ) internal view returns (uint256 success, bytes32 result) {
+        uint256 _gas = (block.gaslimit * 80) / 100;
+        _gas = gasleft() < _gas ? gasleft() : _gas;
+        assembly {
+            let x := mload(0x40)
+            success := staticcall(
+                            _gas,                 // Send almost all gas
+                            _contract,            // To addr
+                            add(0x20, _data),     // Input is data past the first 32 bytes
+                            mload(_data),         // Input size is the lenght of data
+                            x,                    // Store the ouput on x
+                            0x20                  // Output is a single bytes32, has 32 bytes
+                        )
+
+            result := mload(x)
+        }
     }
 
     function _safeGasCall(
