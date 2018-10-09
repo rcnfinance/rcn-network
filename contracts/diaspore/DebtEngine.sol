@@ -16,7 +16,7 @@ contract DebtEngine is ERC721Base {
     event Created(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
     event Created2(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
     event Paid(bytes32 indexed _id, address _sender, address _origin, uint256 _requested, uint256 _requestedTokens, uint256 _paid, uint256 _tokens);
-    event ReadedOracle(bytes32 indexed _id, address _oracle, bytes32 _currency, uint256 _amount, uint256 _decimals);
+    event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
     event Withdrawn(bytes32 indexed _id, address _sender, address _to, uint256 _amount);
     event Error(bytes32 indexed _id, address _sender, uint256 _value, uint256 _gasLeft, uint256 _gasLimit, bytes _callData);
 
@@ -136,9 +136,8 @@ contract DebtEngine is ERC721Base {
         IOracle oracle = IOracle(debt.oracle);
         if (oracle != address(0)) {
             // Convert
-            bytes32 currency = debt.currency;
-            (uint256 rate, uint256 decimals) = oracle.getRate(currency, oracleData);
-            emit ReadedOracle(id, oracle, currency, rate, decimals);
+            (uint256 rate, uint256 decimals) = oracle.getRate(debt.currency, oracleData);
+            emit ReadedOracle(id, rate, decimals);
             paidToken = toToken(paid, rate, decimals);
         } else {
             paidToken = paid;
@@ -176,20 +175,15 @@ contract DebtEngine is ERC721Base {
         // Read storage
         IOracle oracle = IOracle(debt.oracle);
 
-        // WARNING: Using **paidToken** as **rate**
+        uint256 rate;
         uint256 decimals;
         uint256 available;
 
         // Get available <currency> amount
         if (oracle != address(0)) {
-            bytes32 currency = debt.currency;
-            // Real:
-            // (rate, decimals) = oracle.getRate(currency, oracleData);
-            // emit ReadedOracle(id, oracle, currency, rate, decimals);
-            // available = fromToken(amount, rate, decimals);
-            (paidToken, decimals) = oracle.getRate(currency, oracleData);
-            emit ReadedOracle(id, oracle, currency, paidToken, decimals);
-            available = fromToken(amount, paidToken, decimals);
+            (rate, decimals) = oracle.getRate(debt.currency, oracleData);
+            emit ReadedOracle(id, rate, decimals);
+            available = fromToken(amount, rate, decimals);
         } else {
             available = amount;
         }
@@ -200,9 +194,7 @@ contract DebtEngine is ERC721Base {
 
         // Convert back to required pull amount
         if (oracle != address(0)) {
-            // Real:
-            // (paidToken = toToken(paid, rate, decimals);
-            paidToken = toToken(paid, paidToken, decimals);
+            paidToken = toToken(paid, rate, decimals);
             require(paidToken <= amount, "Paid can't exceed requested");
         } else {
             paidToken = paid;
