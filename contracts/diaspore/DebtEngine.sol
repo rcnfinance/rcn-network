@@ -176,16 +176,20 @@ contract DebtEngine is ERC721Base {
         // Read storage
         IOracle oracle = IOracle(debt.oracle);
 
-        uint256 rate;
+        // WARNING: Using **paidToken** as **rate**
         uint256 decimals;
         uint256 available;
 
         // Get available <currency> amount
         if (oracle != address(0)) {
-            (rate, decimals) = oracle.getRate(debt.currency, oracleData);
-            // TODO: Fix double storage read debt.currency
-            emit ReadedOracle(id, oracle, debt.currency, rate, decimals);
-            available = fromToken(amount, rate, decimals);
+            bytes32 currency = debt.currency;
+            // Real:
+            // (rate, decimals) = oracle.getRate(currency, oracleData);
+            // emit ReadedOracle(id, oracle, currency, rate, decimals);
+            // available = fromToken(amount, rate, decimals);
+            (paidToken, decimals) = oracle.getRate(currency, oracleData);
+            emit ReadedOracle(id, oracle, currency, paidToken, decimals);
+            available = fromToken(amount, paidToken, decimals);
         } else {
             available = amount;
         }
@@ -196,7 +200,9 @@ contract DebtEngine is ERC721Base {
 
         // Convert back to required pull amount
         if (oracle != address(0)) {
-            paidToken = toToken(paid, rate, decimals);
+            // Real:
+            // (paidToken = toToken(paid, rate, decimals);
+            paidToken = toToken(paid, paidToken, decimals);
             require(paidToken <= amount, "Paid can't exceed requested");
         } else {
             paidToken = paid;
