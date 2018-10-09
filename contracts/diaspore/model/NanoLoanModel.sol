@@ -217,7 +217,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
             dueTime: uint64(now) + uint64(data[C_DUES_IN]), // check overflow in validate
             id: id
         });
-        emit Created(id, data);
+        emit Created(id);
 
         states[id].interestTimestamp = uint64(now);
         emit _setInterestTimestamp(id, now);
