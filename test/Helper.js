@@ -76,6 +76,23 @@ function toBytes32(source) {
 async function increaseTime(delta) {
   await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 0});
 }
+
+async function assertThrow(promise) {
+  try {
+    await promise;
+  } catch (error) {
+    const invalidJump = error.message.search('invalid JUMP') >= 0;
+    const revert = error.message.search('revert') >= 0;
+    const invalidOpcode = error.message.search('invalid opcode') >0;
+    const outOfGas = error.message.search('out of gas') >= 0;
+    assert(
+      invalidJump || outOfGas || revert || invalidOpcode,
+      "Expected throw, got '" + error + "' instead",
+    );
+    return;
+  }
+  assert.fail('Expected throw not received');
+};
 // the promiseFunction should be a function
 async function tryCatchRevert(promiseFunction, message) {
   let headMsg = 'revert ';
@@ -111,7 +128,7 @@ async function readLoanId(recepit) {
 }
 
 module.exports = {
-  toEvents, arrayToBytesOfBytes32, tryCatchRevert,
+  toEvents, arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
   toBytes32, increaseTime,
   toInterestRate, buyTokens, readLoanId,
   CREATEDLOAN, APPROVEDBY, LENT, PARTIALPAYMENT, TOTALPAYMENT, DESTROYEDBY
