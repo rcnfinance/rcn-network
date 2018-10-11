@@ -30,6 +30,7 @@ contract LoanCreator {
     function getExpirationRequest(uint256 id) external view returns (uint256) { return requests[bytes32(id)].expiration; }
     function getApproved(uint256 id) external view returns (bool) { return requests[bytes32(id)].approved; }
     function getDueTime(uint256 id) external view returns (uint256) { return Model(requests[bytes32(id)].model).getDueTime(bytes32(id)); }
+    function getLoanData(uint256 id) external view returns (bytes32[]) { return requests[bytes32(id)].loanData; }
 
     function getStatus(uint256 id) external view returns (uint256) {
         Request storage request = requests[bytes32(id)];
