@@ -106,7 +106,7 @@ async function assertThrow(promise) {
 };
 
 function toInterestRate(interest) {
-  return (10000000 / interest) * 360 * 86400;
+  return Math.floor((10000000 / interest) * 360 * 86400);
 }
 
 async function buyTokens(token, amount, account) {
@@ -120,8 +120,12 @@ async function readLoanId(recepit) {
   return toEvents(recepit.logs, CREATEDLOAN)[0].index;
 }
 
+async function almostEqual(p1, p2, reason, margin = 3) {
+  assert.isBelow(Math.abs(await p1 - await p2), margin, reason);
+}
+
 module.exports = {
-  toEvents, arrayToBytesOfBytes32, getBlockTime,
+  toEvents, arrayToBytesOfBytes32, getBlockTime, almostEqual,
   toBytes32, increaseTime, isRevertErrorMessage, assertThrow,
   toInterestRate, buyTokens, readLoanId, isRevertErrorMessage,
   CREATEDLOAN, APPROVEDBY, LENT, PARTIALPAYMENT, TOTALPAYMENT, DESTROYEDBY
