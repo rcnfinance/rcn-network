@@ -1,49 +1,15 @@
 pragma solidity ^0.4.15;
 
-/**
- * @title SafeMath
- * @dev Math operations with safety checks that throw on error
- */
-library SafeMath {
-  function mul(uint256 a, uint256 b) internal constant returns (uint256) {
-    uint256 c = a * b;
-    assert(a == 0 || c / a == b);
-    return c;
-  }
-
-  function div(uint256 a, uint256 b) internal constant returns (uint256) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    uint256 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return c;
-  }
-
-  function sub(uint256 a, uint256 b) internal constant returns (uint256) {
-    assert(b <= a);
-    return a - b;
-  }
-
-  function add(uint256 a, uint256 b) internal constant returns (uint256) {
-    uint256 c = a + b;
-    assert(c >= a);
-    return c;
-  }
-}
-
-contract Token {
-    uint256 public totalSupply;
-    function balanceOf(address _owner) constant returns (uint256 balance);
-    function transfer(address _to, uint256 _value) returns (bool success);
-    function transferFrom(address _from, address _to, uint256 _value) returns (bool success);
-    function approve(address _spender, uint256 _value) returns (bool success);
-    function allowance(address _owner, address _spender) constant returns (uint256 remaining);
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-}
+import "./../SafeMath.sol";
 
 /*  ERC 20 token */
-contract StandardToken is Token {
+contract StandardToken {
     using SafeMath for uint256;
+
+    uint256 public totalSupply;
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
+    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
+
     function transfer(address _to, uint256 _value) returns (bool success) {
       if (balances[msg.sender] >= _value) {
         balances[msg.sender] = balances[msg.sender].sub(_value);
@@ -124,8 +90,8 @@ contract TestToken is StandardToken {
         buyTokens(msg.sender);
     }
 
-    function buyTokens(address beneficiary) public payable {
-        uint256 tokens = msg.value.mul(PRICE);
+    function buyTokens(address beneficiary) payable {
+        uint256 tokens = msg.value.mult(PRICE);
         balances[beneficiary] = tokens.add(balances[beneficiary]);
         emit Transfer(0x0, beneficiary, tokens);
         emit Mint(beneficiary, tokens);
