@@ -10,9 +10,6 @@ interface IOracle {
 }
 
 contract DebtEngine is ERC721Base {
-    uint256 constant internal TOKEN_DECIMALS = 18;
-    uint256 constant internal PRECISION = 10 ** TOKEN_DECIMALS;
-
     event Created(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
     event Created2(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
     event Paid(bytes32 indexed _id, address _sender, address _origin, uint256 _requested, uint256 _requestedTokens, uint256 _paid, uint256 _tokens);
