@@ -71,7 +71,7 @@ contract('ERC721 Base', function(accounts) {
         let receiver = await TestERC721ReceiverMultiple.new();
         
         await token.generate(assetId, accounts[0]);
-        console.log(await token.safeTransferFrom(accounts[0], receiver.address, assetId));
+        await token.safeTransferFrom(accounts[0], receiver.address, assetId);
 
         assert.equal(await token.ownerOf(assetId), receiver.address);
         assert.equal(await receiver.methodCalled(), 2);
