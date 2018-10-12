@@ -300,7 +300,10 @@ contract InstallmentsModel is Ownable, Model {
             require(newInterest < U_128_OVERFLOW, "Interest overflow");
 
             emit _setClock(id, uint64(newClock));
-            emit _setInterest(id, uint128(newInterest));
+
+            if (newInterest != 0) {
+                emit _setInterest(id, uint128(newInterest));
+            }
 
             state.clock = uint64(newClock);
             state.interest = uint128(newInterest);
