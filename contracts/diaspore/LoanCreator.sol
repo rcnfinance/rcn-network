@@ -130,7 +130,7 @@ contract LoanCreator {
         bytes cosignerData
     ) public returns (bool) {
         Request storage request = requests[futureDebt];
-        require(request.open, "Request is no longer open");
+        require(request.open, "Request is no longer open or not requested");
         require(request.approved, "The request is not approved by the borrower");
         require(request.expiration > now, "The request is expired");
 
