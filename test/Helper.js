@@ -72,9 +72,10 @@ function toBytes32(source) {
   }
   return "0x" + source;
 }
-
+// haves a delta error about one second
 async function increaseTime(delta) {
   await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 0});
+  await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0});
 }
 
 function isRevertErrorMessage( error ) {
