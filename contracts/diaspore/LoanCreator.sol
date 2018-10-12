@@ -15,6 +15,7 @@ contract LoanCreator {
         debtEngine = _debtEngine;
         token = debtEngine.token();
         require(token != address(0), "Error loading token");
+        directory.length ++;
     }
 
     function getDirectory() external view returns (bytes32[]) { return directory; }
