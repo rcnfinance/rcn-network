@@ -17,7 +17,9 @@ contract LoanCreator {
         require(token != address(0), "Error loading token");
     }
 
-    function getBorrower(uint256 id) external view returns (address) { 
+    function getDirectory() external view returns (bytes32[]) { return directory; }
+
+    function getBorrower(uint256 id) external view returns (address) {
         return requests[bytes32(id)].borrower;
     }
 
