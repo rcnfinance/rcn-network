@@ -86,7 +86,7 @@ function isRevertErrorMessage( error ) {
 }
 
 async function getBlockTime() {
-  return (await web3.eth.getBlock("pending")).timestamp;
+  return (await web3.eth.getBlock("latest")).timestamp;
 }
 
 async function assertThrow(promise) {
