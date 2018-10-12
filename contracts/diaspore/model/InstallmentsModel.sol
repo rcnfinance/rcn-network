@@ -13,7 +13,7 @@ contract InstallmentsModel is Ownable, Model {
         _supportedInterface[this.getClosingObligation.selector] = true;
         _supportedInterface[this.getDueTime.selector] = true;
         _supportedInterface[this.getFinalTime.selector] = true;
-        _supportedInterface[this.getFrecuency.selector] = true;
+        _supportedInterface[this.getFrequency.selector] = true;
         _supportedInterface[this.getEstimateObligation.selector] = true;
         _supportedInterface[this.addDebt.selector] = true; // ??? Not supported
         _supportedInterface[this.run.selector] = true;
@@ -271,7 +271,7 @@ contract InstallmentsModel is Ownable, Model {
         return config.lentTime + (uint256(config.duration) * (uint256(config.installments)));
     }
 
-    function getFrecuency(bytes32 id) external view returns (uint256) {
+    function getFrequency(bytes32 id) external view returns (uint256) {
         return configs[id].duration;
     }
 

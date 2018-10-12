@@ -18,7 +18,7 @@ contract Model is ERC165 {
     event Created(bytes32 indexed _id);
     event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
     event ChangedObligation(bytes32 indexed _id, uint256 _timestamp, uint256 _debt);
-    event ChangedFrecuencalcy(bytes32 indexed _id, uint256 _timestamp, uint256 _frecuency);
+    event ChangedFrequency(bytes32 indexed _id, uint256 _timestamp, uint256 _frequency);
     event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
     event ChangedFinalTime(bytes32 indexed _id, uint256 _timestamp, uint64 _dueTime);
     event AddedDebt(bytes32 indexed _id, uint256 _amount);
@@ -34,7 +34,7 @@ contract Model is ERC165 {
     ^ this.getClosingObligation.selector
     ^ this.getDueTime.selector
     ^ this.getFinalTime.selector
-    ^ this.getFrecuency.selector
+    ^ this.getFrequency.selector
     ^ this.getEstimateObligation.selector
     ^ this.create.selector
     ^ this.addPaid.selector
@@ -160,9 +160,9 @@ contract Model is ERC165 {
         
         @param id Id of the registry
 
-        @return frecuency Frecuency of each installment
+        @return frequency Frequency of each installment
     */
-    function getFrecuency(bytes32 id) external view returns (uint256 frecuency);
+    function getFrequency(bytes32 id) external view returns (uint256 frequency);
 
     /**
         The registry could be paid before or after the date, but the debt will always be
