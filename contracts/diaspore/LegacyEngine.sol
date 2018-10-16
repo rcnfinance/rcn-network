@@ -24,7 +24,6 @@ contract LegacyEngine is LoanCreator {
     ) LoanCreator(_engine) public {
         require(model.engine() == address(_engine), "Model engine is not the same");
         model = _model;
-        nonce = 0;
     }
 
     function createLoan(
