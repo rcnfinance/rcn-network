@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
 import "./LoanCreator.sol";
-import './../interfaces/Oracle.sol';
-import './../utils/Ownable.sol';
+import "./../interfaces/Oracle.sol";
+import "./../utils/Ownable.sol";
 import "./interfaces/Model.sol";
 import "./DebtEngine.sol";
 
