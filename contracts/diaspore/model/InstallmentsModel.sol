@@ -65,6 +65,7 @@ contract InstallmentsModel is Ownable, Model {
     struct State {
         uint8 status;
         uint64 clock;
+        uint64 lastPayment;
         uint128 paid;
         uint128 paidBase;
         uint128 interest;
@@ -129,7 +130,7 @@ contract InstallmentsModel is Ownable, Model {
             do {
                 clock = state.clock;
 
-                baseDebt = _baseDebt(clock, config.duration, config.installments, config.cuota);
+                baseDebt = _baseDebt(clock, duration, config.installments, config.cuota);
                 pending = baseDebt + interest - paid;
 
                 // min(pending, available)
@@ -156,12 +157,13 @@ contract InstallmentsModel is Ownable, Model {
 
                 // If installment fully paid, advance to next one
                 if (pending == target) {
-                    _advanceClock(id, clock + duration);
+                    _advanceClock(id, clock + duration - (clock % duration));
                 }
             } while (available != 0);
 
             require(paid < U_128_OVERFLOW, "Paid overflow");
             state.paid = uint128(paid);
+            state.lastPayment = state.clock;
 
             real = amount - available;
             emit AddedPaid(id, real);
@@ -262,8 +264,9 @@ contract InstallmentsModel is Ownable, Model {
 
     function getDueTime(bytes32 id) external view returns (uint256) {
         Config storage config = configs[id];
-        uint256 clock = states[id].clock;
-        return clock - (clock % config.duration) + config.lentTime;
+        uint256 last = states[id].lastPayment;
+        last = last != 0 ? last : states[id].clock;
+        return last - (last % config.duration) + config.lentTime;
     }
 
     function getFinalTime(bytes32 id) external view returns (uint256) {
@@ -300,7 +303,10 @@ contract InstallmentsModel is Ownable, Model {
             require(newInterest < U_128_OVERFLOW, "Interest overflow");
 
             emit _setClock(id, uint64(newClock));
-            emit _setInterest(id, uint128(newInterest));
+
+            if (newInterest != 0) {
+                emit _setInterest(id, uint128(newInterest));
+            }
 
             state.clock = uint64(newClock);
             state.interest = uint128(newInterest);

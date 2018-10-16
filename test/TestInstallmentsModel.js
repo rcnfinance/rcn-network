@@ -400,4 +400,285 @@ contract('Installments model', function(accounts) {
     assert.equal(await model.getPaid(id), 100691 + 99963 + 99963 + 99963);
     assert.equal(await model.getStatus(id), 1);
   });
+
+  it("It should calculate the interest like the test doc test 3", async function() {
+    let id = Helper.toBytes32(907);
+    let data = [
+        Helper.toBytes32(99963),
+        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
+        Helper.toBytes32(12),
+        Helper.toBytes32(86400 * 30)
+    ];
+
+    await model.create(id, data);
+
+    await model.addPaid(id, 99963 * 3);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() +  4 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    // Pass 4 months to the next loan expire time
+    await Helper.increaseTime(4 * 30 * 86400);
+
+    // Pass 12 days from the due date
+    await Helper.increaseTime(12 * 86400);
+    await ping();
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 12 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 101712);
+
+    await model.addPaid(id, 101712);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() + 18 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 0);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    // Advance to the next month
+    await Helper.increaseTime(18 * 86400);
+
+    // And to the next...
+    await Helper.increaseTime(30 * 86400);
+
+    // And to the next...
+    await Helper.increaseTime(30 * 86400);
+
+    await model.addPaid(id, 250000);
+
+    // Advance to the next month
+    await Helper.increaseTime(30 * 86400);
+    await ping();
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 165727);
+
+    await model.addPaid(id, 10 ** 18);
+    assert.equal(await model.getPaid(id), 1217180);
+    assert.equal(await model.getStatus(id), 2);
+  })
+
+
+  it("It should calculate the interest like the test doc test 3 - alt run 1", async function() {
+    let id = Helper.toBytes32(908);
+    let data = [
+        Helper.toBytes32(99963),
+        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
+        Helper.toBytes32(12),
+        Helper.toBytes32(86400 * 30)
+    ];
+
+    await model.create(id, data);
+
+    await model.addPaid(id, 99963 * 3);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() +  4 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    // Pass 4 months to the next loan expire time
+    await Helper.increaseTime(2 * 30 * 86400);
+    await model.run(id);
+    await Helper.increaseTime(2 * 30 * 86400);
+
+    // Pass 12 days from the due date
+    await Helper.increaseTime(12 * 86400);
+    await ping();
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 12 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 101712);
+
+    await model.addPaid(id, 101712);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() + 18 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 0);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    // Advance to the next month
+    await Helper.increaseTime(18 * 86400);
+
+    // And to the next...
+    await Helper.increaseTime(30 * 86400);
+
+    await model.run(id);
+
+    // And to the next...
+    await Helper.increaseTime(30 * 86400);
+
+    await model.addPaid(id, 250000);
+
+    // Advance to the next month
+    await Helper.increaseTime(30 * 86400);
+    await ping();
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 165727);
+
+    await model.addPaid(id, 10 ** 18);
+    assert.equal(await model.getPaid(id), 1217180);
+    assert.equal(await model.getStatus(id), 2);
+  })
+
+  it("It should calculate the interest like the test doc test 3 - alt run 2", async function() {
+    let id = Helper.toBytes32(909);
+    let data = [
+        Helper.toBytes32(99963),
+        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
+        Helper.toBytes32(12),
+        Helper.toBytes32(86400 * 30)
+    ];
+
+    await model.create(id, data);
+
+    await model.addPaid(id, 99963 * 3);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() +  4 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    // Pass 4 months to the next loan expire time
+    await Helper.increaseTime(2 * 30 * 86400 - 2);
+    await model.run(id);
+    await Helper.increaseTime(2 * 30 * 86400 + 2);
+
+    // Pass 12 days from the due date
+    await Helper.increaseTime(12 * 86400);
+    await ping();
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 12 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 101712);
+
+    await model.addPaid(id, 101712);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() + 18 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 0);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    // Advance to the next month
+    await Helper.increaseTime(18 * 86400);
+
+    // And to the next...
+    await Helper.increaseTime(30 * 86400);
+
+    await model.run(id);
+
+    // And to the next...
+    await Helper.increaseTime(29 * 86400 + 10);
+    await model.run(id);
+    await Helper.increaseTime(86400 - 10);
+
+    await model.addPaid(id, 250000);
+
+    // Advance to the next month
+    await Helper.increaseTime(30 * 86400);
+    await ping();
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 165727);
+
+    await model.addPaid(id, 10 ** 18);
+    assert.equal(await model.getPaid(id), 1217180);
+    assert.equal(await model.getStatus(id), 2);
+  })
+
+  it("It should calculate the interest like the test doc test 4", async function() {
+    let id = Helper.toBytes32(910);
+    let data = [
+        Helper.toBytes32(99963),
+        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
+        Helper.toBytes32(12),
+        Helper.toBytes32(86400 * 30)
+    ];
+
+    await model.create(id, data);
+
+    // Pay the next 4 months in advance
+    await model.addPaid(id, 99963 * 4);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() +  5 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    assert.equal(await model.getPaid(id), 99963 * 4, "Paid should be the amount of 3 installments");
+
+    // Lets stop the payments
+    // Advance 4 months and take a look
+    await Helper.increaseTime((4 + 4) * 30 * 86400);
+
+    await ping();
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() -  3 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 426091);
+
+    // Advance the last 4 months
+    await Helper.increaseTime(4 * 30 * 86400);
+
+    await ping();
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() -  7 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 922155);
+    assert.equal(await model.getStatus(id), 1, "Loan should be ongoing");
+  })
+
+  it("It should calculate the interest like the test doc test 4 - alt run 1", async function() {
+    let id = Helper.toBytes32(911);
+    let data = [
+        Helper.toBytes32(99963),
+        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
+        Helper.toBytes32(12),
+        Helper.toBytes32(86400 * 30)
+    ];
+
+    await model.create(id, data);
+
+    // Pay the next 4 months in advance
+    await model.addPaid(id, 99963 * 4);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() +  5 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    assert.equal(await model.getPaid(id), 99963 * 4, "Paid should be the amount of 3 installments");
+
+    // Lets stop the payments
+    // Advance 4 months and take a look
+    await Helper.increaseTime((4 + 4) * 30 * 86400);
+
+    await model.run(id);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() -  3 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 426091);
+
+    // Advance the last 4 months
+    await Helper.increaseTime(4 * 30 * 86400);
+
+    await ping();
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() -  7 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 922155);
+    assert.equal(await model.getStatus(id), 1, "Loan should be ongoing");
+  })
+
+  it("It should calculate the interest like the test doc test 4 - alt run 2", async function() {
+    let id = Helper.toBytes32(912);
+    let data = [
+        Helper.toBytes32(99963),
+        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
+        Helper.toBytes32(12),
+        Helper.toBytes32(86400 * 30)
+    ];
+
+    await model.create(id, data);
+
+    // Pay the next 4 months in advance
+    await model.addPaid(id, 99963 * 4);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() +  5 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    assert.equal(await model.getPaid(id), 99963 * 4, "Paid should be the amount of 3 installments");
+
+    // Lets stop the payments
+    // Advance 4 months and take a look
+    await Helper.increaseTime((4 + 4) * 30 * 86400);
+
+    await ping();
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() -  3 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 426091);
+
+    // Advance the last 4 months
+    await Helper.increaseTime(4 * 30 * 86400);
+
+    await model.run(id);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() -  7 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 922155);
+    assert.equal(await model.getStatus(id), 1, "Loan should be ongoing");
+  })
 })
