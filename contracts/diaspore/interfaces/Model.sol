@@ -46,7 +46,7 @@ contract Model is ERC165 {
         @param _timestamp Timestamp of the registry
         @param _frequency New frequency of each installment
     */
-    event ChangedFrecuencalcy(bytes32 indexed _id, uint256 _timestamp, uint256 _frecuency);
+    event ChangedFrequency(bytes32 indexed _id, uint256 _timestamp, uint256 _frequency);
 
     /**
         @param _timestamp Timestamp of the registry
