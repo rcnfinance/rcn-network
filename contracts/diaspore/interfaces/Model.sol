@@ -86,7 +86,7 @@ contract Model is ERC165 {
     ^ this.getClosingObligation.selector
     ^ this.getDueTime.selector
     ^ this.getFinalTime.selector
-    ^ this.getFrecuency.selector
+    ^ this.getFrequency.selector
     ^ this.getEstimateObligation.selector
     ^ this.create.selector
     ^ this.addPaid.selector
@@ -95,6 +95,7 @@ contract Model is ERC165 {
 
     uint256 public constant STATUS_ONGOING = 1;
     uint256 public constant STATUS_PAID = 2;
+    uint256 public constant STATUS_ERROR = 4;
 
     // ///
     // Meta

@@ -30,6 +30,7 @@ contract LoanCreator {
     function getExpirationRequest(uint256 id) external view returns (uint256) { return requests[bytes32(id)].expiration; }
     function getApproved(uint256 id) external view returns (bool) { return requests[bytes32(id)].approved; }
     function getDueTime(uint256 id) external view returns (uint256) { return Model(requests[bytes32(id)].model).getDueTime(bytes32(id)); }
+    function getLoanData(uint256 id) external view returns (bytes32[]) { return requests[bytes32(id)].loanData; }
 
     function getStatus(uint256 id) external view returns (uint256) {
         Request storage request = requests[bytes32(id)];
@@ -39,9 +40,9 @@ contract LoanCreator {
     struct Request {
         bool open;
         bool approved;
+        bytes8 currency;
         uint64 position;
         uint64 expiration;
-        bytes16 currency;
         uint128 amount;
         address cosigner;
         address model;
@@ -64,7 +65,7 @@ contract LoanCreator {
     }
 
     function requestLoan(
-        bytes16 currency,
+        bytes8 currency,
         uint128 amount,
         address model,
         address oracle,
@@ -249,7 +250,7 @@ contract LoanCreator {
             open: false,
             approved: true,
             cosigner: cosigner,
-            currency: bytes16(requestData[R_CURRENCY]),
+            currency: bytes8(requestData[R_CURRENCY]),
             amount: uint128(requestData[R_AMOUNT]),
             model: address(requestData[R_MODEL]),
             creator: address(requestData[R_CREATOR]),
@@ -374,7 +375,7 @@ contract LoanCreator {
             Model(address(requestData[R_MODEL])),
             msg.sender,
             address(requestData[R_ORACLE]),
-            bytes16(requestData[R_CURRENCY]),
+            bytes8(requestData[R_CURRENCY]),
             internalNonce,
             loanData
         );
