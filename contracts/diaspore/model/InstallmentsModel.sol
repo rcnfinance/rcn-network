@@ -129,7 +129,7 @@ contract InstallmentsModel is Ownable, Model {
             do {
                 clock = state.clock;
 
-                baseDebt = _baseDebt(clock, config.duration, config.installments, config.cuota);
+                baseDebt = _baseDebt(clock, duration, config.installments, config.cuota);
                 pending = baseDebt + interest - paid;
 
                 // min(pending, available)
@@ -156,7 +156,7 @@ contract InstallmentsModel is Ownable, Model {
 
                 // If installment fully paid, advance to next one
                 if (pending == target) {
-                    _advanceClock(id, clock + duration);
+                    _advanceClock(id, clock + duration - (clock % duration));
                 }
             } while (available != 0);
 
