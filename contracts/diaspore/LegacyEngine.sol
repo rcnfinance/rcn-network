@@ -19,9 +19,10 @@ contract LegacyEngine is LoanCreator {
     mapping(bytes32 => uint256) public nonces;
 
     constructor (
+        DebtEngine _engine,
         Model _model
-    ) LoanCreator(DebtEngine(_model.engine())) public {
-        require(_model != address(0), "Error loading diaspore model.");
+    ) LoanCreator(_engine) public {
+        require(model.engine() == address(_engine), "Model engine is not the same");
         model = _model;
         nonce = 0;
     }
