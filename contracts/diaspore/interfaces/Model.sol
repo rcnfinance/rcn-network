@@ -5,8 +5,8 @@ import "./../../interfaces/ERC165.sol";
 /**
     The abstract contract Model defines the whole lifecycle of a debt on the DebtEngine.
 
-    Models can be used without previous approbation, this is meant 
-    to avoid centralization on the development of RCN; this implies that not all models are secure. 
+    Models can be used without previous approbation, this is meant
+    to avoid centralization on the development of RCN; this implies that not all models are secure.
     Models can have back-doors, bugs and they have not guarantee of being autonomous.
 
     The DebtEngine is meant to be the User of this model,
@@ -25,7 +25,7 @@ contract Model is ERC165 {
     event AddedPaid(bytes32 indexed _id, uint256 _paid);
 
     // Model interface selector
-    bytes4 internal debtModelInterface = 
+    bytes4 internal debtModelInterface =
     this.isOperator.selector
     ^ this.validate.selector
     ^ this.getStatus.selector
@@ -45,6 +45,8 @@ contract Model is ERC165 {
     uint256 public constant STATUS_PAID = 2;
     uint256 public constant STATUS_ERROR = 4;
 
+    address public engine;
+
     // ///
     // Meta
     // ///
@@ -61,7 +63,7 @@ contract Model is ERC165 {
         @return True if operator is able to modify the state of the model
     */
     function isOperator(address operator) external view returns (bool canOperate);
-    
+
     /**
         Validates the data for the creation of a new registry, if returns True the
             same data should be compatible with the create method.
@@ -77,12 +79,12 @@ contract Model is ERC165 {
     // ///
     // Getters
     // ///
-    
+
     /**
         Exposes the current status of the registry. The possible values are:
 
         1: Ongoing - The debt is still ongoing and waiting to be paid
-        2: Paid - The debt is already paid and 
+        2: Paid - The debt is already paid and
         5: Error - There was an Error with the registry
 
         @dev This method should always be called by the DebtEngine
@@ -128,7 +130,7 @@ contract Model is ERC165 {
 
         If the registry discounts interest for early payment, those discounts should be
             taken into account in the returned amount.
-        
+
         @dev This can be a gas-intensive method to call, consider calling the run method before.
 
         @param id Id of the registry
@@ -157,7 +159,7 @@ contract Model is ERC165 {
     /**
         If the loan has multiple installments returns the duration of each installment in seconds,
             if the loan has not installments it should return 1.
-        
+
         @param id Id of the registry
 
         @return frecuency Frecuency of each installment
@@ -179,7 +181,7 @@ contract Model is ERC165 {
     /**
         Similar to getFinalTime returns the expected payment remaining if paid always on the exact dueTime.
 
-        If the model has no interest discounts for early payments, 
+        If the model has no interest discounts for early payments,
             this method should return the same value as getClosignObligation.
 
         @param id Id of the registry
@@ -237,7 +239,7 @@ contract Model is ERC165 {
     // ///
     // Utils
     // ///
-    
+
     /**
         Runs the internal clock of a registry, this is used to compute the last changes on the state.
             It can make transactions cheaper by avoiding multiple calculations when calling views.

@@ -26,13 +26,11 @@ contract InstallmentsModel is Ownable, Model {
     }
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-        return 
+        return
             interfaceId == this.supportsInterface.selector ||
             interfaceId == debtModelInterface ||
             _supportedInterface[interfaceId];
     }
-
-    address public engine;
 
     mapping(bytes32 => Config) public configs;
     mapping(bytes32 => State) public states;
@@ -83,7 +81,7 @@ contract InstallmentsModel is Ownable, Model {
     function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
         require(configs[id].cuota == 0, "Entry already exist");
         _validate(data);
-        
+
         uint40 duration = uint40(data[C_INSTALLMENT_DURATION]);
 
         configs[id] = Config({
@@ -206,9 +204,9 @@ contract InstallmentsModel is Ownable, Model {
         // Can't be before creation
         if (timestamp < config.lentTime) {
             return (0, true);
-        } 
+        }
 
-        // Static storage loads        
+        // Static storage loads
         uint256 currentClock = timestamp - config.lentTime;
 
         uint256 base = _baseDebt(
@@ -241,7 +239,7 @@ contract InstallmentsModel is Ownable, Model {
 
             defined = prevInterest == interest;
         }
-        
+
         uint256 debt = base + interest;
         uint256 paid = state.paid;
         return (debt > paid ? debt - paid : 0, defined);
@@ -359,7 +357,7 @@ contract InstallmentsModel is Ownable, Model {
         // Aux variables
         uint256 delta;
         bool installmentCompleted;
-        
+
         do {
             // Delta to next installment and absolute delta (no exceeding 1 installment)
             (delta, installmentCompleted) = _calcDelta({

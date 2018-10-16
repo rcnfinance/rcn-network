@@ -11,18 +11,18 @@ contract LoanCreator {
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
-    constructor(DebtEngine _debtEngine) public {
+    constructor (DebtEngine _debtEngine) public {
         debtEngine = _debtEngine;
         token = debtEngine.token();
         require(token != address(0), "Error loading token");
     }
 
-    function getBorrower(uint256 id) external view returns (address) { 
+    function getBorrower(uint256 id) external view returns (address) {
         return requests[bytes32(id)].borrower;
     }
 
-    function getCreator(uint256 id) external view returns (address) { return requests[bytes32(id)].creator; }
-    function getOracle(uint256 id) external view returns (address) { return requests[bytes32(id)].oracle; }
+    function getCreator(uint256 id) public view returns (address) { return requests[bytes32(id)].creator; }
+    function getOracle(uint256 id) public view returns (address) { return requests[bytes32(id)].oracle; }
     function getCosigner(uint256 id) external view returns (address) { return requests[bytes32(id)].cosigner; }
     function getCurrency(uint256 id) external view returns (bytes32) { return requests[bytes32(id)].currency; }
     function getAmount(uint256 id) external view returns (uint256) { return requests[bytes32(id)].amount; }
@@ -31,7 +31,7 @@ contract LoanCreator {
     function getApproved(uint256 id) external view returns (bool) { return requests[bytes32(id)].approved; }
     function getDueTime(uint256 id) external view returns (uint256) { return Model(requests[bytes32(id)].model).getDueTime(bytes32(id)); }
 
-    function getStatus(uint256 id) external view returns (uint256) {
+    function getStatus(uint256 id) public view returns (uint256) {
         Request storage request = requests[bytes32(id)];
         return request.open ? 0 : Model(request.model).getStatus(bytes32(id));
     }
@@ -72,7 +72,7 @@ contract LoanCreator {
         uint256 nonce,
         uint64 expiration,
         bytes32[] loanData
-    ) external returns (bytes32 futureDebt) {
+    ) public returns (bytes32 futureDebt) {
         require(borrower != address(0), "The request should have a borrower");
         require(Model(model).validate(loanData), "The loan data is not valid");
 
@@ -109,7 +109,7 @@ contract LoanCreator {
 
     function approveRequest(
         bytes32 futureDebt
-    ) external returns (bool) {
+    ) public returns (bool) {
         Request storage request = requests[futureDebt];
         require(msg.sender == request.borrower, "Only borrower can approve");
         if (!request.approved) {
@@ -222,13 +222,13 @@ contract LoanCreator {
                     uint256(requestData[R_NONCE]))
                 )
             );
-        
+
         futureDebt = debtEngine.buildId(
             address(this),
             internalNonce,
             true
         );
-        
+
         require(requests[futureDebt].borrower == address(0), "Request already exist");
 
         validateRequest(requestData, loanData, borrowerSig, creatorSig);
@@ -260,7 +260,7 @@ contract LoanCreator {
             position: 0,
             expiration: uint64(requestData[R_EXPIRATION])
         });
-        
+
         Request storage request = requests[futureDebt];
 
         // Call the cosigner
@@ -333,7 +333,7 @@ contract LoanCreator {
     ) internal {
         bytes32 sig = _requestSignature(requestData, loanData);
         require(!canceledSettles[sig], "Settle was canceled");
-        
+
         uint256 expected = uint256(sig) / 2;
         address borrower = address(requestData[R_BORROWER]);
         address creator = address(requestData[R_CREATOR]);

@@ -34,7 +34,7 @@ contract DebtEngine is ERC721Base {
         address oracle;
     }
 
-    constructor(Token _token) public {
+    constructor (Token _token) public {
         token = _token;
     }
 
@@ -162,7 +162,7 @@ contract DebtEngine is ERC721Base {
             _tokens: paidToken
         });
     }
-    
+
     function payToken(
         bytes32 id,
         uint256 amount,
