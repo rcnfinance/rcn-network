@@ -65,6 +65,7 @@ contract InstallmentsModel is Ownable, Model {
     struct State {
         uint8 status;
         uint64 clock;
+        uint64 lastPayment;
         uint128 paid;
         uint128 paidBase;
         uint128 interest;
@@ -162,6 +163,7 @@ contract InstallmentsModel is Ownable, Model {
 
             require(paid < U_128_OVERFLOW, "Paid overflow");
             state.paid = uint128(paid);
+            state.lastPayment = state.clock;
 
             real = amount - available;
             emit AddedPaid(id, real);
@@ -262,8 +264,9 @@ contract InstallmentsModel is Ownable, Model {
 
     function getDueTime(bytes32 id) external view returns (uint256) {
         Config storage config = configs[id];
-        uint256 clock = states[id].clock;
-        return clock - (clock % config.duration) + config.lentTime;
+        uint256 last = states[id].lastPayment;
+        last = last != 0 ? last : states[id].clock;
+        return last - (last % config.duration) + config.lentTime;
     }
 
     function getFinalTime(bytes32 id) external view returns (uint256) {
