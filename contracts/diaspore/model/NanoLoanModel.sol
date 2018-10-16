@@ -106,8 +106,6 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
             The interestRatePunitory should be more than 1000
             The amount should not be 0
 
-
-        @param id Index of the loan
         @param data Array of bytes32 with 5 length, used to create a loan
             0: The requested amount
             1: The non-punitory interest rate by second, defined as a denominator of 10 000 000.
