@@ -400,4 +400,58 @@ contract('Installments model', function(accounts) {
     assert.equal(await model.getPaid(id), 100691 + 99963 + 99963 + 99963);
     assert.equal(await model.getStatus(id), 1);
   });
+
+  it("It should calculate the interest like the test doc test 1 - alt run 3", async function() {
+    let id = Helper.toBytes32(907);
+    let data = [
+        Helper.toBytes32(99963),
+        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
+        Helper.toBytes32(12),
+        Helper.toBytes32(86400 * 30)
+    ];
+
+    await model.create(id, data);
+
+    await model.addPaid(id, 99963 * 3);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() +  4 * 30 * 86400);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    // Pass 4 months to the next loan expire time
+    await Helper.increaseTime(4 * 30 * 86400);
+
+    // Pass 12 days from the due date
+    await Helper.increaseTime(12 * 86400);
+    await ping();
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 12 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 101712);
+
+    await model.addPaid(id, 101712);
+
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() + 18 * 86400);
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 0);
+    assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+    // Advance to the next month
+    await Helper.increaseTime(18 * 86400);
+
+    // And to the next...
+    await Helper.increaseTime(30 * 86400);
+
+    // And to the next...
+    await Helper.increaseTime(30 * 86400);
+
+    await model.addPaid(id, 250000);
+
+    // Advance to the next month
+    await Helper.increaseTime(30 * 86400);
+    await ping();
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 165727);
+
+    await model.addPaid(id, 10 ** 18);
+    assert.equal(await model.getPaid(id), 1217180);
+    assert.equal(await model.getStatus(id), 2);
+  })
 })
