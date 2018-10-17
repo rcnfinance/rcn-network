@@ -10,8 +10,8 @@ interface IOracle {
 }
 
 contract DebtEngine is ERC721Base {
-    event Created(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
-    event Created2(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
+    event Created(bytes32 indexed _id, uint256 _nonce, bytes _data);
+    event Created2(bytes32 indexed _id, uint256 _nonce, bytes _data);
     event Paid(bytes32 indexed _id, address _sender, address _origin, uint256 _requested, uint256 _requestedTokens, uint256 _paid, uint256 _tokens);
     event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
     event Withdrawn(bytes32 indexed _id, address _sender, address _to, uint256 _amount);
@@ -48,7 +48,7 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         bytes8 _currency,
-        bytes32[] _data
+        bytes _data
     ) external returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
         id = _buildId(msg.sender, nonce, false);
@@ -78,7 +78,7 @@ contract DebtEngine is ERC721Base {
         address _oracle,
         bytes8 _currency,
         uint256 _nonce,
-        bytes32[] _data
+        bytes _data
     ) external returns (bytes32 id) {
         id = _buildId(msg.sender, _nonce, true);
 

@@ -2,11 +2,10 @@ pragma solidity ^0.4.24;
 
 import "./../../interfaces/Model.sol";
 import "./../../../utils/Ownable.sol";
+import "./../../../utils/BytesUtils.sol";
 
-contract TestModel is Ownable, Model {
-    uint256 public constant C_PARAMS = 2;
-    uint256 public constant C_TOTAL = 0;
-    uint256 public constant C_DUE = 1;
+contract TestModel is BytesUtils, Ownable, Model {
+    uint256 public constant L_DATA = 16 + 8;
 
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
@@ -40,6 +39,13 @@ contract TestModel is Ownable, Model {
         _supportedInterface[this.addPaid.selector] = true;
         _supportedInterface[this.engine.selector] = true;
         _supportedInterface[this.getObligation.selector] = true;
+    }
+
+    function encodeData(
+        uint128 _total,
+        uint64 _dueTime
+    ) external pure returns (bytes) {
+        return abi.encodePacked(_total, _dueTime);
     }
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
@@ -80,8 +86,10 @@ contract TestModel is Ownable, Model {
         return operator == owner;
     }
 
-    function validate(bytes32[] data) external view returns (bool) {
-        return _validate(data); 
+    function validate(bytes data) external view returns (bool) {
+        require(data.length == L_DATA, "Invalid data length");
+        _validate(uint64(read(data, 16, 8)));
+        return true; 
     }
 
     function getStatus(bytes32 id) external view returns (uint256) {
@@ -135,18 +143,22 @@ contract TestModel is Ownable, Model {
         return entry.total - entry.paid;
     }
 
-    function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
-        _validate(data);
+    function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
+        require(data.length == L_DATA, "Invalid data length");
+
+        (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
+        uint128 total = uint128(btotal);
+        uint64 dueTime = uint64(bdue);
+
+        _validate(dueTime);
 
         emit Created(id);
-
-        uint64 dueTime = uint64(data[C_DUE]);
 
         registry[id] = Entry({
             errorFlag: 0,
             dueTime: dueTime,
             lastPing: uint64(now),
-            total: uint128(data[C_TOTAL]),
+            total: total,
             paid: 0
         });
 
@@ -236,10 +248,7 @@ contract TestModel is Ownable, Model {
         }
     }
 
-    function _validate(bytes32[] data) internal view returns (bool) {
-        require(data.length == C_PARAMS, "Wrong data arguments count");
-        require(uint256(data[C_TOTAL]) < U_128_OVERFLOW, "Total overflow");
-        require(uint64(data[C_DUE]) > now, "Expiration already past");
-        return true;
+    function _validate(uint256 due) internal view {
+        require(due > now, "Due time already past");
     }
 }
