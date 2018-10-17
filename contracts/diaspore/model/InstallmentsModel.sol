@@ -265,8 +265,9 @@ contract InstallmentsModel is Ownable, Model {
     function getDueTime(bytes32 id) external view returns (uint256) {
         Config storage config = configs[id];
         uint256 last = states[id].lastPayment;
-        last = last != 0 ? last : states[id].clock;
-        return last - (last % config.duration) + config.lentTime;
+        uint256 duration = config.duration;
+        last = last != 0 ? last : duration;
+        return last - (last % duration) + config.lentTime;
     }
 
     function getFinalTime(bytes32 id) external view returns (uint256) {
