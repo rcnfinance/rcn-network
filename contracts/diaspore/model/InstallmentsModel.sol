@@ -38,7 +38,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
     mapping(bytes32 => Config) public configs;
     mapping(bytes32 => State) public states;
 
-    uint256 public constant L_DATA = 16 + 32 + 3 + 5;
+    uint256 public constant L_DATA = 16 + 32 + 3 + 5 + 4;
 
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
@@ -52,6 +52,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
 
     struct Config {
         uint24 installments;
+        uint32 timeUnit;
         uint40 duration;
         uint64 lentTime;
         uint128 cuota;
@@ -82,16 +83,17 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
         uint128 _cuota,
         uint256 _interestRate,
         uint24 _installments,
-        uint40 _duration
+        uint40 _duration,
+        uint32 _timeUnit
     ) external pure returns (bytes) {
-        return abi.encodePacked(_cuota, _interestRate, _installments, _duration);
+        return abi.encodePacked(_cuota, _interestRate, _installments, _duration, _timeUnit);
     }
 
     function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
         require(configs[id].cuota == 0, "Entry already exist");
         
-        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration) = _decodeData(data);
-        _validate(cuota, interestRate, installments, duration);
+        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _decodeData(data);
+        _validate(cuota, interestRate, installments, duration, timeUnit);
 
         configs[id] = Config({
             installments: installments,
@@ -99,6 +101,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
             lentTime: uint64(now),
             cuota: cuota,
             interestRate: interestRate,
+            timeUnit: timeUnit,
             id: id
         });
 
@@ -236,16 +239,13 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
             defined = true;
         } else {
             // We need to calculate the new interest, on a view!
-            (interest, currentClock) = _runAdvanceClock({
-                _clock: clock,
-                _interest: prevInterest,
-                _duration: config.duration,
-                _cuota: config.cuota,
-                _installments: config.installments,
-                _paidBase: state.paidBase,
-                _interestRate: config.interestRate,
-                _targetClock: currentClock
-            });
+            (interest, currentClock) = _simRunClock(
+                clock,
+                currentClock,
+                prevInterest,
+                config,
+                state
+            );
 
             defined = prevInterest == interest;
         }
@@ -255,14 +255,34 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
         return (debt > paid ? debt - paid : 0, defined);
     }
 
+    function _simRunClock(
+        uint256 _clock,
+        uint256 _targetClock,
+        uint256 _prevInterest,
+        Config _config,
+        State _state
+    ) internal pure returns (uint256 interest, uint256 clock) {
+        (interest, clock) = _runAdvanceClock({
+            _clock: _clock,
+            _timeUnit: _config.timeUnit,
+            _interest: _prevInterest,
+            _duration: _config.duration,
+            _cuota: _config.cuota,
+            _installments: _config.installments,
+            _paidBase: _state.paidBase,
+            _interestRate: _config.interestRate,
+            _targetClock: _targetClock
+        });
+    }
+
     function run(bytes32 id) external returns (bool) {
         Config storage config = configs[id];
         return _advanceClock(id, uint64(now) - config.lentTime);
     }
 
     function validate(bytes data) external view returns (bool) {
-        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration) = _decodeData(data);
-        _validate(cuota, interestRate, installments, duration);
+        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _decodeData(data);
+        _validate(cuota, interestRate, installments, duration, timeUnit);
         return true;
     }
 
@@ -298,6 +318,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
         if (clock < _target) {
             (uint256 newInterest, uint256 newClock) = _runAdvanceClock({
                 _clock: state.clock,
+                _timeUnit: config.timeUnit,
                 _interest: state.interest,
                 _duration: config.duration,
                 _cuota: config.cuota,
@@ -340,6 +361,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
         } else {
             (interest,) = _runAdvanceClock({
                 _clock: clock,
+                _timeUnit: config.timeUnit,
                 _interest: state.interest,
                 _duration: config.duration,
                 _cuota: cuota,
@@ -358,6 +380,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
 
     function _runAdvanceClock(
         uint256 _clock,
+        uint256 _timeUnit,
         uint256 _interest,
         uint256 _duration,
         uint256 _cuota,
@@ -386,6 +409,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
             // Running debt
             uint256 newInterest = _newInterest({
                 _clock: clock,
+                _timeUnit: _timeUnit,
                 _duration: _duration,
                 _installments: _installments,
                 _cuota: _cuota,
@@ -422,6 +446,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
 
     function _newInterest(
         uint256 _clock,
+        uint256 _timeUnit,
         uint256 _duration,
         uint256 _installments,
         uint256 _cuota,
@@ -430,7 +455,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
         uint256 _interestRate
     ) internal pure returns (uint256) {
         uint256 runningDebt = _baseDebt(_clock, _duration, _installments, _cuota) - _paidBase;
-        uint256 newInterest = (100000 * _delta * runningDebt) / _interestRate;
+        uint256 newInterest = (100000 * (_delta / _timeUnit) * runningDebt) / (_interestRate / _timeUnit);
         require(newInterest < U_128_OVERFLOW, "New interest overflow");
         return newInterest;
     }
@@ -449,19 +474,29 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
         uint256 _cuota,
         uint256 _interestRate,
         uint256 _installments,
-        uint256 _installmentDuration
+        uint256 _installmentDuration,
+        uint256 _timeUnit
     ) internal pure {
         require(_cuota > 0, "Cuota can't be 0");
         require(_interestRate > 0, "Interest rate can't be 0");
         require(_installments > 0, "Installments can't be 0");
         require(_installmentDuration > 0, "Installment duration can't be 0");
+        require(_timeUnit <= _installmentDuration, "Time unit can't be lower than installment duration");
+        require(_interestRate > _timeUnit, "Interest rate by time unit is too low");
+        require(_timeUnit > 0, "Time unit can'be 0");
     }
 
     function _decodeData(
         bytes _data
-    ) internal pure returns (uint128, uint256, uint24, uint40) {
+    ) internal pure returns (uint128, uint256, uint24, uint40, uint32) {
         require(_data.length == L_DATA, "Invalid data length");
-        (bytes32 cuota, bytes32 interestRate, bytes32 installments, bytes32 duration) = decode(_data, 16, 32, 3, 5);
-        return (uint128(cuota), uint256(interestRate), uint24(installments), uint40(duration));
+        (
+            bytes32 cuota,
+            bytes32 interestRate,
+            bytes32 installments,
+            bytes32 duration,
+            bytes32 timeUnit
+        ) = decode(_data, 16, 32, 3, 5, 4);
+        return (uint128(cuota), uint256(interestRate), uint24(installments), uint40(duration), uint32(timeUnit));
     }
 }

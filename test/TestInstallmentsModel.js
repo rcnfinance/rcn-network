@@ -22,7 +22,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      1
     );
     await model.create(id, data);
     await Helper.assertThrow(model.create(id, data));
@@ -34,7 +35,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     assert.isTrue(await model.validate(data), "Registry data should be valid");
@@ -59,7 +61,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -75,7 +78,8 @@ contract('Installments model', function(accounts) {
       web3.toWei(110),
       Helper.toInterestRate(20),
       1,
-      360 * 86400
+      360 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -97,7 +101,8 @@ contract('Installments model', function(accounts) {
       300,
       Helper.toInterestRate(240),
       3,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -136,7 +141,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -160,7 +166,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -198,7 +205,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -268,7 +276,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -338,7 +347,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -407,7 +417,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -462,7 +473,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -520,7 +532,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -580,7 +593,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -616,7 +630,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -652,7 +667,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
