@@ -17,8 +17,6 @@ contract LoanCreator {
         require(token != address(0), "Error loading token");
         directory.length ++;
     }
-    
-    function getDirectory() external view returns (bytes32[]) { return directory; }
 
     function getDirectory() external view returns (bytes32[]) { return directory; }
 
@@ -228,13 +226,13 @@ contract LoanCreator {
                     uint256(requestData[R_NONCE]))
                 )
             );
-        
+
         futureDebt = debtEngine.buildId(
             address(this),
             internalNonce,
             true
         );
-        
+
         require(requests[futureDebt].borrower == address(0), "Request already exist");
 
         validateRequest(requestData, loanData, borrowerSig, creatorSig);
@@ -266,7 +264,7 @@ contract LoanCreator {
             position: 0,
             expiration: uint64(requestData[R_EXPIRATION])
         });
-        
+
         Request storage request = requests[futureDebt];
 
         // Call the cosigner
@@ -339,7 +337,7 @@ contract LoanCreator {
     ) internal {
         bytes32 sig = _requestSignature(requestData, loanData);
         require(!canceledSettles[sig], "Settle was canceled");
-        
+
         uint256 expected = uint256(sig) / 2;
         address borrower = address(requestData[R_BORROWER]);
         address creator = address(requestData[R_CREATOR]);
