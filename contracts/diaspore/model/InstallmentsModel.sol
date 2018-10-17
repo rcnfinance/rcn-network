@@ -1,7 +1,8 @@
 import "./../interfaces/Model.sol";
 import "./../../utils/Ownable.sol";
+import "./../../utils/BytesUtils.sol";
 
-contract InstallmentsModel is Ownable, Model {
+contract InstallmentsModel is BytesUtils, Ownable, Model {
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {
@@ -13,7 +14,7 @@ contract InstallmentsModel is Ownable, Model {
         _supportedInterface[this.getClosingObligation.selector] = true;
         _supportedInterface[this.getDueTime.selector] = true;
         _supportedInterface[this.getFinalTime.selector] = true;
-        _supportedInterface[this.getFrecuency.selector] = true;
+        _supportedInterface[this.getFrequency.selector] = true;
         _supportedInterface[this.getEstimateObligation.selector] = true;
         _supportedInterface[this.addDebt.selector] = true; // ??? Not supported
         _supportedInterface[this.run.selector] = true;
@@ -37,11 +38,7 @@ contract InstallmentsModel is Ownable, Model {
     mapping(bytes32 => Config) public configs;
     mapping(bytes32 => State) public states;
 
-    uint256 public constant C_PARAMS = 4;
-    uint256 public constant C_CUOTA = 0;
-    uint256 public constant C_INTEREST_RATE = 1;
-    uint256 public constant C_INSTALLMENTS = 2;
-    uint256 public constant C_INSTALLMENT_DURATION = 3;
+    uint256 public constant L_DATA = 16 + 32 + 3 + 5;
 
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
@@ -65,6 +62,7 @@ contract InstallmentsModel is Ownable, Model {
     struct State {
         uint8 status;
         uint64 clock;
+        uint64 lastPayment;
         uint128 paid;
         uint128 paidBase;
         uint128 interest;
@@ -80,24 +78,33 @@ contract InstallmentsModel is Ownable, Model {
         return true;
     }
 
-    function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
+    function encodeData(
+        uint128 _cuota,
+        uint256 _interestRate,
+        uint24 _installments,
+        uint40 _duration
+    ) external pure returns (bytes) {
+        return abi.encodePacked(_cuota, _interestRate, _installments, _duration);
+    }
+
+    function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
         require(configs[id].cuota == 0, "Entry already exist");
-        _validate(data);
         
-        uint40 duration = uint40(data[C_INSTALLMENT_DURATION]);
+        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration) = _decodeData(data);
+        _validate(cuota, interestRate, installments, duration);
 
         configs[id] = Config({
-            installments: uint24(data[C_INSTALLMENTS]),
+            installments: installments,
             duration: duration,
             lentTime: uint64(now),
-            cuota: uint128(data[C_CUOTA]),
-            interestRate: uint256(data[C_INTEREST_RATE]),
+            cuota: cuota,
+            interestRate: interestRate,
             id: id
         });
 
         states[id].clock = duration;
 
-        emit Created(id, data);
+        emit Created(id);
         emit _setClock(id, duration);
 
         return true;
@@ -129,7 +136,7 @@ contract InstallmentsModel is Ownable, Model {
             do {
                 clock = state.clock;
 
-                baseDebt = _baseDebt(clock, config.duration, config.installments, config.cuota);
+                baseDebt = _baseDebt(clock, duration, config.installments, config.cuota);
                 pending = baseDebt + interest - paid;
 
                 // min(pending, available)
@@ -156,12 +163,13 @@ contract InstallmentsModel is Ownable, Model {
 
                 // If installment fully paid, advance to next one
                 if (pending == target) {
-                    _advanceClock(id, clock + duration);
+                    _advanceClock(id, clock + duration - (clock % duration));
                 }
             } while (available != 0);
 
             require(paid < U_128_OVERFLOW, "Paid overflow");
             state.paid = uint128(paid);
+            state.lastPayment = state.clock;
 
             real = amount - available;
             emit AddedPaid(id, real);
@@ -252,8 +260,10 @@ contract InstallmentsModel is Ownable, Model {
         return _advanceClock(id, uint64(now) - config.lentTime);
     }
 
-    function validate(bytes32[] data) external view returns (bool) {
-        return _validate(data);
+    function validate(bytes data) external view returns (bool) {
+        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration) = _decodeData(data);
+        _validate(cuota, interestRate, installments, duration);
+        return true;
     }
 
     function getClosingObligation(bytes32 id) external view returns (uint256) {
@@ -262,8 +272,10 @@ contract InstallmentsModel is Ownable, Model {
 
     function getDueTime(bytes32 id) external view returns (uint256) {
         Config storage config = configs[id];
-        uint256 clock = states[id].clock;
-        return clock - (clock % config.duration) + config.lentTime;
+        uint256 last = states[id].lastPayment;
+        uint256 duration = config.duration;
+        last = last != 0 ? last : duration;
+        return last - (last % duration) + config.lentTime;
     }
 
     function getFinalTime(bytes32 id) external view returns (uint256) {
@@ -271,7 +283,7 @@ contract InstallmentsModel is Ownable, Model {
         return config.lentTime + (uint256(config.duration) * (uint256(config.installments)));
     }
 
-    function getFrecuency(bytes32 id) external view returns (uint256) {
+    function getFrequency(bytes32 id) external view returns (uint256) {
         return configs[id].duration;
     }
 
@@ -300,7 +312,10 @@ contract InstallmentsModel is Ownable, Model {
             require(newInterest < U_128_OVERFLOW, "Interest overflow");
 
             emit _setClock(id, uint64(newClock));
-            emit _setInterest(id, uint128(newInterest));
+
+            if (newInterest != 0) {
+                emit _setInterest(id, uint128(newInterest));
+            }
 
             state.clock = uint64(newClock);
             state.interest = uint128(newInterest);
@@ -431,15 +446,23 @@ contract InstallmentsModel is Ownable, Model {
         return uint128(installment < installments ? installment * cuota : installments * cuota);
     }
 
-    function _validate(bytes32[] data) internal pure returns (bool) {
-        require(data.length == C_PARAMS, "Wrong data arguments count");
-        require(uint256(data[C_CUOTA]) < U_128_OVERFLOW, "Cuota too high");
-        require(uint128(data[C_CUOTA]) > 0, "Cuota can't be 0");
-        require(uint256(data[C_INTEREST_RATE]) > 1000, "Interest rate too high");
-        require(uint256(data[C_INSTALLMENTS]) < U_24_OVERFLOW, "Too many installments");
-        require(uint24(data[C_INSTALLMENTS]) > 0, "Installments can't be 0");
-        require(uint256(data[C_INSTALLMENT_DURATION]) < U_40_OVERFLOW, "Installment duration too long");
-        require(uint40(data[C_INSTALLMENT_DURATION]) > 0, "Installment duration can't be 0");
-        return true;
+    function _validate(
+        uint256 _cuota,
+        uint256 _interestRate,
+        uint256 _installments,
+        uint256 _installmentDuration
+    ) internal pure {
+        require(_cuota > 0, "Cuota can't be 0");
+        require(_interestRate > 0, "Interest rate can't be 0");
+        require(_installments > 0, "Installments can't be 0");
+        require(_installmentDuration > 0, "Installment duration can't be 0");
+    }
+
+    function _decodeData(
+        bytes _data
+    ) internal pure returns (uint128, uint256, uint24, uint40) {
+        require(_data.length == L_DATA, "Invalid data length");
+        (bytes32 cuota, bytes32 interestRate, bytes32 installments, bytes32 duration) = decode(_data, 16, 32, 3, 5);
+        return (uint128(cuota), uint256(interestRate), uint24(installments), uint40(duration));
     }
 }

@@ -31,10 +31,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[1],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 1000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
         );
 
         assert.equal(await debtEngine.balanceOf(accounts[1]), 1, "Account 1 should have a new asset");
@@ -47,10 +44,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             0x0,
             8000000,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         );
 
         assert.equal(await debtEngine.balanceOf(accounts[1]), 2, "Account 1 should have a new asset");
@@ -60,11 +54,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            9000000,
-            [
-                Helper.toBytes32(2000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 3000)
-            ]
+            8000001,
+            await testModel.encodeData(2000, (await Helper.getBlockTime()) + 3000)
         );
 
         assert.equal(await debtEngine.balanceOf(accounts[2]), 1, "Account 1 should have a new asset");
@@ -76,10 +67,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -98,10 +86,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -120,10 +105,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -152,10 +134,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -182,10 +161,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const id2 = await getId(debtEngine.create(
@@ -193,10 +169,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(7000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(7000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 10000);
@@ -224,10 +197,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -271,10 +241,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             0x0,
             9999,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         );
 
         await Helper.assertThrow(
@@ -284,10 +251,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
                 0x0,
                 0x0,
                 9999,
-                [
-                    Helper.toBytes32(1000),
-                    Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-                ]
+                await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
             )
         );
     });
@@ -300,10 +264,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             0x0,
             12000,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
 
         assert.equal(pid1, id1);
@@ -315,10 +276,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
 
         assert.equal(pid2, id2);
@@ -331,10 +289,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
         let id2 = await getId(debtEngine.create2(
             testModel.address,
@@ -342,10 +297,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             0x0,
             nonce++,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
         assert.notEqual(id1, id2);
     });
@@ -356,10 +308,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(10000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(10000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData1 = await oracle.dummyData1();
@@ -394,10 +343,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(10000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(10000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData1 = await oracle.dummyData1();
@@ -434,10 +380,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(10000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(10000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData1 = await oracle.dummyData1();
@@ -464,5 +407,572 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[3]), 10000 - (10000 - 1010) / 2);
         assert.equal(await testModel.getPaid(id), 10000);
         assert.equal(await debtEngine.getStatus(id), 2);
+    });
+
+    it("Should catch and recover from a pay error", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.pay(id, 50, accounts[3], []);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 1);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.pay(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 100);
+        assert.equal(await debtEngine.getStatus(id), 4);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.pay(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
+    });
+
+    it("Should catch and recover from a pay error, with an Oracle", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            0xd25aa221,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const dummyData2 = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 25);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.pay(id, 50, accounts[3], dummyData2);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 1);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.pay(id, 100, accounts[3], dummyData2);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 50);
+        assert.equal(await debtEngine.getStatus(id), 4);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.pay(id, 100, accounts[3], dummyData2);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
+    });
+
+    it("Should catch and recover from a payToken error", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 50, accounts[3], []);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 1);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.payToken(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 100);
+        assert.equal(await debtEngine.getStatus(id), 4);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.payToken(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
+    });
+
+    it("Should catch and recover from a payToken error, with an Oracle", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            0xd25aa221,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const dummyData2 = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 25);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 25, accounts[3], dummyData2);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 1);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 50, accounts[3], dummyData2);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 50);
+        assert.equal(await debtEngine.getStatus(id), 4);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 50, accounts[3], dummyData2);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
+    });
+
+    it("Should catch and recover from a pay infinite loop", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.pay(id, 50, accounts[3], []);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 2);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.pay(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 100);
+        assert.equal(await debtEngine.getStatus(id), 4);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.pay(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
+    });
+
+    it("Should catch and recover from a pay infinite loop, with an Oracle", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            0xd25aa221,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const dummyData2 = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 25);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.pay(id, 50, accounts[3], dummyData2);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 2);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.pay(id, 100, accounts[3], dummyData2);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 50);
+        assert.equal(await debtEngine.getStatus(id), 4);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.pay(id, 100, accounts[3], dummyData2);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
+    });
+
+    it("Should catch and recover from a payToken infinite loop", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 50, accounts[3], []);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 2);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.payToken(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 100);
+        assert.equal(await debtEngine.getStatus(id), 4);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.payToken(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
+    });
+
+    it("Should catch and recover from a payToken infinite loop, with an Oracle", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            0xd25aa221,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const dummyData2 = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 25);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 25, accounts[3], dummyData2);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 2);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 50, accounts[3], dummyData2);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 50);
+        assert.equal(await debtEngine.getStatus(id), 4);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 50, accounts[3], dummyData2);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
+    });
+
+    it("Should catch a getStatus error", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 3);
+
+        // Try to read status
+        assert.equal(await debtEngine.getStatus(id), 4);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.payToken(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 100);
+    });
+
+    it("Should catch a getStatus infinite loop", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 4);
+
+        // Try to read status
+        assert.equal(await debtEngine.getStatus(id), 4);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.payToken(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 100);
+    });
+
+
+    it("Should catch and recover from a run error", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 6);
+
+        // Run and read status
+        await debtEngine.run(id);
+        assert.equal(await debtEngine.getStatus(id), 4);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await debtEngine.run(id);
+
+        // Should have failed and the status should be 4
+        assert.equal(await debtEngine.getStatus(id), 1);
+    });
+
+    it("Should catch and recover from a run infinite loop", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 7);
+
+        // Run and read status
+        await debtEngine.run(id);
+        assert.equal(await debtEngine.getStatus(id), 4);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await debtEngine.run(id);
+
+        // Should have failed and the status should be 4
+        assert.equal(await debtEngine.getStatus(id), 1);
+    });
+
+    it("Should catch a getStatus write storage error", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // Set the error flag
+        await testModel.setErrorFlag(id, 5);
+
+        // Try to read status
+        assert.equal(await debtEngine.getStatus(id), 4);
+
+        // Remove the flag
+        await testModel.setErrorFlag(id, 0);
+
+        // Try to pay
+        await rcn.setBalance(accounts[0], 100);
+
+        await rcn.approve(debtEngine.address, 100);
+        await debtEngine.payToken(id, 100, accounts[3], []);
+        
+        // Should have failed and the status should be 4
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 100);
+    });
+
+    // Notice: Keep this test last
+    it("Should not be possible to brute-forze an infinite loop", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 50, accounts[3], []);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        await rcn.setBalance(accounts[0], 100);
+        await rcn.approve(debtEngine.address, 100);
+
+        // Try to pay with different gas limits
+        for(i = 0; i < 8000000; i += 100) {
+            try {
+                await debtEngine.payToken(id, 100, accounts[3], [], { gas: i });
+            } catch(ignored) {
+            }
+
+            assert.equal(await debtEngine.getStatus(id), 1);
+            if (await testModel.getPaid(id) == 150) {
+                break;
+            }
+        }
+
+        // Should have failed and the status should be 1
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
     });
 });

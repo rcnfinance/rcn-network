@@ -10,14 +10,12 @@ interface IOracle {
 }
 
 contract DebtEngine is ERC721Base {
-    uint256 constant internal TOKEN_DECIMALS = 18;
-    uint256 constant internal PRECISION = 10 ** TOKEN_DECIMALS;
-
-    event Created(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
-    event Created2(bytes32 indexed _id, uint256 _nonce, bytes32[] _data);
+    event Created(bytes32 indexed _id, uint256 _nonce, bytes _data);
+    event Created2(bytes32 indexed _id, uint256 _nonce, bytes _data);
     event Paid(bytes32 indexed _id, address _sender, address _origin, uint256 _requested, uint256 _requestedTokens, uint256 _paid, uint256 _tokens);
-    event ReadedOracle(bytes32 indexed _id, address _oracle, bytes32 _currency, uint256 _amount, uint256 _decimals);
+    event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
     event Withdrawn(bytes32 indexed _id, address _sender, address _to, uint256 _amount);
+    event Error(bytes32 indexed _id, address _sender, uint256 _value, uint256 _gasLeft, uint256 _gasLimit, bytes _callData);
 
     Token public token;
 
@@ -25,7 +23,8 @@ contract DebtEngine is ERC721Base {
     mapping(address => uint256) public nonces;
 
     struct Debt {
-        bytes16 currency;
+        bool error;
+        bytes8 currency;
         uint128 balance;
         Model model;
         address creator;
@@ -45,95 +44,97 @@ contract DebtEngine is ERC721Base {
     }
 
     function create(
-        Model model,
-        address owner,
-        address oracle,
-        bytes16 currency,
-        bytes32[] data
+        Model _model,
+        address _owner,
+        address _oracle,
+        bytes8 _currency,
+        bytes _data
     ) external returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
         id = _buildId(msg.sender, nonce, false);
 
         debts[id] = Debt({
-            currency: currency,
+            error: false,
+            currency: _currency,
             balance: 0,
             creator: msg.sender,
-            model: model,
-            oracle: oracle
+            model: _model,
+            oracle: _oracle
         });
 
-        _generate(uint256(id), owner);
-        require(model.create(id, data), "Error creating debt in model");
+        _generate(uint256(id), _owner);
+        require(_model.create(id, _data), "Error creating debt in model");
 
         emit Created({
             _id: id,
             _nonce: nonce,
-            _data: data
+            _data: _data
         });
     }
 
     function create2(
-        Model model,
-        address owner,
-        address oracle,
-        bytes16 currency,
-        uint256 nonce,
-        bytes32[] data
+        Model _model,
+        address _owner,
+        address _oracle,
+        bytes8 _currency,
+        uint256 _nonce,
+        bytes _data
     ) external returns (bytes32 id) {
-        id = _buildId(msg.sender, nonce, true);
+        id = _buildId(msg.sender, _nonce, true);
 
         debts[id] = Debt({
-            currency: currency,
+            error: false,
+            currency: _currency,
             balance: 0,
             creator: msg.sender,
-            model: model,
-            oracle: oracle
+            model: _model,
+            oracle: _oracle
         });
 
-        _generate(uint256(id), owner);
-        require(model.create(id, data), "Error creating debt in model");
+        _generate(uint256(id), _owner);
+        require(_model.create(id, _data), "Error creating debt in model");
 
         emit Created2({
             _id: id,
-            _nonce: nonce,
-            _data: data
+            _nonce: _nonce,
+            _data: _data
         });
     }
 
     function buildId(
-        address creator,
-        uint256 nonce,
-        bool method2
+        address _creator,
+        uint256 _nonce,
+        bool _method2
     ) external pure returns (bytes32) {
-        return keccak256(abi.encodePacked(creator, nonce, method2));
+        return keccak256(abi.encodePacked(_creator, _nonce, _method2));
     }
 
     function _buildId(
-        address creator,
-        uint256 nonce,
-        bool method2
+        address _creator,
+        uint256 _nonce,
+        bool _method2
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(creator, nonce, method2));
+        return keccak256(abi.encodePacked(_creator, _nonce, _method2));
     }
 
     function pay(
-        bytes32 id,
-        uint256 amount,
-        address origin,
-        bytes oracleData
+        bytes32 _id,
+        uint256 _amount,
+        address _origin,
+        bytes _oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
-        Debt storage debt = debts[id];
+        Debt storage debt = debts[_id];
+        if (debt.error) delete debt.error;
 
         // Paid only required amount
-        paid = debt.model.addPaid(id, amount);
-        require(paid <= amount, "Paid can't be more than requested");
+        paid = _safePay(_id, debt.model, _amount);
+        require(paid <= _amount, "Paid can't be more than requested");
 
         IOracle oracle = IOracle(debt.oracle);
         if (oracle != address(0)) {
             // Convert
-            bytes32 currency = debt.currency;
-            (uint256 rate, uint256 decimals) = oracle.getRate(currency, oracleData);
-            emit ReadedOracle(id, oracle, currency, rate, decimals);
+            (uint256 rate, uint256 decimals) = oracle.getRate(debt.currency, _oracleData);
+            emit ReadedOracle(_id, rate, decimals);
             paidToken = toToken(paid, rate, decimals);
         } else {
             paidToken = paid;
@@ -149,10 +150,10 @@ contract DebtEngine is ERC721Base {
 
         // Emit pay event
         emit Paid({
-            _id: id,
+            _id: _id,
             _sender: msg.sender,
-            _origin: origin,
-            _requested: amount,
+            _origin: _origin,
+            _requested: _amount,
             _requestedTokens: 0,
             _paid: paid,
             _tokens: paidToken
@@ -166,6 +167,7 @@ contract DebtEngine is ERC721Base {
         bytes oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
+        if (debt.error) delete debt.error;
 
         // Read storage
         IOracle oracle = IOracle(debt.oracle);
@@ -177,15 +179,14 @@ contract DebtEngine is ERC721Base {
         // Get available <currency> amount
         if (oracle != address(0)) {
             (rate, decimals) = oracle.getRate(debt.currency, oracleData);
-            // TODO: Fix double storage read debt.currency
-            emit ReadedOracle(id, oracle, debt.currency, rate, decimals);
+            emit ReadedOracle(id, rate, decimals);
             available = fromToken(amount, rate, decimals);
         } else {
             available = amount;
         }
 
-        // Pay the debt
-        paid = debt.model.addPaid(id, available);
+        // Call addPaid on model
+        paid = _safePay(id, debt.model, available);
         require(paid <= available, "Paid can't exceed available");
 
         // Convert back to required pull amount
@@ -217,53 +218,109 @@ contract DebtEngine is ERC721Base {
         });
     }
 
+    function _safePay(
+        bytes32 _id,
+        Model _model,
+        uint256 _available
+    ) internal returns (uint256) {
+        (uint256 success, bytes32 paid) = _safeGasCall(
+            _model,
+            abi.encodeWithSelector(
+                _model.addPaid.selector,
+                _id,
+                _available
+            )
+        );
+
+        if (success != 0) {
+            return uint256(paid);
+        } else {
+            emit Error({
+                _id: _id,
+                _sender: msg.sender,
+                _value: msg.value,
+                _gasLeft: gasleft(),
+                _gasLimit: block.gaslimit,
+                _callData: msg.data
+            });
+            debts[_id].error = true;
+        }
+    }
+
     /**
         Converts an amount in the rate currency to an amount in token
 
-        @param amount Amount to convert in rate currency
-        @param rate Rate to use in the convertion
-        @param decimals Base difference between rate and tokens
+        @param _amount Amount to convert in rate currency
+        @param _rate Rate to use in the convertion
+        @param _decimals Base difference between rate and tokens
 
         @return Amount in tokens
     */
-    function toToken(uint256 amount, uint256 rate, uint256 decimals) internal pure returns (uint256) {
-        require(decimals <= 18, "Decimals limit reached");
-        return rate.mult(amount).mult((10 ** (18 - decimals))) / 1000000000000000000;
+    function toToken(uint256 _amount, uint256 _rate, uint256 _decimals) internal pure returns (uint256) {
+        require(_decimals <= 18, "Decimals limit reached");
+        return _rate.mult(_amount).mult((10 ** (18 - _decimals))) / 1000000000000000000;
     }
 
     /**
         Converts an amount in token to the rate currency
 
-        @param amount Amount to convert in token
-        @param rate Rate to use in the convertion
-        @param decimals Base difference between rate and tokens
+        @param _amount Amount to convert in token
+        @param _rate Rate to use in the convertion
+        @param _decimals Base difference between rate and tokens
 
         @return Amount in rate currency
     */
-    function fromToken(uint256 amount, uint256 rate, uint256 decimals) internal pure returns (uint256) {
-        require(decimals <= 18, "Decimals limit reached");
-        return (amount.mult(1000000000000000000) / rate) / 10 ** (18 - decimals);
+    function fromToken(uint256 _amount, uint256 _rate, uint256 _decimals) internal pure returns (uint256) {
+        require(_decimals <= 18, "Decimals limit reached");
+        return (_amount.mult(1000000000000000000) / _rate) / 10 ** (18 - _decimals);
     }
 
-    function withdrawal(bytes32 id, address to) external returns (uint256 amount) {
-        require(_isAuthorized(msg.sender, uint256(id)), "Sender not authorized");
-        Debt storage debt = debts[id];
+    function run(bytes32 _id) external returns (bool) {
+        Debt storage debt = debts[_id];
+        if (debt.error) delete debt.error;
+
+        (uint256 success, bytes32 result) = _safeGasCall(
+            debt.model,
+            abi.encodeWithSelector(
+                debt.model.run.selector,
+                _id
+            )
+        );
+
+        if (success != 0) {
+            return result == bytes32(1);
+        } else {
+            emit Error({
+                _id: _id,
+                _sender: msg.sender,
+                _value: 0,
+                _gasLeft: gasleft(),
+                _gasLimit: block.gaslimit,
+                _callData: msg.data
+            });
+            debt.error = true;
+        }
+    }
+
+    function withdrawal(bytes32 _id, address _to) external returns (uint256 amount) {
+        require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
+        Debt storage debt = debts[_id];
         amount = debt.balance;
         debt.balance = 0;
-        require(token.transfer(to, amount), "Error sending tokens");
+        require(token.transfer(_to, amount), "Error sending tokens");
         emit Withdrawn({
-            _id: id,
+            _id: _id,
             _sender: msg.sender,
-            _to: to,
+            _to: _to,
             _amount: amount
         });
     }
 
-    function withdrawalList(bytes32[] ids, address to) external returns (uint256 amount) {
+    function withdrawalList(bytes32[] _ids, address _to) external returns (uint256 amount) {
         bytes32 target;
         uint256 balance;
-        for (uint256 i = 0; i < ids.length; i++) {
-            target = ids[i];
+        for (uint256 i = 0; i < _ids.length; i++) {
+            target = _ids[i];
             if(_isAuthorized(msg.sender, uint256(target))) {
                 balance = debts[target].balance;
                 debts[target].balance = 0;
@@ -271,16 +328,70 @@ contract DebtEngine is ERC721Base {
                 emit Withdrawn({
                     _id: target,
                     _sender: msg.sender,
-                    _to: to,
+                    _to: _to,
                     _amount: balance
                 });
             }
         }
-        require(token.transfer(to, amount), "Error sending tokens");
+        require(token.transfer(_to, amount), "Error sending tokens");
     }
 
-    function getStatus(bytes32 id) external view returns (uint256) {
-        // TODO: Check and return error
-        return debts[id].model.getStatus(id);
+    function getStatus(bytes32 _id) external view returns (uint256) {
+        Debt storage debt = debts[_id];
+        if (debt.error) {
+            return 4;
+        } else {
+            (uint256 success, bytes32 result) = _safeGasStaticCall(
+                debt.model,
+                abi.encodeWithSelector(
+                    debt.model.getStatus.selector,
+                    _id
+                )
+            );
+            return success == 1 ? uint256(result) : 4;
+        }
+    }
+
+    function _safeGasStaticCall(
+        address _contract,
+        bytes _data
+    ) internal view returns (uint256 success, bytes32 result) {
+        uint256 _gas = (block.gaslimit * 80) / 100;
+        _gas = gasleft() < _gas ? gasleft() : _gas;
+        assembly {
+            let x := mload(0x40)
+            success := staticcall(
+                            _gas,                 // Send almost all gas
+                            _contract,            // To addr
+                            add(0x20, _data),     // Input is data past the first 32 bytes
+                            mload(_data),         // Input size is the lenght of data
+                            x,                    // Store the ouput on x
+                            0x20                  // Output is a single bytes32, has 32 bytes
+                        )
+
+            result := mload(x)
+        }
+    }
+
+    function _safeGasCall(
+        address _contract,
+        bytes _data
+    ) internal returns (uint256 success, bytes32 result) {
+        uint256 _gas = (block.gaslimit * 80) / 100;
+        _gas = gasleft() < _gas ? gasleft() : _gas;
+        assembly {
+            let x := mload(0x40)
+            success := call(
+                            _gas,                 // Send almost all gas
+                            _contract,            // To addr
+                            0,                    // Send ETH
+                            add(0x20, _data),     // Input is data past the first 32 bytes
+                            mload(_data),         // Input size is the lenght of data
+                            x,                    // Store the ouput on x
+                            0x20                  // Output is a single bytes32, has 32 bytes
+                        )
+
+            result := mload(x)
+        }
     }
 }

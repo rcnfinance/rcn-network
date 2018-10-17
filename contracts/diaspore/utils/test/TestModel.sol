@@ -2,18 +2,24 @@ pragma solidity ^0.4.24;
 
 import "./../../interfaces/Model.sol";
 import "./../../../utils/Ownable.sol";
+import "./../../../utils/BytesUtils.sol";
 
-contract TestModel is Ownable, Model {
-    uint256 public constant C_PARAMS = 2;
-    uint256 public constant C_TOTAL = 0;
-    uint256 public constant C_DUE = 1;
+contract TestModel is BytesUtils, Ownable, Model {
+    uint256 public constant L_DATA = 16 + 8;
 
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
 
     uint256 public constant ERROR_PAY = 1;
+    uint256 public constant ERROR_INFINITE_LOOP_PAY = 2;
+    uint256 public constant ERROR_STATUS = 3;
+    uint256 public constant ERROR_INFINITE_LOOP_STATUS = 4;
+    uint256 public constant ERROR_WRITE_STORAGE_STATUS = 5;
+    uint256 public constant ERROR_RUN = 6;
+    uint256 public constant ERROR_INFINITE_LOOP_RUN = 7;
 
     event SetEngine(address _engine);
+    event SetErrorFlag(bytes32 _id, uint256 _flag);
 
     mapping(bytes4 => bool) private _supportedInterface;
 
@@ -25,7 +31,7 @@ contract TestModel is Ownable, Model {
         _supportedInterface[this.getClosingObligation.selector] = true;
         _supportedInterface[this.getDueTime.selector] = true;
         _supportedInterface[this.getFinalTime.selector] = true;
-        _supportedInterface[this.getFrecuency.selector] = true;
+        _supportedInterface[this.getFrequency.selector] = true;
         _supportedInterface[this.getEstimateObligation.selector] = true;
         _supportedInterface[this.addDebt.selector] = true; // ??? Not supported
         _supportedInterface[this.run.selector] = true;
@@ -33,6 +39,13 @@ contract TestModel is Ownable, Model {
         _supportedInterface[this.addPaid.selector] = true;
         _supportedInterface[this.engine.selector] = true;
         _supportedInterface[this.getObligation.selector] = true;
+    }
+
+    function encodeData(
+        uint128 _total,
+        uint64 _dueTime
+    ) external pure returns (bytes) {
+        return abi.encodePacked(_total, _dueTime);
     }
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
@@ -59,6 +72,11 @@ contract TestModel is Ownable, Model {
         _;
     }
 
+    function setErrorFlag(bytes32 _id, uint64 _flag) external onlyOwner {
+        registry[_id].errorFlag = _flag;
+        emit SetErrorFlag(_id, _flag);
+    }
+
     function setEngine(address _engine) external onlyOwner {
         engine = _engine;
         emit SetEngine(_engine);
@@ -68,12 +86,25 @@ contract TestModel is Ownable, Model {
         return operator == owner;
     }
 
-    function validate(bytes32[] data) external view returns (bool) {
-        return _validate(data); 
+    function validate(bytes data) external view returns (bool) {
+        require(data.length == L_DATA, "Invalid data length");
+        _validate(uint64(read(data, 16, 8)));
+        return true; 
     }
 
     function getStatus(bytes32 id) external view returns (uint256) {
         Entry storage entry = registry[id];
+
+        if (entry.errorFlag == ERROR_STATUS) {
+            return uint256(10) / uint256(0);
+        } else if (entry.errorFlag == ERROR_INFINITE_LOOP_STATUS) {
+            uint256 aux;
+            while(aux / aux != 2) aux++;
+            return aux;
+        } else if (entry.errorFlag == ERROR_WRITE_STORAGE_STATUS) {
+            entry.lastPing = uint64(now);
+        }
+
         return entry.paid < entry.total ? STATUS_ONGOING : STATUS_PAID;
     }
 
@@ -103,7 +134,7 @@ contract TestModel is Ownable, Model {
         return registry[id].dueTime;
     }
 
-    function getFrecuency(bytes32) external view returns (uint256) {
+    function getFrequency(bytes32) external view returns (uint256) {
         return 0;
     }
 
@@ -112,18 +143,22 @@ contract TestModel is Ownable, Model {
         return entry.total - entry.paid;
     }
 
-    function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
-        _validate(data);
+    function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
+        require(data.length == L_DATA, "Invalid data length");
+
+        (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
+        uint128 total = uint128(btotal);
+        uint64 dueTime = uint64(bdue);
+
+        _validate(dueTime);
 
         emit Created(id);
-
-        uint64 dueTime = uint64(data[C_DUE]);
 
         registry[id] = Entry({
             errorFlag: 0,
             dueTime: dueTime,
             lastPing: uint64(now),
-            total: uint128(data[C_TOTAL]),
+            total: total,
             paid: 0
         });
 
@@ -136,8 +171,16 @@ contract TestModel is Ownable, Model {
 
     function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 real) {
         _run(id);
-
+        
         Entry storage entry = registry[id];
+
+        if (entry.errorFlag == ERROR_PAY) {
+            return uint256(10) / uint256(0);
+        } else if (entry.errorFlag == ERROR_INFINITE_LOOP_PAY) {
+            uint256 aux;
+            while(aux / aux != 2) aux++;
+            return aux;
+        }
 
         uint256 total = entry.total;
         uint256 paid = entry.paid;
@@ -184,6 +227,15 @@ contract TestModel is Ownable, Model {
     function _run(bytes32 id) internal returns (bool) {
         Entry storage entry = registry[id];
         uint256 prevPing = entry.lastPing;
+
+        if (entry.errorFlag == ERROR_RUN) {
+            return uint256(10) / uint256(0) == 9;
+        } else if (entry.errorFlag == ERROR_INFINITE_LOOP_RUN) {
+            uint256 aux;
+            while(aux / aux != 2) aux++;
+            return aux == 1;
+        }
+
         if (now != prevPing) {
             uint256 dueTime = entry.dueTime;
 
@@ -196,10 +248,7 @@ contract TestModel is Ownable, Model {
         }
     }
 
-    function _validate(bytes32[] data) internal view returns (bool) {
-        require(data.length == C_PARAMS, "Wrong data arguments count");
-        require(uint256(data[C_TOTAL]) < U_128_OVERFLOW, "Total overflow");
-        require(uint64(data[C_DUE]) > now, "Expiration already past");
-        return true;
+    function _validate(uint256 due) internal view {
+        require(due > now, "Due time already past");
     }
 }
