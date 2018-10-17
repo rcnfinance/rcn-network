@@ -16,6 +16,22 @@ contract TestBytesUtils is BytesUtils {
     function pRead(bytes data, uint256 offset, uint256 length) public returns (bytes32) {
         return read(data, offset, length);
     }
+
+    function pDecode(bytes data, uint256 a) public returns (bytes32) {
+        return decode(data, a);
+    }
+
+    function pDecode(bytes data, uint256 a, uint256 b) public returns (bytes32,bytes32) {
+        return decode(data, a, b);
+    }
+
+    function pDecode(bytes data, uint256 a, uint256 c, uint256 b) public returns (bytes32,bytes32,bytes32) {
+        return decode(data, a, c, b);
+    }
+
+    function pDecode(bytes data, uint256 a, uint256 b, uint256 c, uint256 d) public returns (bytes32,bytes32,bytes32,bytes32) {
+        return decode(data, a, b, c, d);
+    }
 }
 
 // Proxy contract for testing throws
@@ -124,5 +140,27 @@ contract BytesUtilsTest {
         Assert.equal(uint256(bytesUtils.pRead(data, 1 + 20 + 32 + 32 + 32, 16)), uint256(124), "Read value 5");
         Assert.equal(bytesUtils.pRead(data, 1 + 20 + 32 + 32 + 32 + 16, 1), bytes32(1), "Read value 6");
         Assert.equal(bytesUtils.pRead(data, 1 + 20 + 32 + 32 + 32 + 16 + 1, 2), bytes32(uint16(5355)), "Read value 7");
+    }
+
+    function testDecode() external {
+        bytes32 test4 = keccak256("test4");
+        bytes memory data = abi.encodePacked(uint8(12), true, test4, address(this));
+        (bytes32 a) = bytesUtils.pDecode(data, 1);
+        Assert.equal(uint256(a), 12, "Decode 1 item");
+        bytes32 b;
+        (a, b) = bytesUtils.pDecode(data, 1, 1);
+        Assert.equal(uint256(a), 12, "Decode 2 items");
+        Assert.equal(b, bytes32(1), "Decode 2 items");
+        bytes32 c;
+        (a, b, c) = bytesUtils.pDecode(data, 1, 1, 32);
+        Assert.equal(uint256(a), 12, "Decode 3 items");
+        Assert.equal(b, bytes32(1), "Decode 3 items");
+        Assert.equal(c, test4, "Decode 3 items");
+        bytes32 d;
+        (a, b, c, d) = bytesUtils.pDecode(data, 1, 1, 32, 20);
+        Assert.equal(uint256(a), 12, "Decode 4 items");
+        Assert.equal(b, bytes32(1), "Decode 4 items");
+        Assert.equal(c, test4, "Decode 4 items");
+        Assert.equal(address(d), address(this), "Decode 4 items");
     }
 }
