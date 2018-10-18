@@ -11,6 +11,16 @@ contract LoanManager {
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
+    event Requested(bytes32 indexed _id, uint256 _nonce);
+    event Approved(bytes32 indexed _id);
+    event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
+    event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
+    event Canceled(bytes32 indexed _id, address _canceler);
+    event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
+
+    event SettledLend(bytes32 indexed _id, bytes32 _sig, address _lender, uint256 _tokens);
+    event SettledCancel(bytes32 _sig, address _canceler);
+
     constructor(DebtEngine _debtEngine) public {
         debtEngine = _debtEngine;
         token = debtEngine.token();
@@ -110,6 +120,8 @@ contract LoanManager {
             loanData: loanData,
             expiration: expiration
         });
+
+        emit Requested(futureDebt, nonce);
     }
 
     function approveRequest(
@@ -120,6 +132,7 @@ contract LoanManager {
         if (!request.approved) {
             request.position = uint64(directory.push(futureDebt) - 1);
             request.approved = true;
+            emit Approved(futureDebt);
         }
         return true;
     }
@@ -138,14 +151,17 @@ contract LoanManager {
 
         request.open = false;
 
+        uint256 tokens = currencyToToken(request.oracle, request.currency, request.amount, oracleData);
         require(
             token.transferFrom(
                 msg.sender,
                 request.borrower,
-                currencyToToken(request.oracle, request.currency, request.amount, oracleData)
+                tokens
             ),
             "Error sending tokens to borrower"
         );
+
+        emit Lent(futureDebt, msg.sender, tokens);
 
         // Generate the debt
         require(
@@ -236,19 +252,23 @@ contract LoanManager {
         
         require(requests[futureDebt].borrower == address(0), "Request already exist");
 
-        validateRequest(requestData, loanData, borrowerSig, creatorSig);
+        bytes32 sig = _requestSignature(requestData, loanData);
+        validateRequest(sig, requestData, loanData, borrowerSig, creatorSig);
 
+        uint256 tokens = currencyToToken(requestData, oracleData);
         require(
             token.transferFrom(
                 msg.sender,
                 address(requestData[R_BORROWER]),
-                currencyToToken(requestData, oracleData)
+                tokens
             ),
             "Error sending tokens to borrower"
         );
 
         // Generate the debt
         require(createDebt(requestData, loanData, internalNonce) == futureDebt, "Error creating debt registry");
+
+        emit SettledLend(futureDebt, sig, msg.sender, tokens);
 
         requests[futureDebt] = Request({
             open: false,
@@ -295,6 +315,8 @@ contract LoanManager {
         delete request.loanData;
         delete requests[futureDebt];
 
+        emit Canceled(futureDebt, msg.sender);
+
         return true;
     }
 
@@ -309,6 +331,8 @@ contract LoanManager {
             "Only borrower or creator can cancel a settle"
         );
         canceledSettles[sig] = true;
+        emit SettledCancel(sig, msg.sender);
+
         return true;
     }
 
@@ -331,12 +355,12 @@ contract LoanManager {
     }
 
     function validateRequest(
+        bytes32 sig,
         bytes32[8] requestData,
         bytes loanData,
         bytes borrowerSig,
         bytes creatorSig
     ) internal {
-        bytes32 sig = _requestSignature(requestData, loanData);
         require(!canceledSettles[sig], "Settle was canceled");
         
         uint256 expected = uint256(sig) / 2;
@@ -394,6 +418,7 @@ contract LoanManager {
         request.cosigner = msg.sender;
         require(request.nonce >= cost || request.nonce == 0, "Cosigner cost exceeded");
         require(token.transferFrom(debtEngine.ownerOf(futureDebt), msg.sender, cost), "Error paying cosigner");
+        emit Cosigned(bytes32(futureDebt), msg.sender, cost);
         return true;
     }
 
