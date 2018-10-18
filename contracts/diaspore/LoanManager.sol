@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 import "./DebtEngine.sol";
 import "./interfaces/LoanRequester.sol";
 
-contract LoanCreator {
+contract LoanManager {
     DebtEngine public debtEngine;
     Token public token;
 
