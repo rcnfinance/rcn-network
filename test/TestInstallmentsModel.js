@@ -1,4 +1,5 @@
 const InstallmentsDebtModel = artifacts.require("./diaspore/model/InstallmentsModel.sol");
+const ModelDescriptor = artifacts.require("./diaspore/interfaces/ModelDescriptor.sol");
 const Helper = require('./Helper.js');
 
 contract('Installments model', function(accounts) {
@@ -681,4 +682,23 @@ contract('Installments model', function(accounts) {
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 922155);
     assert.equal(await model.getStatus(id), 1, "Loan should be ongoing");
   })
+
+  it("It should provide information with the descriptor", async function() {
+    let id = Helper.toBytes32(912);
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400
+    );
+
+    let descriptor = ModelDescriptor.at(await model.descriptor());
+    
+    assert.equal((await descriptor.simFirstObligation(data))[0], 99963);
+    assert.equal((await descriptor.simFirstObligation(data))[1], 30 * 86400);
+    assert.equal(await descriptor.simDuration(data), 12 * 30 * 86400);
+    assert.equal(await descriptor.simPunitiveInterestRate(data), Helper.toInterestRate(35 * 1.5));
+    assert.equal(await descriptor.simFrequency(data), 30 * 86400);
+    assert.equal(await descriptor.simInstallments(data), 12);
+  });
 })
