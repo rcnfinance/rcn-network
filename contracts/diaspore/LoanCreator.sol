@@ -19,6 +19,8 @@ contract LoanCreator {
     
     function getDirectory() external view returns (bytes32[]) { return directory; }
 
+    function getDirectoryLength() external view returns (uint256) { return directory.length; }
+
     function getBorrower(uint256 id) external view returns (address) { 
         return requests[bytes32(id)].borrower;
     }
