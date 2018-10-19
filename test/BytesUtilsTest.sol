@@ -32,6 +32,10 @@ contract TestBytesUtils is BytesUtils {
     function pDecode(bytes data, uint256 a, uint256 b, uint256 c, uint256 d) public returns (bytes32,bytes32,bytes32,bytes32) {
         return decode(data, a, b, c, d);
     }
+
+    function pDecode(bytes data, uint256 a, uint256 b, uint256 c, uint256 d, uint256 e) public returns (bytes32,bytes32,bytes32,bytes32,bytes32) {
+        return decode(data, a, b, c, d, e);
+    }
 }
 
 // Proxy contract for testing throws
@@ -72,7 +76,7 @@ contract BytesUtilsTest {
             mstore(add(o, 128), d)
         }
     }
-    
+
     function buildData(bytes32 a, bytes32 b, bytes4 c) internal returns (bytes o) {
         assembly {
             let size := 68
@@ -144,23 +148,35 @@ contract BytesUtilsTest {
 
     function testDecode() external {
         bytes32 test4 = keccak256("test4");
-        bytes memory data = abi.encodePacked(uint8(12), true, test4, address(this));
-        (bytes32 a) = bytesUtils.pDecode(data, 1);
+        bytes memory data = abi.encodePacked(uint8(12), true, test4, address(this), bytes32("STRING"));
+
+        bytes32 a = bytesUtils.pDecode(data, 1);
         Assert.equal(uint256(a), 12, "Decode 1 item");
+
         bytes32 b;
         (a, b) = bytesUtils.pDecode(data, 1, 1);
         Assert.equal(uint256(a), 12, "Decode 2 items");
         Assert.equal(b, bytes32(1), "Decode 2 items");
+
         bytes32 c;
         (a, b, c) = bytesUtils.pDecode(data, 1, 1, 32);
         Assert.equal(uint256(a), 12, "Decode 3 items");
         Assert.equal(b, bytes32(1), "Decode 3 items");
         Assert.equal(c, test4, "Decode 3 items");
+
         bytes32 d;
         (a, b, c, d) = bytesUtils.pDecode(data, 1, 1, 32, 20);
         Assert.equal(uint256(a), 12, "Decode 4 items");
         Assert.equal(b, bytes32(1), "Decode 4 items");
         Assert.equal(c, test4, "Decode 4 items");
         Assert.equal(address(d), address(this), "Decode 4 items");
+
+        bytes32 e;
+        (a, b, c, d, e) = bytesUtils.pDecode(data, 1, 1, 32, 20, 32);
+        Assert.equal(uint256(a), 12, "Decode 5 items, a element");
+        Assert.equal(b, bytes32(1), "Decode 5 items, b element");
+        Assert.equal(c, test4, "Decode 5 items, c element");
+        Assert.equal(address(d), address(this), "Decode 5 items, d element");
+        Assert.equal(e, bytes32("STRING"), "Decode 5 items, e element");
     }
 }
