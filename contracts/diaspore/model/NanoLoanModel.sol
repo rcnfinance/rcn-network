@@ -33,6 +33,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
 
+    event _setEngine(address _engine);
     event _setInterest(bytes32 _id, uint128 _interest);
     event _setPunitoryInterest(bytes32 _id, uint128 _punitoryInterest);
     event _setInterestTimestamp(bytes32 _id, uint256 _interestTimestamp);
@@ -87,6 +88,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
 
     function setEngine(address _engine) external onlyOwner returns (bool) {
         engine = _engine;
+        emit _setEngine(_engine);
         return true;
     }
 
