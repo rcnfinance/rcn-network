@@ -97,6 +97,11 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
         _;
     }
 
+    function modelId() external view returns (bytes32) {
+        // NanoLoanModel A 0.0.0
+        return 0x4e616e6f4c6f616e4d6f64656c204120302e302e3000000000000000000000;
+    }
+
     function descriptor() external view returns (address) {
         return altDescriptor == address(0) ? this : altDescriptor;
     }
