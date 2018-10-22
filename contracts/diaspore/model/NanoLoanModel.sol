@@ -39,7 +39,9 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
     event _setInterestTimestamp(bytes32 _id, uint256 _interestTimestamp);
 
     constructor() public {
+        // Ownable
         _supportedInterface[this.owner.selector] = true;
+        // Model interface
         _supportedInterface[this.validate.selector] = true;
         _supportedInterface[this.getStatus.selector] = true;
         _supportedInterface[this.getPaid.selector] = true;
@@ -47,12 +49,14 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         _supportedInterface[this.getClosingObligation.selector] = true;
         _supportedInterface[this.getDueTime.selector] = true;
         _supportedInterface[this.getFinalTime.selector] = true;
-        _supportedInterface[this.getFrecuency.selector] = true;
+        _supportedInterface[this.getFrequency.selector] = true;
+        _supportedInterface[this.getInstallments.selector] = true;
         _supportedInterface[this.getEstimateObligation.selector] = true;
-        _supportedInterface[this.addDebt.selector] = true; // ??? Not supported
-        _supportedInterface[this.run.selector] = true;
         _supportedInterface[this.create.selector] = true;
         _supportedInterface[this.addPaid.selector] = true;
+        _supportedInterface[this.addDebt.selector] = false;
+        _supportedInterface[this.run.selector] = true;
+        // NanoLoanModel
         _supportedInterface[this.configs.selector] = true;
         _supportedInterface[this.states.selector] = true;
         _supportedInterface[this.engine.selector] = true;
