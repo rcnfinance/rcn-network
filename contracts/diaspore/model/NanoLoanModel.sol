@@ -178,8 +178,9 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
         return states[id].paid;
     }
 
-    function getObligation(bytes32 id, uint64 timestamp) external view returns (uint256, bool) {
-        return (_getObligation(id, timestamp), false);
+    function getObligation(bytes32 id, uint64 timestamp) external view returns (uint256 amount, bool defined) {
+        amount = _getObligation(id, timestamp);
+        if(timestamp == now || timestamp < configs[id].cancelableAt) defined = true;
     }
 
     function _getObligation(bytes32 id, uint256 timestamp) internal view returns (uint256 total){
