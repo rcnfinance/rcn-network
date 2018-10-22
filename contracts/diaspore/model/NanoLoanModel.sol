@@ -333,7 +333,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         }
     }
 
-    function addDebt(bytes32 id, uint256 amount) external onlyEngine returns (bool) {
+    function addDebt(bytes32, uint256) external onlyEngine returns (bool) {
         revert("Not implemented!");
     }
 
