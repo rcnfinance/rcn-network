@@ -2,9 +2,6 @@ const NanoLoanModel = artifacts.require("./diaspore/model/NanoLoanModel.sol");
 const Helper = require('../Helper.js');
 const BN = require('bn.js');
 
-const MAX_UINT128 = (new BN(2)).pow(new BN(128));
-const MAX_UINT64  = (new BN(2)).pow(new BN(64));
-
 let owner;
 let model;
 let idCounter = 0;
@@ -16,21 +13,27 @@ const interestRate = Helper.toInterestRate(30);
 const interestRatePunitory = Helper.toInterestRate(60);
 
 const defaultParams = [
-  Helper.toBytes32(amount),                    // amount
-  Helper.toBytes32(interestRate),              // interest rate
-  Helper.toBytes32(interestRatePunitory),      // interest rate punitory
-  Helper.toBytes32(monthInSec),                // dues in
-  Helper.toBytes32(Math.floor(monthInSec / 2)) // cancelable at
+  amount,                    // amount
+  interestRate,              // interest rate
+  interestRatePunitory,      // interest rate punitory
+  monthInSec,                // dues in
+  Math.floor(monthInSec / 2) // cancelable at
 ]
+let defaultData;
 
 const STATUS_PAID = 2;
 
 contract('NanoLoanModel', function(accounts) {
+  async function encodeData(params){
+    return await model.encodeData(params[0], params[1], params[2], params[3], params[4]);
+  }
+
   before("Create model", async function(){
     owner = accounts[1];
     model = await NanoLoanModel.new( { from: owner} );
     await model.setEngine(owner, { from: owner} );
     assert.equal(await model.engine(), owner);
+    defaultData = await encodeData(defaultParams);
   })
 
   it("Test get obligations functions", async function() {
@@ -45,12 +48,13 @@ contract('NanoLoanModel', function(accounts) {
     async function tryValidate(changeIndexs, values, message) {
       let params = JSON.parse(JSON.stringify(defaultParams));
       for(let i = 0; i < changeIndexs.length; i++)
-        params[changeIndexs[i]] = Helper.toBytes32(values[i]);
+        params[changeIndexs[i]] = values[i];
+      params = await encodeData(params);
       await Helper.tryCatchRevert(() => model.validate(params), message);
     }
     // Try validate:
     // a wrong data length
-    await Helper.tryCatchRevert(() => model.validate(defaultParams.slice(1)), "Wrong loan data arguments count");
+    await Helper.tryCatchRevert(() => model.validate(defaultData.slice(1)), "Invalid data length");
     // a data with cancelable at more than dues in
     await tryValidate([3, 4], [1, 2], "The cancelableAt should be less or equal than duesIn");
     // a data with interest rate less than 1000
@@ -61,15 +65,14 @@ contract('NanoLoanModel', function(accounts) {
     await tryValidate([0], [0], "amount can't be 0");
     // data with dues in equal 0
     await tryValidate([3, 4], [0, 0], "duesIn should be not 0 or overflow now plus duesIn");
-    // Check overflows
-    await tryValidate([0], [MAX_UINT128], "Amount too high");
-    await tryValidate([3], [MAX_UINT64], "Dues in duration too long");
-    await tryValidate([3, 4], [MAX_UINT64, MAX_UINT64], "Dues in duration too long");
+    // data with Max value dues in to try make overflow
+    let bytesWithMaxDuesIn = "0x000000000000000000000000000027100000000000000000000000000000000000000000000000000000096dfcf50000000000000000000000000000000000000000000000000000000004b6fe7a8000ffffffffffffffff000000000013c680";
+    await Helper.tryCatchRevert(() => model.validate(bytesWithMaxDuesIn), "duesIn should be not 0 or overflow now plus duesIn");
   });
 
   it("Test create function", async function() {
     const id = Helper.toBytes32(idCounter++);
-    const tx = await model.create(id, defaultParams, { from: owner });
+    const tx = await model.create(id, defaultData, { from: owner });
     const timestamp = (await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp;
     const config = await model.configs(id);
 
@@ -89,7 +92,7 @@ contract('NanoLoanModel', function(accounts) {
 
   it("Test addPaid without punitory", async function() {
     const id = Helper.toBytes32(idCounter++);
-    const txCreate = await model.create(id, defaultParams, { from: owner });
+    const txCreate = await model.create(id, defaultData, { from: owner });
     const timestampCreate = (await web3.eth.getBlock(txCreate.receipt.blockNumber)).timestamp;
     await Helper.increaseTime(1000000);
     const txPaid = await model.addPaid(id, 1000, { from: owner });
@@ -104,7 +107,7 @@ contract('NanoLoanModel', function(accounts) {
 
   it("Test pay total with interest and interestPunitory", async function() {
     const id = Helper.toBytes32(idCounter++);
-    const txCreate = await model.create(id, defaultParams, { from: owner });
+    const txCreate = await model.create(id, defaultData, { from: owner });
     await Helper.increaseTime(monthInSec * 2);
     const interestTotal = Math.floor((10000 * 30/12)/100); // 250
     const interestPTotal = Math.floor(((10000 + interestTotal) * 60/12)/100); // 512.5
@@ -130,19 +133,19 @@ contract('NanoLoanModel', function(accounts) {
   it("Test E8 42% Anual interset, 30 days", e_test(500000 , 42       , 63       , 30      , 10, 505833 , 10, 511667 , 30, 535613 , 5 , 540140));
   it("Test E9 30% Anual interset, 30 days", e_test(300000 , 30       , 45       , 30      , 10, 302500 , 10, 305000 , 30, 315188 , 5 , 317108));
   // with punitory interest
-  it("Test E10 30% Anual interset,  5 days", e_test(300000, 30       , 30       , 5       , 10, 302505 , 10, 305015 , 30, 312546 , 5 , 313801));
+  it("Test E10 30% Anual interset, 5 days", e_test(300000, 30       , 30       , 5       , 10, 302505 , 10, 305015 , 30, 312546 , 5 , 313801));
 
   function e_test(amount, interest, punitoryInterest, duesIn, d1, v1, d2, v2, d3, v3, d4, v4) {
     return async() => {
       // Create a new loan with the received params
       const id = Helper.toBytes32(idCounter++);
-      const params = [
-        Helper.toBytes32(amount),                                 // amount
-        Helper.toBytes32(Helper.toInterestRate(interest)),        // interest rate
-        Helper.toBytes32(Helper.toInterestRate(punitoryInterest)),// interest rate punitory
-        Helper.toBytes32(duesIn*sd),                              // dues in
-        Helper.toBytes32(0)                                       // cancelable at
-      ]
+      const params = await encodeData([
+        amount,                                 // amount
+        Helper.toInterestRate(interest),        // interest rate
+        Helper.toInterestRate(punitoryInterest),// interest rate punitory
+        duesIn*sd,                              // dues in
+        0                                       // cancelable at
+      ]);
       await model.create(id, params, { from: owner });
 
       // forward time, d1 days
