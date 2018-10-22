@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "./../interfaces/Model.sol";
 import "./../../utils/Ownable.sol";
 import "./../../utils/SafeMath.sol";
+import "./../../utils/BytesUtils.sol";
 
 contract MinMax {
     function min(uint256 a, uint256 b) internal pure returns(uint256) {
@@ -14,7 +15,7 @@ contract MinMax {
     }
 }
 
-contract NanoLoanModel is Ownable, Model, MinMax  {
+contract NanoLoanModel is BytesUtils, Ownable, Model, MinMax  {
     using SafeMath for uint256;
     using SafeMath for uint128;
     address public engine;
@@ -23,12 +24,7 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
     mapping(bytes32 => State) public states;
     mapping(bytes4 => bool) private _supportedInterface;
 
-    uint256 public constant C_PARAMS = 5;
-    uint256 public constant C_AMOUNT = 0;
-    uint256 public constant C_INTEREST_RATE = 1;
-    uint256 public constant C_INTEREST_RATE_PUNITORY = 2;
-    uint256 public constant C_DUES_IN = 3;
-    uint256 public constant C_CANCELABLE_AT = 4;
+    uint256 public constant L_DATA = 16 + 32 + 32 + 8 + 8; // amount + interestRate + interestRatePunitory + duesIn + cancelableAt
 
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
@@ -96,47 +92,56 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         return true;
     }
 
+    function encodeData(
+        uint128 _amount,
+        uint256 _interestRate,
+        uint256 _interestRatePunitory,
+        uint64  _dueTime,
+        uint64  _cancelableAt
+    ) external pure returns (bytes) {
+        return abi.encodePacked(_amount, _interestRate, _interestRatePunitory, _dueTime, _cancelableAt);
+    }
+
     function isOperator(address _target) external view returns (bool) {
         return engine == _target;
     }
 
-    function validate(bytes32[] data) external view returns (bool) {
-        return _validate(data);
+    /**
+        @dev Look in _validate function documentation for more info
+
+        @param data Array of bytes parameters, used to create a loan
+            * look in _decodeData function documentation for more info
+    */
+    function validate(bytes data) external view returns (bool) {
+        (uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
+             uint64 duesIn, uint64 cancelableAt) = _decodeData(data);
+        _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
+        return true;
     }
 
     /**
-        @dev Validate the data input, check:
-            The length of data should be 5
+        @dev Validate the loan parameters
             The duesIn should be less or equal than cancelableAt and not 0
             The interestRate should be more than 1000
             The interestRatePunitory should be more than 1000
             The amount should not be 0
-
-        @param data Array of bytes32 with 5 length, used to create a loan
-            0: The requested amount
-            1: The non-punitory interest rate by second, defined as a denominator of 10 000 000.
-            2: The punitory interest rate by second, defined as a denominator of 10 000 000.
-                Ej: interestRate 11108571428571 = 28% Anual interest
-            3: The time in seconds that the borrower has in order to pay the debt after the lender lends the money.
-            4: Delta in seconds specifying how much interest should be added in advance, if the borrower pays
-                entirely or partially the loan before this term, no extra interest will be deducted.
     */
-    function _validate(bytes32[] data) internal returns (bool) {
-        require(data.length == C_PARAMS, "Wrong loan data arguments count");
-        require(uint64(data[C_CANCELABLE_AT]) <= uint64(data[C_DUES_IN]), "The cancelableAt should be less or equal than duesIn");
-        require(uint256(data[C_INTEREST_RATE]) > 1000, "Interest rate too high");
-        require(uint256(data[C_INTEREST_RATE_PUNITORY]) > 1000, "Punitory interest rate too high");
-        require(uint128(data[C_AMOUNT]) != 0, "amount can't be 0");
-        // check overflows
-        require(uint256(data[C_AMOUNT]) < U_128_OVERFLOW, "Amount too high");
-        // because cancelableAt should be less than duesIn i only check duesIn overflow
-        require(uint256(data[C_DUES_IN]) < U_64_OVERFLOW, "Dues in duration too long");
-        require(now + uint256(data[C_DUES_IN]) > now, "duesIn should be not 0 or overflow now plus duesIn");
-        // cancelableAt cant make overflow because:
-        //     cancelableAt <= duesIn < 2 ** 64
-        // and we check the sum of duesIn and now in the previus requiere
+    function _validate(
+        uint128 _amount,
+        uint256 _interestRate,
+        uint256 _interestRatePunitory,
+        uint64 _duesIn,
+        uint64 _cancelableAt
+    ) internal {
+        require(_cancelableAt <= _duesIn, "The cancelableAt should be less or equal than duesIn");
+        require(_interestRate > 1000, "Interest rate too high");
+        require(_interestRatePunitory > 1000, "Punitory interest rate too high");
+        require(_amount != 0, "amount can't be 0");
 
-        return true;
+        require(uint64(now) + _duesIn > uint64(now), "duesIn should be not 0 or overflow now plus duesIn");
+        // cancelableAt cant make overflow because:
+        //     cancelableAt <= duesIn
+        // and we check the sum of duesIn and now in the previus requiere
     }
 
     function getStatus(bytes32 id) external view returns (uint256) {
@@ -189,7 +194,11 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         return configs[id].dueTime;
     }
 
-    function getFrecuency(bytes32 id) external view returns (uint256){
+    function getFrequency(bytes32 id) external view returns (uint256) {
+        return configs[id].dueTime == 0 ? 0 : 1;
+    }
+
+    function getInstallments(bytes32 id) external view returns (uint256) {
         return configs[id].dueTime == 0 ? 0 : 1;
     }
 
@@ -201,24 +210,21 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         @dev Before create the loan the data should be validate with call _validate function
 
         @param id Index of the loan
-        @param data Array of bytes32 with 5 length, used to create a loan
-            0: The requested amount
-            1: The non-punitory interest rate by second, defined as a denominator of 10 000 000.
-            2: The punitory interest rate by second, defined as a denominator of 10 000 000.
-                Ej: interestRate 11108571428571 = 28% Anual interest
-            3: The time in seconds that the borrower has in order to pay the debt after the lender lends the money.
-            4: Delta in seconds specifying how much interest should be added in advance, if the borrower pays
-                entirely or partially the loan before this term, no extra interest will be deducted.
+        @param data Array of bytes parameters, used to create a loan
+            * look in _decodeData function documentation for more info
     */
-    function create(bytes32 id, bytes32[] data) external onlyEngine returns (bool) {
+    function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
         require(configs[id].interestRate == 0, "Entry already exist");
-        _validate(data);
+
+        (uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
+            uint64 duesIn, uint64 cancelableAt) = _decodeData(data);
+        _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
 
         configs[id] = Config({
-            amount: uint128(data[C_AMOUNT]),
-            interestRate: uint256(data[C_INTEREST_RATE]),
-            interestRatePunitory: uint256(data[C_INTEREST_RATE_PUNITORY]),
-            dueTime: uint64(now) + uint64(data[C_DUES_IN]), // check overflow in validate
+            amount: amount,
+            interestRate: interestRate,
+            interestRatePunitory: interestRatePunitory,
+            dueTime: uint64(now) + duesIn, // check overflow in validate
             id: id
         });
         emit Created(id);
@@ -226,8 +232,8 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         states[id].interestTimestamp = uint64(now);
         emit _setInterestTimestamp(id, now);
 
-        if (uint256(data[C_CANCELABLE_AT]) != 0)
-            _addInterest(id, now + uint256(data[C_CANCELABLE_AT])); // check overflow in validate
+        if (cancelableAt != 0)
+            _addInterest(id, now + uint256(cancelableAt)); // check overflow in validate
 
         return true;
     }
@@ -254,10 +260,13 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
         uint256 totalDebt = configs[id].amount.add(state.interest).add(state.punitoryInterest);
 
         toPay = min(totalDebt.sub(state.paid), amount);
-        state.paid = uint128(toPay.add(state.paid));
-        emit AddedPaid(id, state.paid);
 
-        if (totalDebt - state.paid == 0) { // check underflow in min
+        uint256 newPay = toPay.add(state.paid);
+        require(newPay < U_128_OVERFLOW, "Paid overflow");
+        state.paid = uint128(newPay);
+        emit AddedPaid(id, newPay);
+
+        if (totalDebt - newPay == 0) { // check underflow in min
             state.status = uint8(STATUS_PAID);
             emit ChangedStatus(id, now, uint8(STATUS_PAID));
         }
@@ -351,5 +360,35 @@ contract NanoLoanModel is Ownable, Model, MinMax  {
     function run(bytes32 id) external returns (bool) {
         _addInterest(id, now);
         return true;
+    }
+
+    /**
+        @notice Decode bytes array and returns the parameters of a loan
+
+        @dev The length of data should be L_DATA (the sum of the length of thr loan parameters in bytes)
+        @param _data Index of the loan
+            from-to bytes
+            0 -16: amount
+            16-48: interestRate
+            48-80: interestRatePunitory
+            80-88: duesIn
+            88-96: cancelableAt
+
+        @return amount The requested amount
+        @return interestRate The non-punitory interest rate by second, defined as a denominator of 10 000 000.
+        @return interestRatePunitory The punitory interest rate by second, defined as a denominator of 10 000 000.
+            Ej: interestRate 11108571428571 = 28% Anual interest
+        @return duesIn The time in seconds that the borrower has in order to pay the debt after the lender lends the money.
+        @return cancelableAt Delta in seconds specifying how much interest should be added in advance, if the borrower pays
+            entirely or partially the loan before this term, no extra interest will be deducted.
+    */
+    function _decodeData(
+        bytes _data
+    ) internal pure returns (uint128, uint256, uint256, uint64, uint64) {
+        require(_data.length == L_DATA, "Invalid data length");
+        (bytes32 amount, bytes32 interestRate, bytes32 interestRatePunitory,
+            bytes32 duesIn, bytes32 cancelableAt) = decode(_data, 16, 32, 32, 8, 8);
+        return (uint128(amount), uint256(interestRate), uint256(interestRatePunitory),
+            uint64(duesIn), uint64(cancelableAt));
     }
 }
