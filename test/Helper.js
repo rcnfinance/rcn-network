@@ -77,13 +77,6 @@ async function increaseTime(delta) {
   await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 0});
 }
 
-function isRevertErrorMessage( error ) {
-  if( error.message.search('invalid opcode') >= 0 ) return true;
-  if( error.message.search('revert') >= 0 ) return true;
-  if( error.message.search('out of gas') >= 0 ) return true;
-  return false;
-}
-
 async function assertThrow(promise) {
   try {
     await promise;
@@ -95,6 +88,24 @@ async function assertThrow(promise) {
     assert(
       invalidJump || outOfGas || revert || invalidOpcode,
       "Expected throw, got '" + error + "' instead",
+    );
+    return;
+  }
+  assert.fail('Expected throw not received');
+};
+// the promiseFunction should be a function
+async function tryCatchRevert(promiseFunction, message) {
+  let headMsg = 'revert ';
+  if(message == "") {
+    headMsg = headMsg.slice(0, headMsg.length -1);
+    console.warn("Warning: The revert message its empty");
+  }
+  try {
+    await promiseFunction();
+  } catch (error) {
+    assert(
+      error.message.search(headMsg + message) >= 0,
+      "Expected a revert '" + headMsg + message + "', got '" + error.message + "' instead"
     );
     return;
   }
@@ -117,8 +128,8 @@ async function readLoanId(recepit) {
 }
 
 module.exports = {
-  toEvents, arrayToBytesOfBytes32,
-  toBytes32, increaseTime, isRevertErrorMessage, assertThrow,
-  toInterestRate, buyTokens, readLoanId, isRevertErrorMessage,
+  toEvents, arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
+  toBytes32, increaseTime,
+  toInterestRate, buyTokens, readLoanId,
   CREATEDLOAN, APPROVEDBY, LENT, PARTIALPAYMENT, TOTALPAYMENT, DESTROYEDBY
 };
