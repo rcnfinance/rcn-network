@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./../interfaces/Model.sol";
+import "./../interfaces/ModelDescriptor.sol";
 import "./../../utils/Ownable.sol";
 import "./../../utils/SafeMath.sol";
 import "./../../utils/BytesUtils.sol";
@@ -15,10 +16,11 @@ contract MinMax {
     }
 }
 
-contract NanoLoanModel is BytesUtils, Ownable, Model, MinMax  {
+contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
     using SafeMath for uint256;
     using SafeMath for uint128;
     address public engine;
+    address private altDescriptor;
 
     mapping(bytes32 => Config) public configs;
     mapping(bytes32 => State) public states;
@@ -30,6 +32,7 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, MinMax  {
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
 
     event _setEngine(address _engine);
+    event _setDescriptor(address _descriptor);
     event _setInterest(bytes32 _id, uint128 _interest);
     event _setPunitoryInterest(bytes32 _id, uint128 _punitoryInterest);
     event _setInterestTimestamp(bytes32 _id, uint256 _interestTimestamp);
@@ -56,6 +59,14 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, MinMax  {
         _supportedInterface[this.configs.selector] = true;
         _supportedInterface[this.states.selector] = true;
         _supportedInterface[this.engine.selector] = true;
+        // ModelDescriptor
+        _supportedInterface[this.descriptor.selector] = true;
+        _supportedInterface[this.simFirstObligation.selector] = true;
+        _supportedInterface[this.simTotalObligation.selector] = true;
+        _supportedInterface[this.simDuration.selector] = true;
+        _supportedInterface[this.simPunitiveInterestRate.selector] = true;
+        _supportedInterface[this.simFrequency.selector] = true;
+        _supportedInterface[this.simInstallments.selector] = true;
     }
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
@@ -86,9 +97,19 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, MinMax  {
         _;
     }
 
+    function descriptor() external view returns (address) {
+        return altDescriptor == address(0) ? this : altDescriptor;
+    }
+
     function setEngine(address _engine) external onlyOwner returns (bool) {
         engine = _engine;
         emit _setEngine(_engine);
+        return true;
+    }
+
+    function setDescriptor(address _descriptor) external onlyOwner returns (bool) {
+        altDescriptor = _descriptor;
+        emit _setDescriptor(_descriptor);
         return true;
     }
 
@@ -390,5 +411,37 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, MinMax  {
             bytes32 duesIn, bytes32 cancelableAt) = decode(_data, 16, 32, 32, 8, 8);
         return (uint128(amount), uint256(interestRate), uint256(interestRatePunitory),
             uint64(duesIn), uint64(cancelableAt));
+    }
+
+    // implements modelDescriptor interface
+    function simFirstObligation(bytes _data) external view returns (uint256 amount, uint256 cancelableAt) {
+        uint256 interestRate;
+        (amount, interestRate,,, cancelableAt) = _decodeData(_data);
+        (, interestRate) = _calculateInterest(cancelableAt, interestRate, amount);
+        amount += interestRate;
+    }
+
+    function simTotalObligation(bytes _data) external view returns (uint256 amount) {
+        uint256 interestRate;
+        uint256 cancelableAt;
+        (amount, interestRate,,, cancelableAt) = _decodeData(_data);
+        (, interestRate) = _calculateInterest(cancelableAt, interestRate, amount);
+        amount += interestRate;
+    }
+
+    function simDuration(bytes _data) external view returns (uint256 duration) {
+        (,,, duration,) = _decodeData(_data);
+    }
+
+    function simPunitiveInterestRate(bytes _data) external view returns (uint256 punitiveInterestRate) {
+        (,, punitiveInterestRate,,) = _decodeData(_data);
+    }
+
+    function simFrequency(bytes _data) external view returns (uint256 frequency) {
+        return 1;
+    }
+
+    function simInstallments(bytes _data) external view returns (uint256 installments) {
+        return 1;
     }
 }
