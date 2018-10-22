@@ -102,6 +102,20 @@ contract Model is ERC165 {
     // ///
 
     /**
+        @return Identifier of the model
+    */
+    function modelId() external view returns (bytes32);
+
+    /**
+        Returns the address of the contract used as Descriptor of the model
+
+        @dev The descriptor contract should follow the ModelDescriptor.sol scheme
+
+        @return Address of the descriptor
+    */
+    function descriptor() external view returns (address);
+
+    /**
         If called for any address with the ability to modify the state of the model registries,
             this method should return True.
 
@@ -215,6 +229,16 @@ contract Model is ERC165 {
         @return frequency Frequency of each installment
     */
     function getFrequency(bytes32 id) external view returns (uint256 frequency);
+
+    /**
+        If the loan has multiple installments returns the total of installments,
+            if the loan has not installments it should return 1.
+
+        @param id Id of the registry
+
+        @return installments Total of installments
+    */
+    function getInstallments(bytes32 id) external view returns (uint256 installments);
 
     /**
         The registry could be paid before or after the date, but the debt will always be

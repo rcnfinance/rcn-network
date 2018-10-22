@@ -1,8 +1,11 @@
+pragma solidity ^0.4.24;
+
 import "./../interfaces/Model.sol";
+import "./../interfaces/ModelDescriptor.sol";
 import "./../../utils/Ownable.sol";
 import "./../../utils/BytesUtils.sol";
 
-contract InstallmentsModel is BytesUtils, Ownable, Model {
+contract InstallmentsModel is BytesUtils, Ownable, Model, ModelDescriptor {
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {
@@ -34,6 +37,7 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
     }
 
     address public engine;
+    address private altDescriptor;
 
     mapping(bytes32 => Config) public configs;
     mapping(bytes32 => State) public states;
@@ -44,6 +48,9 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
     uint256 private constant U_40_OVERFLOW = 2 ** 40;
     uint256 private constant U_24_OVERFLOW = 2 ** 24;
+
+    event _setEngine(address _engine);
+    event _setDescriptor(address _descriptor);
 
     event _setClock(bytes32 _id, uint64 _to);
     event _setStatus(bytes32 _id, uint8 _status);
@@ -74,8 +81,25 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
         _;
     }
 
+    function modelId() external view returns (bytes32) {
+        // InstallmentsModel A 0.0.2
+        return 0x496e7374616c6c6d656e74734d6f64656c204120302e302e3200000000000000;
+    }
+
+    function descriptor() external view returns (address) {
+        address _descriptor = altDescriptor;
+        return _descriptor == address(0) ? this : _descriptor;
+    }
+
     function setEngine(address _engine) external onlyOwner returns (bool) {
         engine = _engine;
+        emit _setEngine(_engine);
+        return true;
+    }
+
+    function setDescriptor(address _descriptor) external onlyOwner returns (bool) {
+        altDescriptor = _descriptor;
+        emit _setDescriptor(_descriptor);
         return true;
     }
 
@@ -307,8 +331,38 @@ contract InstallmentsModel is BytesUtils, Ownable, Model {
         return configs[id].duration;
     }
 
+    function getInstallments(bytes32 id) external view returns (uint256) {
+        return configs[id].installments;
+    }
+
     function getEstimateObligation(bytes32 id) external view returns (uint256) {
         return _getClosingObligation(id);
+    }
+
+    function simFirstObligation(bytes _data) external view returns (uint256 amount, uint256 time) {
+        (amount,,, time,) = _decodeData(_data);
+    }
+
+    function simTotalObligation(bytes _data) external view returns (uint256 amount) {
+        (uint256 cuota,, uint256 installments,,) = _decodeData(_data);
+        amount = cuota * installments;
+    }
+
+    function simDuration(bytes _data) external view returns (uint256 duration) {
+        (,,uint256 installments, uint256 installmentDuration,) = _decodeData(_data);
+        duration = installmentDuration * installments;
+    }
+
+    function simPunitiveInterestRate(bytes _data) external view returns (uint256 punitiveInterestRate) {
+        (,punitiveInterestRate,,,) = _decodeData(_data);
+    }
+
+    function simFrequency(bytes _data) external view returns (uint256 frequency) {
+        (,,, frequency,) = _decodeData(_data);
+    }
+
+    function simInstallments(bytes _data) external view returns (uint256 installments) {
+        (,, installments,,) = _decodeData(_data);
     }
 
     function _advanceClock(bytes32 id, uint256 _target) internal returns (bool) {

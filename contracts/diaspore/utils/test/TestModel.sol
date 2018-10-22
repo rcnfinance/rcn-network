@@ -82,6 +82,15 @@ contract TestModel is BytesUtils, Ownable, Model {
         emit SetEngine(_engine);
     }
 
+    function modelId() external view returns (bytes32) {
+        // TestModel 0.0.1
+        return 0x546573744d6f64656c20302e302e310000000000000000000000000000000000;
+    }
+
+    function descriptor() external view returns (address) {
+        return address(0);
+    }
+
     function isOperator(address operator) external view returns (bool) {
         return operator == owner;
     }
@@ -136,6 +145,10 @@ contract TestModel is BytesUtils, Ownable, Model {
 
     function getFrequency(bytes32) external view returns (uint256) {
         return 0;
+    }
+
+    function getInstallments(bytes32) external view returns (uint256) {
+        return 1;
     }
 
     function getEstimateObligation(bytes32 id) external view returns (uint256) {
