@@ -23,7 +23,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      1
     );
     await model.create(id, data);
     await Helper.assertThrow(model.create(id, data));
@@ -35,7 +36,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     assert.isTrue(await model.validate(data), "Registry data should be valid");
@@ -60,7 +62,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -76,7 +79,8 @@ contract('Installments model', function(accounts) {
       web3.toWei(110),
       Helper.toInterestRate(20),
       1,
-      360 * 86400
+      360 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -98,7 +102,8 @@ contract('Installments model', function(accounts) {
       300,
       Helper.toInterestRate(240),
       3,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -137,7 +142,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -161,7 +167,8 @@ contract('Installments model', function(accounts) {
       110,
       Helper.toInterestRate(240),
       10,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -199,7 +206,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -269,7 +277,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -339,7 +348,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -408,7 +418,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      86400
     );
 
     await model.create(id, data);
@@ -463,7 +474,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -521,7 +533,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -581,7 +594,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -617,7 +631,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -653,7 +668,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     await model.create(id, data);
@@ -682,6 +698,42 @@ contract('Installments model', function(accounts) {
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 922155);
     assert.equal(await model.getStatus(id), 1, "Loan should be ongoing");
   })
+  it("Should ignored periods of time under the time unit", async function() {
+    let id = Helper.toBytes32(913);
+    let data = await model.encodeData(
+      10000,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      86400 * 2
+    );
+
+    await model.create(id, data);
+    
+    await Helper.increaseTime(31 * 86400);
+
+    await ping();
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10000);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 86400);
+    
+    await model.run(id);
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10000);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 86400);
+
+    await Helper.increaseTime(3 * 86400);
+
+    await ping();
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10058);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 4 * 86400);
+    
+    await model.run(id);
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10058);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 4 * 86400);
+  })
 
   it("It should provide information with the descriptor", async function() {
     let id = Helper.toBytes32(912);
@@ -689,7 +741,8 @@ contract('Installments model', function(accounts) {
       99963,
       Helper.toInterestRate(35 * 1.5),
       12,
-      30 * 86400
+      30 * 86400,
+      1
     );
 
     let descriptor = ModelDescriptor.at(await model.descriptor());

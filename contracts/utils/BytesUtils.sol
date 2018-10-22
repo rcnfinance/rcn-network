@@ -114,27 +114,22 @@ contract BytesUtils {
         uint256 o;
         assembly {
             let s := add(_data, 32)
-
             _a := mload(s)
             let l := sub(32, _la)
             if l { _a := div(_a, exp(2, mul(l, 8))) }
             o := add(s, _la)
-
             _b := mload(o)
             l := sub(32, _lb)
             if l { _b := div(_b, exp(2, mul(l, 8))) }
             o := add(o, _lb)
-
             _c := mload(o)
             l := sub(32, _lc)
             if l { _c := div(_c, exp(2, mul(l, 8))) }
             o := add(o, _lc)
-
             _d := mload(o)
             l := sub(32, _ld)
             if l { _d := div(_d, exp(2, mul(l, 8))) }
             o := add(o, _ld)
-
             _e := mload(o)
             l := sub(32, _le)
             if l { _e := div(_e, exp(2, mul(l, 8))) }
