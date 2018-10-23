@@ -41,7 +41,7 @@ contract('NanoLoanModel', function(accounts) {
     //if the loan its no create the obligation should be 0
     assert.equal((await model.getClosingObligation(id)).toString(), 0, "should be 0");
     assert.equal((await model.getEstimateObligation(id)).toString(), 0, "should be 0");
-    assert.equal((await model.getObligation(id, 0)).toString(), [0, false], "should be 0, false");
+    assert.equal((await model.getObligation(id, 0)).toString(), [0, true], "should be 0, false");
   });
 
   it("Test validate function", async function() {

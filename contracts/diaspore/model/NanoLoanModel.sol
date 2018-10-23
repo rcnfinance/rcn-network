@@ -19,6 +19,7 @@ contract MinMax {
 contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
     using SafeMath for uint256;
     using SafeMath for uint128;
+    using SafeMath for uint64;
     address public engine;
     address private altDescriptor;
 
@@ -311,8 +312,7 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
         Config storage config = configs[id];
         State storage state = states[id];
 
-        uint256 interestTimestamp = state.interestTimestamp;
-        if (interestTimestamp < timestamp) {
+        if (state.interestTimestamp < timestamp) {
             uint256 newInterest = state.interest;
 
             uint256 realDelta;
@@ -321,17 +321,17 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
             uint256 newTimestamp;
             uint256 pending;
             uint256 endNonPunitory = min(timestamp, config.dueTime);
-            if (interestTimestamp < endNonPunitory) {
+            if (state.interestTimestamp < endNonPunitory) {
                 if (state.paid < config.amount)
                     pending = config.amount - state.paid;// cant underflow, check in if-condition
 
-                (realDelta, calculatedInterest) = _calculateInterest(endNonPunitory - interestTimestamp, config.interestRate, pending);// cant underflow, check in if-condition
+                (realDelta, calculatedInterest) = _calculateInterest(endNonPunitory - state.interestTimestamp, config.interestRate, pending);// cant underflow, check in if-condition
                 newInterest = calculatedInterest.add(newInterest);
-                newTimestamp = interestTimestamp.add(realDelta);
+                newTimestamp = state.interestTimestamp.add(realDelta);
             }
 
             if (config.dueTime < timestamp) {
-                uint256 startPunitory = max(config.dueTime, interestTimestamp);
+                uint256 startPunitory = max(config.dueTime, state.interestTimestamp);
                 uint256 debt = config.amount.add(newInterest);
                 uint256 newPunitoryInterest = state.punitoryInterest;
                 pending = min(debt, debt.add(newPunitoryInterest).sub(state.paid));
