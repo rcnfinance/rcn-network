@@ -1,12 +1,12 @@
 pragma solidity ^0.4.24;
 
-import "./LoanCreator.sol";
+import "./LoanManager.sol";
 import "./../interfaces/Oracle.sol";
 import "./../utils/Ownable.sol";
 import "./interfaces/Model.sol";
 import "./DebtEngine.sol";
 
-contract LegacyEngine is LoanCreator {
+contract LegacyEngine is LoanManager {
 
     uint256 private constant C_CUOTA = 0;
     uint256 private constant C_INTEREST_RATE = 1;
@@ -21,7 +21,7 @@ contract LegacyEngine is LoanCreator {
     constructor (
         DebtEngine _engine,
         Model _model
-    ) LoanCreator(_engine) public {
+    ) LoanManager(_engine) public {
         require(model.engine() == address(_engine), "Model engine is not the same");
         model = _model;
     }
@@ -62,7 +62,7 @@ contract LegacyEngine is LoanCreator {
         bytes32 _installment,
         bytes32 _interestRate
      ) private returns (uint256) {
-        bytes32[] storage loanData;
+        /*bytes32[] storage loanData;
         loanData[C_CUOTA] = _duesIn;
         loanData[C_INSTALLMENTS] = _installment;
         loanData[C_INTEREST_RATE] = _interestRate;
@@ -80,7 +80,7 @@ contract LegacyEngine is LoanCreator {
         );
         nonce++;
         nonces[futureDebt] = nonce;
-        return uint256(futureDebt);
+        return uint256(futureDebt);*/
       }
 
     function getStatus(uint256 futureDebt) public view returns (uint256) {

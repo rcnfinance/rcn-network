@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 import "./DebtEngine.sol";
 import "./interfaces/LoanRequester.sol";
 
-contract LoanCreator {
+contract LoanManager {
     DebtEngine public debtEngine;
     Token public token;
 
@@ -11,11 +11,24 @@ contract LoanCreator {
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
+    event Requested(bytes32 indexed _id, uint256 _nonce);
+    event Approved(bytes32 indexed _id);
+    event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
+    event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
+    event Canceled(bytes32 indexed _id, address _canceler);
+    event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
+    event SettledLend(bytes32 indexed _id, bytes32 _sig, address _lender, uint256 _tokens);
+    event SettledCancel(bytes32 _sig, address _canceler);
+
     constructor (DebtEngine _debtEngine) public {
         debtEngine = _debtEngine;
         token = debtEngine.token();
         require(token != address(0), "Error loading token");
     }
+
+    function getDirectory() external view returns (bytes32[]) { return directory; }
+
+    function getDirectoryLength() external view returns (uint256) { return directory.length; }
 
     function getBorrower(uint256 id) external view returns (address) {
         return requests[bytes32(id)].borrower;
@@ -30,6 +43,7 @@ contract LoanCreator {
     function getExpirationRequest(uint256 id) external view returns (uint256) { return requests[bytes32(id)].expiration; }
     function getApproved(uint256 id) external view returns (bool) { return requests[bytes32(id)].approved; }
     function getDueTime(uint256 id) external view returns (uint256) { return Model(requests[bytes32(id)].model).getDueTime(bytes32(id)); }
+    function getLoanData(uint256 id) external view returns (bytes) { return requests[bytes32(id)].loanData; }
 
     function getStatus(uint256 id) public view returns (uint256) {
         Request storage request = requests[bytes32(id)];
@@ -49,7 +63,7 @@ contract LoanCreator {
         address oracle;
         address borrower;
         uint256 nonce;
-        bytes32[] loanData;
+        bytes loanData;
     }
 
     function calcFutureDebt(
@@ -71,7 +85,7 @@ contract LoanCreator {
         address borrower,
         uint256 nonce,
         uint64 expiration,
-        bytes32[] loanData
+        bytes loanData
     ) public returns (bytes32 futureDebt) {
         require(borrower != address(0), "The request should have a borrower");
         require(Model(model).validate(loanData), "The loan data is not valid");
@@ -105,6 +119,8 @@ contract LoanCreator {
             loanData: loanData,
             expiration: expiration
         });
+
+        emit Requested(futureDebt, nonce);
     }
 
     function approveRequest(
@@ -115,6 +131,7 @@ contract LoanCreator {
         if (!request.approved) {
             request.position = uint64(directory.push(futureDebt) - 1);
             request.approved = true;
+            emit Approved(futureDebt);
         }
         return true;
     }
@@ -133,14 +150,17 @@ contract LoanCreator {
 
         request.open = false;
 
+        uint256 tokens = currencyToToken(request.oracle, request.currency, request.amount, oracleData);
         require(
             token.transferFrom(
                 msg.sender,
                 request.borrower,
-                currencyToToken(request.oracle, request.currency, request.amount, oracleData)
+                tokens
             ),
             "Error sending tokens to borrower"
         );
+
+        emit Lent(futureDebt, msg.sender, tokens);
 
         // Generate the debt
         require(
@@ -180,14 +200,14 @@ contract LoanCreator {
 
     function requestSignature(
         bytes32[8] requestData,
-        bytes32[] loanData
+        bytes loanData
     ) external view returns (bytes32) {
         return keccak256(abi.encodePacked(this, requestData, loanData));
     }
 
     function _requestSignature(
         bytes32[8] requestData,
-        bytes32[] loanData
+        bytes loanData
     ) internal view returns (bytes32) {
         return keccak256(abi.encodePacked(this, requestData, loanData));
     }
@@ -203,7 +223,7 @@ contract LoanCreator {
 
     function settleLend(
         bytes32[8] requestData,
-        bytes32[] loanData,
+        bytes loanData,
         address cosigner,
         uint256 maxCosignerCost,
         bytes cosignerData,
@@ -231,19 +251,23 @@ contract LoanCreator {
 
         require(requests[futureDebt].borrower == address(0), "Request already exist");
 
-        validateRequest(requestData, loanData, borrowerSig, creatorSig);
+        bytes32 sig = _requestSignature(requestData, loanData);
+        validateRequest(sig, requestData, loanData, borrowerSig, creatorSig);
 
+        uint256 tokens = currencyToToken(requestData, oracleData);
         require(
             token.transferFrom(
                 msg.sender,
                 address(requestData[R_BORROWER]),
-                currencyToToken(requestData, oracleData)
+                tokens
             ),
             "Error sending tokens to borrower"
         );
 
         // Generate the debt
         require(createDebt(requestData, loanData, internalNonce) == futureDebt, "Error creating debt registry");
+
+        emit SettledLend(futureDebt, sig, msg.sender, tokens);
 
         requests[futureDebt] = Request({
             open: false,
@@ -256,7 +280,7 @@ contract LoanCreator {
             oracle: address(requestData[R_ORACLE]),
             borrower: address(requestData[R_BORROWER]),
             nonce: cosigner != address(0) ? maxCosignerCost : internalNonce,
-            loanData: new bytes32[](0),
+            loanData: "",
             position: 0,
             expiration: uint64(requestData[R_EXPIRATION])
         });
@@ -290,12 +314,14 @@ contract LoanCreator {
         delete request.loanData;
         delete requests[futureDebt];
 
+        emit Canceled(futureDebt, msg.sender);
+
         return true;
     }
 
     function settleCancel(
         bytes32[8] requestData,
-        bytes32[] loanData
+        bytes loanData
     ) external returns (bool) {
         bytes32 sig = _requestSignature(requestData, loanData);
         require(
@@ -304,6 +330,8 @@ contract LoanCreator {
             "Only borrower or creator can cancel a settle"
         );
         canceledSettles[sig] = true;
+        emit SettledCancel(sig, msg.sender);
+
         return true;
     }
 
@@ -326,12 +354,12 @@ contract LoanCreator {
     }
 
     function validateRequest(
+        bytes32 sig,
         bytes32[8] requestData,
-        bytes32[] loanData,
+        bytes loanData,
         bytes borrowerSig,
         bytes creatorSig
     ) internal {
-        bytes32 sig = _requestSignature(requestData, loanData);
         require(!canceledSettles[sig], "Settle was canceled");
 
         uint256 expected = uint256(sig) / 2;
@@ -367,7 +395,7 @@ contract LoanCreator {
 
     function createDebt(
         bytes32[8] requestData,
-        bytes32[] loanData,
+        bytes loanData,
         uint256 internalNonce
     ) internal returns (bytes32) {
         return debtEngine.create2(
@@ -389,6 +417,7 @@ contract LoanCreator {
         request.cosigner = msg.sender;
         require(request.nonce >= cost || request.nonce == 0, "Cosigner cost exceeded");
         require(token.transferFrom(debtEngine.ownerOf(futureDebt), msg.sender, cost), "Error paying cosigner");
+        emit Cosigned(bytes32(futureDebt), msg.sender, cost);
         return true;
     }
 

@@ -31,10 +31,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[1],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 1000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
         );
 
         assert.equal(await debtEngine.balanceOf(accounts[1]), 1, "Account 1 should have a new asset");
@@ -47,10 +44,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             0x0,
             8000000,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         );
 
         assert.equal(await debtEngine.balanceOf(accounts[1]), 2, "Account 1 should have a new asset");
@@ -60,11 +54,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            9000000,
-            [
-                Helper.toBytes32(2000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 3000)
-            ]
+            8000001,
+            await testModel.encodeData(2000, (await Helper.getBlockTime()) + 3000)
         );
 
         assert.equal(await debtEngine.balanceOf(accounts[2]), 1, "Account 1 should have a new asset");
@@ -76,10 +67,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -98,10 +86,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -120,10 +105,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -152,10 +134,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -182,10 +161,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const id2 = await getId(debtEngine.create(
@@ -193,10 +169,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(7000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(7000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 10000);
@@ -224,10 +197,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -271,10 +241,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             0x0,
             9999,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         );
 
         await Helper.assertThrow(
@@ -284,10 +251,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
                 0x0,
                 0x0,
                 9999,
-                [
-                    Helper.toBytes32(1000),
-                    Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-                ]
+                await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
             )
         );
     });
@@ -300,10 +264,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             0x0,
             12000,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
 
         assert.equal(pid1, id1);
@@ -315,10 +276,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
 
         assert.equal(pid2, id2);
@@ -331,10 +289,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
         let id2 = await getId(debtEngine.create2(
             testModel.address,
@@ -342,10 +297,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             0x0,
             nonce++,
-            [
-                Helper.toBytes32(1000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
         assert.notEqual(id1, id2);
     });
@@ -356,10 +308,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(10000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(10000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData1 = await oracle.dummyData1();
@@ -394,10 +343,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(10000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(10000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData1 = await oracle.dummyData1();
@@ -434,10 +380,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[0],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(10000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(10000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData1 = await oracle.dummyData1();
@@ -472,10 +415,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 50);
@@ -522,10 +462,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData2 = await oracle.dummyData2();
@@ -574,10 +511,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 50);
@@ -624,10 +558,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData2 = await oracle.dummyData2();
@@ -676,10 +607,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 50);
@@ -726,10 +654,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData2 = await oracle.dummyData2();
@@ -778,10 +703,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 50);
@@ -828,10 +750,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             oracle.address,
             0xd25aa221,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         const dummyData2 = await oracle.dummyData2();
@@ -880,10 +799,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         // Set the error flag
@@ -913,10 +829,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         // Set the error flag
@@ -947,10 +860,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         // Set the error flag
@@ -976,10 +886,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         // Set the error flag
@@ -1005,10 +912,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         // Set the error flag
@@ -1039,10 +943,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             accounts[2],
             0x0,
             0x0,
-            [
-                Helper.toBytes32(3000),
-                Helper.toBytes32((await Helper.getBlockTime()) + 2000)
-            ]
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 50);

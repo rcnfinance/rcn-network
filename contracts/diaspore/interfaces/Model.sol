@@ -15,13 +15,65 @@ import "./../../interfaces/ERC165.sol";
     @author Agustin Aguilar
 */
 contract Model is ERC165 {
+    // ///
+    // Events
+    // ///
+
+    /**
+        @dev This emits when create a new debt.
+    */
     event Created(bytes32 indexed _id);
+
+    /**
+        @dev This emits when the status of debt change.
+
+        @param _timestamp Timestamp of the registry
+        @param _status New status of the registry
+    */
     event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+
+    /**
+        @dev This emits when the obligation of debt change.
+
+        @param _timestamp Timestamp of the registry
+        @param _debt New debt of the registry
+    */
     event ChangedObligation(bytes32 indexed _id, uint256 _timestamp, uint256 _debt);
-    event ChangedFrecuencalcy(bytes32 indexed _id, uint256 _timestamp, uint256 _frecuency);
+
+    /**
+        @dev This emits when the frequency of debt change.
+
+        @param _timestamp Timestamp of the registry
+        @param _frequency New frequency of each installment
+    */
+    event ChangedFrequency(bytes32 indexed _id, uint256 _timestamp, uint256 _frequency);
+
+    /**
+        @param _timestamp Timestamp of the registry
+    */
     event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+
+    /**
+        @param _timestamp Timestamp of the registry
+        @param _dueTime New dueTime of each installment
+    */
     event ChangedFinalTime(bytes32 indexed _id, uint256 _timestamp, uint64 _dueTime);
+
+    /**
+        @dev This emits when the call addDebt function.
+
+        @param _amount New amount of the debt, old amount plus added
+    */
     event AddedDebt(bytes32 indexed _id, uint256 _amount);
+
+    /**
+        @dev This emits when the call addPaid function.
+
+        If the registry is fully paid on the call and the amount parameter exceeds the required
+            payment amount, the event emits the real amount paid on the payment.
+
+        @param _paid Real amount paid
+    */
     event AddedPaid(bytes32 indexed _id, uint256 _paid);
 
     // Model interface selector
@@ -34,7 +86,7 @@ contract Model is ERC165 {
     ^ this.getClosingObligation.selector
     ^ this.getDueTime.selector
     ^ this.getFinalTime.selector
-    ^ this.getFrecuency.selector
+    ^ this.getFrequency.selector
     ^ this.getEstimateObligation.selector
     ^ this.create.selector
     ^ this.addPaid.selector
@@ -50,6 +102,20 @@ contract Model is ERC165 {
     // ///
     // Meta
     // ///
+
+    /**
+        @return Identifier of the model
+    */
+    function modelId() external view returns (bytes32);
+
+    /**
+        Returns the address of the contract used as Descriptor of the model
+
+        @dev The descriptor contract should follow the ModelDescriptor.sol scheme
+
+        @return Address of the descriptor
+    */
+    function descriptor() external view returns (address);
 
     /**
         If called for any address with the ability to modify the state of the model registries,
@@ -74,7 +140,7 @@ contract Model is ERC165 {
 
         @return True if the data can be used to create a new registry
     */
-    function validate(bytes32[] data) external view returns (bool isValid);
+    function validate(bytes data) external view returns (bool isValid);
 
     // ///
     // Getters
@@ -144,7 +210,7 @@ contract Model is ERC165 {
 
         After this moment, if the payment goal is not met the debt will be considered overdue.
 
-        The getObligation method can be used to know the required payment on the future timestamp.
+            The getObligation method can be used to know the required payment on the future timestamp.
 
         @param id Id of the registry
 
@@ -162,9 +228,19 @@ contract Model is ERC165 {
 
         @param id Id of the registry
 
-        @return frecuency Frecuency of each installment
+        @return frequency Frequency of each installment
     */
-    function getFrecuency(bytes32 id) external view returns (uint256 frecuency);
+    function getFrequency(bytes32 id) external view returns (uint256 frequency);
+
+    /**
+        If the loan has multiple installments returns the total of installments,
+            if the loan has not installments it should return 1.
+
+        @param id Id of the registry
+
+        @return installments Total of installments
+    */
+    function getInstallments(bytes32 id) external view returns (uint256 installments);
 
     /**
         The registry could be paid before or after the date, but the debt will always be
@@ -205,7 +281,7 @@ contract Model is ERC165 {
 
         @return success True if the registry was created
     */
-    function create(bytes32 id, bytes32[] data) external returns (bool success);
+    function create(bytes32 id, bytes data) external returns (bool success);
 
     /**
         If the registry is fully paid on the call and the amount parameter exceeds the required
