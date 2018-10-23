@@ -307,7 +307,7 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
         @param id Index of the loan to compute interest
         @param timestamp Target absolute unix time to calculate interest.
     */
-    function _addInterest(bytes32 id, uint256 timestamp) internal {
+    function _addInterest(bytes32 id, uint256 timestamp) internal returns(bool) {
         Config storage config = configs[id];
         State storage state = states[id];
 
@@ -357,6 +357,7 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
                     state.punitoryInterest = uint128(newPunitoryInterest);
                     emit _setPunitoryInterest(id, uint128(newPunitoryInterest));
                 }
+                return true;
             }
         }
     }
@@ -392,8 +393,7 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
         @return true If the interest was updated
     */
     function run(bytes32 id) external returns (bool) {
-        _addInterest(id, now);
-        return true;
+        return _addInterest(id, now);
     }
 
     /**
