@@ -327,10 +327,6 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
 
                 (realDelta, calculatedInterest) = _calculateInterest(endNonPunitory - interestTimestamp, config.interestRate, pending);// cant underflow, check in if-condition
                 newInterest = calculatedInterest.add(newInterest);
-                require(newInterest < U_128_OVERFLOW, "newInterest overflow");
-                state.interest = uint128(newInterest);
-                emit _setInterest(id, uint128(newInterest));
-
                 newTimestamp = interestTimestamp.add(realDelta);
             }
 
@@ -342,15 +338,26 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
 
                 (realDelta, calculatedInterest) = _calculateInterest(timestamp - startPunitory, config.interestRatePunitory, pending);// cant underflow, check in the previus if
                 newPunitoryInterest = newPunitoryInterest.add(calculatedInterest);
-                require(newPunitoryInterest < U_128_OVERFLOW, "newPunitoryInterest overflow");
-                state.punitoryInterest = uint128(newPunitoryInterest);
-                emit _setPunitoryInterest(id, uint128(newPunitoryInterest));
                 newTimestamp = startPunitory.add(realDelta);
             }
 
-            require(newTimestamp < U_64_OVERFLOW, "newTimestamp overflow");
-            state.interestTimestamp = uint64(newTimestamp);
-            emit _setInterestTimestamp(id, newTimestamp);
+            if(newInterest != state.interest || newPunitoryInterest != state.punitoryInterest) {
+                require(newTimestamp < U_64_OVERFLOW, "newTimestamp overflow");
+                state.interestTimestamp = uint64(newTimestamp);
+                emit _setInterestTimestamp(id, newTimestamp);
+
+                if(newInterest != state.interest) {
+                    require(newInterest < U_128_OVERFLOW, "newInterest overflow");
+                    state.interest = uint128(newInterest);
+                    emit _setInterest(id, uint128(newInterest));
+                }
+
+                if(newPunitoryInterest != state.punitoryInterest) {
+                    require(newPunitoryInterest < U_128_OVERFLOW, "newPunitoryInterest overflow");
+                    state.punitoryInterest = uint128(newPunitoryInterest);
+                    emit _setPunitoryInterest(id, uint128(newPunitoryInterest));
+                }
+            }
         }
     }
 
