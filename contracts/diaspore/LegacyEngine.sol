@@ -22,7 +22,7 @@ contract LegacyEngine is LoanManager {
         DebtEngine _engine,
         Model _model
     ) LoanManager(_engine) public {
-        require(model.engine() == address(_engine), "Model engine is not the same");
+        require(_model.engine() == address(_engine), "Model engine is not the same");
         model = _model;
     }
 

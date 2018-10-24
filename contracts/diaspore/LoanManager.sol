@@ -102,6 +102,7 @@ contract LoanManager {
         uint64 pos;
         if (approved) {
             pos = uint64(directory.push(futureDebt) - 1);
+            emit Approved(futureDebt);
         }
 
         requests[futureDebt] = Request({
