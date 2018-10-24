@@ -1,6 +1,7 @@
 const TestToken = artifacts.require("./utils/TestToken.sol");
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const LegacyEngine = artifacts.require("./diaspore/LegacyEngine.sol");
+const TestOracle = artifacts.require("./examples/TestOracle.sol");
 const NanoLoanModel = artifacts.require("./diaspore/model/NanoLoanModel.sol");
 const Helper = require('../Helper.js');
 
@@ -9,6 +10,7 @@ const REQUESTED = 'Requested';
 contract('LegacyEngine', function(accounts) {
 
     let rcn;
+    let oracle;
     let debtEngine;
     let legacyEngine;
 
@@ -51,6 +53,9 @@ contract('LegacyEngine', function(accounts) {
 
         debtEngine = await DebtEngine.new(rcn.address);
         console.log("Debt Engine: ", debtEngine.address);
+
+        oracle = await TestOracle.new();
+        console.log("Oracle: ", oracle.address);
 
         owner = accounts[1];
         model = await NanoLoanModel.new( { from: owner} );
@@ -136,6 +141,26 @@ contract('LegacyEngine', function(accounts) {
             "metadata1", { from: owner })
         assert.equal(await readRequested(futureDebt, REQUESTED), 0);
         assert.equal(await legacyEngine.getCreator(await toEvents(futureDebt.logs, REQUESTED)[0]._id), owner);
+
+    })
+
+    it("The status should not be paid", async() => {
+
+        const futureDebt = await legacyEngine.createLoan(
+            0x0,              // oracle
+            accounts[2],      // borrower
+            0x0,              // currency
+            defaultParams[0], // amount
+            defaultParams[1], // interestRate
+            defaultParams[2], // interestRatePunitory
+            defaultParams[3], // dues in
+            defaultParams[4], // cancelableAt
+            10 * 10**20,      // expire time
+            "metadata1", { from: owner })
+        assert.equal(await readRequested(futureDebt, REQUESTED), 0);
+        const status = await legacyEngine.getStatus(await toEvents(futureDebt.logs, REQUESTED)[0]._id);
+        assert.equal(status, 0);
+
 
     })
 

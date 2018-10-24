@@ -151,7 +151,7 @@ contract Model is ERC165 {
 
         1: Ongoing - The debt is still ongoing and waiting to be paid
         2: Paid - The debt is already paid and
-        5: Error - There was an Error with the registry
+        4: Error - There was an Error with the registry
 
         @dev This method should always be called by the DebtEngine
 
