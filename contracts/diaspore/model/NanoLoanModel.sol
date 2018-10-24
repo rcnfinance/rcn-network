@@ -19,6 +19,7 @@ contract MinMax {
 contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
     using SafeMath for uint256;
     using SafeMath for uint128;
+    using SafeMath for uint64;
     address public engine;
     address private altDescriptor;
 
@@ -98,8 +99,8 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
     }
 
     function modelId() external view returns (bytes32) {
-        // NanoLoanModel A 0.0.0
-        return 0x4e616e6f4c6f616e4d6f64656c204120302e302e3000000000000000000000;
+        // NanoLoanModel 1.0
+        return 0x4e616e6f4c6f616e4d6f64656c20312e300000000000000000000000000000;
     }
 
     function descriptor() external view returns (address) {
@@ -180,7 +181,7 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
 
     function getObligation(bytes32 id, uint64 timestamp) external view returns (uint256 amount, bool defined) {
         amount = _getObligation(id, timestamp);
-        //if(timestamp == now || timestamp < configs[id].cancelableAt) defined = true;
+        if(timestamp == now || timestamp <= states[id].interestTimestamp) defined = true;
     }
 
     function _getObligation(bytes32 id, uint256 timestamp) internal view returns (uint256 total){
@@ -307,12 +308,11 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
         @param id Index of the loan to compute interest
         @param timestamp Target absolute unix time to calculate interest.
     */
-    function _addInterest(bytes32 id, uint256 timestamp) internal {
+    function _addInterest(bytes32 id, uint256 timestamp) internal returns(bool) {
         Config storage config = configs[id];
         State storage state = states[id];
 
-        uint256 interestTimestamp = state.interestTimestamp;
-        if (interestTimestamp < timestamp) {
+        if (state.interestTimestamp < timestamp) {
             uint256 newInterest = state.interest;
 
             uint256 realDelta;
@@ -321,17 +321,17 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
             uint256 newTimestamp;
             uint256 pending;
             uint256 endNonPunitory = min(timestamp, config.dueTime);
-            if (interestTimestamp < endNonPunitory) {
+            if (state.interestTimestamp < endNonPunitory) {
                 if (state.paid < config.amount)
                     pending = config.amount - state.paid;// cant underflow, check in if-condition
 
-                (realDelta, calculatedInterest) = _calculateInterest(endNonPunitory - interestTimestamp, config.interestRate, pending);// cant underflow, check in if-condition
+                (realDelta, calculatedInterest) = _calculateInterest(endNonPunitory - state.interestTimestamp, config.interestRate, pending);// cant underflow, check in if-condition
                 newInterest = calculatedInterest.add(newInterest);
-                newTimestamp = interestTimestamp.add(realDelta);
+                newTimestamp = state.interestTimestamp.add(realDelta);
             }
 
             if (config.dueTime < timestamp) {
-                uint256 startPunitory = max(config.dueTime, interestTimestamp);
+                uint256 startPunitory = max(config.dueTime, state.interestTimestamp);
                 uint256 debt = config.amount.add(newInterest);
                 uint256 newPunitoryInterest = state.punitoryInterest;
                 pending = min(debt, debt.add(newPunitoryInterest).sub(state.paid));
@@ -357,6 +357,7 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
                     state.punitoryInterest = uint128(newPunitoryInterest);
                     emit _setPunitoryInterest(id, uint128(newPunitoryInterest));
                 }
+                return true;
             }
         }
     }
@@ -392,8 +393,7 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
         @return true If the interest was updated
     */
     function run(bytes32 id) external returns (bool) {
-        _addInterest(id, now);
-        return true;
+        return _addInterest(id, now);
     }
 
     /**
