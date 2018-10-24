@@ -121,4 +121,22 @@ contract('LegacyEngine', function(accounts) {
         assert.equal(await readRequested(futureDebt2, REQUESTED), 1);
     })
 
+    it("Should verified loan creator", async() => {
+
+        const futureDebt = await legacyEngine.createLoan(
+            0x0,              // oracle
+            accounts[2],      // borrower
+            0x0,              // currency
+            defaultParams[0], // amount
+            defaultParams[1], // interestRate
+            defaultParams[2], // interestRatePunitory
+            defaultParams[3], // dues in
+            defaultParams[4], // cancelableAt
+            10 * 10**20,      // expire time
+            "metadata1", { from: owner })
+        assert.equal(await readRequested(futureDebt, REQUESTED), 0);
+        assert.equal(await legacyEngine.getCreator(await toEvents(futureDebt.logs, REQUESTED)[0]._id), owner);
+
+    })
+
 })
