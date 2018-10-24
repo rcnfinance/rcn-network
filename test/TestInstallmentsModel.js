@@ -1,4 +1,5 @@
 const InstallmentsDebtModel = artifacts.require("./diaspore/model/InstallmentsModel.sol");
+const ModelDescriptor = artifacts.require("./diaspore/interfaces/ModelDescriptor.sol");
 const Helper = require('./Helper.js');
 
 contract('Installments model', function(accounts) {
@@ -18,24 +19,26 @@ contract('Installments model', function(accounts) {
 
   it("Should fail loans with same id", async function(){
     let id = Helper.toBytes32(7);
-    let data = [
-      Helper.toBytes32(110),
-      Helper.toBytes32(Helper.toInterestRate(240)),
-      Helper.toBytes32(10),
-      Helper.toBytes32(30 * 86400)
-    ];
+    let data = await model.encodeData(
+      110,
+      Helper.toInterestRate(240),
+      10,
+      30 * 86400,
+      1
+    );
     await model.create(id, data);
     await Helper.assertThrow(model.create(id, data));
   });
 
   it("Test pay debt in advance, partially", async function(){
     let id = Helper.toBytes32(6);
-    let data = [
-        Helper.toBytes32(110),
-        Helper.toBytes32(Helper.toInterestRate(240)),
-        Helper.toBytes32(10),
-        Helper.toBytes32(30 * 86400)
-    ];
+    let data = await model.encodeData(
+      110,
+      Helper.toInterestRate(240),
+      10,
+      30 * 86400,
+      1
+    );
 
     assert.isTrue(await model.validate(data), "Registry data should be valid");
     
@@ -55,12 +58,13 @@ contract('Installments model', function(accounts) {
 
   it("Test pay in advance", async function() {
     let id = Helper.toBytes32(3);
-    let data = [
-        Helper.toBytes32(110),
-        Helper.toBytes32(Helper.toInterestRate(240)),
-        Helper.toBytes32(10),
-        Helper.toBytes32(30 * 86400)
-    ];
+    let data = await model.encodeData(
+      110,
+      Helper.toInterestRate(240),
+      10,
+      30 * 86400,
+      1
+    );
 
     await model.create(id, data);
     await model.addPaid(id, 4000);
@@ -71,12 +75,13 @@ contract('Installments model', function(accounts) {
 
   it("Test pay single installment", async function() {
     let id = Helper.toBytes32(2);
-    let data = [
-        Helper.toBytes32(web3.toWei(110)),
-        Helper.toBytes32(Helper.toInterestRate(20)),
-        Helper.toBytes32(1),
-        Helper.toBytes32(86400 * 360)
-    ];
+    let data = await model.encodeData(
+      web3.toWei(110),
+      Helper.toInterestRate(20),
+      1,
+      360 * 86400,
+      1
+    );
 
     await model.create(id, data);
 
@@ -93,12 +98,13 @@ contract('Installments model', function(accounts) {
 
   it("It should handle a loan with more than a installment", async function() {
     let id = Helper.toBytes32(900);
-    let data = [
-        Helper.toBytes32(300),
-        Helper.toBytes32(Helper.toInterestRate(240)),
-        Helper.toBytes32(3),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      300,
+      Helper.toInterestRate(240),
+      3,
+      30 * 86400,
+      86400
+    );
 
     await model.create(id, data);
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 0, "First obligation should be 0");
@@ -132,12 +138,13 @@ contract('Installments model', function(accounts) {
 
   it("It should handle a loan with more than a installment in advance, totally", async function() {
     let id = Helper.toBytes32(901);
-    let data = [
-        Helper.toBytes32(110),
-        Helper.toBytes32(Helper.toInterestRate(240)),
-        Helper.toBytes32(10),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      110,
+      Helper.toInterestRate(240),
+      10,
+      30 * 86400,
+      1
+    );
 
     await model.create(id, data);
 
@@ -156,12 +163,13 @@ contract('Installments model', function(accounts) {
 
   it("It should handle a loan with more than a installment in advance, partially", async function(){
     let id = Helper.toBytes32(902);
-    let data = [
-        Helper.toBytes32(110),
-        Helper.toBytes32(Helper.toInterestRate(240)),
-        Helper.toBytes32(10),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      110,
+      Helper.toInterestRate(240),
+      10,
+      30 * 86400,
+      86400
+    );
 
     await model.create(id, data);
 
@@ -194,12 +202,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 1", async function() {
     let id = Helper.toBytes32(904);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      86400
+    );
 
     await model.create(id, data);
 
@@ -264,12 +273,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 1 - alt run", async function() {
     let id = Helper.toBytes32(905);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      1
+    );
 
     await model.create(id, data);
 
@@ -334,12 +344,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 1 - alt run 2", async function() {
     let id = Helper.toBytes32(906);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      86400
+    );
 
     await model.create(id, data);
 
@@ -403,12 +414,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 3", async function() {
     let id = Helper.toBytes32(907);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      86400
+    );
 
     await model.create(id, data);
 
@@ -458,12 +470,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 3 - alt run 1", async function() {
     let id = Helper.toBytes32(908);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      1
+    );
 
     await model.create(id, data);
 
@@ -516,12 +529,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 3 - alt run 2", async function() {
     let id = Helper.toBytes32(909);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      1
+    );
 
     await model.create(id, data);
 
@@ -576,12 +590,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 4", async function() {
     let id = Helper.toBytes32(910);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      1
+    );
 
     await model.create(id, data);
 
@@ -612,12 +627,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 4 - alt run 1", async function() {
     let id = Helper.toBytes32(911);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      1
+    );
 
     await model.create(id, data);
 
@@ -648,12 +664,13 @@ contract('Installments model', function(accounts) {
 
   it("It should calculate the interest like the test doc test 4 - alt run 2", async function() {
     let id = Helper.toBytes32(912);
-    let data = [
-        Helper.toBytes32(99963),
-        Helper.toBytes32(Helper.toInterestRate(35 * 1.5)),
-        Helper.toBytes32(12),
-        Helper.toBytes32(86400 * 30)
-    ];
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      1
+    );
 
     await model.create(id, data);
 
@@ -681,4 +698,60 @@ contract('Installments model', function(accounts) {
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 922155);
     assert.equal(await model.getStatus(id), 1, "Loan should be ongoing");
   })
+  it("Should ignored periods of time under the time unit", async function() {
+    let id = Helper.toBytes32(913);
+    let data = await model.encodeData(
+      10000,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      86400 * 2
+    );
+
+    await model.create(id, data);
+    
+    await Helper.increaseTime(31 * 86400);
+
+    await ping();
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10000);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 86400);
+    
+    await model.run(id);
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10000);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 86400);
+
+    await Helper.increaseTime(3 * 86400);
+
+    await ping();
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10058);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 4 * 86400);
+    
+    await model.run(id);
+
+    assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10058);
+    await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 4 * 86400);
+  })
+
+  it("It should provide information with the descriptor", async function() {
+    let id = Helper.toBytes32(912);
+    let data = await model.encodeData(
+      99963,
+      Helper.toInterestRate(35 * 1.5),
+      12,
+      30 * 86400,
+      1
+    );
+
+    let descriptor = ModelDescriptor.at(await model.descriptor());
+    
+    assert.equal((await descriptor.simFirstObligation(data))[0], 99963);
+    assert.equal((await descriptor.simFirstObligation(data))[1], 30 * 86400);
+    assert.equal(await descriptor.simDuration(data), 12 * 30 * 86400);
+    assert.equal(await descriptor.simPunitiveInterestRate(data), Helper.toInterestRate(35 * 1.5));
+    assert.equal(await descriptor.simFrequency(data), 30 * 86400);
+    assert.equal(await descriptor.simInstallments(data), 12);
+  });
 })
