@@ -1,9 +1,14 @@
 pragma solidity ^0.4.24;
 
+import "./Ownable.sol";
 import "./SafeMath.sol";
 import "./ERC165.sol";
 
-contract ERC721Base is ERC165 {
+interface URIProvider {
+    function tokenURI(uint256 _tokenId) external view returns (string);
+}
+
+contract ERC721Base is ERC165, Ownable {
     using SafeMath for uint256;
 
     uint256 private _count;
@@ -22,11 +27,60 @@ contract ERC721Base is ERC165 {
     event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
 
     bytes4 private constant ERC_721_INTERFACE = 0x80ac58cd;
+    bytes4 private constant ERC_721_METADATA_INTERFACE = 0x5b5e139f;
 
-    constructor() public {
+    constructor(
+        string name,
+        string symbol
+    ) public {
+        _name = name;
+        _symbol = symbol;
+
         _registerInterface(ERC_721_INTERFACE);
+        _registerInterface(ERC_721_METADATA_INTERFACE);
     }
 
+    // ///
+    // ERC721 Metadata
+    // ///
+
+    /// @title ERC-721 Non-Fungible Token Standard, optional metadata extension
+    /// @dev See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md
+    ///  Note: the ERC-165 identifier for this interface is 0x5b5e139f.
+
+    event SetURIProvider(address _uriProvider);
+
+    string private _name;
+    string private _symbol;
+
+    URIProvider private _uriProvider;
+
+    /// @notice A descriptive name for a collection of NFTs in this contract
+    function name() external view returns (string) {
+        return _name;
+    }
+
+    /// @notice An abbreviated name for NFTs in this contract
+    function symbol() external view returns (string) {
+        return _symbol;
+    }
+
+    /// @notice A distinct Uniform Resource Identifier (URI) for a given asset.
+    /// @dev Throws if `_tokenId` is not a valid NFT. URIs are defined in RFC
+    ///  3986. The URI may point to a JSON file that conforms to the "ERC721
+    ///  Metadata JSON Schema".
+    function tokenURI(uint256 _tokenId) external view returns (string) {
+        require(_holderOf[_tokenId] != 0, "Asset does not exist");
+        URIProvider provider = _uriProvider;
+        return provider == address(0) ? "" : provider.tokenURI(_tokenId);
+    }
+
+    function setURIProvider(URIProvider _provider) external onlyOwner returns (bool) {
+        emit SetURIProvider(_provider);
+        _uriProvider = _provider;
+        return true;
+    }
+ 
     //
     // Global Getters
     //
