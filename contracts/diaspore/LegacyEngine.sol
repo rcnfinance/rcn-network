@@ -38,40 +38,46 @@ contract LegacyEngine is LoanManager {
         uint256 _expirationRequest,
         string _metadata
     ) public returns (uint256) {
+        uint128 amount = uint128(_amount);
+        uint64 cancelableAt = uint64(_cancelableAt);
+        uint64 duesIn = uint64(_duesIn);
+        bytes memory loanData = abi.encodePacked(
+            amount,
+            _interestRate,
+            _interestRatePunitory,
+            duesIn,
+            cancelableAt
+        );
         return _createLoan(
-            bytes8(_currency),
-            uint128(_amount),
-            model,
-            address(_oracle),
+            _oracle,
             _borrower,
+            bytes8(_currency),
+            amount,
+            _interestRate,
+            _interestRatePunitory,
+            duesIn,
+            cancelableAt,
             uint64(_expirationRequest),
-            bytes32(_duesIn),
-            bytes32(1),
-            bytes32(_interestRate)
+            loanData
         );
     }
 
     function _createLoan(
-        bytes8 _currency,
-        uint128 _amount,
-        Model _model,
-        address _oracle,
+        Oracle _oracle,
         address _borrower,
+        bytes32 _currency,
+        uint128 _amount,
+        uint256 _interestRate,
+        uint256 _interestRatePunitory,
+        uint64 _duesIn,
+        uint256 _cancelableAt,
         uint64 _expirationRequest,
-        bytes32 _duesIn,
-        bytes32 _installment,
-        bytes32 _interestRate
-     ) private returns (uint256) {
-        /*bytes32[] storage loanData;
-        loanData[C_CUOTA] = _duesIn;
-        loanData[C_INSTALLMENTS] = _installment;
-        loanData[C_INTEREST_RATE] = _interestRate;
-        loanData[C_INSTALLMENT_DURATION] = bytes32(_expirationRequest);
-
+        bytes loanData
+    ) internal returns (uint256) {
         bytes32 futureDebt = super.requestLoan(
-            _currency,
+            bytes8(_currency),
             _amount,
-            _model,
+            model,
             _oracle,
             _borrower,
             nonce,
@@ -80,8 +86,8 @@ contract LegacyEngine is LoanManager {
         );
         nonce++;
         nonces[futureDebt] = nonce;
-        return uint256(futureDebt);*/
-      }
+        return uint256(futureDebt);
+    }
 
     function getStatus(uint256 futureDebt) public view returns (uint256) {
         return super.getStatus(futureDebt);

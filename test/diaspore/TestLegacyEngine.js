@@ -3,7 +3,7 @@ const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const LegacyEngine = artifacts.require("./diaspore/LegacyEngine.sol");
 const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 
-const Helper = require('./Helper.js');
+const Helper = require('../Helper.js');
 
 contract('LegacyEngine', function(accounts) {
 
