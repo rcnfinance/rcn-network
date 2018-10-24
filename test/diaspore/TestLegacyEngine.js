@@ -121,7 +121,7 @@ contract('LegacyEngine', function(accounts) {
         assert.equal(await readRequested(futureDebt2, REQUESTED), 1);
     })
 
-    it("Should verified loan creator", async() => {
+    it("It should verified loan creator", async() => {
 
         const futureDebt = await legacyEngine.createLoan(
             0x0,              // oracle
