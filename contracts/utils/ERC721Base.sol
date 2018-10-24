@@ -304,6 +304,11 @@ contract ERC721Base is ERC165, Ownable {
         _;
     }
 
+    modifier addressDefined(address _target) {
+        require(_target != address(0), "Target can't be 0x0");
+        _;
+    }
+
     /**
      * @dev Alias of `safeTransferFrom(from, to, assetId, '')`
      *
@@ -363,6 +368,7 @@ contract ERC721Base is ERC165, Ownable {
         bool doCheck
     )
         internal
+        addressDefined(to)
         isCurrentOwner(from, assetId)
     {
         address holder = _holderOf[assetId];
