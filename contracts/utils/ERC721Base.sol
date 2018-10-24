@@ -44,9 +44,9 @@ contract ERC721Base is ERC165, Ownable {
     // ERC721 Metadata
     // ///
 
-    /// @title ERC-721 Non-Fungible Token Standard, optional metadata extension
-    /// @dev See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md
-    ///  Note: the ERC-165 identifier for this interface is 0x5b5e139f.
+    /// ERC-721 Non-Fungible Token Standard, optional metadata extension
+    /// See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md
+    /// Note: the ERC-165 identifier for this interface is 0x5b5e139f.
 
     event SetURIProvider(address _uriProvider);
 
