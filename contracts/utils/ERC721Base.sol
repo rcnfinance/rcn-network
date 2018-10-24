@@ -238,8 +238,6 @@ contract ERC721Base is ERC165, Ownable {
         _assetsOf[to].push(assetId);
 
         _indexOfAsset[assetId] = length;
-
-        _count = _count.add(1);
     }
 
     function _removeAssetFrom(address from, uint256 assetId) internal {
@@ -264,8 +262,6 @@ contract ERC721Base is ERC165, Ownable {
         // Update the index of positions for the asset
         _indexOfAsset[assetId] = 0;
         _indexOfAsset[lastAssetId] = assetIndex;
-
-        _count = _count.sub(1);
     }
 
     function _clearApproval(address holder, uint256 assetId) internal {
@@ -284,6 +280,8 @@ contract ERC721Base is ERC165, Ownable {
 
         _addAssetTo(beneficiary, assetId);
 
+        _count += 1;
+
         emit Transfer(0x0, beneficiary, assetId);
     }
 
@@ -292,6 +290,8 @@ contract ERC721Base is ERC165, Ownable {
         require(holder != 0);
 
         _removeAssetFrom(holder, assetId);
+
+        _count -= 1;
 
         emit Transfer(holder, 0x0, assetId);
     }
