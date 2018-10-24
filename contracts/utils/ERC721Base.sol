@@ -1,8 +1,9 @@
 pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
+import "./ERC165.sol";
 
-contract ERC721Base {
+contract ERC721Base is ERC165 {
     using SafeMath for uint256;
 
     uint256 private _count;
@@ -19,6 +20,12 @@ contract ERC721Base {
     event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
     event Approval(address indexed _owner, address indexed _approved, uint256 _tokenId);
     event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
+
+    bytes4 private constant ERC_721_INTERFACE = 0x80ac58cd;
+
+    constructor() public {
+        _registerInterface(ERC_721_INTERFACE);
+    }
 
     //
     // Global Getters
