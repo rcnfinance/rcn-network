@@ -285,17 +285,6 @@ contract ERC721Base is ERC165, Ownable {
         emit Transfer(0x0, beneficiary, assetId);
     }
 
-    function _destroy(uint256 assetId) internal {
-        address holder = _holderOf[assetId];
-        require(holder != 0);
-
-        _removeAssetFrom(holder, assetId);
-
-        _count -= 1;
-
-        emit Transfer(holder, 0x0, assetId);
-    }
-
     //
     // Transaction related operations
     //
