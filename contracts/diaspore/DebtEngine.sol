@@ -35,6 +35,9 @@ contract DebtEngine is ERC721Base {
         Token _token
     ) public ERC721Base("RCN Debt Record", "RDR") {
         token = _token;
+        
+        // Sanity checks
+        require(_isContract(_token), "Token should be a contract");
     }
 
     function create(
