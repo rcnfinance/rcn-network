@@ -57,20 +57,22 @@ contract ERC721Base is ERC165, Ownable {
 
     URIProvider private _uriProvider;
 
-    /// @notice A descriptive name for a collection of NFTs in this contract
+    // @notice A descriptive name for a collection of NFTs in this contract
     function name() external view returns (string) {
         return _name;
     }
 
-    /// @notice An abbreviated name for NFTs in this contract
+    // @notice An abbreviated name for NFTs in this contract
     function symbol() external view returns (string) {
         return _symbol;
     }
 
-    /// @notice A distinct Uniform Resource Identifier (URI) for a given asset.
-    /// @dev Throws if `_tokenId` is not a valid NFT. URIs are defined in RFC
-    ///  3986. The URI may point to a JSON file that conforms to the "ERC721
-    ///  Metadata JSON Schema".
+    /**
+    * @notice A distinct Uniform Resource Identifier (URI) for a given asset.
+    * @dev Throws if `_tokenId` is not a valid NFT. URIs are defined in RFC
+    *  3986. The URI may point to a JSON file that conforms to the "ERC721
+    *  Metadata JSON Schema".
+    */
     function tokenURI(uint256 _tokenId) external view returns (string) {
         require(_holderOf[_tokenId] != 0, "Asset does not exist");
         URIProvider provider = _uriProvider;
@@ -110,23 +112,27 @@ contract ERC721Base is ERC165, Ownable {
         return _allTokens.length;
     }
 
-    /// @notice Enumerate valid NFTs
-    /// @dev Throws if `_index` >= `totalSupply()`.
-    /// @param _index A counter less than `totalSupply()`
-    /// @return The token identifier for the `_index`th NFT,
-    ///  (sort order not specified)
+    /**
+    * @notice Enumerate valid NFTs
+    * @dev Throws if `_index` >= `totalSupply()`.
+    * @param _index A counter less than `totalSupply()`
+    * @return The token identifier for the `_index`th NFT,
+    *  (sort order not specified)
+    */
     function tokenByIndex(uint256 _index) external view returns (uint256) {
         require(_index < _allTokens.length, "Index out of bounds");
         return _allTokens[_index];
     }
 
-    /// @notice Enumerate NFTs assigned to an owner
-    /// @dev Throws if `_index` >= `balanceOf(_owner)` or if
-    ///  `_owner` is the zero address, representing invalid NFTs.
-    /// @param _owner An address where we are interested in NFTs owned by them
-    /// @param _index A counter less than `balanceOf(_owner)`
-    /// @return The token identifier for the `_index`th NFT assigned to `_owner`,
-    ///   (sort order not specified)
+    /**
+    * @notice Enumerate NFTs assigned to an owner
+    * @dev Throws if `_index` >= `balanceOf(_owner)` or if
+    *  `_owner` is the zero address, representing invalid NFTs.
+    * @param _owner An address where we are interested in NFTs owned by them
+    * @param _index A counter less than `balanceOf(_owner)`
+    * @return The token identifier for the `_index`th NFT assigned to `_owner`,
+    *   (sort order not specified)
+    */
     function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256) {
         require(_owner != address(0), "0x0 Is not a valid owner");
         require(_index < _balanceOf(_owner), "Index out of bounds");
@@ -207,8 +213,7 @@ contract ERC721Base is ERC165, Ownable {
     function isAuthorized(address operator, uint256 assetId) external view returns (bool) {
         return _isAuthorized(operator, assetId);
     }
-    function _isAuthorized(address operator, uint256 assetId) internal view returns (bool)
-    {
+    function _isAuthorized(address operator, uint256 assetId) internal view returns (bool) {
         require(operator != 0);
         address owner = _ownerOf(assetId);
         if (operator == owner) {
@@ -382,6 +387,9 @@ contract ERC721Base is ERC165, Ownable {
         return _doTransferFrom(from, to, assetId, "", false);
     }
 
+    /**
+     * Internal function that moves an asset from one holder to another
+     */
     function _doTransferFrom(
         address from,
         address to,
@@ -448,15 +456,10 @@ contract ERC721Base is ERC165, Ownable {
     }
 
     /**
-     * Internal function that moves an asset from one holder to another
-     */
-
-    /**
      * @dev Returns `true` if the contract implements `interfaceID` and `interfaceID` is not 0xffffffff, `false` otherwise
      * @param    _interfaceID The interface identifier, as specified in ERC-165
      */
     function supportsInterface(bytes4 _interfaceID) external view returns (bool) {
-
         if (_interfaceID == 0xffffffff) {
             return false;
         }
