@@ -93,8 +93,8 @@ contract LegacyEngine is LoanManager {
         return super.getStatus(futureDebt);
     }
 
-    function getIdentifier(uint256 futureDebt) public view returns (bytes32) {
-        uint256 internalNonce = uint256(keccak256(abi.encodePacked(msg.sender, nonces[bytes32(futureDebt)])));
+    function getIdentifier(uint256 nonce) public view returns (bytes32) {
+        uint256 internalNonce = uint256(keccak256(abi.encodePacked(msg.sender, nonces[bytes32(nonce)])));
         return debtEngine.buildId(
             address(this),
             internalNonce,

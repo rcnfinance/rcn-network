@@ -92,6 +92,33 @@ contract('LegacyEngine', function(accounts) {
 
     })
 
+    it("It should creating two identical loans", async() => {
 
+        const futureDebt = await legacyEngine.createLoan(
+            0x0,              // oracle
+            accounts[2],      // borrower
+            0x0,              // currency
+            defaultParams[0], // amount
+            defaultParams[1], // interestRate
+            defaultParams[2], // interestRatePunitory
+            defaultParams[3], // dues in
+            defaultParams[4], // cancelableAt
+            10 * 10**20,      // expire time
+            "metadata1", { from: owner })
+        assert.equal(await readRequested(futureDebt, REQUESTED), 0);
+
+        const futureDebt2 = await legacyEngine.createLoan(
+            0x0,              // oracle
+            accounts[2],      // borrower
+            0x0,              // currency
+            defaultParams[0], // amount
+            defaultParams[1], // interestRate
+            defaultParams[2], // interestRatePunitory
+            defaultParams[3], // dues in
+            defaultParams[4], // cancelableAt
+            10 * 10**20,      // expire time
+            "metadata1", { from: owner })
+        assert.equal(await readRequested(futureDebt2, REQUESTED), 1);
+    })
 
 })
