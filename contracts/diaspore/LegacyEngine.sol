@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./LoanManager.sol";
-import "./../interfaces/Oracle.sol";
+import "./model/NanoLoanModel.sol";
 import "./../utils/Ownable.sol";
 import "./interfaces/Model.sol";
 import "./DebtEngine.sol";
@@ -20,7 +20,7 @@ contract LegacyEngine is LoanManager {
 
     constructor (
         DebtEngine _engine,
-        Model _model
+        NanoLoanModel _model
     ) LoanManager(_engine) public {
         require(_model.engine() == address(_engine), "Model engine is not the same");
         model = _model;
@@ -74,7 +74,7 @@ contract LegacyEngine is LoanManager {
         uint64 _expirationRequest,
         bytes loanData
     ) internal returns (uint256) {
-        bytes32 futureDebt = super.requestLoan(
+        bytes32 futureDebt = super._requestLoan(
             bytes8(_currency),
             _amount,
             model,
