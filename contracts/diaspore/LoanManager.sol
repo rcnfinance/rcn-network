@@ -139,8 +139,9 @@ contract LoanManager {
                 // bytes32 expected = futureDebt XOR keccak256("approve-loan-request");
                 bytes32 expected = futureDebt ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
                 (uint256 success, bytes32 result) = _safeCall(
+                    _borrower,
                     abi.encodeWithSelector(
-                        LoanApprover.approveRequest.selector,
+                        0x76ba6009,
                         futureDebt
                     )
                 );
@@ -159,7 +160,7 @@ contract LoanManager {
         }
 
         if (approved) {
-            requests[futureDebt].pos = uint64(directory.push(futureDebt) - 1);
+            requests[futureDebt].position = uint64(directory.push(futureDebt) - 1);
             emit Approved(futureDebt);
         }
     }
@@ -418,7 +419,7 @@ contract LoanManager {
         address borrower = address(_requestData[R_BORROWER]);
         address creator = address(_requestData[R_CREATOR]);
 
-        if (_isContract(borrower)) {
+        if (borrower.isContract()) {
             require(
                 LoanApprover(borrower).settleApproveRequest(_requestData, _loanData, true, uint256(_sig)) == expected,
                 "Borrower contract rejected the loan"
@@ -431,7 +432,7 @@ contract LoanManager {
         }
 
         if (borrower != creator) {
-            if (_isContract(creator)) {
+            if (creator.isContract()) {
                 require(
                     LoanApprover(creator).settleApproveRequest(_requestData, _loanData, true, uint256(_sig)) == expected,
                     "Creator contract rejected the loan"
