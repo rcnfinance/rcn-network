@@ -19,6 +19,10 @@ contract('Test LoanManager Diaspore', function(accounts) {
     const borrower = accounts[2];
     const lender   = accounts[3];
 
+    function toBytes(target) {
+        return target.toString().replace(new RegExp(',0x', 'g'), '');
+    }
+
     async function createId(account) {
         const id = await loanManager.calcFutureDebt(account, ++nonce);
         const _nonce = Web3Utils.soliditySha3(account, nonce);
@@ -73,6 +77,89 @@ contract('Test LoanManager Diaspore', function(accounts) {
         model = await TestModel.new();
         await model.setEngine(debtEngine.address);
         oracle = await TestOracle.new();
+    });
+
+    it("test events", async function() {
+        function toEvent(tx, event) {
+          return tx.logs.filter( x => x.event == event).map( x => x.args )[0];
+        }
+
+        const amount = 1000;
+        const expiration = (await Helper.getBlockTime()) + 1000;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await createId(creator);
+
+        // event Requested(bytes32 indexed _id, uint256 _nonce);
+        const requested = toEvent(
+            await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: creator }),
+            'Requested');
+        assert.equal(requested._id, id);
+        assert.equal(requested._nonce.toNumber(), nonce);
+
+        //event Approved(bytes32 indexed _id);
+        const approved = toEvent(
+            await loanManager.approveRequest(id, { from: borrower }),
+            'Approved');
+        assert.equal(approved._id, id);
+
+        //event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        const lent = toEvent(
+            await loanManager.lend(id, [], 0x0, 0, [], { from: lender }),
+            'Lent');
+        assert.equal(lent._id, id);
+        assert.equal(lent._lender, lender);
+        assert.equal(lent._tokens, amount);
+
+        //event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
+
+        //event Canceled(bytes32 indexed _id, address _canceler);
+        const idCancel = await createId(borrower);
+        const loanDataCancel = await model.encodeData(amount, expiration);
+        await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanDataCancel, { from: borrower });
+        const canceled = toEvent(
+            await loanManager.cancel(idCancel, { from: borrower }),
+            'Canceled');
+        assert.equal(canceled._id, idCancel);
+
+        //event SettledLend(bytes32 indexed _id, bytes32 _sig, address _lender, uint256 _tokens);
+        const idSettleLend = await createId(creator);
+        const settleData = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
+            .map(x => Helper.toBytes32(x));
+        const settleLoanData = await model.encodeData(settleData[1], settleData[6]);
+        const msg = await loanManager.requestSignature(settleData, settleLoanData);
+        const creatorSig = await web3.eth.sign(creator, msg);
+        const borrowerSig = await web3.eth.sign(borrower, msg);
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        const settledLend = toEvent(
+            await loanManager.settleLend(settleData, settleLoanData, 0x0, 0, [], [], creatorSig, borrowerSig, { from: lender } ),
+            'SettledLend');
+        assert.equal(settledLend._id, idSettleLend);
+        const settleDataBytes = toBytes(settleData);
+        assert.equal(settledLend._sig, Web3Utils.soliditySha3(loanManager.address, settleDataBytes, settleLoanData));
+        assert.equal(settledLend._lender, lender);
+        assert.equal(settledLend._tokens, amount);
+
+        //event SettledCancel(bytes32 _sig, address _canceler);
+        const idSettleCancel = await createId(creator);
+        const settleDataC = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
+            .map(x => Helper.toBytes32(x));
+        const settleLoanDataC = await model.encodeData(settleDataC[1], settleDataC[6]);
+        const msgCancel = await loanManager.requestSignature(settleDataC, settleLoanDataC);
+        const creatorSigC = await web3.eth.sign(creator, msgCancel);
+        const borrowerSigC = await web3.eth.sign(borrower, msgCancel);
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        await loanManager.settleLend(settleDataC, settleLoanDataC, 0x0, 0, [], [], creatorSigC, borrowerSigC, { from: lender } );
+        const settledCancel = toEvent(
+            await loanManager.settleCancel(settleDataC, settleLoanDataC, { from: creator } ),
+            'SettledCancel');
+        const settleDataBytesC = toBytes(settleDataC);
+        assert.equal(settledCancel._sig, Web3Utils.soliditySha3(loanManager.address, settleDataBytesC, settleLoanDataC));
+        assert.equal(settledCancel._canceler, creator);
     });
 
     it("Should create a loan using requestLoan", async function() {
