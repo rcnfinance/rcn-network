@@ -299,7 +299,8 @@ contract LoanManager {
 
     function cancel(bytes32 futureDebt) external returns (bool) {
         Request storage request = requests[futureDebt];
-
+        
+        require(request.open, "Request is no longer open or not requested");
         require(
             request.creator == msg.sender || request.borrower == msg.sender,
             "Only borrower or creator can cancel a request"
