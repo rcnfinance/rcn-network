@@ -31,10 +31,7 @@ contract LoanManager {
 
     function getDirectoryLength() external view returns (uint256) { return directory.length; }
 
-    function getBorrower(uint256 _id) external view returns (address) { 
-        return requests[bytes32(_id)].borrower;
-    }
-
+    function getBorrower(uint256 _id) external view returns (address) { return requests[bytes32(_id)].borrower; }
     function getCreator(uint256 _id) external view returns (address) { return requests[bytes32(_id)].creator; }
     function getOracle(uint256 _id) external view returns (address) { return requests[bytes32(_id)].oracle; }
     function getCosigner(uint256 _id) external view returns (address) { return requests[bytes32(_id)].cosigner; }
@@ -48,7 +45,7 @@ contract LoanManager {
 
     function getStatus(uint256 _id) external view returns (uint256) {
         Request storage request = requests[bytes32(_id)];
-        return request.open ? 0 : Model(request.model).getStatus(bytes32(_id));
+        return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
     }
 
     struct Request {
