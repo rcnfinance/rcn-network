@@ -136,32 +136,39 @@ contract LoanManager {
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
             if (_borrower.isContract() && _borrower.implements(0x76ba6009)) {
-                // bytes32 expected = futureDebt XOR keccak256("approve-loan-request");
-                bytes32 expected = futureDebt ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
-                (uint256 success, bytes32 result) = _safeCall(
-                    _borrower,
-                    abi.encodeWithSelector(
-                        0x76ba6009,
-                        futureDebt
-                    )
-                );
-
-                approved = success == 1 && result == expected;
-
-                // Emit events if approve was rejected or failed
-                if (!approved) {
-                    if (success == 0) {
-                        emit ApprovedError(futureDebt);
-                    } else {
-                        emit ApprovedRejected(futureDebt, result);
-                    }
-                }
+                approved = _requestContractApprove(futureDebt, _borrower);
             }
         }
 
         if (approved) {
             requests[futureDebt].position = uint64(directory.push(futureDebt) - 1);
             emit Approved(futureDebt);
+        }
+    }
+
+    function _requestContractApprove(
+        bytes32 _futureDebt,
+        address _borrower
+    ) internal returns (bool approved) {
+        // bytes32 expected = futureDebt XOR keccak256("approve-loan-request");
+        bytes32 expected = _futureDebt ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
+        (uint256 success, bytes32 result) = _safeCall(
+            _borrower,
+            abi.encodeWithSelector(
+                0x76ba6009,
+                _futureDebt
+            )
+        );
+
+        approved = success == 1 && result == expected;
+
+        // Emit events if approve was rejected or failed
+        if (!approved) {
+            if (success == 0) {
+                emit ApprovedError(_futureDebt);
+            } else {
+                emit ApprovedRejected(_futureDebt, result);
+            }
         }
     }
 
