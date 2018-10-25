@@ -232,16 +232,7 @@ contract ERC721Base is ERC165, Ownable {
      * @param authorized bool set to true to authorize, false to withdraw authorization
      */
     function setApprovalForAll(address _operator, bool _authorized) external {
-        return _setApprovalForAll(_operator, _authorized);
-    }
-    function _setApprovalForAll(address _operator, bool _authorized) internal {
-        if (_authorized) {
-            require(!_isApprovedForAll(_operator, msg.sender));
-            _addAuthorization(_operator, msg.sender);
-        } else {
-            require(_isApprovedForAll(_operator, msg.sender));
-            _clearAuthorization(_operator, msg.sender);
-        }
+        _operators[msg.sender][_operator] = _authorized;
         emit ApprovalForAll(_operator, msg.sender, _authorized);
     }
 
@@ -258,14 +249,6 @@ contract ERC721Base is ERC165, Ownable {
             _approval[_assetId] = _operator;
             emit Approval(holder, _operator, _assetId);
         }
-    }
-
-    function _addAuthorization(address _operator, address _holder) private {
-        _operators[_holder][_operator] = true;
-    }
-
-    function _clearAuthorization(address _operator, address _holder) private {
-        _operators[_holder][_operator] = false;
     }
 
     //
