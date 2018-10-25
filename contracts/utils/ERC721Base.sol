@@ -212,7 +212,7 @@ contract ERC721Base is ERC165 {
         return _isAuthorized(_operator, _assetId);
     }
     function _isAuthorized(address _operator, uint256 _assetId) internal view returns (bool) {
-        require(_operator != 0);
+        require(_operator != 0, "0x0 is an invalid operator");
         address owner = _ownerOf(_assetId);
         if (_operator == owner) {
             return true;
@@ -243,7 +243,7 @@ contract ERC721Base is ERC165 {
      */
     function approve(address _operator, uint256 _assetId) external {
         address holder = _ownerOf(_assetId);
-        require(msg.sender == holder || _isApprovedForAll(msg.sender, holder));
+        require(msg.sender == holder || _isApprovedForAll(msg.sender, holder), "msg.sender can't approve");
         if (_getApprovedAddress(_assetId) != _operator) {
             _approval[_assetId] = _operator;
             emit Approval(holder, _operator, _assetId);
@@ -315,17 +315,17 @@ contract ERC721Base is ERC165 {
     //
 
     modifier onlyHolder(uint256 _assetId) {
-        require(_ownerOf(_assetId) == msg.sender);
+        require(_ownerOf(_assetId) == msg.sender, "msg.sender Is not holder");
         _;
     }
 
     modifier onlyAuthorized(uint256 _assetId) {
-        require(_isAuthorized(msg.sender, _assetId));
+        require(_isAuthorized(msg.sender, _assetId), "msg.sender Not authorized");
         _;
     }
 
     modifier isCurrentOwner(address _from, uint256 _assetId) {
-        require(_ownerOf(_assetId) == _from);
+        require(_ownerOf(_assetId) == _from, "Not current owner");
         _;
     }
 
@@ -421,7 +421,10 @@ contract ERC721Base is ERC165 {
                     )
                 );
 
-                require(success == 1 && result == ERC721_RECEIVED_LEGACY);
+                require(
+                    success == 1 && result == ERC721_RECEIVED_LEGACY,
+                    "Contract rejected the token"
+                );
             }
         }
 
