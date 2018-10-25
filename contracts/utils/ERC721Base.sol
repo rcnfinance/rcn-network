@@ -381,18 +381,6 @@ contract ERC721Base is ERC165, Ownable {
     )
         internal
         onlyAuthorized(_assetId)
-    {
-        _moveToken(_from, _to, _assetId, _userData, _doCheck);
-    }
-
-    function _moveToken(
-        address _from,
-        address _to,
-        uint256 _assetId,
-        bytes _userData,
-        bool _doCheck
-    )
-        internal
         addressDefined(_to)
         isCurrentOwner(_from, _assetId)
     {
