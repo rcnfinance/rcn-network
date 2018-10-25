@@ -31,16 +31,13 @@ contract DebtEngine is ERC721Base {
         address oracle;
     }
 
-    constructor(Token _token) public {
+    constructor(
+        Token _token
+    ) public ERC721Base("RCN Debt Record", "RDR") {
         token = _token;
-    }
-
-    function name() external pure returns (string _name) {
-        _name = "RCN Debt Record";
-    }
-
-    function symbol() external pure returns (string _symbol) {
-        _symbol = "RDR";
+        
+        // Sanity checks
+        require(_isContract(_token), "Token should be a contract");
     }
 
     function create(

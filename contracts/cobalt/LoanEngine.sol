@@ -19,14 +19,6 @@ contract LoanEngine is Ownable, ERC721Base {
     event PartialPayment(uint _index, address _sender, address _from, uint256 _total, uint256 _interest);
     event TotalPayment(uint _index);
 
-    function name() external pure returns (string _name) {
-        _name = "RCN - Loan engine - Cobalt 300";
-    }
-
-    function symbol() external pure returns (string _symbol) {
-        _symbol = "RCN-LE-300";
-    }
-
     enum Status { request, ongoing, paid, destroyed }
 
     address public deprecated;
@@ -94,7 +86,12 @@ contract LoanEngine is Ownable, ERC721Base {
 
     Token public token;
 
-    constructor(Token _token) public {
+    constructor(
+        Token _token
+    ) public ERC721Base(
+        "RCN - Loan engine - Cobalt 300",
+        "RCN-LE-300"
+    ) {
         token = _token;
         // The loan 0 is a Invalid loan
         loans.length++;

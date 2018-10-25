@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "./../../interfaces/ERC165.sol";
+import "./../../interfaces/IERC165.sol";
 
 /**
     The abstract contract Model defines the whole lifecycle of a debt on the DebtEngine.
@@ -14,7 +14,7 @@ import "./../../interfaces/ERC165.sol";
 
     @author Agustin Aguilar
 */
-contract Model is ERC165 {
+contract Model is IERC165 {
     // ///
     // Events
     // ///

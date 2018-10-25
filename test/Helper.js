@@ -104,6 +104,24 @@ async function assertThrow(promise) {
   }
   assert.fail('Expected throw not received');
 };
+// the promiseFunction should be a function
+async function tryCatchRevert(promiseFunction, message) {
+  let headMsg = 'revert ';
+  if(message == "") {
+    headMsg = headMsg.slice(0, headMsg.length -1);
+    console.warn("Becareful the revert message its empty");
+  }
+  try {
+    await promiseFunction();
+  } catch (error) {
+    assert(
+      error.message.search(headMsg + message) >= 0,
+      "Expected a revert '" + headMsg + message + "', got '" + error.message + "' instead"
+    );
+    return;
+  }
+  assert.fail('Expected throw not received');
+}
 
 function toInterestRate(interest) {
   return Math.floor((10000000 / interest) * 360 * 86400);
@@ -125,7 +143,7 @@ async function almostEqual(p1, p2, reason, margin = 3) {
 }
 
 module.exports = {
-  toEvents, arrayToBytesOfBytes32, getBlockTime, almostEqual,
+  toEvents, arrayToBytesOfBytes32, getBlockTime, tryCatchRevert, almostEqual,
   toBytes32, increaseTime, isRevertErrorMessage, assertThrow,
   toInterestRate, buyTokens, readLoanId, isRevertErrorMessage,
   CREATEDLOAN, APPROVEDBY, LENT, PARTIALPAYMENT, TOTALPAYMENT, DESTROYEDBY

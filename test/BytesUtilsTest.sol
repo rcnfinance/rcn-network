@@ -83,7 +83,7 @@ contract BytesUtilsTest {
             mstore(add(o, 128), d)
         }
     }
-    
+
     function buildData(bytes32 a, bytes32 b, bytes4 c) internal returns (bytes o) {
         assembly {
             let size := 68
