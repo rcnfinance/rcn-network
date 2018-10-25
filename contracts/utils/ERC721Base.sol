@@ -244,7 +244,6 @@ contract ERC721Base is ERC165, Ownable {
     function approve(address _operator, uint256 _assetId) external {
         address holder = _ownerOf(_assetId);
         require(msg.sender == holder || _isApprovedForAll(msg.sender, holder));
-        require(_operator != holder);
         if (_getApprovedAddress(_assetId) != _operator) {
             _approval[_assetId] = _operator;
             emit Approval(holder, _operator, _assetId);
