@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
 
-import "./Ownable.sol";
 import "./SafeMath.sol";
 import "./ERC165.sol";
 
@@ -8,7 +7,7 @@ interface URIProvider {
     function tokenURI(uint256 _tokenId) external view returns (string);
 }
 
-contract ERC721Base is ERC165, Ownable {
+contract ERC721Base is ERC165 {
     using SafeMath for uint256;
 
     mapping(uint256 => address) private _holderOf;
@@ -77,7 +76,7 @@ contract ERC721Base is ERC165, Ownable {
         return provider == address(0) ? "" : provider.tokenURI(_tokenId);
     }
 
-    function setURIProvider(URIProvider _provider) external onlyOwner returns (bool) {
+    function _setURIProvider(URIProvider _provider) internal returns (bool) {
         emit SetURIProvider(_provider);
         _uriProvider = _provider;
         return true;
