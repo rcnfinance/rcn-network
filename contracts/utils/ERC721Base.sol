@@ -230,8 +230,10 @@ contract ERC721Base is ERC165 {
      * @param authorized bool set to true to authorize, false to withdraw authorization
      */
     function setApprovalForAll(address _operator, bool _authorized) external {
-        _operators[msg.sender][_operator] = _authorized;
-        emit ApprovalForAll(_operator, msg.sender, _authorized);
+        if (_operators[msg.sender][_operator] != _authorized) {
+            _operators[msg.sender][_operator] = _authorized;
+            emit ApprovalForAll(_operator, msg.sender, _authorized);
+        }
     }
 
     /**
