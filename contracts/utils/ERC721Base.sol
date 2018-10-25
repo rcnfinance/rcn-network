@@ -11,8 +11,6 @@ interface URIProvider {
 contract ERC721Base is ERC165, Ownable {
     using SafeMath for uint256;
 
-    uint256 private _count;
-
     mapping(uint256 => address) private _holderOf;
     mapping(address => uint256[]) private _assetsOf;
     mapping(address => mapping(address => bool)) private _operators;
