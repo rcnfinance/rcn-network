@@ -43,9 +43,17 @@ contract LoanManager {
     function getDueTime(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getDueTime(bytes32(_id)); }
     function getLoanData(uint256 _id) external view returns (bytes) { return requests[bytes32(_id)].loanData; }
 
+    function isApproved(uint256 _id) external view returns (bool) {
+        return requests[bytes32(_id)].approved;
+    }
+
     function getStatus(uint256 _id) external view returns (uint256) {
         Request storage request = requests[bytes32(_id)];
         return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
+    }
+
+    function ownerOf(uint256 _id) external view returns (address) {
+        return debtEngine.ownerOf(_id);
     }
 
     struct Request {
