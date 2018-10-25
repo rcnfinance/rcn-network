@@ -391,28 +391,40 @@ contract('Test LoanManager Diaspore', function(accounts) {
         const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
-        const id = await loanManager.calcFutureDebt(creator, ++nonce);
+
+        // try cancel a close request
+        const idLend = await createId(borrower);
+        await loanManager.requestLoan(
+            0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: borrower }
+        );
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        await loanManager.lend(idLend, [], 0x0, 0, [], { from: lender });
+        await Helper.tryCatchRevert(() => loanManager.cancel(idLend, { from: lender }), "Request is no longer open or not requested");
+
+        // try cancel a request without being the borrower or the creator
+        const idCreator = await createId(creator);
         await loanManager.requestLoan(
             0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: creator }
         );
-        // try cancel a request without being the borrower or the creator
         await Helper.tryCatchRevert(() => loanManager.cancel(idCreator, { from: lender }), "Only borrower or creator can cancel a request");
         // creator cancel
-        await loanManager.cancel(id, { from: creator });
-        let cancelRequest = await loanManager.requests(id);
+        await loanManager.cancel(idCreator, { from: creator });
+        let cancelRequest = await loanManager.requests(idCreator);
         assert.equal(cancelRequest[8], 0x0);
         assert.equal(cancelRequest[3], 0, "The loan its not approved");
-        assert.equal(await loanManager.getLoanData(id), "0x");
+        assert.equal(await loanManager.getLoanData(idCreator), "0x");
 
         // borrower cancel
+        const idBorrower = await createId(creator);
         await loanManager.requestLoan(
             0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: creator }
         );
-        await loanManager.cancel(id, { from: borrower });
-        cancelRequest = await loanManager.requests(id);
+        await loanManager.cancel(idBorrower, { from: borrower });
+        cancelRequest = await loanManager.requests(idBorrower);
         assert.equal(cancelRequest[8], 0x0);
         assert.equal(cancelRequest[3], 0, "The loan its not approved");
-        assert.equal(await loanManager.getLoanData(id), "0x")
+        assert.equal(await loanManager.getLoanData(idBorrower), "0x");
     });
 
     it("Should cancel a request using settle cancel", async function() {
