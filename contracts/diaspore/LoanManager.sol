@@ -86,7 +86,54 @@ contract LoanManager {
         uint256 nonce,
         uint64 expiration,
         bytes loanData
-    ) public returns (bytes32 futureDebt) {
+    ) external returns (bytes32 futureDebt) {
+        require(borrower != address(0), "The request should have a borrower");
+        require(Model(model).validate(loanData), "The loan data is not valid");
+
+        uint256 internalNonce = uint256(keccak256(abi.encodePacked(msg.sender, nonce)));
+        futureDebt = debtEngine.buildId(
+            address(this),
+            internalNonce,
+            true
+        );
+
+        require(requests[futureDebt].borrower == address(0), "Request already exist");
+        bool approved = msg.sender == borrower;
+        uint64 pos;
+        if (approved) {
+            pos = uint64(directory.push(futureDebt) - 1);
+            emit Approved(futureDebt);
+        }
+
+        requests[futureDebt] = Request({
+            open: true,
+            approved: approved,
+            position: pos,
+            cosigner: address(0),
+            currency: currency,
+            amount: amount,
+            model: model,
+            creator: msg.sender,
+            oracle: oracle,
+            borrower: borrower,
+            nonce: internalNonce,
+            loanData: loanData,
+            expiration: expiration
+        });
+
+        emit Requested(futureDebt, nonce);
+    }
+
+    function _requestLoan(
+        bytes8 currency,
+        uint128 amount,
+        address model,
+        address oracle,
+        address borrower,
+        uint256 nonce,
+        uint64 expiration,
+        bytes loanData
+    ) internal returns (bytes32 futureDebt) {
         require(borrower != address(0), "The request should have a borrower");
         require(Model(model).validate(loanData), "The loan data is not valid");
 
