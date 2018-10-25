@@ -121,7 +121,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(await loanManager.getStatus(id), 0);
         assert.equal(await loanManager.getDueTime(id), 0);
         // try request 2 identical loans
-        Helper.tryCatchRevert(() => loanManager.requestLoan(
+        await Helper.tryCatchRevert(() => loanManager.requestLoan(
             0x0,
             amount,
             model.address,
@@ -159,7 +159,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
             expiration, loanData, { from: creator }
         );
         // try approve a request without being the borrower
-        Helper.tryCatchRevert(() => loanManager.approveRequest(id, { from: creator }), "Only borrower can approve");
+        await Helper.tryCatchRevert(() => loanManager.approveRequest(id, { from: creator }), "Only borrower can approve");
         // approve request
         await loanManager.approveRequest(id, { from: borrower });
 
@@ -177,12 +177,12 @@ contract('Test LoanManager Diaspore', function(accounts) {
         await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce,
             expiration, loanData, { from: creator });
         // try lend a request without approve of the borrower
-        Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is not approved by the borrower");
+        await Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is not approved by the borrower");
         // approve request
         await loanManager.approveRequest(id, { from: borrower });
         await Helper.increaseTime(2000);
         // try lend a expired request
-        Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is expired");
+        await Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is expired");
         // create a debt
         id = await createId(creator);
         const amount2 = 2000;
@@ -193,7 +193,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         await loanManager.approveRequest(id, { from: borrower });
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: accounts[9] });
         // try lend without tokens balance
-        Helper.tryCatchRevert(() => loanManager.lend(
+        await Helper.tryCatchRevert(() => loanManager.lend(
             id, [], 0x0, 0, [], { from: accounts[9] }
         ), "Error sending tokens to borrower");
         await rcn.setBalance(lender, amount2);
@@ -226,7 +226,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(request.position, 0);
 
         // try lend a closed request
-        Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "Request is no longer open");
+        await Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "Request is no longer open");
     });
 
     it("Should lend a request using settleLend", async function() {
@@ -239,17 +239,17 @@ contract('Test LoanManager Diaspore', function(accounts) {
 
         // try settle lend with a expired data time
         const requestDataexpired = [0x0, amount, model.address, 0x0, borrower, nonce, expiration - 2000, creator].map(x => Helper.toBytes32(x));
-        Helper.tryCatchRevert(() => loanManager.settleLend(requestDataexpired, loanData, 0x0, 0, [], [], 0x0, 0x0),
+        await Helper.tryCatchRevert(() => loanManager.settleLend(requestDataexpired, loanData, 0x0, 0, [], [], 0x0, 0x0),
             "Loan request is expired"
         );
         // try settle lend without borrower
         const requestDataBorrower0x0 = [0x0, amount, model.address, 0x0, 0x0, nonce, expiration, creator].map(x => Helper.toBytes32(x));
-        Helper.tryCatchRevert(() => loanManager.settleLend(requestDataBorrower0x0, loanData, 0x0, 0, [], [], 0x0, 0x0),
+        await Helper.tryCatchRevert(() => loanManager.settleLend(requestDataBorrower0x0, loanData, 0x0, 0, [], [], 0x0, 0x0),
             "Borrower can't be 0x0"
         );
         // try settle lend without creator
         const requestDataCreator0x0 = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, 0x0].map(x => Helper.toBytes32(x));
-        Helper.tryCatchRevert(() => loanManager.settleLend(requestDataCreator0x0, loanData, 0x0, 0, [], [], 0x0, 0x0),
+        await Helper.tryCatchRevert(() => loanManager.settleLend(requestDataCreator0x0, loanData, 0x0, 0, [], [], 0x0, 0x0),
             "Creator can't be 0x0"
         );
 
@@ -258,7 +258,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         const borrowerSig = await web3.eth.sign(borrower, msg);
 
         // try settle lend without tokens balance
-        Helper.tryCatchRevert(() => loanManager.settleLend(requestData, loanData, 0x0, 0, [], [], creatorSig, borrowerSig, { from: lender }),
+        await Helper.tryCatchRevert(() => loanManager.settleLend(requestData, loanData, 0x0, 0, [], [], creatorSig, borrowerSig, { from: lender }),
             "Error sending tokens to borrower"
         );
 
@@ -295,7 +295,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(request.loanData,"0x");
 
         // try settle lend a request already exist
-        Helper.tryCatchRevert(() => loanManager.settleLend(requestData, loanData, 0x0, 0, [], [], creatorSig, borrowerSig, { from: lender }),
+        await Helper.tryCatchRevert(() => loanManager.settleLend(requestData, loanData, 0x0, 0, [], [], creatorSig, borrowerSig, { from: lender }),
             "Request already exist"
         );
     });
@@ -309,7 +309,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
             0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: creator }
         );
         // try cancel a request without being the borrower or the creator
-        Helper.tryCatchRevert(() =>  loanManager.cancel(id, { from: lender }), "Only borrower or creator can cancel a request");
+        await Helper.tryCatchRevert(() => loanManager.cancel(idCreator, { from: lender }), "Only borrower or creator can cancel a request");
         // creator cancel
         await loanManager.cancel(id, { from: creator });
         let cancelRequest = await loanManager.requests(id);
@@ -338,7 +338,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
             0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: creator }
         );
         // try cancel a request without have the signature
-        Helper.tryCatchRevert(() =>  loanManager.settleCancel(requestData, loanData, { from: lender }), "Only borrower or creator can cancel a settle");
+        await Helper.tryCatchRevert(() =>  loanManager.settleCancel(requestData, loanData, { from: lender }), "Only borrower or creator can cancel a settle");
         // creator cancel
         await loanManager.settleCancel(requestData, loanData, { from: creator });
         let signature = await loanManager.requestSignature(requestData, loanData);
