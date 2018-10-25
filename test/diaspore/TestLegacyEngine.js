@@ -44,7 +44,7 @@ contract('LegacyEngine', function(accounts) {
             };
         }
         console.log('-----------Event not found------------');
-      }
+    }
 
     beforeEach("Create engine and token", async function(){
 
@@ -189,6 +189,32 @@ contract('LegacyEngine', function(accounts) {
 
         await legacyEngine.registerApprove(id, v, r, s, { from: borrower } )
         assert.isTrue(await legacyEngine.getApproved(id))
+    })
+
+    it("It should fail register an approved", async() => {
+        const borrower = accounts[2];
+        const futureDebt = await legacyEngine.createLoan(
+            0x0,              // oracle
+            borrower,         // borrower
+            0x0,              // currency
+            defaultParams[0], // amount
+            defaultParams[1], // interestRate
+            defaultParams[2], // interestRatePunitory
+            defaultParams[3], // dues in
+            defaultParams[4], // cancelableAt
+            10 * 10**20,      // expire time
+            "metadata1", { from: owner })
+        assert.equal(await readRequested(futureDebt, REQUESTED), 0);
+        const id = await toEvents(futureDebt.logs, REQUESTED)[0]._id;
+        assert.isFalse(await legacyEngine.getApproved(id))
+
+        let approveSignature = await web3.eth.sign(owner, id).slice(2)
+
+        let r = `0x${approveSignature.slice(0, 64)}`
+        let s = `0x${approveSignature.slice(64, 128)}`
+        let v = web3.toDecimal(approveSignature.slice(128, 130)) + 27
+
+        Helper.assertThrow(legacyEngine.registerApprove(id, v, r, s, { from: owner } ))
     })
 
 })
