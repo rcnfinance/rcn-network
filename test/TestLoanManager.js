@@ -19,6 +19,14 @@ contract('Test LoanManager Diaspore', function(accounts) {
     const borrower = accounts[2];
     const lender   = accounts[3];
 
+    async function createId(account) {
+        const id = await loanManager.calcFutureDebt(account, ++nonce);
+        const _nonce = Web3Utils.soliditySha3(account, nonce);
+        const localCalculateId = Web3Utils.soliditySha3(loanManager.address, _nonce, true);
+        assert.equal(id, localCalculateId, "bug in loanManager.calcFutureDebt");
+        return id;
+    }
+
     async function getRequest(id){
         const request = await loanManager.requests(id);
         if ( request[8] == 0x0 )
@@ -71,7 +79,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
-        const id = await loanManager.calcFutureDebt(creator, ++nonce);
+        const id = await createId(creator);
         await loanManager.requestLoan(
             0x0,              // Currency
             amount,           // Amount
@@ -125,7 +133,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
             { from: creator }
         ), "Request already exist");
         // The loan must be approved
-        const newId = await loanManager.calcFutureDebt(borrower, ++nonce);
+        const newId = await createId(borrower);
         await loanManager.requestLoan(
             0x0,
             amount,
@@ -143,7 +151,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should approve a request using approveRequest", async function() {
-        const id = await loanManager.calcFutureDebt(creator, ++nonce);
+        const id = await createId(creator);
         const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
@@ -162,7 +170,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should lend a request using lend", async function() {
-        let id = await loanManager.calcFutureDebt(creator, ++nonce);
+        let id = await createId(creator);
         const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
@@ -176,7 +184,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         // try lend a expired request
         Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is expired");
         // create a debt
-        id = await loanManager.calcFutureDebt(creator, ++nonce);
+        id = await createId(creator);
         const amount2 = 2000;
         const expiration2 = (await Helper.getBlockTime()) + 1500;
         const loanData2 = await model.encodeData(amount, expiration2);
@@ -222,7 +230,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should lend a request using settleLend", async function() {
-        const id = await loanManager.calcFutureDebt(creator, ++nonce);
+        const id = await createId(creator);
         const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const requestData = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
