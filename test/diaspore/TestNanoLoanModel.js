@@ -1,6 +1,5 @@
 const NanoLoanModel = artifacts.require("./diaspore/model/NanoLoanModel.sol");
 const Helper = require('../Helper.js');
-const BN = require('bn.js');
 
 let owner;
 let model;
