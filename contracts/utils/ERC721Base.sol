@@ -97,7 +97,6 @@ contract ERC721Base is ERC165 {
     }
 
     function assetsOf(address _owner) external view returns (uint256[]) {
-        require(_owner != address(0), "0x0 Is not a valid owner");
         return _assetsOf[_owner];
     }
 
