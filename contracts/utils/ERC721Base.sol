@@ -270,10 +270,13 @@ contract ERC721Base is ERC165 {
     function _transferAsset(address _from, address _to, uint256 _assetId) internal {
         uint256 assetIndex = _indexOfAsset[_assetId];
         uint256 lastAssetIndex = _balanceOf(_from).sub(1);
-        uint256 lastAssetId = _assetsOf[_from][lastAssetIndex];
 
-        // Insert the last asset into the position previously occupied by the asset to be removed
-        _assetsOf[_from][assetIndex] = lastAssetId;
+        if (assetIndex != lastAssetIndex) {
+            // Replace current asset with last asset
+            uint256 lastAssetId = _assetsOf[_from][lastAssetIndex];
+            // Insert the last asset into the position previously occupied by the asset to be removed
+            _assetsOf[_from][assetIndex] = lastAssetId;
+        }
 
         // Resize the array
         _assetsOf[_from][lastAssetIndex] = 0;
