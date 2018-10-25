@@ -104,12 +104,6 @@ contract LoanManager {
         );
 
         require(requests[futureDebt].borrower == address(0), "Request already exist");
-        bool approved = msg.sender == _borrower;
-        uint64 pos;
-        if (approved) {
-            pos = uint64(directory.push(futureDebt) - 1);
-            emit Approved(futureDebt);
-        }
 
         requests[futureDebt] = Request({
             open: true,
@@ -128,6 +122,13 @@ contract LoanManager {
         });
 
         emit Requested(futureDebt, _nonce);
+
+        bool approved = msg.sender == _borrower;
+        uint64 pos;
+        if (approved) {
+            pos = uint64(directory.push(futureDebt) - 1);
+            emit Approved(futureDebt);
+        }
     }
 
     function approveRequest(
