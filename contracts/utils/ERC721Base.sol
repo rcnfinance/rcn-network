@@ -292,7 +292,7 @@ contract ERC721Base is ERC165 {
     }
 
     function _clearApproval(address _holder, uint256 _assetId) internal {
-        if (_ownerOf(_assetId) == _holder && _approval[_assetId] != 0) {
+        if (_approval[_assetId] != 0) {
             _approval[_assetId] = 0;
             emit Approval(_holder, 0, _assetId);
         }
