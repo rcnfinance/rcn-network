@@ -304,13 +304,15 @@ contract LoanManager {
             request.creator == msg.sender || request.borrower == msg.sender,
             "Only borrower or creator can cancel a request"
         );
-
-        // Remove directory entry
-        bytes32 last = directory[directory.length - 1];
-        requests[last].position = request.position;
-        directory[request.position] = last;
-        request.position = 0;
-        directory.length--;
+        
+        if(request.approved){
+            // Remove directory entry
+            bytes32 last = directory[directory.length - 1];
+            requests[last].position = request.position;
+            directory[request.position] = last;
+            request.position = 0;
+            directory.length--;
+        }
 
         delete request.loanData;
         delete requests[futureDebt];
