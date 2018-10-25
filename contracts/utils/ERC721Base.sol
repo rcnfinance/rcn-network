@@ -157,7 +157,7 @@ contract ERC721Base is ERC165 {
     //
     /**
      * @dev Gets the balance of the specified address
-     * @param owner address to query the balance of
+     * @param _owner address to query the balance of
      * @return uint256 representing the amount owned by the passed address
      */
     function balanceOf(address _owner) external view returns (uint256) {
@@ -173,8 +173,8 @@ contract ERC721Base is ERC165 {
 
     /**
      * @dev Query whether an address has been authorized to move any assets on behalf of someone else
-     * @param operator the address that might be authorized
-     * @param assetHolder the address that provided the authorization
+     * @param _operator the address that might be authorized
+     * @param _assetHolder the address that provided the authorization
      * @return bool true if the operator has been authorized to move any assets
      */
     function isApprovedForAll(
@@ -192,7 +192,7 @@ contract ERC721Base is ERC165 {
 
     /**
      * @dev Query what address has been particularly authorized to move an asset
-     * @param assetId the asset to be queried for
+     * @param _assetId the asset to be queried for
      * @return bool true if the asset has been approved by the holder
      */
     function getApprovedAddress(uint256 _assetId) external view returns (address) {
@@ -204,8 +204,8 @@ contract ERC721Base is ERC165 {
 
     /**
      * @dev Query if an operator can move an asset.
-     * @param operator the address that might be authorized
-     * @param assetId the asset that has been `approved` for transfer
+     * @param _operator the address that might be authorized
+     * @param _assetId the asset that has been `approved` for transfer
      * @return bool true if the asset has been approved by the holder
      */
     function isAuthorized(address _operator, uint256 _assetId) external view returns (bool) {
@@ -226,8 +226,8 @@ contract ERC721Base is ERC165 {
 
     /**
      * @dev Authorize a third party operator to manage (send) msg.sender's asset
-     * @param operator address to be approved
-     * @param authorized bool set to true to authorize, false to withdraw authorization
+     * @param _operator address to be approved
+     * @param _authorized bool set to true to authorize, false to withdraw authorization
      */
     function setApprovalForAll(address _operator, bool _authorized) external {
         if (_operators[msg.sender][_operator] != _authorized) {
@@ -238,8 +238,8 @@ contract ERC721Base is ERC165 {
 
     /**
      * @dev Authorize a third party operator to manage one particular asset
-     * @param operator address to be approved
-     * @param assetId asset to approve
+     * @param _operator address to be approved
+     * @param _assetId asset to approve
      */
     function approve(address _operator, uint256 _assetId) external {
         address holder = _ownerOf(_assetId);
@@ -337,9 +337,9 @@ contract ERC721Base is ERC165 {
     /**
      * @dev Alias of `safeTransferFrom(from, to, assetId, '')`
      *
-     * @param from address that currently owns an asset
-     * @param to address to receive the ownership of the asset
-     * @param assetId uint256 ID of the asset to be transferred
+     * @param _from address that currently owns an asset
+     * @param _to address to receive the ownership of the asset
+     * @param _assetId uint256 ID of the asset to be transferred
      */
     function safeTransferFrom(address _from, address _to, uint256 _assetId) external {
         return _doTransferFrom(_from, _to, _assetId, "", true);
@@ -350,10 +350,10 @@ contract ERC721Base is ERC165 {
      * another address, calling the method `onNFTReceived` on the target address if
      * there's code associated with it
      *
-     * @param from address that currently owns an asset
-     * @param to address to receive the ownership of the asset
-     * @param assetId uint256 ID of the asset to be transferred
-     * @param userData bytes arbitrary user information to attach to this transfer
+     * @param _from address that currently owns an asset
+     * @param _to address to receive the ownership of the asset
+     * @param _assetId uint256 ID of the asset to be transferred
+     * @param _userData bytes arbitrary user information to attach to this transfer
      */
     function safeTransferFrom(address _from, address _to, uint256 _assetId, bytes _userData) external {
         return _doTransferFrom(_from, _to, _assetId, _userData, true);
@@ -364,9 +364,9 @@ contract ERC721Base is ERC165 {
      * Warning! This function does not attempt to verify that the target address can send
      * tokens.
      *
-     * @param from address sending the asset
-     * @param to address to receive the ownership of the asset
-     * @param assetId uint256 ID of the asset to be transferred
+     * @param _from address sending the asset
+     * @param _to address to receive the ownership of the asset
+     * @param _assetId uint256 ID of the asset to be transferred
      */
     function transferFrom(address _from, address _to, uint256 _assetId) external {
         return _doTransferFrom(_from, _to, _assetId, "", false);
