@@ -120,6 +120,52 @@ contract('NanoLoanModel', function(accounts) {
     assert.equal(state[4].toString(), STATUS_PAID, "The status should be paid");
   });
 
+  it("Calling run() shouldn't affect the accrued interest", async function() {
+    // Create 2 identical loans
+    const id1 = Helper.toBytes32(idCounter++);
+    const id2 = Helper.toBytes32(idCounter++);
+    await model.create(id1, defaultData, { from: owner });
+    await model.create(id2, defaultData, { from: owner });
+
+    // Pay partially both loans
+    await model.addPaid(id1, 2000, { from: owner });
+    await model.addPaid(id2, 2000, { from: owner });
+
+    // Advance 2 months
+    await Helper.increaseTime(monthInSec * 2);
+
+    // Pay partially both loans
+    await model.addPaid(id1, 2000, { from: owner });
+    await model.addPaid(id2, 2000, { from: owner });
+
+    // Wait 1 weel
+    await Helper.increaseTime(monthInSec);
+
+    // Call run() on one model
+    await model.run(id1);
+
+    // Advance another month
+    await Helper.increaseTime(monthInSec);
+
+    // Ping ganache to update views
+    await model.setEngine(owner, { from: owner });
+
+    // Obligation should be equal after run()
+    await model.run(id1); await model.run(id2);
+
+    // Current obligation should be equal
+    assert.equal(
+      (await model.getClosingObligation(id1)).toNumber(),
+      (await model.getClosingObligation(id2)).toNumber()
+    );
+
+    // Current obligation should be equal
+    assert.equal(
+      (await model.getClosingObligation(id1)).toNumber(),
+      (await model.getClosingObligation(id2)).toNumber()
+    );
+  });
+
   const sd = 24*60*60;// seconds in a day
   //                                               amount , interest , pInterest, duesIn  , d1, v1     , d2, v2     , d3, v3     , d4, v4
   it("Test E1 28% Anual interest, 91 days", e_test(10000  , 28       , 42       , 91      , 30, 10233  , 31, 10474  , 91, 11469  , 5 , 11530));
