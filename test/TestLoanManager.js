@@ -327,6 +327,105 @@ contract('Test LoanManager Diaspore', function(accounts) {
         await Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "Request is no longer open");
     });
 
+    it("Use cosigner in lend", async function() {
+        const id = await createId(borrower);
+        const expiration = (await Helper.getBlockTime()) + 1000;
+        const loanData = await model.encodeData(amount, expiration);
+        await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce,
+            expiration, loanData, { from: borrower });
+        await rcn.setBalance(lender, amount + 666);
+        await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
+        // Cosign return false
+        await Helper.tryCatchRevert(() => loanManager.lend(id,[],
+                cosigner.address,        // Cosigner
+                0,                       // Cosigner limit
+                toBytes([
+                    Web3Utils.soliditySha3("return_false"),
+                    Helper.toBytes32(0)]
+                ), // Cosigner data
+                { from: lender }
+            ),
+            "Cosign method returned false");
+        // Cosigner dont cosign
+        await Helper.tryCatchRevert(() => loanManager.lend(id,[],
+                cosigner.address,        // Cosigner
+                0,                       // Cosigner limit
+                toBytes([
+                    Web3Utils.soliditySha3("return_true_no_cosign"),
+                    Helper.toBytes32(0)]
+                ), // Cosigner data
+                { from: lender }
+            ),
+            "Cosigner didn't callback");
+        // lend with cosigner
+        await loanManager.lend(id,[],
+            cosigner.address,        // Cosigner
+            0,                       // Cosigner limit
+            toBytes([
+                Web3Utils.soliditySha3("test_oracle"),
+                Helper.toBytes32(666)]
+            ), // Cosigner data
+            { from: lender }
+        );
+
+        const request = await getRequest(id);
+        assert.equal(request.cosigner, cosigner.address);
+        assert.equal(web3.toHex(request.nonce), Web3Utils.soliditySha3(borrower, nonce));
+    });
+
+    it("Use cosigner in settleLend", async function() {
+        const idSettle = await createId(creator);
+        const expiration = (await Helper.getBlockTime()) + 1000;
+        const loanData = await model.encodeData(amount, expiration);
+        const settleData = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
+            .map(x => Helper.toBytes32(x));
+        const settleLoanData = await model.encodeData(settleData[1], settleData[6]);
+
+        const msgSL = await loanManager.requestSignature(settleData, settleLoanData);
+        const creatorSigSL = await web3.eth.sign(creator, msgSL);
+        const borrowerSigSL = await web3.eth.sign(borrower, msgSL);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.setBalance(borrower, 0);
+        await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
+        // Cosign return false
+        await Helper.tryCatchRevert(() => loanManager.settleLend(settleData, settleLoanData,
+            cosigner.address, // Cosigner
+            0,                // Max cosigner cost
+            toBytes([
+                Web3Utils.soliditySha3("return_false"),
+                Helper.toBytes32(0)]
+            ),                // Cosigner data
+            [], creatorSigSL, borrowerSigSL, { from: lender }
+        ),
+        "Cosign method returned false");
+        // Cosigner dont cosign
+        await Helper.tryCatchRevert(() => loanManager.settleLend(settleData, settleLoanData,
+                cosigner.address, // Cosigner
+                0,                // Max cosigner cost
+                toBytes([
+                    Web3Utils.soliditySha3("return_true_no_cosign"),
+                    Helper.toBytes32(0)]
+                ),                // Cosigner data
+                [], creatorSigSL, borrowerSigSL, { from: lender }
+            ),
+            "Cosigner didn't callback");
+        // settleLend with cosigner
+        await loanManager.settleLend(settleData, settleLoanData,
+            cosigner.address, // Cosigner
+            0,                // Max cosigner cost
+            toBytes([
+                Web3Utils.soliditySha3("test_oracle"),
+                Helper.toBytes32(0)]
+            ),                // Cosigner data
+            [], creatorSigSL, borrowerSigSL, { from: lender }
+        );
+
+        const settleRequest = await getRequest(idSettle);
+        assert.equal(settleRequest.cosigner, cosigner.address);
+        assert.equal(web3.toHex(settleRequest.nonce), Web3Utils.soliditySha3(creator, nonce));
+    });
+
     it("Should lend a request using settleLend", async function() {
         const id = await createId(creator);
         const expiration = (await Helper.getBlockTime()) + 1000;
