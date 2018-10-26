@@ -45,8 +45,8 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(loanId2, 2)
 
         // create a new identical
-        await Helper.assertThrow(createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
-            86400, 0, 10 * 10**20, accounts[0], ""));
+        await Helper.tryCatchRevert(() => createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[0], ""), "");
     })
 
     it("Should allow reference loans with their identifier", async() => {
@@ -136,7 +136,7 @@ contract('NanoLoanEngine', function(accounts) {
         let s = `0x${approveSignature.slice(64, 128)}`
         let v = web3.toDecimal(approveSignature.slice(128, 130)) + 27
 
-        await Helper.assertThrow(engine.registerApprove(loanIdIdentifier, v, r, s))
+        await Helper.tryCatchRevert(() => engine.registerApprove(loanIdIdentifier, v, r, s), "")
         assert.isFalse(await engine.isApproved(loanId))
     })
 
@@ -154,7 +154,7 @@ contract('NanoLoanEngine', function(accounts) {
         await rcn.approve(engine.address, web3.toWei(20), {from:accounts[2]})
 
         // try to lend and expect an exception
-        await Helper.assertThrow(engine.lend(loanId, [], 0x0, [], {from:accounts[2]}))
+        await Helper.tryCatchRevert(() => engine.lend(loanId, [], 0x0, [], {from:accounts[2]}), "")
 
         // check that the status didn't change
         let status = await engine.getStatus(loanId)
@@ -344,7 +344,7 @@ contract('NanoLoanEngine', function(accounts) {
         await rcn.approve(engine.address, web3.toWei(7000), {from:accounts[2]})
 
         // execute the lend but with a wrong oracle data
-        await Helper.assertThrow(engine.lend(loanId, [0x23, 0x12, 0x4a], 0x0, [], {from:accounts[2]}));
+        await Helper.tryCatchRevert(() => engine.lend(loanId, [0x23, 0x12, 0x4a], 0x0, [], {from:accounts[2]}), "");
 
         // check that the status didn't change
         let status = await engine.getStatus(loanId)
@@ -363,7 +363,7 @@ contract('NanoLoanEngine', function(accounts) {
         await engine.pay(loanId, web3.toWei(2), accounts[1], [], {from:accounts[1]})
 
         // try and fail to withdraw tokens as the owner of the engine
-        await Helper.assertThrow(engine.withdrawTokens(rcn.address, accounts[3], web3.toWei(1), {from:accounts[0]}));
+        await Helper.tryCatchRevert(() => engine.withdrawTokens(rcn.address, accounts[3], web3.toWei(1), {from:accounts[0]}), "");
 
         // check if the balance of the engine is still there
         let engineBalance = await rcn.balanceOf(engine.address);
@@ -374,7 +374,7 @@ contract('NanoLoanEngine', function(accounts) {
         await rcn.transfer(engine.address, web3.toWei(1), {from:accounts[4]})
 
         // lender trying to withdraw more of his balance should fail
-        await Helper.assertThrow(engine.withdrawal(loanId, web3.toWei(2.5), accounts[2], {from:accounts[2]}))
+        await Helper.tryCatchRevert(() => engine.withdrawal(loanId, web3.toWei(2.5), accounts[2], {from:accounts[2]}), "")
         let lenderBalance = await rcn.balanceOf(accounts[2])
         assert.equal(lenderBalance.toNumber(), 0, "Lender should have no balance")
 
@@ -389,7 +389,7 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(lenderBalance.toNumber(), 2000, "Lender should have his RCN")
 
         // test if the remaining tokens of the lenders keeps being locked
-        await Helper.assertThrow(engine.withdrawTokens(rcn.address, accounts[5], 1), "Tokens of lender should not be accesible")
+        await Helper.tryCatchRevert(() => engine.withdrawTokens(rcn.address, accounts[5], 1), "")
 
     })
 
@@ -509,7 +509,7 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(allLoans3[0], loanId3, "Should have loan 3")
 
         // try pull loan witout approval, should fail
-        await Helper.assertThrow(engine.takeOwnership(loanId3, {from: accounts[2]}))
+        await Helper.tryCatchRevert(() => engine.takeOwnership(loanId3, {from: accounts[2]}), "")
 
         // approve transfer for the loan and try again
         await engine.approve(accounts[2], loanId3, {from:accounts[3]})
@@ -522,14 +522,14 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(await engine.ownerOf(loanId3), accounts[1])
 
         // but not in reverse
-        await Helper.assertThrow(engine.takeOwnership(loanId3, {from: accounts[2]}))
+        await Helper.tryCatchRevert(() => engine.takeOwnership(loanId3, {from: accounts[2]}), "")
         assert.equal(await engine.ownerOf(loanId3), accounts[1])
 
         // and we should be able to disable it
         await engine.transferFrom(accounts[1], accounts[2], loanId3, {from:accounts[1]})
         assert.equal(await engine.ownerOf(loanId3), accounts[2])
         await engine.setApprovalForAll(accounts[1], false, {from:accounts[2]})
-        await Helper.assertThrow(engine.takeOwnership(loanId3, {from: accounts[1]}))
+        await Helper.tryCatchRevert(() => engine.takeOwnership(loanId3, {from: accounts[1]}), "")
         assert.equal(await engine.ownerOf(loanId3), accounts[2])
     })
 
@@ -574,7 +574,7 @@ contract('NanoLoanEngine', function(accounts) {
         // lend with cosigner, should fail because of the bad data
         await Helper.buyTokens(rcn, web3.toWei(3), accounts[1]);
         await rcn.approve(engine.address, web3.toWei(3), {from:accounts[1]});
-        await Helper.assertThrow(engine.lend(loanId, [], cosigner.address, cosignerData, {from:accounts[1]}));
+        await Helper.tryCatchRevert(() => engine.lend(loanId, [], cosigner.address, cosignerData, {from:accounts[1]}), "");
 
         // cosigner should have 0 RCN
         let cosignerBalance = await rcn.balanceOf(cosigner.address);
