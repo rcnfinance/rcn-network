@@ -83,7 +83,7 @@ contract ERC721Base is ERC165 {
         _uriProvider = _provider;
         return true;
     }
- 
+
     // ///
     // ERC721 Enumeration
     // ///
