@@ -1,6 +1,6 @@
 {
   "name": "RCN",
-  "version": "300",
+  "version": "2.3.3",
   "description": "RCN​ is a global p2p lending protocol based on smart contracts and blockchain technology",
   "files": [
     "build",
