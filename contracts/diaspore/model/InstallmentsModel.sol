@@ -4,36 +4,14 @@ import "./../interfaces/Model.sol";
 import "./../interfaces/ModelDescriptor.sol";
 import "./../../utils/Ownable.sol";
 import "./../../utils/BytesUtils.sol";
+import "./../../utils/ERC165.sol";
 
-contract InstallmentsModel is BytesUtils, Ownable, Model, ModelDescriptor {
+contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor {
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {
-        _supportedInterface[this.owner.selector] = true;
-        _supportedInterface[this.validate.selector] = true;
-        _supportedInterface[this.getStatus.selector] = true;
-        _supportedInterface[this.getPaid.selector] = true;
-        _supportedInterface[this.getObligation.selector] = true;
-        _supportedInterface[this.getClosingObligation.selector] = true;
-        _supportedInterface[this.getDueTime.selector] = true;
-        _supportedInterface[this.getFinalTime.selector] = true;
-        _supportedInterface[this.getFrequency.selector] = true;
-        _supportedInterface[this.getEstimateObligation.selector] = true;
-        _supportedInterface[this.addDebt.selector] = true; // ??? Not supported
-        _supportedInterface[this.run.selector] = true;
-        _supportedInterface[this.fixClock.selector] = true;
-        _supportedInterface[this.create.selector] = true;
-        _supportedInterface[this.addPaid.selector] = true;
-        _supportedInterface[this.configs.selector] = true;
-        _supportedInterface[this.states.selector] = true;
-        _supportedInterface[this.engine.selector] = true;
-    }
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-        return 
-            interfaceId == this.supportsInterface.selector ||
-            interfaceId == debtModelInterface ||
-            _supportedInterface[interfaceId];
+        _registerInterface(MODEL_INTERFACE);
+        _registerInterface(MODEL_DESCRIPTOR_INTERFACE);
     }
 
     address public engine;
