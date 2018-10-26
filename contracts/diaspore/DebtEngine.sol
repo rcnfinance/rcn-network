@@ -269,7 +269,7 @@ contract DebtEngine is ERC721Base {
             )
         );
 
-        if (success != 0) {
+        if (success == 1) {
             return uint256(paid);
         } else {
             emit Error({
@@ -332,7 +332,7 @@ contract DebtEngine is ERC721Base {
             )
         );
 
-        if (success != 0) {
+        if (success == 1) {
             return result == bytes32(1);
         } else {
             emit Error({
