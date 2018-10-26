@@ -114,6 +114,20 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(lent._tokens, amount);
 
         //event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
+        const idCosign = await createId(borrower);
+        const cosignAmount = 666;
+        const expirationCosign = (await Helper.getBlockTime()) + 1000;
+        const loanDataCosign = await model.encodeData(amount, expirationCosign);
+        await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce,
+            expirationCosign, loanDataCosign, { from: borrower });
+        await rcn.setBalance(lender, amount + cosignAmount);
+        await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
+        const cosigned = toEvent(
+            await loanManager.lend(idCosign, [], cosigner.address, 0, toBytes([ Web3Utils.soliditySha3("test_oracle"), Helper.toBytes32(cosignAmount)] ), { from: lender }),
+            'Cosigned');
+        assert.equal(cosigned._id, idCosign);
+        assert.equal(cosigned._cosigner, cosigner.address);
+        assert.equal(cosigned._cost, cosignAmount);
 
         //event Canceled(bytes32 indexed _id, address _canceler);
         const idCancel = await createId(borrower);
