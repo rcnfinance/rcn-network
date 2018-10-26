@@ -57,6 +57,16 @@ contract DebtEngine is ERC721Base {
         bytes _callData
     );
 
+    event ErrorRecover(
+        bytes32 indexed _id,
+        address _sender,
+        uint256 _value,
+        uint256 _gasLeft,
+        uint256 _gasLimit,
+        bytes32 _result,
+        bytes _callData
+    );
+
     Token public token;
 
     mapping(bytes32 => Debt) public debts;
@@ -322,7 +332,8 @@ contract DebtEngine is ERC721Base {
 
     function run(bytes32 _id) external returns (bool) {
         Debt storage debt = debts[_id];
-        if (debt.error) delete debt.error;
+        bool hadError = debt.error;
+        if (hadError) delete debt.error;
 
         (uint256 success, bytes32 result) = _safeGasCall(
             debt.model,
@@ -333,6 +344,18 @@ contract DebtEngine is ERC721Base {
         );
 
         if (success != 0) {
+            if (hadError) {
+                emit ErrorRecover({
+                    _id: _id,
+                    _sender: msg.sender,
+                    _value: 0,
+                    _gasLeft: gasleft(),
+                    _gasLimit: block.gaslimit,
+                    _result: result,
+                    _callData: msg.data
+                });
+            }
+
             return result == bytes32(1);
         } else {
             emit Error({
