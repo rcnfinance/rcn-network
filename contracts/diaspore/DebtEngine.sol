@@ -171,7 +171,6 @@ contract DebtEngine is ERC721Base {
         bytes _oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
-        if (debt.error) delete debt.error;
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
@@ -214,7 +213,6 @@ contract DebtEngine is ERC721Base {
         bytes oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
-        if (debt.error) delete debt.error;
 
         // Read storage
         IOracle oracle = IOracle(debt.oracle);
@@ -280,6 +278,20 @@ contract DebtEngine is ERC721Base {
         );
 
         if (success != 0) {
+            if (debts[_id].error) {
+                emit ErrorRecover({
+                    _id: _id,
+                    _sender: msg.sender,
+                    _value: 0,
+                    _gasLeft: gasleft(),
+                    _gasLimit: block.gaslimit,
+                    _result: paid,
+                    _callData: msg.data
+                });
+                
+                delete debts[_id].error;
+            }
+
             return uint256(paid);
         } else {
             emit Error({
