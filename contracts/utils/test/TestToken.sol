@@ -7,8 +7,8 @@ contract StandardToken {
     using SafeMath for uint256;
 
     uint256 public totalSupply;
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
+    event Transfer(address _from, address _to, uint256 _value);
+    event Approval(address _owner, address _spender, uint256 _value);
 
     function transfer(address _to, uint256 _value) returns (bool success) {
       if (balances[msg.sender] >= _value) {
@@ -22,15 +22,15 @@ contract StandardToken {
     }
 
     function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
-      if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value) {
-        balances[_to] = balances[_to].add(_value);
-        balances[_from] = balances[_from].sub(_value);
-        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-        Transfer(_from, _to, _value);
-        return true;
-      } else {
-        return false;
-      }
+      require(balances[_from] >= _value, "The Balance not is sufficient.");
+      require(allowed[_from][msg.sender] >= _value, "The sender not exist in allowed.");
+
+      balances[_to] = balances[_to].add(_value);
+      balances[_from] = balances[_from].sub(_value);
+      allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
+      Transfer(_from, _to, _value);
+      return true;
+
     }
 
     function balanceOf(address _owner) constant returns (uint256 balance) {
@@ -69,8 +69,8 @@ contract StandardToken {
 }
 
 contract TestToken is StandardToken {
-    event Mint(address indexed to, uint256 amount);
-    event Destroy(address indexed from, uint256 amount);
+    event Mint(address to, uint256 amount);
+    event Destroy(address from, uint256 amount);
 
     uint256 public constant PRICE = 4000;
 

@@ -35,7 +35,7 @@ contract DebtEngine is ERC721Base {
         Token _token
     ) public ERC721Base("RCN Debt Record", "RDR") {
         token = _token;
-        
+
         // Sanity checks
         require(_isContract(_token), "Token should be a contract");
     }
@@ -156,7 +156,23 @@ contract DebtEngine is ERC721Base {
             _tokens: paidToken
         });
     }
-    
+
+    function payBatch(
+        bytes32[] _ids,
+        uint256[] _amounts,
+        address _origin,
+        bytes _oracleData
+    ) external returns (uint256[] paids, uint256[] paidTokens) {
+
+        require(_ids.length == _amounts.length, "The loans and the amounts do not correspond.");
+        require(_ids.length > 0, "There are not loans to pay.");
+
+        for (uint256 i = 0; i < _ids.length; i++) {
+            (paids[i], paidTokens[i]) = this.pay(_ids[i], _amounts[i], _origin, _oracleData);
+        }
+
+    }
+
     function payToken(
         bytes32 id,
         uint256 amount,
