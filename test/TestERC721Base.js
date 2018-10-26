@@ -78,6 +78,5 @@ contract('ERC721 Base', function(accounts) {
         assert.equal(await receiver.lastOperator(), accounts[0]);
         assert.equal(await receiver.lastFrom(), accounts[0]);
         assert.equal(await receiver.lastTokenId(), assetId);
-        assert.equal(true, false, "Tmp, test travis");
     });
 })
