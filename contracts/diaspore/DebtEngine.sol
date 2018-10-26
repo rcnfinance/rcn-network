@@ -332,8 +332,6 @@ contract DebtEngine is ERC721Base {
 
     function run(bytes32 _id) external returns (bool) {
         Debt storage debt = debts[_id];
-        bool hadError = debt.error;
-        if (hadError) delete debt.error;
 
         (uint256 success, bytes32 result) = _safeGasCall(
             debt.model,
@@ -344,7 +342,7 @@ contract DebtEngine is ERC721Base {
         );
 
         if (success != 0) {
-            if (hadError) {
+            if (debt.error) {
                 emit ErrorRecover({
                     _id: _id,
                     _sender: msg.sender,
@@ -354,6 +352,8 @@ contract DebtEngine is ERC721Base {
                     _result: result,
                     _callData: msg.data
                 });
+                
+                delete debt.error;
             }
 
             return result == bytes32(1);
