@@ -57,6 +57,16 @@ contract DebtEngine is ERC721Base {
         bytes _callData
     );
 
+    event ErrorRecover(
+        bytes32 indexed _id,
+        address _sender,
+        uint256 _value,
+        uint256 _gasLeft,
+        uint256 _gasLimit,
+        bytes32 _result,
+        bytes _callData
+    );
+
     Token public token;
 
     mapping(bytes32 => Debt) public debts;
@@ -161,7 +171,6 @@ contract DebtEngine is ERC721Base {
         bytes _oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
-        if (debt.error) delete debt.error;
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
@@ -204,7 +213,6 @@ contract DebtEngine is ERC721Base {
         bytes oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
-        if (debt.error) delete debt.error;
 
         // Read storage
         IOracle oracle = IOracle(debt.oracle);
@@ -270,6 +278,20 @@ contract DebtEngine is ERC721Base {
         );
 
         if (success == 1) {
+            if (debts[_id].error) {
+                emit ErrorRecover({
+                    _id: _id,
+                    _sender: msg.sender,
+                    _value: 0,
+                    _gasLeft: gasleft(),
+                    _gasLimit: block.gaslimit,
+                    _result: paid,
+                    _callData: msg.data
+                });
+                
+                delete debts[_id].error;
+            }
+
             return uint256(paid);
         } else {
             emit Error({
@@ -322,7 +344,6 @@ contract DebtEngine is ERC721Base {
 
     function run(bytes32 _id) external returns (bool) {
         Debt storage debt = debts[_id];
-        if (debt.error) delete debt.error;
 
         (uint256 success, bytes32 result) = _safeGasCall(
             debt.model,
@@ -333,6 +354,20 @@ contract DebtEngine is ERC721Base {
         );
 
         if (success == 1) {
+            if (debt.error) {
+                emit ErrorRecover({
+                    _id: _id,
+                    _sender: msg.sender,
+                    _value: 0,
+                    _gasLeft: gasleft(),
+                    _gasLimit: block.gaslimit,
+                    _result: result,
+                    _callData: msg.data
+                });
+                
+                delete debt.error;
+            }
+
             return result == bytes32(1);
         } else {
             emit Error({
