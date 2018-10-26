@@ -112,6 +112,8 @@ contract LoanManager {
         );
 
         require(requests[futureDebt].borrower == address(0), "Request already exist");
+        
+        bool approved = msg.sender == _borrower;
 
         requests[futureDebt] = Request({
             open: true,
@@ -131,12 +133,11 @@ contract LoanManager {
 
         emit Requested(futureDebt, _nonce);
 
-        bool approved = msg.sender == _borrower;
-
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
             if (_borrower.isContract() && _borrower.implements(0x76ba6009)) {
                 approved = _requestContractApprove(futureDebt, _borrower);
+                requests[futureDebt].approved = approved;
             }
         }
 
