@@ -12,27 +12,25 @@ let oracleView;
 let user;
 let admin;
 // currencies
-let BTC;
+let BTC = {
+  id: "0x4254430000000000000000000000000000000000000000000000000000000000",
+  rate: Helper.toBytes32(9999),
+  decimals: Helper.toBytes32(8),
+  timestamp: 0
+}
 
 contract('ReferenceOracle', function(accounts) {
-  before("Assign accounts", async function(){
+  before("Assign accounts, create contracts, add delegate and set a rate", async function(){
     // set account addresses
     admin  = accounts[0];
     user   = accounts[1];
     hacker = accounts[2];
-  });
 
-  beforeEach("Create contracts and add delegate", async function(){
     oracle = await ReferenceOracle.new({ from: admin });
     oracleView = web3.eth.contract(abiGetRateView).at(oracle.address);
     await oracle.addDelegate( admin, { from: admin });
-    // set currencies
-    BTC = {
-        id: "0x4254430000000000000000000000000000000000000000000000000000000000",
-        rate: Helper.toBytes32(9999),
-        decimals: Helper.toBytes32(8),
-        timestamp: (await web3.eth.getBlock('latest')).timestamp
-    }
+
+    BTC.timestamp = (await web3.eth.getBlock('latest')).timestamp;
   });
 
   it("Test: getRate()", async() => {
@@ -74,46 +72,14 @@ contract('ReferenceOracle', function(accounts) {
   });
 
   it("Test: getRate() try hack", async() => {
-    try { // try to sign with a non-delegated account
-      let vrs = await signGetRate(hacker, BTC);
-      let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
-      await oracleView.getRate(BTC.id, data);
-      assert(false, "throw was expected in line above.")
-    } catch(e){
-      assert(Helper.isRevertErrorMessage(e), "expected throw but got: " + e);
-    }
-    try { // try change rate sign
-      let vrs = await signGetRate(admin, BTC);
-      let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, 1, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
-      await oracleView.getRate(BTC.id, data);
-      assert(false, "throw was expected in line above.")
-    } catch(e){
-      assert(Helper.isRevertErrorMessage(e), "expected throw but got: " + e);
-    }
-    try { // try change decimals sign
-      let vrs = await signGetRate(admin, BTC);
-      let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, 1, vrs[0], vrs[1], vrs[2]]);
-      await oracleView.getRate(BTC.id, data);
-      assert(false, "throw was expected in line above.")
-    } catch(e){
-      assert(Helper.isRevertErrorMessage(e), "expected throw but got: " + e);
-    }
-    try { // try change timestamp sign
-      let vrs = await signGetRate(admin, BTC);
-      let data = Helper.arrayToBytesOfBytes32([1, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
-      await oracleView.getRate(BTC.id, data);
-      assert(false, "throw was expected in line above.")
-    } catch(e){
-      assert(Helper.isRevertErrorMessage(e), "expected throw but got: " + e);
-    }
-    try { // try change timestamp sign
-      let vrs = await signGetRate(admin, BTC);
-      let data = Helper.arrayToBytesOfBytes32([BTC.timestamp + 1000, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
-      await oracleView.getRate(BTC.id, data);
-      assert(false, "throw was expected in line above.")
-    } catch(e){
-      assert(Helper.isRevertErrorMessage(e), "expected throw but got: " + e);
-    }
+    // set cache
+    let vrs = await signGetRate(admin, BTC);
+    let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
+    await oracle.getRate(BTC.id, data);
+    // try to sign with a non-delegated account
+    let vrsHacker = await signGetRate(hacker, BTC);
+    let dataHacker = Helper.arrayToBytesOfBytes32([BTC.timestamp + 100, BTC.rate, BTC.decimals, vrsHacker[0], vrsHacker[1], vrsHacker[2]]);
+    await Helper.tryCatchRevert(() => oracleView.getRate(BTC.id, dataHacker), "Signature is not valid");
   });
 
   it("Test: getRate() with diferent timestamps", async() => {
@@ -138,17 +104,13 @@ contract('ReferenceOracle', function(accounts) {
     assert.equal(args.deliverTimestamp.toString(), BTC.timestamp);
     assert.equal(args.rate.toString(), web3.toDecimal(BTC.rate).toString());
     assert.equal(args.decimals.toString(), web3.toDecimal(BTC.decimals).toString());
-
-    try { // try get rate with expired timestamp
-      await Helper.increaseTime(15*60);// 15 minutes foward in time
-      vrs = await signGetRate(admin, BTCold);
-      data = Helper.arrayToBytesOfBytes32([BTCold.timestamp, BTCold.rate, BTCold.decimals, vrs[0], vrs[1], vrs[2]]);
-      await oracle.getRate(BTCold.id, data, {from: user});
-      assert(false, "throw was expected in line above.")
-    } catch(e){
-      assert(Helper.isRevertErrorMessage(e), "expected throw but got: " + e);
-    }
+    // try get rate with expired timestamp
+    await Helper.increaseTime(15*60);// 15 minutes foward in time
+    vrs = await signGetRate(admin, BTCold);
+    data = Helper.arrayToBytesOfBytes32([BTCold.timestamp, BTCold.rate, BTCold.decimals, vrs[0], vrs[1], vrs[2]]);
+    await Helper.tryCatchRevert(() => oracle.getRate(BTCold.id, data, {from: user}), "The rate provided is expired");
   });
+
   async function signGetRate(signer, currency){
     let sign = [oracle.address, currency.id, currency.rate, currency.decimals, Helper.toBytes32(web3.toHex(currency.timestamp))];
     sign = web3.sha3(sign.map(x => x.slice(2)).join(""), {encoding:"hex"});

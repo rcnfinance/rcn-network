@@ -5,6 +5,7 @@ import "./../interfaces/ModelDescriptor.sol";
 import "./../../utils/Ownable.sol";
 import "./../../utils/SafeMath.sol";
 import "./../../utils/BytesUtils.sol";
+import "./../../utils/ERC165.sol";
 
 contract MinMax {
     function min(uint256 a, uint256 b) internal pure returns(uint256) {
@@ -16,7 +17,7 @@ contract MinMax {
     }
 }
 
-contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
+contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
     using SafeMath for uint256;
     using SafeMath for uint128;
     using SafeMath for uint64;
@@ -39,42 +40,8 @@ contract NanoLoanModel is BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
     event _setInterestTimestamp(bytes32 _id, uint256 _interestTimestamp);
 
     constructor() public {
-        // Ownable
-        _supportedInterface[this.owner.selector] = true;
-        // Model interface
-        _supportedInterface[this.validate.selector] = true;
-        _supportedInterface[this.getStatus.selector] = true;
-        _supportedInterface[this.getPaid.selector] = true;
-        _supportedInterface[this.getObligation.selector] = true;
-        _supportedInterface[this.getClosingObligation.selector] = true;
-        _supportedInterface[this.getDueTime.selector] = true;
-        _supportedInterface[this.getFinalTime.selector] = true;
-        _supportedInterface[this.getFrequency.selector] = true;
-        _supportedInterface[this.getInstallments.selector] = true;
-        _supportedInterface[this.getEstimateObligation.selector] = true;
-        _supportedInterface[this.create.selector] = true;
-        _supportedInterface[this.addPaid.selector] = true;
-        _supportedInterface[this.addDebt.selector] = false;
-        _supportedInterface[this.run.selector] = true;
-        // NanoLoanModel
-        _supportedInterface[this.configs.selector] = true;
-        _supportedInterface[this.states.selector] = true;
-        _supportedInterface[this.engine.selector] = true;
-        // ModelDescriptor
-        _supportedInterface[this.descriptor.selector] = true;
-        _supportedInterface[this.simFirstObligation.selector] = true;
-        _supportedInterface[this.simTotalObligation.selector] = true;
-        _supportedInterface[this.simDuration.selector] = true;
-        _supportedInterface[this.simPunitiveInterestRate.selector] = true;
-        _supportedInterface[this.simFrequency.selector] = true;
-        _supportedInterface[this.simInstallments.selector] = true;
-    }
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-        return
-            interfaceId == this.supportsInterface.selector ||
-            interfaceId == debtModelInterface ||
-            _supportedInterface[interfaceId];
+        _registerInterface(MODEL_INTERFACE);
+        _registerInterface(MODEL_DESCRIPTOR_INTERFACE);
     }
 
     struct Config {

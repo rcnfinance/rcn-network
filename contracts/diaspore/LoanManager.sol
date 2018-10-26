@@ -1,9 +1,14 @@
 pragma solidity ^0.4.24;
 
 import "./DebtEngine.sol";
-import "./interfaces/LoanRequester.sol";
+import "./interfaces/LoanApprover.sol";
+import "./../utils/ImplementsInterface.sol";
+import "./../utils/IsContract.sol";
 
 contract LoanManager {
+    using ImplementsInterface for address;
+    using IsContract for address;
+
     DebtEngine public debtEngine;
     Token public token;
 
@@ -17,6 +22,9 @@ contract LoanManager {
     event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
     event Canceled(bytes32 indexed _id, address _canceler);
     event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
+
+    event ApprovedRejected(bytes32 indexed _id, bytes32 _response);
+    event ApprovedError(bytes32 indexed _id);
 
     event SettledLend(bytes32 indexed _id, bytes32 _sig, address _lender, uint256 _tokens);
     event SettledCancel(bytes32 _sig, address _canceler);
@@ -104,17 +112,11 @@ contract LoanManager {
         );
 
         require(requests[futureDebt].borrower == address(0), "Request already exist");
-        bool approved = msg.sender == _borrower;
-        uint64 pos;
-        if (approved) {
-            pos = uint64(directory.push(futureDebt) - 1);
-            emit Approved(futureDebt);
-        }
 
         requests[futureDebt] = Request({
             open: true,
             approved: approved,
-            position: pos,
+            position: 0,
             cosigner: address(0),
             currency: _currency,
             amount: _amount,
@@ -128,6 +130,46 @@ contract LoanManager {
         });
 
         emit Requested(futureDebt, _nonce);
+
+        bool approved = msg.sender == _borrower;
+
+        if (!approved) {
+            // implements: 0x76ba6009 = approveRequest(bytes32)
+            if (_borrower.isContract() && _borrower.implements(0x76ba6009)) {
+                approved = _requestContractApprove(futureDebt, _borrower);
+            }
+        }
+
+        if (approved) {
+            requests[futureDebt].position = uint64(directory.push(futureDebt) - 1);
+            emit Approved(futureDebt);
+        }
+    }
+
+    function _requestContractApprove(
+        bytes32 _futureDebt,
+        address _borrower
+    ) internal returns (bool approved) {
+        // bytes32 expected = futureDebt XOR keccak256("approve-loan-request");
+        bytes32 expected = _futureDebt ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
+        (uint256 success, bytes32 result) = _safeCall(
+            _borrower,
+            abi.encodeWithSelector(
+                0x76ba6009,
+                _futureDebt
+            )
+        );
+
+        approved = success == 1 && result == expected;
+
+        // Emit events if approve was rejected or failed
+        if (!approved) {
+            if (success == 0) {
+                emit ApprovedError(_futureDebt);
+            } else {
+                emit ApprovedRejected(_futureDebt, result);
+            }
+        }
     }
 
     function approveRequest(
@@ -379,13 +421,14 @@ contract LoanManager {
     ) internal {
         require(!canceledSettles[_sig], "Settle was canceled");
         
-        uint256 expected = uint256(_sig) / 2;
+        // bytes32 expected = uint256(_sig) XOR keccak256("approve-loan-request");
+        bytes32 expected = _sig ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
         address borrower = address(_requestData[R_BORROWER]);
         address creator = address(_requestData[R_CREATOR]);
 
-        if (_isContract(borrower)) {
+        if (borrower.isContract()) {
             require(
-                LoanRequester(borrower).loanRequested(_requestData, _loanData, true, uint256(_sig)) == expected,
+                LoanApprover(borrower).settleApproveRequest(_requestData, _loanData, true, uint256(_sig)) == expected,
                 "Borrower contract rejected the loan"
             );
         } else {
@@ -396,9 +439,9 @@ contract LoanManager {
         }
 
         if (borrower != creator) {
-            if (_isContract(creator)) {
+            if (creator.isContract()) {
                 require(
-                    LoanRequester(creator).loanRequested(_requestData, _loanData, true, uint256(_sig)) == expected,
+                    LoanApprover(creator).settleApproveRequest(_requestData, _loanData, true, uint256(_sig)) == expected,
                     "Creator contract rejected the loan"
                 );
             } else {
@@ -464,9 +507,23 @@ contract LoanManager {
         }
     }
 
-    function _isContract(address _addr) internal view returns (bool) {
-        uint size;
-        assembly { size := extcodesize(_addr) }
-        return size > 0;
+    function _safeCall(
+        address _contract,
+        bytes _data
+    ) internal returns (uint256 success, bytes32 result) {
+        assembly {
+            let x := mload(0x40)
+            success := call(
+                            gas,                 // Send almost all gas
+                            _contract,            // To addr
+                            0,                    // Send ETH
+                            add(0x20, _data),     // Input is data past the first 32 bytes
+                            mload(_data),         // Input size is the lenght of data
+                            x,                    // Store the ouput on x
+                            0x20                  // Output is a single bytes32, has 32 bytes
+                        )
+
+            result := mload(x)
+        }
     }
 }

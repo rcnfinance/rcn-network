@@ -12,6 +12,8 @@ import "./../../interfaces/IERC165.sol";
     The DebtEngine is meant to be the User of this model,
     so all the methods with the ability to perform state changes should only be callable by the DebtEngine.
 
+    All models should implement the 0xaf498c35 interface.
+
     @author Agustin Aguilar
 */
 contract Model is IERC165 {
@@ -77,21 +79,7 @@ contract Model is IERC165 {
     event AddedPaid(bytes32 indexed _id, uint256 _paid);
 
     // Model interface selector
-    bytes4 internal debtModelInterface =
-    this.isOperator.selector
-    ^ this.validate.selector
-    ^ this.getStatus.selector
-    ^ this.getPaid.selector
-    ^ this.getObligation.selector
-    ^ this.getClosingObligation.selector
-    ^ this.getDueTime.selector
-    ^ this.getFinalTime.selector
-    ^ this.getFrequency.selector
-    ^ this.getEstimateObligation.selector
-    ^ this.create.selector
-    ^ this.addPaid.selector
-    ^ this.addDebt.selector
-    ^ this.run.selector;
+    bytes4 internal constant MODEL_INTERFACE = 0xaf498c35;
 
     uint256 public constant STATUS_ONGOING = 1;
     uint256 public constant STATUS_PAID = 2;
@@ -256,7 +244,7 @@ contract Model is IERC165 {
         Similar to getFinalTime returns the expected payment remaining if paid always on the exact dueTime.
 
         If the model has no interest discounts for early payments,
-            this method should return the same value as getClosignObligation.
+            this method should return the same value as getClosingObligation.
 
         @param id Id of the registry
 

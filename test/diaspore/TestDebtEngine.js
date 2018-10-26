@@ -77,10 +77,10 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(await rcn.balanceOf(accounts[0]), 1000);
         assert.equal(await debtEngine.getStatus(id), 2);
-        assert.equal(await testModel.getPaid(id), 4000);
+        assert.equal(await testModel.getPaid(id), 3000);
     });
 
-    it("Should create and payBath debts", async function() {
+    it("Should create and pay debts", async function() {
         var ids = [];
         ids[0] = await getId(
             debtEngine.create(
