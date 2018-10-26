@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
 import "./ERC165.sol";
+import "./IsContract.sol";
 
 interface URIProvider {
     function tokenURI(uint256 _tokenId) external view returns (string);
@@ -9,6 +10,7 @@ interface URIProvider {
 
 contract ERC721Base is ERC165 {
     using SafeMath for uint256;
+    using IsContract for address;
 
     mapping(uint256 => address) private _holderOf;
     mapping(address => uint256[]) private _assetsOf;
@@ -391,7 +393,7 @@ contract ERC721Base is ERC165 {
         _clearApproval(holder, _assetId);
         _transferAsset(holder, _to, _assetId);
 
-        if (_doCheck && _isContract(_to)) {
+        if (_doCheck && _to.isContract()) {
             // Call dest contract
             uint256 success;
             bytes32 result;
@@ -434,12 +436,6 @@ contract ERC721Base is ERC165 {
     //
     // Utilities
     //
-
-    function _isContract(address _addr) internal view returns (bool) {
-        uint size;
-        assembly { size := extcodesize(_addr) }
-        return size > 0;
-    }
 
     function _noThrowCall(
         address _contract,

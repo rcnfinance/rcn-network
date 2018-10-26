@@ -2,14 +2,17 @@ pragma solidity ^0.4.24;
 
 import "./../interfaces/Token.sol";
 import "./../interfaces/Cosigner.sol";
-import "./../utils/ERC721Base.sol";
 import "./interfaces/Model.sol";
+import "./../utils/IsContract.sol";
+import "./../utils/ERC721Base.sol";
 
 interface IOracle {
     function getRate(bytes32 symbol, bytes data) external returns (uint256 rate, uint256 decimals);
 }
 
 contract DebtEngine is ERC721Base {
+    using IsContract for address;
+
     event Created(bytes32 indexed _id, uint256 _nonce, bytes _data);
     event Created2(bytes32 indexed _id, uint256 _nonce, bytes _data);
     event Paid(bytes32 indexed _id, address _sender, address _origin, uint256 _requested, uint256 _requestedTokens, uint256 _paid, uint256 _tokens);
@@ -37,7 +40,7 @@ contract DebtEngine is ERC721Base {
         token = _token;
         
         // Sanity checks
-        require(_isContract(_token), "Token should be a contract");
+        require(address(_token).isContract(), "Token should be a contract");
     }
 
     function create(
