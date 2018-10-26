@@ -172,7 +172,7 @@ contract DebtEngine is ERC721Base {
             // Convert
             (uint256 rate, uint256 decimals) = oracle.getRate(debt.currency, _oracleData);
             emit ReadedOracle(_id, rate, decimals);
-            paidToken = toToken(paid, rate, decimals);
+            paidToken = _toToken(paid, rate, decimals);
         } else {
             paidToken = paid;
         }
@@ -217,7 +217,7 @@ contract DebtEngine is ERC721Base {
         if (oracle != address(0)) {
             (rate, decimals) = oracle.getRate(debt.currency, oracleData);
             emit ReadedOracle(id, rate, decimals);
-            available = fromToken(amount, rate, decimals);
+            available = _fromToken(amount, rate, decimals);
         } else {
             available = amount;
         }
@@ -228,7 +228,7 @@ contract DebtEngine is ERC721Base {
 
         // Convert back to required pull amount
         if (oracle != address(0)) {
-            paidToken = toToken(paid, rate, decimals);
+            paidToken = _toToken(paid, rate, decimals);
             require(paidToken <= amount, "Paid can't exceed requested");
         } else {
             paidToken = paid;
@@ -293,7 +293,11 @@ contract DebtEngine is ERC721Base {
 
         @return Amount in tokens
     */
-    function toToken(uint256 _amount, uint256 _rate, uint256 _decimals) internal pure returns (uint256) {
+    function _toToken(
+        uint256 _amount,
+        uint256 _rate,
+        uint256 _decimals
+    ) internal pure returns (uint256) {
         require(_decimals <= 18, "Decimals limit reached");
         return _rate.mult(_amount).mult((10 ** (18 - _decimals))) / 1000000000000000000;
     }
@@ -307,7 +311,11 @@ contract DebtEngine is ERC721Base {
 
         @return Amount in rate currency
     */
-    function fromToken(uint256 _amount, uint256 _rate, uint256 _decimals) internal pure returns (uint256) {
+    function _fromToken(
+        uint256 _amount,
+        uint256 _rate,
+        uint256 _decimals
+    ) internal pure returns (uint256) {
         require(_decimals <= 18, "Decimals limit reached");
         return (_amount.mult(1000000000000000000) / _rate) / 10 ** (18 - _decimals);
     }
