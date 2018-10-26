@@ -137,6 +137,7 @@ contract LoanManager {
             // implements: 0x76ba6009 = approveRequest(bytes32)
             if (_borrower.isContract() && _borrower.implements(0x76ba6009)) {
                 approved = _requestContractApprove(futureDebt, _borrower);
+                requests[futureDebt].approved = approved;
             }
         }
 
