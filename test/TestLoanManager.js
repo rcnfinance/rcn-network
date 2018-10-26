@@ -14,6 +14,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
     let loanManager;
     let model;
     let oracle;
+    const amount = 1000;
 
     const creator  = accounts[1];
     const borrower = accounts[2];
@@ -84,7 +85,6 @@ contract('Test LoanManager Diaspore', function(accounts) {
           return tx.logs.filter( x => x.event == event).map( x => x.args )[0];
         }
 
-        const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
 
@@ -163,7 +163,6 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should create a loan using requestLoan", async function() {
-        const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
         const id = await createId(creator);
@@ -239,7 +238,6 @@ contract('Test LoanManager Diaspore', function(accounts) {
 
     it("Should approve a request using approveRequest", async function() {
         const id = await createId(creator);
-        const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
         await loanManager.requestLoan( 0x0, amount, model.address, 0x0, borrower, nonce,
@@ -258,7 +256,6 @@ contract('Test LoanManager Diaspore', function(accounts) {
 
     it("Should lend a request using lend", async function() {
         let id = await createId(creator);
-        const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
         await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce,
@@ -318,7 +315,6 @@ contract('Test LoanManager Diaspore', function(accounts) {
 
     it("Should lend a request using settleLend", async function() {
         const id = await createId(creator);
-        const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const requestData = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
             .map(x => Helper.toBytes32(x));
@@ -388,7 +384,6 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should cancel a request using cancel", async function() {
-        const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
 
@@ -428,7 +423,6 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should cancel a request using settle cancel", async function() {
-        const amount = 1000;
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
         let requestData = [0x0, amount, model.address, 0x0, borrower, ++nonce, expiration, creator]
