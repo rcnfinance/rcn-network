@@ -35,7 +35,8 @@ contract TestCosigner is Cosigner, BytesUtils {
         if(readBytes32(data, 0) == keccak256("test_oracle")) {
             require(engine.cosign(index, uint256(readBytes32(data, 1))));
             return true;
-        } else {
+        }
+        if(readBytes32(data, 0) == keccak256("return_true_no_cosign")) {
             return true;
         }
     }
