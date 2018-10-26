@@ -2,20 +2,70 @@ pragma solidity ^0.4.24;
 
 import "./../interfaces/Token.sol";
 import "./../interfaces/Cosigner.sol";
-import "./../utils/ERC721Base.sol";
 import "./interfaces/Model.sol";
+import "./../utils/IsContract.sol";
+import "./../utils/ERC721Base.sol";
 
 interface IOracle {
     function getRate(bytes32 symbol, bytes data) external returns (uint256 rate, uint256 decimals);
 }
 
 contract DebtEngine is ERC721Base {
-    event Created(bytes32 indexed _id, uint256 _nonce, bytes _data);
-    event Created2(bytes32 indexed _id, uint256 _nonce, bytes _data);
-    event Paid(bytes32 indexed _id, address _sender, address _origin, uint256 _requested, uint256 _requestedTokens, uint256 _paid, uint256 _tokens);
-    event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
-    event Withdrawn(bytes32 indexed _id, address _sender, address _to, uint256 _amount);
-    event Error(bytes32 indexed _id, address _sender, uint256 _value, uint256 _gasLeft, uint256 _gasLimit, bytes _callData);
+    using IsContract for address;
+
+    event Created(
+        bytes32 indexed _id,
+        uint256 _nonce,
+        bytes _data
+    );
+
+    event Created2(
+        bytes32 indexed _id,
+        uint256 _nonce,
+        bytes _data
+    );
+
+    event Paid(
+        bytes32 indexed _id,
+        address _sender,
+        address _origin,
+        uint256 _requested,
+        uint256 _requestedTokens,
+        uint256 _paid,
+        uint256 _tokens
+    );
+
+    event ReadedOracle(
+        bytes32 indexed _id,
+        uint256 _amount,
+        uint256 _decimals
+    );
+
+    event Withdrawn(
+        bytes32 indexed _id,
+        address _sender,
+        address _to,
+        uint256 _amount
+    );
+
+    event Error(
+        bytes32 indexed _id,
+        address _sender,
+        uint256 _value,
+        uint256 _gasLeft,
+        uint256 _gasLimit,
+        bytes _callData
+    );
+
+    event ErrorRecover(
+        bytes32 indexed _id,
+        address _sender,
+        uint256 _value,
+        uint256 _gasLeft,
+        uint256 _gasLimit,
+        bytes32 _result,
+        bytes _callData
+    );
 
     Token public token;
 
@@ -31,16 +81,13 @@ contract DebtEngine is ERC721Base {
         address oracle;
     }
 
-    constructor(Token _token) public {
+    constructor(
+        Token _token
+    ) public ERC721Base("RCN Debt Record", "RDR") {
         token = _token;
-    }
-
-    function name() external pure returns (string _name) {
-        _name = "RCN Debt Record";
-    }
-
-    function symbol() external pure returns (string _symbol) {
-        _symbol = "RDR";
+        
+        // Sanity checks
+        require(address(_token).isContract(), "Token should be a contract");
     }
 
     function create(
@@ -124,7 +171,6 @@ contract DebtEngine is ERC721Base {
         bytes _oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
-        if (debt.error) delete debt.error;
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
@@ -135,7 +181,7 @@ contract DebtEngine is ERC721Base {
             // Convert
             (uint256 rate, uint256 decimals) = oracle.getRate(debt.currency, _oracleData);
             emit ReadedOracle(_id, rate, decimals);
-            paidToken = toToken(paid, rate, decimals);
+            paidToken = _toToken(paid, rate, decimals);
         } else {
             paidToken = paid;
         }
@@ -167,7 +213,6 @@ contract DebtEngine is ERC721Base {
         bytes oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
-        if (debt.error) delete debt.error;
 
         // Read storage
         IOracle oracle = IOracle(debt.oracle);
@@ -180,7 +225,7 @@ contract DebtEngine is ERC721Base {
         if (oracle != address(0)) {
             (rate, decimals) = oracle.getRate(debt.currency, oracleData);
             emit ReadedOracle(id, rate, decimals);
-            available = fromToken(amount, rate, decimals);
+            available = _fromToken(amount, rate, decimals);
         } else {
             available = amount;
         }
@@ -191,7 +236,7 @@ contract DebtEngine is ERC721Base {
 
         // Convert back to required pull amount
         if (oracle != address(0)) {
-            paidToken = toToken(paid, rate, decimals);
+            paidToken = _toToken(paid, rate, decimals);
             require(paidToken <= amount, "Paid can't exceed requested");
         } else {
             paidToken = paid;
@@ -232,7 +277,21 @@ contract DebtEngine is ERC721Base {
             )
         );
 
-        if (success != 0) {
+        if (success == 1) {
+            if (debts[_id].error) {
+                emit ErrorRecover({
+                    _id: _id,
+                    _sender: msg.sender,
+                    _value: 0,
+                    _gasLeft: gasleft(),
+                    _gasLimit: block.gaslimit,
+                    _result: paid,
+                    _callData: msg.data
+                });
+                
+                delete debts[_id].error;
+            }
+
             return uint256(paid);
         } else {
             emit Error({
@@ -256,7 +315,11 @@ contract DebtEngine is ERC721Base {
 
         @return Amount in tokens
     */
-    function toToken(uint256 _amount, uint256 _rate, uint256 _decimals) internal pure returns (uint256) {
+    function _toToken(
+        uint256 _amount,
+        uint256 _rate,
+        uint256 _decimals
+    ) internal pure returns (uint256) {
         require(_decimals <= 18, "Decimals limit reached");
         return _rate.mult(_amount).mult((10 ** (18 - _decimals))) / 1000000000000000000;
     }
@@ -270,14 +333,17 @@ contract DebtEngine is ERC721Base {
 
         @return Amount in rate currency
     */
-    function fromToken(uint256 _amount, uint256 _rate, uint256 _decimals) internal pure returns (uint256) {
+    function _fromToken(
+        uint256 _amount,
+        uint256 _rate,
+        uint256 _decimals
+    ) internal pure returns (uint256) {
         require(_decimals <= 18, "Decimals limit reached");
         return (_amount.mult(1000000000000000000) / _rate) / 10 ** (18 - _decimals);
     }
 
     function run(bytes32 _id) external returns (bool) {
         Debt storage debt = debts[_id];
-        if (debt.error) delete debt.error;
 
         (uint256 success, bytes32 result) = _safeGasCall(
             debt.model,
@@ -287,7 +353,21 @@ contract DebtEngine is ERC721Base {
             )
         );
 
-        if (success != 0) {
+        if (success == 1) {
+            if (debt.error) {
+                emit ErrorRecover({
+                    _id: _id,
+                    _sender: msg.sender,
+                    _value: 0,
+                    _gasLeft: gasleft(),
+                    _gasLimit: block.gaslimit,
+                    _result: result,
+                    _callData: msg.data
+                });
+                
+                delete debt.error;
+            }
+
             return result == bytes32(1);
         } else {
             emit Error({

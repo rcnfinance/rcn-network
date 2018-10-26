@@ -1,0 +1,24 @@
+dist: xenial
+sudo: required
+language: node_js
+node_js:
+  - "9.4.0"
+ 
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      before_install:
+      - sudo add-apt-repository ppa:ethereum/ethereum -y
+      - sudo apt-get update
+      - sudo apt-get install build-essential -y
+      - sudo apt-get install gcc g++ libssl-dev libudev-dev pkg-config
+      - curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
+      - sudo apt-get install -y nodejs
+      - rm -rf node_modules
+ 
+install:
+  - bash ./bin/travis-install.sh
+ 
+script:
+  - bash ./bin/test.sh

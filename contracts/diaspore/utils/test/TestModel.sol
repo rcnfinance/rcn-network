@@ -3,8 +3,9 @@ pragma solidity ^0.4.24;
 import "./../../interfaces/Model.sol";
 import "./../../../utils/Ownable.sol";
 import "./../../../utils/BytesUtils.sol";
+import "./../../../utils/ERC165.sol";
 
-contract TestModel is BytesUtils, Ownable, Model {
+contract TestModel is ERC165, BytesUtils, Ownable, Model {
     uint256 public constant L_DATA = 16 + 8;
 
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
@@ -24,21 +25,7 @@ contract TestModel is BytesUtils, Ownable, Model {
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {
-        _supportedInterface[this.owner.selector] = true;
-        _supportedInterface[this.validate.selector] = true;
-        _supportedInterface[this.getStatus.selector] = true;
-        _supportedInterface[this.getPaid.selector] = true;
-        _supportedInterface[this.getClosingObligation.selector] = true;
-        _supportedInterface[this.getDueTime.selector] = true;
-        _supportedInterface[this.getFinalTime.selector] = true;
-        _supportedInterface[this.getFrequency.selector] = true;
-        _supportedInterface[this.getEstimateObligation.selector] = true;
-        _supportedInterface[this.addDebt.selector] = true; // ??? Not supported
-        _supportedInterface[this.run.selector] = true;
-        _supportedInterface[this.create.selector] = true;
-        _supportedInterface[this.addPaid.selector] = true;
-        _supportedInterface[this.engine.selector] = true;
-        _supportedInterface[this.getObligation.selector] = true;
+        _registerInterface(MODEL_INTERFACE);
     }
 
     function encodeData(
@@ -46,13 +33,6 @@ contract TestModel is BytesUtils, Ownable, Model {
         uint64 _dueTime
     ) external pure returns (bytes) {
         return abi.encodePacked(_total, _dueTime);
-    }
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-        return 
-            interfaceId == this.supportsInterface.selector ||
-            interfaceId == debtModelInterface ||
-            _supportedInterface[interfaceId];
     }
 
     mapping(bytes32 => Entry) public registry;
