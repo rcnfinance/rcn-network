@@ -1,3 +1,3 @@
 #!/bin/bash
-npm install --dev
+npm install
 npm install -g ganache-cli truffle
