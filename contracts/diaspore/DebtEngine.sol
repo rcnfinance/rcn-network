@@ -237,8 +237,7 @@ contract DebtEngine is ERC721Base {
         }
 
         for (uint256 i = 0; i < count; i++) {
-            bytes32 id = _ids[i];
-            (paids[i], paidTokens[i]) = _payBatch(id, _amounts[i], _oracle, _currency, rate, decimals);
+            (paids[i], paidTokens[i]) = _payBatch(_ids[i], _amounts[i], _oracle, _currency, rate, decimals);
         }
 
         // Emit pay event
