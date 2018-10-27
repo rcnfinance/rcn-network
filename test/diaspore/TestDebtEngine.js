@@ -97,7 +97,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.setBalance(accounts[0], 4000);
         await rcn.approve(debtEngine.address, 4000);
 
-        await debtEngine.payBatch(ids, amounts, accounts[3], []);
+        await debtEngine.payBatch(ids, amounts, 0x0, 0x0, []);
 
         assert.equal(await rcn.balanceOf(accounts[0]), 1000);
         assert.equal(await debtEngine.getStatus(ids[0]), 2);
