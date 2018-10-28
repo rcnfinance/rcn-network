@@ -62,6 +62,11 @@ contract DebtEngine is ERC721Base {
         bytes _callData
     );
 
+    event Test(
+        uint256 _gasLeft,
+        uint256 _gasLimit
+    );
+
     event ErrorRecover(
         bytes32 indexed _id,
         address _sender,
@@ -217,23 +222,25 @@ contract DebtEngine is ERC721Base {
         address _oracle,
         bytes8 _currency,
         bytes _oracleData
-    ) external returns (uint256[] paids, uint256[] paidTokens) {
-        uint256 count = _ids.length;
+    ) external returns (uint256[]) {
+        uint count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
         require(count > 0, "There are not loans to pay.");
 
-        IOracle oracle = IOracle(_oracle);
         if (_oracle != address(0)) {
-            (uint256 rate, uint256 decimals) = oracle.getRate(_currency, _oracleData);
+            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
             emit ReadedOracle(rate, decimals);
         }
 
+        uint256[] memory pays = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            //(uint256 paid, uint256 paidToken) = _payBatch(_ids[i], _amounts[i], _oracle, _currency, rate, decimals);
-            _payBatch(_ids[i], _amounts[i], _oracle, _currency, rate, decimals);
+            (,uint256 paid) = _payBatch(_ids[i], _amounts[i], _oracle, _currency, rate, decimals);
+            pays[i] = paid;
         }
 
-        //TODO: EVENT
+        //TODO: EVENT HERE?
+
+        return pays;
     }
 
     function _payBatch(
@@ -259,6 +266,7 @@ contract DebtEngine is ERC721Base {
         // Add balance to debt
         debt.balance = addBalanceToDebt(paidToken, debt.balance);
 
+        //TODO: EVENT HERE?
     }
 
     function addBalanceToDebt(
