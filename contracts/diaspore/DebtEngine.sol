@@ -35,14 +35,6 @@ contract DebtEngine is ERC721Base {
         uint256 _tokens
     );
 
-    event PaidBatch(
-        bytes32[] indexed _id,
-        address _sender,
-        uint256[] _requested,
-        uint256[] _paid,
-        uint256[] _tokens
-    );
-
     event ReadedOracle(
         uint256 _amount,
         uint256 _decimals
@@ -237,17 +229,11 @@ contract DebtEngine is ERC721Base {
         }
 
         for (uint256 i = 0; i < count; i++) {
-            (paids[i], paidTokens[i]) = _payBatch(_ids[i], _amounts[i], _oracle, _currency, rate, decimals);
+            //(uint256 paid, uint256 paidToken) = _payBatch(_ids[i], _amounts[i], _oracle, _currency, rate, decimals);
+            _payBatch(_ids[i], _amounts[i], _oracle, _currency, rate, decimals);
         }
 
-        // Emit pay event
-        emit PaidBatch({
-            _id: _ids,
-            _sender: msg.sender,
-            _requested: _amounts,
-            _paid: paids,
-            _tokens: paidTokens
-        });
+        //TODO: EVENT
     }
 
     function _payBatch(

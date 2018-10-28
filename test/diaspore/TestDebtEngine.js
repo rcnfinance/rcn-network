@@ -91,15 +91,33 @@ contract('Test DebtEngine Diaspore', function(accounts) {
                 await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000) // data
             )
         );
+        ids[1] = await getId(
+            debtEngine.create(
+                testModel.address, // model
+                accounts[2],       // owner
+                0x0,               // oracle
+                0x0,               // currency
+                await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000) // data
+            )
+        );
+        ids[2] = await getId(
+            debtEngine.create(
+                testModel.address, // model
+                accounts[2],       // owner
+                0x0,               // oracle
+                0x0,               // currency
+                await testModel.encodeData(100, (await Helper.getBlockTime()) + 2000) // data
+            )
+        );
 
-        var amounts = [4000];
+        var amounts = [4000, 3000, 150];
 
-        await rcn.setBalance(accounts[0], 4000);
-        await rcn.approve(debtEngine.address, 4000);
+        await rcn.setBalance(accounts[0], 7150);
+        await rcn.approve(debtEngine.address, 7150);
 
         await debtEngine.payBatch(ids, amounts, 0x0, 0x0, []);
 
-        assert.equal(await rcn.balanceOf(accounts[0]), 1000);
+        assert.equal(await rcn.balanceOf(accounts[0]), 1050);
         assert.equal(await debtEngine.getStatus(ids[0]), 2);
         assert.equal(await testModel.getPaid(ids[0]), 3000);
     });
