@@ -21,7 +21,7 @@ contract DebtEngine is ERC721Base {
 
     event Created2(
         bytes32 indexed _id,
-        uint256 _nonce,
+        uint256 _salt,
         bytes _data
     );
 
@@ -130,7 +130,7 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         bytes8 _currency,
-        uint256 _nonce,
+        uint256 _salt,
         bytes _data
     ) external returns (bytes32 id) {
         id = keccak256(
@@ -140,7 +140,7 @@ contract DebtEngine is ERC721Base {
                 _model,
                 _oracle,
                 _currency,
-                _nonce,
+                _salt,
                 _data
             )
         );
@@ -159,7 +159,7 @@ contract DebtEngine is ERC721Base {
 
         emit Created2({
             _id: id,
-            _nonce: _nonce,
+            _salt: _salt,
             _data: _data
         });
     }

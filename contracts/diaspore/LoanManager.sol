@@ -16,7 +16,7 @@ contract LoanManager {
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
-    event Requested(bytes32 indexed _id, uint256 _nonce);
+    event Requested(bytes32 indexed _id, uint256 _salt);
     event Approved(bytes32 indexed _id);
     event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
     event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
@@ -85,7 +85,7 @@ contract LoanManager {
         address _model,
         address _oracle,
         bytes8 _currency,
-        uint256 _nonce,
+        uint256 _salt,
         bytes _data
     ) external view returns (bytes32) {
         return debtEngine.buildId2(
@@ -97,7 +97,7 @@ contract LoanManager {
                 keccak256(
                     abi.encodePacked(
                         _creator,
-                        _nonce
+                        _salt
                     )
                 )
             ),
@@ -111,14 +111,14 @@ contract LoanManager {
         address _model,
         address _oracle,
         address _borrower,
-        uint256 _nonce,
+        uint256 _salt,
         uint64 _expiration,
         bytes _loanData
     ) external returns (bytes32 futureDebt) {
         require(_borrower != address(0), "The request should have a borrower");
         require(Model(_model).validate(_loanData), "The loan data is not valid");
 
-        uint256 internalNonce = uint256(keccak256(abi.encodePacked(msg.sender, _nonce)));
+        uint256 internalNonce = uint256(keccak256(abi.encodePacked(msg.sender, _salt)));
         futureDebt = keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -126,7 +126,7 @@ contract LoanManager {
                 _model,
                 _oracle,
                 _currency,
-                _nonce,
+                _salt,
                 _loanData
             )
         );
@@ -151,7 +151,7 @@ contract LoanManager {
             expiration: _expiration
         });
 
-        emit Requested(futureDebt, _nonce);
+        emit Requested(futureDebt, _salt);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
@@ -280,7 +280,7 @@ contract LoanManager {
     uint256 public constant R_MODEL = 2;
     uint256 public constant R_ORACLE = 3;
     uint256 public constant R_BORROWER = 4;
-    uint256 public constant R_NONCE = 5;
+    uint256 public constant R_SALT = 5;
     uint256 public constant R_EXPIRATION = 6;
     uint256 public constant R_CREATOR = 7;
 
@@ -302,7 +302,7 @@ contract LoanManager {
             keccak256(
                 abi.encodePacked(
                     address(_requestData[R_CREATOR]),
-                    uint256(_requestData[R_NONCE])
+                    uint256(_requestData[R_SALT])
                 )
             )
         );
@@ -365,14 +365,14 @@ contract LoanManager {
     function _buildSettleId(
         bytes32[8] _requestData,
         bytes _loanData,
-        uint256 _nonce
+        uint256 _salt
     ) internal returns (bytes32) {
         return debtEngine.buildId2(
             address(this),
             address(_requestData[R_MODEL]),
             address(_requestData[R_ORACLE]),
             bytes8(_requestData[R_CURRENCY]),
-            _nonce,
+            _salt,
             _loanData
         );
     }
@@ -411,7 +411,7 @@ contract LoanManager {
             keccak256(
                 abi.encodePacked(
                     address(_requestData[R_CREATOR]),
-                    uint256(_requestData[R_NONCE])
+                    uint256(_requestData[R_SALT])
                 )
             )
         );
