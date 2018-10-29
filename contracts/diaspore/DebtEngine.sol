@@ -62,11 +62,6 @@ contract DebtEngine is ERC721Base {
         bytes _callData
     );
 
-    event Test(
-        uint256 _gasLeft,
-        uint256 _gasLimit
-    );
-
     event ErrorRecover(
         bytes32 indexed _id,
         address _sender,
