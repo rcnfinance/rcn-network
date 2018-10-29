@@ -44,7 +44,7 @@ contract DebtEngine is ERC721Base {
         uint256 _tokens
     );
 
-    event RadedOracleBatch(
+    event ReadedOracleBatch(
         uint256 _count,
         uint256 _amount,
         uint256 _decimals
@@ -228,14 +228,14 @@ contract DebtEngine is ERC721Base {
         bytes8 _currency,
         bytes _oracleData
     ) external returns (uint256[], uint256[]) {
-        uint count = _ids.length;
+        uint256 count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
         require(count > 0, "There are not loans to pay.");
 
         uint256[] memory data = new uint256[](3);
         if (_oracle != address(0)) {
             (data[1], data[2]) = IOracle(_oracle).getRate(_currency, _oracleData);
-            emit RadedOracleBatch(count, data[1], data[2]);
+            emit ReadedOracleBatch(count, data[1], data[2]);
         }
 
         uint256[] memory pays = new uint256[](count);
@@ -320,32 +320,40 @@ contract DebtEngine is ERC721Base {
         address _oracle,
         bytes8 _currency,
         bytes _oracleData
-    ) external returns (uint256[]) {
-        uint count = _ids.length;
+    ) external returns (uint256[], uint256[]) {
+        uint256 count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
         require(count > 0, "There are not loans to pay.");
 
         uint256[] memory data = new uint256[](3);
         if (_oracle != address(0)) {
             (data[1], data[2]) = IOracle(_oracle).getRate(_currency, _oracleData);
-            emit RadedOracleBatch(count, data[1], data[2]);
+            emit ReadedOracleBatch(count, data[1], data[2]);
         }
 
-        uint256 available;
         uint256[] memory pays = new uint256[](count);
         uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
 
             data[0] = _amounts[i];
             if (_oracle != address(0)) {
-                available = _fromToken(_amounts[i], data[1], data[2]);
+                data[0] = _fromToken(_amounts[i], data[1], data[2]);
             }
 
             (pays[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
 
+            emit PaidBatch({
+                _id: _ids[i],
+                _sender: msg.sender,
+                _requested: 0,
+                _requestedTokens: data[0],
+                _paid: pays[i],
+                _tokens: paidTokens[i]
+            });
+
         }
 
-        return paidTokens;
+        return (pays, paidTokens);
 
     }
 
