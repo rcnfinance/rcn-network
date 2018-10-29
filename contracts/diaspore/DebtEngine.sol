@@ -98,7 +98,13 @@ contract DebtEngine is ERC721Base {
         bytes _data
     ) external returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
-        id = _buildId(msg.sender, nonce, false);
+        id = keccak256(
+            abi.encodePacked(
+                uint8(1),
+                _owner,
+                nonce
+            )
+        );
 
         debts[id] = Debt({
             error: false,
@@ -127,7 +133,17 @@ contract DebtEngine is ERC721Base {
         uint256 _nonce,
         bytes _data
     ) external returns (bytes32 id) {
-        id = _buildId(msg.sender, _nonce, true);
+        id = keccak256(
+            abi.encodePacked(
+                uint8(2),
+                msg.sender,
+                _model,
+                _oracle,
+                _currency,
+                _nonce,
+                _data
+            )
+        );
 
         debts[id] = Debt({
             error: false,
@@ -150,18 +166,36 @@ contract DebtEngine is ERC721Base {
 
     function buildId(
         address _creator,
-        uint256 _nonce,
-        bool _method2
+        uint256 _nonce
     ) external pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_creator, _nonce, _method2));
+        return keccak256(
+            abi.encodePacked(
+                uint8(1),
+                _creator,
+                _nonce
+            )
+        );
     }
 
-    function _buildId(
+    function buildId2(
         address _creator,
-        uint256 _nonce,
-        bool _method2
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_creator, _nonce, _method2));
+        address _model,
+        address _oracle,
+        bytes8 _currency,
+        uint256 _salt,
+        bytes _data
+    ) external pure returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                uint8(2),
+                _creator,
+                _model,
+                _oracle,
+                _currency,
+                _salt,
+                _data
+            )
+        );
     }
 
     function pay(

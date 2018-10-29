@@ -257,7 +257,15 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     });
 
     it("Should predict Ids", async function() {
-        let pid1 = await debtEngine.buildId(accounts[0], 12000, true);
+        let pid1 = await debtEngine.buildId(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        );
+
         let id1 = await getId(debtEngine.create2(
             testModel.address,
             accounts[0],
@@ -270,7 +278,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(pid1, id1);
 
         let nonce = await debtEngine.nonces(accounts[0]);
-        let pid2 = await debtEngine.buildId(accounts[0], nonce++, false);
+        let pid2 = await debtEngine.buildId(accounts[0], nonce++);
         let id2 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],

@@ -26,8 +26,8 @@ contract LoanManager {
     event ApprovedRejected(bytes32 indexed _id, bytes32 _response);
     event ApprovedError(bytes32 indexed _id);
 
-    event SettledLend(bytes32 indexed _id, bytes32 _sig, address _lender, uint256 _tokens);
-    event SettledCancel(bytes32 _sig, address _canceler);
+    event SettledLend(bytes32 indexed _id, address _lender, uint256 _tokens);
+    event SettledCancel(bytes32 indexed _id, address _canceler);
 
     constructor(DebtEngine _debtEngine) public {
         debtEngine = _debtEngine;
@@ -80,14 +80,28 @@ contract LoanManager {
         bytes loanData;
     }
 
-    function calcFutureDebt(
+    function calcId(
         address _creator,
-        uint256 _nonce
+        address _model,
+        address _oracle,
+        bytes8 _currency,
+        uint256 _nonce,
+        bytes _data
     ) external view returns (bytes32) {
-        return debtEngine.buildId(
+        return debtEngine.buildId2(
             address(this),
-            uint256(keccak256(abi.encodePacked(_creator, _nonce))),
-            true
+            _model,
+            _oracle,
+            _currency,
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        _creator,
+                        _nonce
+                    )
+                )
+            ),
+            _data
         );
     }
 
@@ -105,10 +119,16 @@ contract LoanManager {
         require(Model(_model).validate(_loanData), "The loan data is not valid");
 
         uint256 internalNonce = uint256(keccak256(abi.encodePacked(msg.sender, _nonce)));
-        futureDebt = debtEngine.buildId(
-            address(this),
-            internalNonce,
-            true
+        futureDebt = keccak256(
+            abi.encodePacked(
+                uint8(2),
+                address(this),
+                _model,
+                _oracle,
+                _currency,
+                _nonce,
+                _loanData
+            )
         );
 
         require(requests[futureDebt].borrower == address(0), "Request already exist");
@@ -255,20 +275,6 @@ contract LoanManager {
         return true;
     }
 
-    function requestSignature(
-        bytes32[8] _requestData,
-        bytes _loanData
-    ) external view returns (bytes32) {
-        return keccak256(abi.encodePacked(this, _requestData, _loanData));
-    }
-
-    function _requestSignature(
-        bytes32[8] _requestData,
-        bytes _loanData
-    ) internal view returns (bytes32) {
-        return keccak256(abi.encodePacked(this, _requestData, _loanData));
-    }
-
     uint256 public constant R_CURRENCY = 0;
     uint256 public constant R_AMOUNT = 1;
     uint256 public constant R_MODEL = 2;
@@ -296,20 +302,16 @@ contract LoanManager {
             keccak256(
                 abi.encodePacked(
                     address(_requestData[R_CREATOR]),
-                    uint256(_requestData[R_NONCE]))
+                    uint256(_requestData[R_NONCE])
                 )
-            );
-        
-        futureDebt = debtEngine.buildId(
-            address(this),
-            internalNonce,
-            true
+            )
         );
         
+        futureDebt = _buildSettleId(_requestData, _loanData, internalNonce);
+            
         require(requests[futureDebt].borrower == address(0), "Request already exist");
 
-        bytes32 sig = _requestSignature(_requestData, _loanData);
-        validateRequest(sig, _requestData, _loanData, _borrowerSig, _creatorSig);
+        validateRequest(futureDebt, _requestData, _loanData, _borrowerSig, _creatorSig);
 
         uint256 tokens = currencyToToken(_requestData, _oracleData);
         require(
@@ -322,9 +324,16 @@ contract LoanManager {
         );
 
         // Generate the debt
-        require(createDebt(_requestData, _loanData, internalNonce) == futureDebt, "Error creating debt registry");
+        require(
+            createDebt(
+                _requestData,
+                _loanData,
+                internalNonce
+            ) == futureDebt,
+            "Error creating debt registry"
+        );
 
-        emit SettledLend(futureDebt, sig, msg.sender, tokens);
+        emit SettledLend(futureDebt, msg.sender, tokens);
 
         requests[futureDebt] = Request({
             open: false,
@@ -351,6 +360,21 @@ contract LoanManager {
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
             request.nonce = internalNonce;
         }
+    }
+
+    function _buildSettleId(
+        bytes32[8] _requestData,
+        bytes _loanData,
+        uint256 _nonce
+    ) internal returns (bytes32) {
+        return debtEngine.buildId2(
+            address(this),
+            address(_requestData[R_MODEL]),
+            address(_requestData[R_ORACLE]),
+            bytes8(_requestData[R_CURRENCY]),
+            _nonce,
+            _loanData
+        );
     }
 
     function cancel(bytes32 _futureDebt) external returns (bool) {
@@ -383,14 +407,23 @@ contract LoanManager {
         bytes32[8] _requestData,
         bytes _loanData
     ) external returns (bool) {
-        bytes32 sig = _requestSignature(_requestData, _loanData);
+        uint256 internalNonce = uint256(
+            keccak256(
+                abi.encodePacked(
+                    address(_requestData[R_CREATOR]),
+                    uint256(_requestData[R_NONCE])
+                )
+            )
+        );
+
+        bytes32 id = _buildSettleId(_requestData, _loanData, internalNonce);
         require(
             msg.sender == address(_requestData[R_BORROWER]) ||
             msg.sender == address(_requestData[R_CREATOR]),
             "Only borrower or creator can cancel a settle"
         );
-        canceledSettles[sig] = true;
-        emit SettledCancel(sig, msg.sender);
+        canceledSettles[id] = true;
+        emit SettledCancel(id, msg.sender);
 
         return true;
     }
