@@ -238,53 +238,6 @@ contract DebtEngine is ERC721Base {
         return pays;
     }
 
-    function _payBatch(
-        bytes32 _id,
-        uint256 _amount,
-        address _oracle,
-        bytes8 _currency,
-        uint256 _rate,
-        uint256 _decimals
-    ) internal returns (uint256 paid, uint256 paidToken){
-        Debt storage debt = debts[_id];
-        require(_currency == debt.currency, "The currencies addres is invalid.");
-        require(_oracle == debt.oracle, "The oracle is invalid.");
-
-        // Paid only required amount
-        paid = _safePay(_id, debt.model, _amount);
-        require(paid <= _amount, "Paid can't be more than requested");
-
-        paidToken = getPaidToken(paid, _oracle, _rate, _decimals);
-        // Pull tokens from payer
-        require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
-
-        // Add balance to debt
-        debt.balance = addBalanceToDebt(paidToken, debt.balance);
-
-        //TODO: EVENT HERE?
-    }
-
-    function addBalanceToDebt(
-        uint256 paidToken,
-        uint256 balance
-    ) internal returns (uint128) {
-        uint256 newBalance = paidToken.add(balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
-        return uint128(newBalance);
-    }
-
-    function getPaidToken(
-        uint256 _paid,
-        address _oracle,
-        uint256 _rate,
-        uint256 _decimals)
-    internal returns (uint256) {
-        if (_oracle != address(0)) {
-            return _toToken(_paid, _rate, _decimals);
-        }
-        return _paid;
-    }
-
     function payToken(
         bytes32 id,
         uint256 amount,
@@ -340,6 +293,90 @@ contract DebtEngine is ERC721Base {
             _paid: paid,
             _tokens: paidToken
         });
+    }
+
+    function payTokenBatch(
+        bytes32[] _ids,
+        uint256[] _amounts,
+        address _oracle,
+        bytes8 _currency,
+        bytes _oracleData
+    ) external returns (uint256[]) {
+        uint count = _ids.length;
+        require(count == _amounts.length, "The loans and the amounts do not correspond.");
+        require(count > 0, "There are not loans to pay.");
+
+        if (_oracle != address(0)) {
+            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
+            emit ReadedOracle(rate, decimals);
+        }
+
+        uint256 available;
+        uint256[] memory pays = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+
+            available = _amounts[i];
+            if (_oracle != address(0)) {
+                available = _fromToken(_amounts[i], rate, decimals);
+            }
+
+            (,available) = _payBatch(_ids[i], available, _oracle, _currency, rate, decimals);
+            pays[i] = available;
+        }
+
+        //TODO: EVENT HERE?
+
+        return pays;
+
+    }
+
+    function _payBatch(
+        bytes32 _id,
+        uint256 _amount,
+        address _oracle,
+        bytes8 _currency,
+        uint256 _rate,
+        uint256 _decimals
+    ) internal returns (uint256 paid, uint256 paidToken){
+        Debt storage debt = debts[_id];
+        require(_currency == debt.currency, "The currencies addres is invalid.");
+        require(_oracle == debt.oracle, "The oracle is invalid.");
+
+        // Paid only required amount
+        paid = _safePay(_id, debt.model, _amount);
+        require(paid <= _amount, "Paid can't be more than requested");
+
+        paidToken = getPaidToken(paid, _oracle, _rate, _decimals);
+        require(paidToken <= _amount, "Paid can't exceed requested");
+
+        // Pull tokens from payer
+        require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
+
+        // Add balance to debt
+        debt.balance = addBalanceToDebt(paidToken, debt.balance);
+
+        //TODO: EVENT HERE?
+    }
+
+    function addBalanceToDebt(
+        uint256 paidToken,
+        uint256 balance
+    ) internal returns (uint128) {
+        uint256 newBalance = paidToken.add(balance);
+        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
+        return uint128(newBalance);
+    }
+
+    function getPaidToken(
+        uint256 _paid,
+        address _oracle,
+        uint256 _rate,
+        uint256 _decimals)
+    internal returns (uint256) {
+        if (_oracle != address(0)) {
+            return _toToken(_paid, _rate, _decimals);
+        }
+        return _paid;
     }
 
     function _safePay(
