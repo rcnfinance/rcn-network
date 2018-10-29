@@ -80,7 +80,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 3000);
     });
 
-    it("Should create and pay debts", async function() {
+    it("Should create and pay debts in batch", async function() {
         var ids = [];
         ids[0] = await getId(
             debtEngine.create(
@@ -122,7 +122,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(ids[0]), 3000);
     });
 
-    it("Should create and pay a debt using payToken", async function() {
+    it("Should create and pay a debts using payToken", async function() {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -139,6 +139,48 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 1000);
         assert.equal(await debtEngine.getStatus(id), 2);
         assert.equal(await testModel.getPaid(id), 3000);
+    });
+
+    it("Should create and pay a debts using payTokens in batch", async function() {
+        var ids = [];
+        ids[0] = await getId(
+            debtEngine.create(
+                testModel.address,
+                accounts[2],
+                0x0,
+                0x0,
+                await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+            )
+        );
+        ids[1] = await getId(
+            debtEngine.create(
+                testModel.address,
+                accounts[2],
+                0x0,
+                0x0,
+                await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+            )
+        );
+        ids[2] = await getId(
+            debtEngine.create(
+                testModel.address,
+                accounts[2],
+                0x0,
+                0x0,
+                await testModel.encodeData(100, (await Helper.getBlockTime()) + 2000)
+            )
+        );
+
+        var amounts = [4000, 3000, 150];
+
+        await rcn.setBalance(accounts[0], 7150);
+        await rcn.approve(debtEngine.address, 7150);
+
+        await debtEngine.payTokenBatch(ids, amounts, 0x0, 0x0, []);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 1050);
+        assert.equal(await debtEngine.getStatus(ids[0]), 2);
+        assert.equal(await testModel.getPaid(ids[0]), 3000);
     });
 
     it("Should withdraw funds from payment", async function() {
