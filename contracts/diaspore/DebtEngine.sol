@@ -164,6 +164,41 @@ contract DebtEngine is ERC721Base {
         });
     }
 
+    function create3(
+        Model _model,
+        address _owner,
+        address _oracle,
+        bytes8 _currency,
+        uint256 _salt,
+        bytes _data
+    ) external returns (bytes32 id) {
+        id = keccak256(
+            abi.encodePacked(
+                uint8(3),
+                msg.sender,
+                _salt
+            )
+        );
+
+        debts[id] = Debt({
+            error: false,
+            currency: _currency,
+            balance: 0,
+            creator: msg.sender,
+            model: _model,
+            oracle: _oracle
+        });
+
+        _generate(uint256(id), _owner);
+        require(_model.create(id, _data), "Error creating debt in model");
+
+        emit Created2({
+            _id: id,
+            _salt: _salt,
+            _data: _data
+        });
+    }
+
     function buildId(
         address _creator,
         uint256 _nonce
@@ -194,6 +229,19 @@ contract DebtEngine is ERC721Base {
                 _currency,
                 _salt,
                 _data
+            )
+        );
+    }
+
+    function buildId3(
+        address _creator,
+        uint256 _salt
+    ) external pure returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                uint8(3),
+                _creator,
+                _salt
             )
         );
     }

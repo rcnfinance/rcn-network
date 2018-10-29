@@ -13,7 +13,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
     async function getId(promise) {
         const receipt = await promise;
-        const event = receipt.logs.find(l => l.event == "Created2" || l.event == "Created");
+        const event = receipt.logs.find(l => l.event == "Created2" || l.event == "Created3" || l.event == "Created");
         return event["args"]["_id"];
     }
 
@@ -257,6 +257,68 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         );
     });
 
+    it("Should fail to create3 with the same nonce", async function() {
+        const expireTime = (await Helper.getBlockTime()) + 2000;
+        await debtEngine.create3(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            79999,
+            await testModel.encodeData(1200, expireTime)
+        );
+
+        await Helper.assertThrow(
+            debtEngine.create3(
+                testModel.address,
+                accounts[0],
+                0x0,
+                0x0,
+                79999,
+                await testModel.encodeData(1000, expireTime)
+            )
+        );
+    });
+
+    it("Should create different ids create2 and create3", async function() {
+        const expireTime = (await Helper.getBlockTime()) + 2000;
+        const id1 = await debtEngine.create2(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            89999,
+            await testModel.encodeData(1001, expireTime)
+        );
+
+        const id2 = await debtEngine.create3(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            89999,
+            await testModel.encodeData(1001, expireTime)
+        );
+        
+        assert.notEqual(id1, id2);
+    });
+    it("Should predict id create 3", async function() {
+        let pid = await debtEngine.buildId3(
+            accounts[0],
+            12200
+        );
+
+        let id = await getId(debtEngine.create3(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            12200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        assert.equal(pid, id);
+    });
     it("Should predict Ids", async function() {
         let pid1 = await debtEngine.buildId2(
             accounts[0],
