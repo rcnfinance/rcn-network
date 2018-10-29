@@ -35,7 +35,7 @@ contract DebtEngine is ERC721Base {
         uint256 _tokens
     );
 
-     event PaidBatch(
+    event PaidBatch(
         bytes32 indexed _id,
         address _sender,
         uint256 _requested,
@@ -43,7 +43,6 @@ contract DebtEngine is ERC721Base {
         uint256 _paid,
         uint256 _tokens
     );
-
 
     event RadedOracleBatch(
         uint256 _count,
@@ -228,7 +227,7 @@ contract DebtEngine is ERC721Base {
         address _oracle,
         bytes8 _currency,
         bytes _oracleData
-    ) external returns (uint256[]) {
+    ) external returns (uint256[], uint256[]) {
         uint count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
         require(count > 0, "There are not loans to pay.");
@@ -240,13 +239,22 @@ contract DebtEngine is ERC721Base {
         }
 
         uint256[] memory pays = new uint256[](count);
+        uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             data[0] = _amounts[i];
-            (,uint256 paid) = _pay(_ids[i], _oracle, _currency, data);
-            pays[i] = paid;
+            (pays[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
+
+            emit PaidBatch({
+                _id: _ids[i],
+                _sender: msg.sender,
+                _requested: _amounts[i],
+                _requestedTokens: 0,
+                _paid: pays[i],
+                _tokens: paidTokens[i]
+            });
         }
 
-        return pays;
+        return (pays, paidTokens);
     }
 
     function payToken(
@@ -325,6 +333,7 @@ contract DebtEngine is ERC721Base {
 
         uint256 available;
         uint256[] memory pays = new uint256[](count);
+        uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
 
             data[0] = _amounts[i];
@@ -332,12 +341,11 @@ contract DebtEngine is ERC721Base {
                 available = _fromToken(_amounts[i], data[1], data[2]);
             }
 
-            (,available) = _pay(_ids[i], _oracle, _currency, data);
-            pays[i] = available;
+            (pays[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
 
         }
 
-        return pays;
+        return paidTokens;
 
     }
 
@@ -379,8 +387,6 @@ contract DebtEngine is ERC721Base {
 
         // Add balance to debt
         debt.balance = _addBalanceToDebt(paidToken, debt.balance);
-
-        //TODO: EVENT HERE?
     }
 
     function _addBalanceToDebt(
