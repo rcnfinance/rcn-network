@@ -98,7 +98,7 @@ async function tryCatchRevert(promiseFunction, message) {
   let headMsg = 'revert ';
   if(message == "") {
     headMsg = headMsg.slice(0, headMsg.length -1);
-    console.warn("Warning: The revert message its empty");
+    console.warn("    \033[93m\033[2m⬐\033[0m \033[1;30m\033[2mWarning: There is an empty revert/require message");
   }
   try {
     await promiseFunction();
