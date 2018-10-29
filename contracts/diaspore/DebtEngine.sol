@@ -25,6 +25,12 @@ contract DebtEngine is ERC721Base {
         bytes _data
     );
 
+    event Created3(
+        bytes32 indexed _id,
+        uint256 _salt,
+        bytes _data
+    );
+
     event Paid(
         bytes32 indexed _id,
         address _sender,
@@ -192,7 +198,7 @@ contract DebtEngine is ERC721Base {
         _generate(uint256(id), _owner);
         require(_model.create(id, _data), "Error creating debt in model");
 
-        emit Created2({
+        emit Created3({
             _id: id,
             _salt: _salt,
             _data: _data
