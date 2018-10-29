@@ -252,7 +252,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
                 0x0,
                 0x0,
                 9999,
-                await testModel.encodeData(1000, expireTime);
+                await testModel.encodeData(1000, expireTime)
             )
         );
     });
@@ -263,7 +263,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             testModel.address,
             0x0,
             0x0,
-            1200,
+            12000,
             await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         );
 
