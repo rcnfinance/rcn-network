@@ -257,7 +257,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     });
 
     it("Should predict Ids", async function() {
-        let pid1 = await debtEngine.buildId(
+        let pid1 = await debtEngine.buildId2(
             accounts[0],
             testModel.address,
             0x0,
