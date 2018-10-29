@@ -50,10 +50,10 @@ contract RateOracle is IERC165 {
     /**
         Returns the url where the oracle exposes a valid "oracleData" if needed
     */
-    function url() public view returns (string);
+    function url() external view returns (string);
 
     /** 
         Returns a sample on how many token() are equals to how many currency()
     */
-    function readSample(bytes _data) external view returns (uint256 _currency, uint256 _token);
+    function readSample(bytes _data) external returns (uint256 _currency, uint256 _token);
 }
