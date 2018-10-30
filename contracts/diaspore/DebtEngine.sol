@@ -7,7 +7,7 @@ import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
 
 interface IOracle {
-    function getRate(bytes32 symbol, bytes data) external returns (uint256 rate, uint256 decimals);
+    function readSample(bytes _data) external returns (uint256 _currency, uint256 _token);
 }
 
 contract DebtEngine is ERC721Base {
@@ -74,7 +74,6 @@ contract DebtEngine is ERC721Base {
 
     struct Debt {
         bool error;
-        bytes8 currency;
         uint128 balance;
         Model model;
         address creator;
@@ -94,7 +93,6 @@ contract DebtEngine is ERC721Base {
         Model _model,
         address _owner,
         address _oracle,
-        bytes8 _currency,
         bytes _data
     ) external returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
@@ -102,7 +100,6 @@ contract DebtEngine is ERC721Base {
 
         debts[id] = Debt({
             error: false,
-            currency: _currency,
             balance: 0,
             creator: msg.sender,
             model: _model,
@@ -123,7 +120,6 @@ contract DebtEngine is ERC721Base {
         Model _model,
         address _owner,
         address _oracle,
-        bytes8 _currency,
         uint256 _nonce,
         bytes _data
     ) external returns (bytes32 id) {
@@ -131,7 +127,6 @@ contract DebtEngine is ERC721Base {
 
         debts[id] = Debt({
             error: false,
-            currency: _currency,
             balance: 0,
             creator: msg.sender,
             model: _model,
@@ -179,9 +174,9 @@ contract DebtEngine is ERC721Base {
         IOracle oracle = IOracle(debt.oracle);
         if (oracle != address(0)) {
             // Convert
-            (uint256 rate, uint256 decimals) = oracle.getRate(debt.currency, _oracleData);
-            emit ReadedOracle(_id, rate, decimals);
-            paidToken = _toToken(paid, rate, decimals);
+            (uint256 rate, uint256 tokens) = oracle.readSample(_oracleData);
+            emit ReadedOracle(_id, rate, tokens);
+            paidToken = _toToken(paid, rate, tokens);
         } else {
             paidToken = paid;
         }
@@ -218,14 +213,14 @@ contract DebtEngine is ERC721Base {
         IOracle oracle = IOracle(debt.oracle);
 
         uint256 rate;
-        uint256 decimals;
+        uint256 tokens;
         uint256 available;
 
         // Get available <currency> amount
         if (oracle != address(0)) {
-            (rate, decimals) = oracle.getRate(debt.currency, oracleData);
-            emit ReadedOracle(id, rate, decimals);
-            available = _fromToken(amount, rate, decimals);
+            (rate, tokens) = oracle.readSample(oracleData);
+            emit ReadedOracle(id, rate, tokens);
+            available = _fromToken(amount, rate, tokens);
         } else {
             available = amount;
         }
@@ -236,7 +231,7 @@ contract DebtEngine is ERC721Base {
 
         // Convert back to required pull amount
         if (oracle != address(0)) {
-            paidToken = _toToken(paid, rate, decimals);
+            paidToken = _toToken(paid, rate, tokens);
             require(paidToken <= amount, "Paid can't exceed requested");
         } else {
             paidToken = paid;
@@ -317,11 +312,10 @@ contract DebtEngine is ERC721Base {
     */
     function _toToken(
         uint256 _amount,
-        uint256 _rate,
-        uint256 _decimals
+        uint256 _currency,
+        uint256 _tokens
     ) internal pure returns (uint256) {
-        require(_decimals <= 18, "Decimals limit reached");
-        return _rate.mult(_amount).mult((10 ** (18 - _decimals))) / 1000000000000000000;
+        return _currency.mult(_amount).mult(_tokens) / 1000000000000000000;
     }
 
     /**
@@ -335,11 +329,10 @@ contract DebtEngine is ERC721Base {
     */
     function _fromToken(
         uint256 _amount,
-        uint256 _rate,
-        uint256 _decimals
+        uint256 _currency,
+        uint256 _tokens
     ) internal pure returns (uint256) {
-        require(_decimals <= 18, "Decimals limit reached");
-        return (_amount.mult(1000000000000000000) / _rate) / 10 ** (18 - _decimals);
+        return (_amount.mult(1000000000000000000) / _currency) / _tokens;
     }
 
     function run(bytes32 _id) external returns (bool) {
