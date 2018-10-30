@@ -306,16 +306,16 @@ contract DebtEngine is ERC721Base {
 
         @param _amount Amount to convert in rate currency
         @param _rate Rate to use in the convertion
-        @param _decimals Base difference between rate and tokens
+        @param _tokens Base difference between rate and tokens
 
         @return Amount in tokens
     */
     function _toToken(
         uint256 _amount,
-        uint256 _currency,
+        uint256 _rate,
         uint256 _tokens
     ) internal pure returns (uint256) {
-        return _currency.mult(_amount).mult(_tokens) / 1000000000000000000;
+        return _rate.mult(_amount).mult(_tokens) / 1000000000000000000;
     }
 
     /**
@@ -323,16 +323,16 @@ contract DebtEngine is ERC721Base {
 
         @param _amount Amount to convert in token
         @param _rate Rate to use in the convertion
-        @param _decimals Base difference between rate and tokens
+        @param _tokens Base difference between rate and tokens
 
         @return Amount in rate currency
     */
     function _fromToken(
         uint256 _amount,
-        uint256 _currency,
+        uint256 _rate,
         uint256 _tokens
     ) internal pure returns (uint256) {
-        return (_amount.mult(1000000000000000000) / _currency) / _tokens;
+        return (_amount.mult(1000000000000000000) / _rate) / _tokens;
     }
 
     function run(bytes32 _id) external returns (bool) {
