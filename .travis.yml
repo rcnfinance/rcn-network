@@ -3,7 +3,7 @@ sudo: required
 language: node_js
 node_js:
   - "9.4.0"
- 
+
 matrix:
   include:
     - os: linux
@@ -16,9 +16,9 @@ matrix:
       - curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
       - sudo apt-get install -y nodejs
       - rm -rf node_modules
- 
+
 install:
   - bash ./bin/travis-install.sh
- 
+
 script:
   - bash ./bin/test.sh
