@@ -235,13 +235,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     });
 
     it("Should fail to create2 with the same nonce", async function() {
+        const expireTime = (await Helper.getBlockTime()) + 2000;
         await debtEngine.create2(
             testModel.address,
             accounts[0],
             0x0,
             0x0,
             9999,
-            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(1000, expireTime)
         );
 
         await Helper.assertThrow(
@@ -251,13 +252,21 @@ contract('Test DebtEngine Diaspore', function(accounts) {
                 0x0,
                 0x0,
                 9999,
-                await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+                await testModel.encodeData(1000, expireTime)
             )
         );
     });
 
     it("Should predict Ids", async function() {
-        let pid1 = await debtEngine.buildId(accounts[0], 12000, true);
+        let pid1 = await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            12000,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        );
+
         let id1 = await getId(debtEngine.create2(
             testModel.address,
             accounts[0],
@@ -270,7 +279,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(pid1, id1);
 
         let nonce = await debtEngine.nonces(accounts[0]);
-        let pid2 = await debtEngine.buildId(accounts[0], nonce++, false);
+        let pid2 = await debtEngine.buildId(accounts[0], nonce++);
         let id2 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -280,6 +289,93 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         ));
 
         assert.equal(pid2, id2);
+    });
+
+    it("It should create diferent IDs create2 with any change", async function(){
+        let ids = [];
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[1],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            accounts[3],
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            accounts[3],
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x1,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1001, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1201,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2001)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            accounts[9],
+            0x0,
+            2200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+    
+        assert.equal(new Set(ids).size, 9); 
     });
 
     it("Should generate diferents ids create and create2", async function() {
