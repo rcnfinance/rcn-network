@@ -396,7 +396,7 @@ contract DebtEngine is ERC721Base {
     function _addBalanceToDebt(
         uint256 paidToken,
         uint256 balance
-    ) internal returns (uint128) {
+    ) internal pure returns (uint128) {
         uint256 newBalance = paidToken.add(balance);
         require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
         return uint128(newBalance);
@@ -407,7 +407,7 @@ contract DebtEngine is ERC721Base {
         address _oracle,
         uint256 _rate,
         uint256 _decimals)
-    internal returns (uint256) {
+    internal pure returns (uint256) {
         if (_oracle != address(0)) {
             return _toToken(_paid, _rate, _decimals);
         }
