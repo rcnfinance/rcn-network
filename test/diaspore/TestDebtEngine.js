@@ -1224,6 +1224,60 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 1000);
     });
 
+    it("Should fail because are different size input arrays (payBatch, payTokenBatch)", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+        await Helper.assertThrow(
+            debtEngine.payBatch(
+                [id],
+                [10, 20],
+                accounts[1],
+                oracle.address,
+                0xd25aa221,
+                0x0,
+                { from: accounts[2] }
+            )
+        );
+        await Helper.assertThrow(
+            debtEngine.payBatch(
+                [id, id],
+                [10],
+                accounts[1],
+                oracle.address,
+                0xd25aa221,
+                0x0,
+                { from: accounts[2] }
+            )
+        );
+        await Helper.assertThrow(
+            debtEngine.payTokenBatch(
+                [id],
+                [10, 20],
+                accounts[1],
+                oracle.address,
+                0xd25aa221,
+                0x0,
+                { from: accounts[2] }
+            )
+        );
+        await Helper.assertThrow(
+            debtEngine.payTokenBatch(
+                [id, id],
+                [10],
+                accounts[1],
+                oracle.address,
+                0xd25aa221,
+                0x0,
+                { from: accounts[2] }
+            )
+        );
+    });
+
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
         const id = await getId(debtEngine.create(
