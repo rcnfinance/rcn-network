@@ -3,7 +3,7 @@ const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require("./utils/test/TestToken.sol");
 const TestOracle = artifacts.require("./examples/TestOracle.sol");
 
-const Helper = require('./Helper.js');
+const Helper = require('../Helper.js');
 
 contract('Test DebtEngine Diaspore', function(accounts) {
     let rcn;
@@ -531,7 +531,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.pay(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 100);
         assert.equal(await debtEngine.getStatus(id), 4);
@@ -545,7 +545,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.pay(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -580,7 +580,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.pay(id, 100, accounts[3], dummyData2);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 50);
         assert.equal(await debtEngine.getStatus(id), 4);
@@ -594,7 +594,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.pay(id, 100, accounts[3], dummyData2);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -627,7 +627,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.payToken(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 100);
         assert.equal(await debtEngine.getStatus(id), 4);
@@ -641,7 +641,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.payToken(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -676,7 +676,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.payToken(id, 50, accounts[3], dummyData2);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 50);
         assert.equal(await debtEngine.getStatus(id), 4);
@@ -690,7 +690,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.payToken(id, 50, accounts[3], dummyData2);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -723,7 +723,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.pay(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 100);
         assert.equal(await debtEngine.getStatus(id), 4);
@@ -737,7 +737,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.pay(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -772,7 +772,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.pay(id, 100, accounts[3], dummyData2);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 50);
         assert.equal(await debtEngine.getStatus(id), 4);
@@ -786,7 +786,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.pay(id, 100, accounts[3], dummyData2);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -819,7 +819,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.payToken(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 100);
         assert.equal(await debtEngine.getStatus(id), 4);
@@ -833,7 +833,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.payToken(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -868,7 +868,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.payToken(id, 50, accounts[3], dummyData2);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 50);
         assert.equal(await debtEngine.getStatus(id), 4);
@@ -882,7 +882,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.payToken(id, 50, accounts[3], dummyData2);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -912,7 +912,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.payToken(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -942,7 +942,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.payToken(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
@@ -1025,7 +1025,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.approve(debtEngine.address, 100);
         await debtEngine.payToken(id, 100, accounts[3], []);
-        
+
         // Should have failed and the status should be 4
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
