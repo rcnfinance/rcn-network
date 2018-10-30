@@ -96,6 +96,6 @@ async function almostEqual(p1, p2, reason, margin = 3) {
 
 module.exports = {
   arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
-  toBytes32, increaseTime, searchEvent,
+  toBytes32, increaseTime, searchEvent, almostEqual,
   toInterestRate, buyTokens, getBlockTime, isRevertErrorMessage
 };
