@@ -1278,6 +1278,48 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         );
     });
 
+    it("Should not pay the third debt because not correspond the currency.", async function() {
+        var ids = [];
+        ids[0] = await getId(
+            debtEngine.create(
+                testModel.address,
+                accounts[2],
+                0x0,
+                0x0,
+                await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+            )
+        );
+        ids[1] = await getId(
+            debtEngine.create(
+                testModel.address,
+                accounts[2],
+                0x0,
+                0x0,
+                await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+            )
+        );
+        ids[2] = await getId(
+            debtEngine.create(
+                testModel.address,
+                accounts[2],
+                0x0,
+                0xd25aa221,
+                await testModel.encodeData(100, (await Helper.getBlockTime()) + 2000)
+            )
+        );
+
+        var amounts = [4000, 3000, 150];
+
+        await rcn.setBalance(accounts[0], 7150);
+        await rcn.approve(debtEngine.address, 7150);
+
+        await debtEngine.payTokenBatch(ids, amounts, 0x0, 0x0, 0x0, []);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 1150);
+        assert.equal(await debtEngine.getStatus(ids[0]), 2);
+        assert.equal(await testModel.getPaid(ids[0]), 3000);
+    })
+
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
         const id = await getId(debtEngine.create(
