@@ -80,7 +80,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 3000);
     });
 
-    it("Should create and pay a debts using payToken", async function() {
+    it("Should create and pay a debt using payToken", async function() {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -235,13 +235,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     });
 
     it("Should fail to create2 with the same nonce", async function() {
+        const expireTime = (await Helper.getBlockTime()) + 2000;
         await debtEngine.create2(
             testModel.address,
             accounts[0],
             0x0,
             0x0,
             9999,
-            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(1000, expireTime)
         );
 
         await Helper.assertThrow(
@@ -251,13 +252,83 @@ contract('Test DebtEngine Diaspore', function(accounts) {
                 0x0,
                 0x0,
                 9999,
-                await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+                await testModel.encodeData(1000, expireTime)
             )
         );
     });
 
+    it("Should fail to create3 with the same nonce", async function() {
+        const expireTime = (await Helper.getBlockTime()) + 2000;
+        await debtEngine.create3(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            79999,
+            await testModel.encodeData(1200, expireTime)
+        );
+
+        await Helper.assertThrow(
+            debtEngine.create3(
+                testModel.address,
+                accounts[0],
+                0x0,
+                0x0,
+                79999,
+                await testModel.encodeData(1000, expireTime)
+            )
+        );
+    });
+
+    it("Should create different ids create2 and create3", async function() {
+        const expireTime = (await Helper.getBlockTime()) + 2000;
+        const id1 = await debtEngine.create2(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            89999,
+            await testModel.encodeData(1001, expireTime)
+        );
+
+        const id2 = await debtEngine.create3(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            89999,
+            await testModel.encodeData(1001, expireTime)
+        );
+
+        assert.notEqual(id1, id2);
+    });
+    it("Should predict id create 3", async function() {
+        let pid = await debtEngine.buildId3(
+            accounts[0],
+            12200
+        );
+
+        let id = await getId(debtEngine.create3(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            12200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        assert.equal(pid, id);
+    });
     it("Should predict Ids", async function() {
-        let pid1 = await debtEngine.buildId(accounts[0], 12000, true);
+        let pid1 = await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            12000,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        );
+
         let id1 = await getId(debtEngine.create2(
             testModel.address,
             accounts[0],
@@ -270,7 +341,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(pid1, id1);
 
         let nonce = await debtEngine.nonces(accounts[0]);
-        let pid2 = await debtEngine.buildId(accounts[0], nonce++, false);
+        let pid2 = await debtEngine.buildId(accounts[0], nonce++);
         let id2 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -280,6 +351,93 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         ));
 
         assert.equal(pid2, id2);
+    });
+
+    it("It should create diferent IDs create2 with any change", async function(){
+        let ids = [];
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[1],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            accounts[3],
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            accounts[3],
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x1,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1001, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1201,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            0x0,
+            0x0,
+            1200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2001)
+        ));
+
+        ids.push(await debtEngine.buildId2(
+            accounts[0],
+            testModel.address,
+            accounts[9],
+            0x0,
+            2200,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        assert.equal(new Set(ids).size, 9);
     });
 
     it("Should generate diferents ids create and create2", async function() {
@@ -934,6 +1092,46 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
         assert.equal(await debtEngine.getStatus(id), 1);
         assert.equal(await testModel.getPaid(id), 100);
+    });
+
+    // Notice: Keep this test last
+    it("Should not be possible to brute-forze an infinite loop", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 50);
+
+        await rcn.approve(debtEngine.address, 50);
+        await debtEngine.payToken(id, 50, accounts[3], []);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 50);
+
+        await rcn.setBalance(accounts[0], 100);
+        await rcn.approve(debtEngine.address, 100);
+
+        // Try to pay with different gas limits
+        for(i = 0; i < 8000000; i += 100) {
+            try {
+                await debtEngine.payToken(id, 100, accounts[3], [], { gas: i });
+            } catch(ignored) {
+            }
+
+            assert.equal(await debtEngine.getStatus(id), 1);
+            if (await testModel.getPaid(id) == 150) {
+                break;
+            }
+        }
+
+        // Should have failed and the status should be 1
+        assert.equal(await debtEngine.getStatus(id), 1);
+        assert.equal(await testModel.getPaid(id), 150);
     });
 
     /*
