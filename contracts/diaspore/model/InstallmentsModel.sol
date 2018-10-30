@@ -31,7 +31,6 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     event _setDescriptor(address _descriptor);
 
     event _setClock(bytes32 _id, uint64 _to);
-    event _setStatus(bytes32 _id, uint8 _status);
     event _setPaidBase(bytes32 _id, uint128 _paidBase);
     event _setInterest(bytes32 _id, uint128 _interest);
 
@@ -162,7 +161,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
                 if (clock / duration >= config.installments && baseDebt + interest <= paid) {
                     // Registry paid!
                     state.status = uint8(STATUS_PAID);
-                    emit _setStatus(id, uint8(STATUS_PAID));
+                    emit ChangedStatus(id, now, STATUS_PAID);
                     break;
                 }
 

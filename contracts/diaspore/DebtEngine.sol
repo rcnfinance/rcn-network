@@ -21,7 +21,13 @@ contract DebtEngine is ERC721Base {
 
     event Created2(
         bytes32 indexed _id,
-        uint256 _nonce,
+        uint256 _salt,
+        bytes _data
+    );
+
+    event Created3(
+        bytes32 indexed _id,
+        uint256 _salt,
         bytes _data
     );
 
@@ -104,7 +110,13 @@ contract DebtEngine is ERC721Base {
         bytes _data
     ) external returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
-        id = _buildId(msg.sender, nonce, false);
+        id = keccak256(
+            abi.encodePacked(
+                uint8(1),
+                _owner,
+                nonce
+            )
+        );
 
         debts[id] = Debt({
             error: false,
@@ -130,10 +142,20 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         bytes8 _currency,
-        uint256 _nonce,
+        uint256 _salt,
         bytes _data
     ) external returns (bytes32 id) {
-        id = _buildId(msg.sender, _nonce, true);
+        id = keccak256(
+            abi.encodePacked(
+                uint8(2),
+                msg.sender,
+                _model,
+                _oracle,
+                _currency,
+                _salt,
+                _data
+            )
+        );
 
         debts[id] = Debt({
             error: false,
@@ -149,25 +171,91 @@ contract DebtEngine is ERC721Base {
 
         emit Created2({
             _id: id,
-            _nonce: _nonce,
+            _salt: _salt,
+            _data: _data
+        });
+    }
+
+    function create3(
+        Model _model,
+        address _owner,
+        address _oracle,
+        bytes8 _currency,
+        uint256 _salt,
+        bytes _data
+    ) external returns (bytes32 id) {
+        id = keccak256(
+            abi.encodePacked(
+                uint8(3),
+                msg.sender,
+                _salt
+            )
+        );
+
+        debts[id] = Debt({
+            error: false,
+            currency: _currency,
+            balance: 0,
+            creator: msg.sender,
+            model: _model,
+            oracle: _oracle
+        });
+
+        _generate(uint256(id), _owner);
+        require(_model.create(id, _data), "Error creating debt in model");
+
+        emit Created3({
+            _id: id,
+            _salt: _salt,
             _data: _data
         });
     }
 
     function buildId(
         address _creator,
-        uint256 _nonce,
-        bool _method2
+        uint256 _nonce
     ) external pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_creator, _nonce, _method2));
+        return keccak256(
+            abi.encodePacked(
+                uint8(1),
+                _creator,
+                _nonce
+            )
+        );
     }
 
-    function _buildId(
+    function buildId2(
         address _creator,
-        uint256 _nonce,
-        bool _method2
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_creator, _nonce, _method2));
+        address _model,
+        address _oracle,
+        bytes8 _currency,
+        uint256 _salt,
+        bytes _data
+    ) external pure returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                uint8(2),
+                _creator,
+                _model,
+                _oracle,
+                _currency,
+                _salt,
+                _data
+            )
+        );
+    }
+
+    function buildId3(
+        address _creator,
+        uint256 _salt
+    ) external pure returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                uint8(3),
+                _creator,
+                _salt
+            )
+        );
     }
 
     function pay(

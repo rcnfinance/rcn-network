@@ -1,6 +1,6 @@
 const InstallmentsDebtModel = artifacts.require("./diaspore/model/InstallmentsModel.sol");
 const ModelDescriptor = artifacts.require("./diaspore/interfaces/ModelDescriptor.sol");
-const Helper = require('./Helper.js');
+const Helper = require('../Helper.js');
 
 contract('Installments model', function(accounts) {
   let model;
@@ -41,7 +41,7 @@ contract('Installments model', function(accounts) {
     );
 
     assert.isTrue(await model.validate(data), "Registry data should be valid");
-    
+
     await model.create(id, data);
 
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 0, "First obligation should be 0");
@@ -111,7 +111,7 @@ contract('Installments model', function(accounts) {
     await Helper.almostEqual((await model.getDueTime(id)).toNumber(), await Helper.getBlockTime() + 30 * 86400, "Next due time should be in 1 installments");
     assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 300, "Obligation on due time should be 300");
     assert.equal(await model.getStatus(id), 1);
-    
+
     await model.addPaid(id, 110);
 
     assert.equal(await model.getPaid(id), 110);
@@ -152,7 +152,7 @@ contract('Installments model', function(accounts) {
     await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() + 30 * 86400);
     assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 110);
     assert.equal(await model.getClosingObligation(id), 110 * 10);
-    
+
     await model.addPaid(id, 4000);
 
     assert.equal(await model.getStatus(id), 2);
@@ -709,14 +709,14 @@ contract('Installments model', function(accounts) {
     );
 
     await model.create(id, data);
-    
+
     await Helper.increaseTime(31 * 86400);
 
     await ping();
 
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10000);
     await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 86400);
-    
+
     await model.run(id);
 
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10000);
@@ -728,7 +728,7 @@ contract('Installments model', function(accounts) {
 
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10058);
     await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 4 * 86400);
-    
+
     await model.run(id);
 
     assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 10058);
@@ -746,7 +746,7 @@ contract('Installments model', function(accounts) {
     );
 
     let descriptor = ModelDescriptor.at(await model.descriptor());
-    
+
     assert.equal((await descriptor.simFirstObligation(data))[0], 99963);
     assert.equal((await descriptor.simFirstObligation(data))[1], 30 * 86400);
     assert.equal(await descriptor.simDuration(data), 12 * 30 * 86400);
