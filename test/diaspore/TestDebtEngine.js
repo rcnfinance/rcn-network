@@ -1094,46 +1094,6 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 100);
     });
 
-    // Notice: Keep this test last
-    it("Should not be possible to brute-forze an infinite loop", async function() {
-        const id = await getId(debtEngine.create(
-            testModel.address,
-            accounts[2],
-            0x0,
-            0x0,
-            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
-        ));
-
-        await rcn.setBalance(accounts[0], 50);
-
-        await rcn.approve(debtEngine.address, 50);
-        await debtEngine.payToken(id, 50, accounts[3], []);
-
-        assert.equal(await rcn.balanceOf(accounts[0]), 0);
-        assert.equal(await debtEngine.getStatus(id), 1);
-        assert.equal(await testModel.getPaid(id), 50);
-
-        await rcn.setBalance(accounts[0], 100);
-        await rcn.approve(debtEngine.address, 100);
-
-        // Try to pay with different gas limits
-        for(i = 0; i < 8000000; i += 100) {
-            try {
-                await debtEngine.payToken(id, 100, accounts[3], [], { gas: i });
-            } catch(ignored) {
-            }
-
-            assert.equal(await debtEngine.getStatus(id), 1);
-            if (await testModel.getPaid(id) == 150) {
-                break;
-            }
-        }
-
-        // Should have failed and the status should be 1
-        assert.equal(await debtEngine.getStatus(id), 1);
-        assert.equal(await testModel.getPaid(id), 150);
-    });
-
     /*
     * Batch Methods
     */
@@ -1238,6 +1198,27 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
 
         await debtEngine.payBatch([id], [1000], accounts[1], oracle.address, 0xd25aa221, dummyData1, { from: accounts[2] });
+
+        assert.equal(await rcn.balanceOf(accounts[2]), 0);
+        assert.equal(await testModel.getPaid(id), 1000);
+    });
+
+    it("Should pay token batch using a oracle", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            oracle.address,
+            0xd25aa221,
+            await testModel.encodeData(10000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const dummyData1 = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[2], 500);
+        await rcn.approve(debtEngine.address, 500, { from: accounts[2] });
+
+
+        await debtEngine.payTokenBatch([id], [500], accounts[1], oracle.address, 0xd25aa221, dummyData1, { from: accounts[2] });
 
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
         assert.equal(await testModel.getPaid(id), 1000);
