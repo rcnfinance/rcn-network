@@ -35,15 +35,6 @@ contract DebtEngine is ERC721Base {
         uint256 _tokens
     );
 
-    event PaidBatch(
-        bytes32 indexed _id,
-        address _sender,
-        uint256 _requested,
-        uint256 _requestedTokens,
-        uint256 _paid,
-        uint256 _tokens
-    );
-
     event ReadedOracleBatch(
         uint256 _count,
         uint256 _amount,
@@ -224,37 +215,39 @@ contract DebtEngine is ERC721Base {
     function payBatch(
         bytes32[] _ids,
         uint256[] _amounts,
+        address _origin,
         address _oracle,
         bytes8 _currency,
         bytes _oracleData
-    ) external returns (uint256[], uint256[]) {
+    ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
         require(count > 0, "There are not loans to pay.");
 
-        uint256[] memory data = new uint256[](3);
+        uint256[3] data;
         if (_oracle != address(0)) {
             (data[1], data[2]) = IOracle(_oracle).getRate(_currency, _oracleData);
             emit ReadedOracleBatch(count, data[1], data[2]);
         }
 
         uint256[] memory pays = new uint256[](count);
-        uint256[] memory paidTokens = new uint256[](count);
+        uint256[] memory payTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             data[0] = _amounts[i];
-            (pays[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
+            (pays[i], payTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
 
-            emit PaidBatch({
+            emit Paid({
                 _id: _ids[i],
                 _sender: msg.sender,
+                _origin: _origin,
                 _requested: _amounts[i],
                 _requestedTokens: 0,
                 _paid: pays[i],
-                _tokens: paidTokens[i]
+                _tokens: payTokens[i]
             });
         }
 
-        return (pays, paidTokens);
+        return (pays, payTokens);
     }
 
     function payToken(
@@ -317,22 +310,23 @@ contract DebtEngine is ERC721Base {
     function payTokenBatch(
         bytes32[] _ids,
         uint256[] _amounts,
+        address _origin,
         address _oracle,
         bytes8 _currency,
         bytes _oracleData
-    ) external returns (uint256[], uint256[]) {
+    ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
         require(count > 0, "There are not loans to pay.");
 
-        uint256[] memory data = new uint256[](3);
+        uint256[3] data;
         if (_oracle != address(0)) {
             (data[1], data[2]) = IOracle(_oracle).getRate(_currency, _oracleData);
             emit ReadedOracleBatch(count, data[1], data[2]);
         }
 
         uint256[] memory pays = new uint256[](count);
-        uint256[] memory paidTokens = new uint256[](count);
+        uint256[] memory payTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
 
             data[0] = _amounts[i];
@@ -340,20 +334,21 @@ contract DebtEngine is ERC721Base {
                 data[0] = _fromToken(_amounts[i], data[1], data[2]);
             }
 
-            (pays[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
+            (pays[i], payTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
 
-            emit PaidBatch({
+            emit Paid({
                 _id: _ids[i],
                 _sender: msg.sender,
+                _origin: _origin,
                 _requested: 0,
                 _requestedTokens: data[0],
                 _paid: pays[i],
-                _tokens: paidTokens[i]
+                _tokens: payTokens[i]
             });
 
         }
 
-        return (pays, paidTokens);
+        return (pays, payTokens);
 
     }
 
@@ -377,11 +372,12 @@ contract DebtEngine is ERC721Base {
         bytes32 _id,
         address _oracle,
         bytes8 _currency,
-        uint256[] _data
+        uint256[3] _data
     ) internal returns (uint256 paid, uint256 paidToken){
         Debt storage debt = debts[_id];
-        require(_currency == debt.currency, "The currencies addres is invalid.");
-        require(_oracle == debt.oracle, "The oracle is invalid.");
+        if (_currency != debt.currency || _oracle != debt.oracle) {
+            return (0,0);
+        }
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _data[0]);
