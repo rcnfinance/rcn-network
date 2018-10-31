@@ -53,6 +53,12 @@ contract DebtEngine is ERC721Base {
         uint256 _decimals
     );
 
+    event PayBatchError(
+        bytes32 indexed _id,
+        address _targetOracle,
+        bytes8 _targetCurrency
+    );
+
     event Withdrawn(
         bytes32 indexed _id,
         address _sender,
@@ -310,7 +316,6 @@ contract DebtEngine is ERC721Base {
     ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
-        require(count > 0, "There are not loans to pay.");
 
         if (_oracle != address(0)) {
             (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
@@ -455,6 +460,12 @@ contract DebtEngine is ERC721Base {
     ) internal returns (uint256 paid, uint256 paidToken){
         Debt storage debt = debts[_id];
         if (_currency != debt.currency || _oracle != debt.oracle) {
+            emit PayBatchError(
+                _id,
+                _oracle,
+                _currency
+            );
+
             return (0,0);
         }
 
