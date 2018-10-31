@@ -15,8 +15,7 @@
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
     "console": "truffle console",
-    "test": "bin/test.sh",
-    "coverage": "bin/coverage.sh"
+    "test": "bin/coverage.sh"
   },
   "repository": {
     "type": "git",
