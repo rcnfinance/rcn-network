@@ -14,7 +14,9 @@
     "lint:sol:fix": "solium -d . --fix",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
-    "console": "truffle console"
+    "console": "truffle console",
+    "coverage": "bin/coverage.sh",
+    "test": "bin/test.sh"
   },
   "repository": {
     "type": "git",
@@ -44,7 +46,6 @@
     "eslint-plugin-promise": "^3.8.0",
     "eslint-plugin-standard": "^3.1.0",
     "ethjs-abi": "^0.2.1",
-    "ganache-cli": "6.1.8",
     "solidity-coverage": "^0.5.4",
     "solium": "^1.1.8",
     "truffle": "^4.1.13",
