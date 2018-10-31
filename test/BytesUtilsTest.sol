@@ -33,6 +33,10 @@ contract TestBytesUtils is BytesUtils {
         return decode(data, a, b, c, d);
     }
 
+    function pDecode(bytes data, uint256 a, uint256 b, uint256 c, uint256 d, uint256 f) public returns (bytes32,bytes32,bytes32,bytes32,bytes32) {
+        return decode(data, a, b, c, d);
+    }
+
     function pDecode(
         bytes data,
         uint256 a,
@@ -181,7 +185,7 @@ contract BytesUtilsTest {
         Assert.equal(address(d), address(this), "Decode 5 items");
         Assert.equal(uint256(e), uint256(0) - 1, "Decode 5 items");
         bytes32 f;
-        (a, b, c, d, e, f) = bytesUtils.pDecode(data, 1, 1, 32, 20, 32, 32);
+        (a, b, c, d, e, f) = bytesUtils.pDecode(data, 1, 1, 32, 20, 32, 8);
         Assert.equal(uint256(a), 12, "Decode 6 items");
         Assert.equal(b, bytes32(1), "Decode 6 items");
         Assert.equal(c, test4, "Decode 6 items");
