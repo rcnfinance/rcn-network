@@ -19,6 +19,7 @@ install:
   - npm install truffle
   - npm install ganache-cli
   - npm install
+  - mkdir migrations
 jobs:
   include:
     - stage: tests
