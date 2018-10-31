@@ -28,6 +28,7 @@ start_ganache() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
     node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$ganache_port"  > /dev/null &
   else
+    mkdir migrations
     node_modules/.bin/ganache-cli --gasLimit 0xfffffffffff > /dev/null &
   fi
 
