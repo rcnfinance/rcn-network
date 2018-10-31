@@ -27,6 +27,28 @@ contract('NanoLoanModel', function(accounts) {
     return await model.encodeData(params[0], params[1], params[2], params[3], params[4]);
   }
 
+  async function getConfig(id){
+    const config = (await model.configs(id)).map( x => x.toString());
+    return {
+      amount: config[0],
+      interestRate: config[1],
+      interestRatePunitory: config[2],
+      dueTime: config[3],
+      id: config[4]
+    }
+  }
+
+  async function getState(id){
+    const state = (await model.states(id)).map( x => x.toString());
+    return {
+      paid: state[0],
+      interest: state[1],
+      punitoryInterest: state[2],
+      interestTimestamp: state[3],
+      status: state[4]
+    }
+  }
+
   before("Create model", async function(){
     owner = accounts[1];
     model = await NanoLoanModel.new( { from: owner} );
@@ -73,21 +95,21 @@ contract('NanoLoanModel', function(accounts) {
     const id = Helper.toBytes32(idCounter++);
     const tx = await model.create(id, defaultData, { from: owner });
     const timestamp = (await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp;
-    const config = await model.configs(id);
 
-    assert.equal(Helper.toBytes32(config[0]), defaultParams[0], "The amount its wrong");
-    assert.equal(Helper.toBytes32(config[1]), defaultParams[1], "The interest rate its wrong");
-    assert.equal(Helper.toBytes32(config[2]), defaultParams[2], "The interest rate punitory its wrong");
-    assert.equal(config[3], timestamp + monthInSec, "The dues in its wrong");
-    assert.equal(config[4], id, "The id its wrong");
-    const state = await model.states(id);
+    const config = await getConfig(id);
+    assert.equal(Helper.toBytes32(config.amount), defaultParams[0], "The amount its wrong");
+    assert.equal(Helper.toBytes32(config.interestRate), defaultParams[1], "The interest rate its wrong");
+    assert.equal(Helper.toBytes32(config.interestRatePunitory), defaultParams[2], "The interest rate punitory its wrong");
+    assert.equal(config.dueTime, timestamp + monthInSec, "The dues in its wrong");
+    assert.equal(config.id, id, "The id its wrong");
 
-    assert.equal(state[0].toString(), 0, "The paid should be 0");
-    assert.equal(state[1].toString(), 125, "The interest should be 125");
-    assert.equal(state[2].toString(), 0, "The punitoryInterest should be 0");
-    assert.equal(state[3].toString(), timestamp + Math.floor(monthInSec / 2), "The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at");
-    assert.equal(state[4].toString(), 0, "The status should not be paid");
-  });
+    const state = await getState(id);
+    assert.equal(state.paid, 0, "The paid should be 0");
+    assert.equal(state.interest, 123, "The interest should be 123");
+    assert.equal(state.punitoryInterest, 0, "The punitoryInterest should be 0");
+    assert.equal(state.interestTimestamp, timestamp + Math.floor(monthInSec / 2), "The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at");
+    assert.equal(state.status, 0, "The status should not be paid");
+  })
 
   it("Test addPaid without punitory", async function() {
     const id = Helper.toBytes32(idCounter++);
@@ -95,13 +117,13 @@ contract('NanoLoanModel', function(accounts) {
     const timestampCreate = (await web3.eth.getBlock(txCreate.receipt.blockNumber)).timestamp;
     await Helper.increaseTime(1000000);
     const txPaid = await model.addPaid(id, 1000, { from: owner });
-    const state = await model.states(id);
 
-    assert.equal(state[0].toString(), 1000, "The paid should be 1000");
-    assert.equal(state[1].toString(), 125, "The interest should be 125");
-    assert.equal(state[2].toString(), 0, "The punitoryInterest should be 0");
-    assert.equal(state[3].toString(), timestampCreate + Math.floor(monthInSec / 2), "The interestTimestamp should be the timestamp of block of create transaction  plus the cancelable at");
-    assert.equal(state[4].toString(), 0, "The status should not be paid");
+    const state = await getState(id);
+    assert.equal(state.paid, 1000, "The paid should be 1000");
+    assert.equal(state.interest, 123, "The interest should be 123");
+    assert.equal(state.punitoryInterest, 0, "The punitoryInterest should be 0");
+    assert.equal(state.interestTimestamp, timestampCreate + Math.floor(monthInSec / 2), "The interestTimestamp should be the timestamp of block of create transaction  plus the cancelable at");
+    assert.equal(state.status, 0, "The status should not be paid");
   });
 
   it("Test pay total with interest and interestPunitory", async function() {
@@ -112,12 +134,12 @@ contract('NanoLoanModel', function(accounts) {
     const interestPTotal = Math.floor(((10000 + interestTotal) * 60/12)/100); // 512.5
     const total = Math.floor(10000 + interestTotal + interestPTotal); // 10762
     await model.addPaid(id, total, { from: owner });
-    const state = await model.states(id);
 
-    assert.equal(state[0].toString(), total, "The paid should be 10762");
-    assert.equal(state[1].toString(), interestTotal, "The interest should be 250");
-    assert.equal(state[2].toString(), interestPTotal, "The punitoryInterest should be 512");
-    assert.equal(state[4].toString(), STATUS_PAID, "The status should be paid");
+    const state = await getState(id);
+    assert.equal(state.paid, total, "The paid should be 10622");
+    assert.equal(state.interest, interestTotal, "The interest should be 250");
+    assert.equal(state.punitoryInterest, interestPTotal, "The punitoryInterest should be 512");
+    assert.equal(state.status, STATUS_PAID, "The status should be paid");
   });
 
   it("Calling run() shouldn't affect the accrued interest", async function() {
@@ -230,9 +252,9 @@ contract('NanoLoanModel', function(accounts) {
 
       // pay total amount
       const txPaid = await model.addPaid(id, d4PendingAmount, { from: owner });
-      const state = await model.states(id);
-      assert.equal(state[0].toString(), d4PendingAmount, "The paid should be " + d4PendingAmount);
-      assert.equal(state[4].toString(), STATUS_PAID, "The status should be paid");
+      const state = await getState(id);
+      assert.equal(state.paid, d4PendingAmount, "The paid should be " + d4PendingAmount);
+      assert.equal(state.status, STATUS_PAID, "The status should be paid");
     }
   };
 })
