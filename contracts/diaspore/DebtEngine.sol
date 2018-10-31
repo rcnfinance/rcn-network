@@ -409,7 +409,6 @@ contract DebtEngine is ERC721Base {
     ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
-        require(count > 0, "There are not loans to pay.");
 
         if (_oracle != address(0)) {
             (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);

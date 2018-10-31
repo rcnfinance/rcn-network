@@ -1224,24 +1224,16 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 1000);
     });
 
-    it("Should fail, there aren't loans", async function() {
-        const id = await getId(debtEngine.create(
-            testModel.address,
-            accounts[2],
+    it("Pay 0 loans should make no change", async function() {
+        await rcn.setBalance(accounts[2], 0);
+        await debtEngine.payBatch(
+            [],
+            [],
+            accounts[1],
             0x0,
             0x0,
-            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
-        ));
-        await Helper.assertThrow(
-            debtEngine.payBatch(
-                [],
-                [],
-                accounts[1],
-                0x0,
-                0x0,
-                0x0,
-                { from: accounts[2] }
-            )
+            0x0,
+            { from: accounts[2] }
         );
     });
 
