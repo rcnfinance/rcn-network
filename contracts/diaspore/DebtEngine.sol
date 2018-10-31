@@ -433,19 +433,17 @@ contract DebtEngine is ERC721Base {
 
     }
 
-    /*
-    *
-    * Method internal that help to pay.
-    *
-    * @param _id Pay identifier
-    * @param _oracle Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
-    * @param _currency The currency to use with the oracle.
-    * @param _amount Amount to pay, in currency
-    * @param _rate Rate used to convert to tokens
-    * @param _decimals Decimals used to convert to tokens
-    * @return paid
-    * @return paidToken
-    *
+    /**
+        Internal method to pay a loan, during a payment batch context
+
+        @param _id Pay identifier
+        @param _oracle Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
+        @param _currency The currency to use with the oracle.
+        @param _amount Amount to pay, in currency
+        @param _rate Rate used to convert to tokens
+        @param _decimals Decimals used to convert to tokens
+
+        @return paid and paidTokens, similar to external pay
     */
     function _pay(
         bytes32 _id,
