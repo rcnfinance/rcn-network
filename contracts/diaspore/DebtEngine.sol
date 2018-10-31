@@ -317,11 +317,11 @@ contract DebtEngine is ERC721Base {
             emit ReadedOracleBatch(count, rate, decimals);
         }
 
-        uint256[] memory pays = new uint256[](count);
-        uint256[] memory payTokens = new uint256[](count);
+        uint256[] memory paid = new uint256[](count);
+        uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 amount = _amounts[i];
-            (pays[i], payTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
 
             emit Paid({
                 _id: _ids[i],
@@ -329,12 +329,12 @@ contract DebtEngine is ERC721Base {
                 _origin: _origin,
                 _requested: amount,
                 _requestedTokens: 0,
-                _paid: pays[i],
-                _tokens: payTokens[i]
+                _paid: paid[i],
+                _tokens: paidTokens[i]
             });
         }
 
-        return (pays, payTokens);
+        return (paid, paidTokens);
     }
 
     function payToken(
@@ -411,11 +411,11 @@ contract DebtEngine is ERC721Base {
             emit ReadedOracleBatch(count, rate, decimals);
         }
 
-        uint256[] memory pays = new uint256[](count);
-        uint256[] memory payTokens = new uint256[](count);
+        uint256[] memory paid = new uint256[](count);
+        uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 amount = _oracle != address(0) ? _fromToken(_amounts[i], rate, decimals) : _amounts[i];
-            (pays[i], payTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
 
             emit Paid({
                 _id: _ids[i],
@@ -423,13 +423,13 @@ contract DebtEngine is ERC721Base {
                 _origin: _origin,
                 _requested: 0,
                 _requestedTokens: amount,
-                _paid: pays[i],
-                _tokens: payTokens[i]
+                _paid: paid[i],
+                _tokens: paidTokens[i]
             });
 
         }
 
-        return (pays, payTokens);
+        return (paid, paidTokens);
 
     }
 
