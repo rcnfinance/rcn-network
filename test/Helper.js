@@ -124,7 +124,7 @@ async function tryCatchRevert(promiseFunction, message) {
 }
 
 function toInterestRate(interest) {
-  return Math.floor((10000000 / interest) * 360 * 86400);
+  return Math.floor((10000000 / interest) * 365 * 86400);
 }
 
 async function buyTokens(token, amount, account) {
