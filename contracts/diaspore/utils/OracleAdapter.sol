@@ -32,6 +32,8 @@ contract OracleAdapter is RateOracle, ERC165 {
         decimals = _decimals;
         currency = _currency;
         token = _token;
+
+        _registerInterface(RATE_ORACLE_INTERFACE);
     }
 
     function url() external view returns (string) {

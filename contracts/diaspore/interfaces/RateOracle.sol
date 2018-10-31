@@ -13,6 +13,8 @@ import "./../../interfaces/IERC165.sol";
 */
 contract RateOracle is IERC165 {
     uint256 public constant VERSION = 5;
+    bytes4 internal constant RATE_ORACLE_INTERFACE = 0xa265d8e0;
+
     constructor() internal {}
 
     /**
