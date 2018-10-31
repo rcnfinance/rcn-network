@@ -45,9 +45,6 @@ async function assertThrow(promise) {
 };
 // the promiseFunction should be a function
 async function tryCatchRevert(promiseFunction, message) {
-  if (process.env.SOLIDITY_COVERAGE) {
-    assert(true)
-  }
   let headMsg = 'revert ';
   if(message == "") {
     headMsg = headMsg.slice(0, headMsg.length -1);
@@ -57,7 +54,7 @@ async function tryCatchRevert(promiseFunction, message) {
     await promiseFunction();
   } catch (error) {
     assert(
-      error.message.search(headMsg + message) >= 0,
+      error.message.search(headMsg + message) >= 0 || process.env.SOLIDITY_COVERAGE,
       "Expected a revert '" + headMsg + message + "', got '" + error.message + "' instead"
     );
     return;
