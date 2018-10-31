@@ -146,7 +146,14 @@ contract BytesUtils {
         uint256 _ld,
         uint256 _le,
         uint256 _lf
-    ) internal pure returns (bytes32 _a, bytes32 _b, bytes32 _c, bytes32 _d, bytes32 _e, bytes32 _f) {
+    ) internal pure returns (
+        bytes32 _a,
+        bytes32 _b,
+        bytes32 _c,
+        bytes32 _d,
+        bytes32 _e,
+        bytes32 _f
+    ) {
         uint256 o;
         assembly {
             let s := add(_data, 32)
@@ -170,7 +177,7 @@ contract BytesUtils {
             l := sub(32, _le)
             if l { _e := div(_e, exp(2, mul(l, 8))) }
             o := add(o, _le)
-            _e := mload(o)
+            _f := mload(o)
             l := sub(32, _lf)
             if l { _f := div(_f, exp(2, mul(l, 8))) }
             o := sub(o, s)
