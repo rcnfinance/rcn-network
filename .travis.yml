@@ -16,9 +16,14 @@ matrix:
       - curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
       - sudo apt-get install -y nodejs
       - rm -rf node_modules
-
 install:
-  - bash ./bin/travis-install.sh
-
+  - npm install -g truffle
+  - npm install -g ganache-cli
+  - npm install
 script:
   - bash ./bin/test.sh
+before_script:
+  - testrpc > /dev/null &
+  - sleep 5
+after_script:
+  - npm run coverage && cat coverage/lcov.info | coveralls
