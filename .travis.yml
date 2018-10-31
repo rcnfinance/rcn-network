@@ -2,8 +2,7 @@ dist: xenial
 sudo: required
 language: node_js
 node_js:
-  - "9.4.0"
- 
+  - "8"
 matrix:
   include:
     - os: linux
@@ -16,9 +15,17 @@ matrix:
       - curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
       - sudo apt-get install -y nodejs
       - rm -rf node_modules
- 
 install:
-  - bash ./bin/travis-install.sh
- 
-script:
-  - bash ./bin/test.sh
+  - npm install truffle
+  - npm install ganache-cli
+  - npm install
+  - mkdir migrations
+jobs:
+  include:
+    - stage: tests
+      name: "Truffle tests"
+      script: npm run test
+    - stage: tests
+      name: "Solidity-coverage"
+      script: npm run-script coverage
+      env: SOLIDITY_COVERAGE=true

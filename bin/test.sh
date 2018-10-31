@@ -1,10 +1,7 @@
-#!/bin/bash
- 
-set -e
- 
-ganache-cli --gasLimit 10000000 2> /dev/null 1> /dev/null &
-sleep 5 # to make sure ganache-cli is up and running before compiling
-mkdir migrations
-rm -rf build
-truffle test
-kill -9 $(lsof -t -i:8545)
+#!/usr/bin/env bash
+
+# Start testrpc
+node_modules/.bin/ganache-cli --gasLimit 7000000 > /dev/null &
+
+# Run truffle tests
+node_modules/.bin/truffle test "$@"
