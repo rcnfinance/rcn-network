@@ -3,7 +3,6 @@ sudo: required
 language: node_js
 node_js:
   - "8"
-
 matrix:
   include:
     - os: linux
@@ -22,16 +21,17 @@ install:
   - npm install ganache-cli
   - npm install
 allow_failures:
-- env: SOLIDITY_COVERAGE=true
-include:
-- stage: tests
-    name: "unit tests"
-    script: npm run test
-- stage: tests
-    name: "unit tests with coverage"
-    script: npm run test
-    env: SOLIDITY_COVERAGE=true
-# solidity and javascript style tests.
-- stage: tests
-    name: "static tests"
-    script: npm run lint
+  - env: SOLIDITY_COVERAGE=true
+jobs:
+  fast_finish: true
+  allow_failures:
+    - env: SOLIDITY_COVERAGE=true
+    - env: SOLC_NIGHTLY=true
+  include:
+    - stage: tests
+      name: "unit tests"
+      script: npm run test
+    - stage: tests
+      name: "unit tests with coverage"
+      script: npm run test
+      env: SOLIDITY_COVERAGE=true
