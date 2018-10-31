@@ -7,14 +7,14 @@ import "./../../interfaces/Oracle.sol";
 contract OracleAdapter is RateOracle, ERC165 {
     Oracle public legacyOracle;
 
-    string public symbol;
-    string public name;
-    string public maintainer;
+    string private isymbol;
+    string private iname;
+    string private imaintainer;
 
-    uint256 public decimals;
-    bytes32 public currency;
+    uint256 private idecimals;
+    bytes32 private icurrency;
 
-    address public token;
+    address private itoken;
 
     constructor(
         Oracle _legacyOracle,
@@ -26,22 +26,35 @@ contract OracleAdapter is RateOracle, ERC165 {
         address _token
     ) public {
         legacyOracle = _legacyOracle;
-        symbol = _symbol;
-        name = _name;
-        maintainer = _maintainer;
-        decimals = _decimals;
-        currency = _currency;
-        token = _token;
+        isymbol = _symbol;
+        iname = _name;
+        imaintainer = _maintainer;
+        idecimals = _decimals;
+        icurrency = _currency;
+        itoken = _token;
 
         _registerInterface(RATE_ORACLE_INTERFACE);
     }
+
+    function symbol() external view returns (string) { return isymbol; }
+
+    function name() external view returns (string) { return iname; }
+
+    function decimals() external view returns (uint256) { return idecimals; }
+
+    function token() external view returns (address) { return itoken; }
+
+    function currency() external view returns (bytes32) { return icurrency; }
+    
+    function maintainer() external view returns (string) { return imaintainer; }
 
     function url() external view returns (string) {
         return legacyOracle.url();
     }
 
     function readSample(bytes _data) external returns (uint256 _currency, uint256 _tokens) {
-        (_currency, _tokens) = legacyOracle.getRate(currency, _data);
-        _tokens = 10 ** _tokens;
+        (_currency, _tokens) = legacyOracle.getRate(icurrency, _data);
+        require(_tokens <= 18, "Max decimals is 18");
+        _tokens = 10 ** (18 - _tokens);
     }    
 }
