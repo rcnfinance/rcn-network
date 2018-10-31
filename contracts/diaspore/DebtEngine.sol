@@ -312,23 +312,22 @@ contract DebtEngine is ERC721Base {
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
         require(count > 0, "There are not loans to pay.");
 
-        uint256[3] data;
         if (_oracle != address(0)) {
-            (data[1], data[2]) = IOracle(_oracle).getRate(_currency, _oracleData);
-            emit ReadedOracleBatch(count, data[1], data[2]);
+            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
+            emit ReadedOracleBatch(count, rate, decimals);
         }
 
         uint256[] memory pays = new uint256[](count);
         uint256[] memory payTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            data[0] = _amounts[i];
-            (pays[i], payTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
+            uint256 amount = _amounts[i];
+            (pays[i], payTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
 
             emit Paid({
                 _id: _ids[i],
                 _sender: msg.sender,
                 _origin: _origin,
-                _requested: _amounts[i],
+                _requested: amount,
                 _requestedTokens: 0,
                 _paid: pays[i],
                 _tokens: payTokens[i]
@@ -407,29 +406,23 @@ contract DebtEngine is ERC721Base {
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
         require(count > 0, "There are not loans to pay.");
 
-        uint256[3] data;
         if (_oracle != address(0)) {
-            (data[1], data[2]) = IOracle(_oracle).getRate(_currency, _oracleData);
-            emit ReadedOracleBatch(count, data[1], data[2]);
+            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
+            emit ReadedOracleBatch(count, rate, decimals);
         }
 
         uint256[] memory pays = new uint256[](count);
         uint256[] memory payTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-
-            data[0] = _amounts[i];
-            if (_oracle != address(0)) {
-                data[0] = _fromToken(_amounts[i], data[1], data[2]);
-            }
-
-            (pays[i], payTokens[i]) = _pay(_ids[i], _oracle, _currency, data);
+            uint256 amount = _oracle != address(0) ? _fromToken(_amounts[i], rate, decimals) : _amounts[i];
+            (pays[i], payTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
 
             emit Paid({
                 _id: _ids[i],
                 _sender: msg.sender,
                 _origin: _origin,
                 _requested: 0,
-                _requestedTokens: data[0],
+                _requestedTokens: amount,
                 _paid: pays[i],
                 _tokens: payTokens[i]
             });
@@ -447,11 +440,9 @@ contract DebtEngine is ERC721Base {
     * @param _id Pay identifier
     * @param _oracle Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
     * @param _currency The currency to use with the oracle.
-    * @param _data Array of data for pay
-    *        0 -> Amount - Amount to convert in rate currency.
-    *        1 -> Rate -  Rate to use in the convertion.
-    *        2 -> Decimals - Base difference between rate and tokens.
-    *
+    * @param _amount Amount to pay, in currency
+    * @param _rate Rate used to convert to tokens
+    * @param _decimals Decimals used to convert to tokens
     * @return paid
     * @return paidToken
     *
@@ -460,7 +451,9 @@ contract DebtEngine is ERC721Base {
         bytes32 _id,
         address _oracle,
         bytes8 _currency,
-        uint256[3] _data
+        uint256 _amount,
+        uint256 _rate,
+        uint256 _decimals
     ) internal returns (uint256 paid, uint256 paidToken){
         Debt storage debt = debts[_id];
         if (_currency != debt.currency || _oracle != debt.oracle) {
@@ -468,11 +461,11 @@ contract DebtEngine is ERC721Base {
         }
 
         // Paid only required amount
-        paid = _safePay(_id, debt.model, _data[0]);
-        require(paid <= _data[0], "Paid can't be more than requested");
+        paid = _safePay(_id, debt.model, _amount);
+        require(paid <= _amount, "Paid can't be more than requested");
 
-        paidToken = _getPaidToken(paid, _oracle, _data[1], _data[2]);
-        require(paidToken <= _data[0], "Paid can't exceed requested");
+        paidToken = _getPaidToken(paid, _oracle, _rate, _decimals);
+        require(paidToken <= _amount, "Paid can't exceed requested");
 
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
