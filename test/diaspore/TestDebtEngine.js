@@ -3,6 +3,7 @@ const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require("./utils/test/TestToken.sol");
 const TestOracle = artifacts.require("./examples/TestOracle.sol");
 const OracleAdapter = artifacts.require('./diaspore/utils/OracleAdapter.sol');
+const TestRateOracle = artifacts.require('./diaspore/utils/test/TestRateOracle.sol');
 
 const Helper = require('../Helper.js');
 
@@ -12,6 +13,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     let testModel;
     let legacyOracle;
     let oracle;
+    let testOracle;
 
     async function getId(promise) {
         const receipt = await promise;
@@ -23,6 +25,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         rcn = await TestToken.new();
         debtEngine = await DebtEngine.new(rcn.address);
         testModel = await TestModel.new();
+        testOracle = await TestRateOracle.new();
         await testModel.setEngine(debtEngine.address);
         legacyOracle = await TestOracle.new();
         oracle = await OracleAdapter.new(
@@ -1279,6 +1282,25 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await debtEngine.getStatus(ids[0]), 2);
         assert.equal(await testModel.getPaid(ids[0]), 3000);
     })
+
+    it("Should apply rate even when tokens is not divisible by 10", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+        
+        // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
+        const data = await testOracle.encodeRate(400023333566612312000000, 82711175222132156792);
+
+        await rcn.setBalance(accounts[0], 5000);
+        await rcn.approve(debtEngine.address, 5000);
+
+        await debtEngine.pay(id, 1, 0x0, data);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 850);
+    });
 
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
