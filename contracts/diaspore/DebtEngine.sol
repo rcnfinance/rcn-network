@@ -434,7 +434,6 @@ contract DebtEngine is ERC721Base {
         }
 
         return (paid, paidTokens);
-
     }
 
     /**
@@ -472,7 +471,7 @@ contract DebtEngine is ERC721Base {
         paid = _safePay(_id, debt.model, _amount);
         require(paid <= _amount, "Paid can't be more than requested");
 
-        paidToken = _getPaidToken(paid, _oracle, _rate, _decimals);
+        paidToken = _oracle != address(0) ? _toToken(paid, _rate, _decimals) : paid;
         require(paidToken <= _amount, "Paid can't exceed requested");
 
         // Pull tokens from payer
@@ -482,18 +481,6 @@ contract DebtEngine is ERC721Base {
         uint256 newBalance = paidToken.add(debt.balance);
         require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
         debt.balance = uint128(newBalance);
-    }
-
-    function _getPaidToken(
-        uint256 _paid,
-        address _oracle,
-        uint256 _rate,
-        uint256 _decimals)
-    internal pure returns (uint256) {
-        if (_oracle != address(0)) {
-            return _toToken(_paid, _rate, _decimals);
-        }
-        return _paid;
     }
 
     function _safePay(
