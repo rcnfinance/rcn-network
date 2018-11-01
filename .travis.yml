@@ -25,6 +25,7 @@ jobs:
     - stage: tests
       name: "Truffle tests"
       script: npm run test
+      env: SOLIDITY_COVERAGE=false
     - stage: tests
       name: "Solidity-coverage"
       script: npm run-script coverage
