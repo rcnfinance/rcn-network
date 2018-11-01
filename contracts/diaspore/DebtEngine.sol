@@ -306,42 +306,6 @@ contract DebtEngine is ERC721Base {
         });
     }
 
-    function payBatch(
-        bytes32[] _ids,
-        uint256[] _amounts,
-        address _origin,
-        address _oracle,
-        bytes8 _currency,
-        bytes _oracleData
-    ) public returns (uint256[], uint256[]) {
-        uint256 count = _ids.length;
-        require(count == _amounts.length, "The loans and the amounts do not correspond.");
-
-        if (_oracle != address(0)) {
-            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
-            emit ReadedOracleBatch(count, rate, decimals);
-        }
-
-        uint256[] memory paid = new uint256[](count);
-        uint256[] memory paidTokens = new uint256[](count);
-        for (uint256 i = 0; i < count; i++) {
-            uint256 amount = _amounts[i];
-            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
-
-            emit Paid({
-                _id: _ids[i],
-                _sender: msg.sender,
-                _origin: _origin,
-                _requested: amount,
-                _requestedTokens: 0,
-                _paid: paid[i],
-                _tokens: paidTokens[i]
-            });
-        }
-
-        return (paid, paidTokens);
-    }
-
     function payToken(
         bytes32 id,
         uint256 amount,
@@ -397,6 +361,42 @@ contract DebtEngine is ERC721Base {
             _paid: paid,
             _tokens: paidToken
         });
+    }
+
+    function payBatch(
+        bytes32[] _ids,
+        uint256[] _amounts,
+        address _origin,
+        address _oracle,
+        bytes8 _currency,
+        bytes _oracleData
+    ) public returns (uint256[], uint256[]) {
+        uint256 count = _ids.length;
+        require(count == _amounts.length, "The loans and the amounts do not correspond.");
+
+        if (_oracle != address(0)) {
+            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
+            emit ReadedOracleBatch(count, rate, decimals);
+        }
+
+        uint256[] memory paid = new uint256[](count);
+        uint256[] memory paidTokens = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            uint256 amount = _amounts[i];
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
+
+            emit Paid({
+                _id: _ids[i],
+                _sender: msg.sender,
+                _origin: _origin,
+                _requested: amount,
+                _requestedTokens: 0,
+                _paid: paid[i],
+                _tokens: paidTokens[i]
+            });
+        }
+
+        return (paid, paidTokens);
     }
 
     function payTokenBatch(
