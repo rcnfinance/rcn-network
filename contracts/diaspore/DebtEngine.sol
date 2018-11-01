@@ -43,8 +43,8 @@ contract DebtEngine is ERC721Base {
 
     event ReadedOracleBatch(
         uint256 _count,
-        uint256 _amount,
-        uint256 _decimals
+        uint256 _rate,
+        uint256 _tokens
     );
 
     event ReadedOracle(
@@ -55,8 +55,7 @@ contract DebtEngine is ERC721Base {
 
     event PayBatchError(
         bytes32 indexed _id,
-        address _targetOracle,
-        bytes8 _targetCurrency
+        address _targetOracle
     );
 
     event Withdrawn(
@@ -358,22 +357,21 @@ contract DebtEngine is ERC721Base {
         uint256[] _amounts,
         address _origin,
         address _oracle,
-        bytes8 _currency,
         bytes _oracleData
     ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
 
         if (_oracle != address(0)) {
-            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
-            emit ReadedOracleBatch(count, rate, decimals);
+            (uint256 rate, uint256 tokens) = IOracle(_oracle).readSample(_oracleData);
+            emit ReadedOracleBatch(count, rate, tokens);
         }
 
         uint256[] memory paid = new uint256[](count);
         uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 amount = _amounts[i];
-            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, rate, tokens);
 
             emit Paid({
                 _id: _ids[i],
@@ -394,22 +392,21 @@ contract DebtEngine is ERC721Base {
         uint256[] _amounts,
         address _origin,
         address _oracle,
-        bytes8 _currency,
         bytes _oracleData
     ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
 
         if (_oracle != address(0)) {
-            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
-            emit ReadedOracleBatch(count, rate, decimals);
+            (uint256 rate, uint256 tokens) = IOracle(_oracle).readSample(_oracleData);
+            emit ReadedOracleBatch(count, rate, tokens);
         }
 
         uint256[] memory paid = new uint256[](count);
         uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            uint256 amount = _oracle != address(0) ? _fromToken(_amounts[i], rate, decimals) : _amounts[i];
-            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
+            uint256 amount = _oracle != address(0) ? _fromToken(_amounts[i], rate, tokens) : _amounts[i];
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, rate, tokens);
 
             emit Paid({
                 _id: _ids[i],
@@ -431,7 +428,6 @@ contract DebtEngine is ERC721Base {
 
         @param _id Pay identifier
         @param _oracle Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
-        @param _currency The currency to use with the oracle.
         @param _amount Amount to pay, in currency
         @param _rate Rate used to convert to tokens
         @param _decimals Decimals used to convert to tokens
@@ -441,17 +437,15 @@ contract DebtEngine is ERC721Base {
     function _pay(
         bytes32 _id,
         address _oracle,
-        bytes8 _currency,
         uint256 _amount,
         uint256 _rate,
         uint256 _decimals
     ) internal returns (uint256 paid, uint256 paidToken){
         Debt storage debt = debts[_id];
-        if (_currency != debt.currency || _oracle != debt.oracle) {
+        if (_oracle != debt.oracle) {
             emit PayBatchError(
                 _id,
-                _oracle,
-                _currency
+                _oracle
             );
 
             return (0,0);
