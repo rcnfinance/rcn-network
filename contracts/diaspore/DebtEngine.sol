@@ -42,6 +42,7 @@ contract DebtEngine is ERC721Base {
     );
 
     event ReadedOracleBatch(
+        address _oracle,
         uint256 _count,
         uint256 _rate,
         uint256 _tokens
@@ -49,8 +50,8 @@ contract DebtEngine is ERC721Base {
 
     event ReadedOracle(
         bytes32 indexed _id,
-        uint256 _amount,
-        uint256 _decimals
+        uint256 _rate,
+        uint256 _tokens
     );
 
     event PayBatchError(
@@ -364,7 +365,7 @@ contract DebtEngine is ERC721Base {
 
         if (_oracle != address(0)) {
             (uint256 rate, uint256 tokens) = IOracle(_oracle).readSample(_oracleData);
-            emit ReadedOracleBatch(count, rate, tokens);
+            emit ReadedOracleBatch(_oracle, count, rate, tokens);
         }
 
         uint256[] memory paid = new uint256[](count);
@@ -399,7 +400,7 @@ contract DebtEngine is ERC721Base {
 
         if (_oracle != address(0)) {
             (uint256 rate, uint256 tokens) = IOracle(_oracle).readSample(_oracleData);
-            emit ReadedOracleBatch(count, rate, tokens);
+            emit ReadedOracleBatch(_oracle, count, rate, tokens);
         }
 
         uint256[] memory paid = new uint256[](count);
