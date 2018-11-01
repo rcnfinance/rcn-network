@@ -1,53 +1,3 @@
-const CREATEDLOAN = 'CreatedLoan';
-const APPROVEDBY = 'ApprovedBy';
-const LENT = 'Lent';
-const PARTIALPAYMENT = 'PartialPayment';
-const TOTALPAYMENT = 'TotalPayment';
-const DESTROYEDBY = 'DestroyedBy';
-
-function toEvents(logs, event) {
-  return logs.filter( x => x.event == event).map( x => toEvent(x) );
-}
-
-function toEvent(log) {
-  if(log.event == CREATEDLOAN) {
-    return {
-      index: log.args._index.toString(),
-      borrower: log.args._borrower,
-      creator: log.args._creator
-    };
-  } else if (log.event == APPROVEDBY) {
-    return {
-      index: log.args._index.toString(),
-      address: log.args._address
-    };
-  } else if (log.event == LENT) {
-    return {
-      index: log.args._index.toString(),
-      lender: log.args._lender,
-      cosigner: log.args._cosigner
-    };
-  } else if (log.event == PARTIALPAYMENT) {
-    return {
-      index: log.args._index.toString(),
-      sender: log.args._sender,
-      from: log.args._from,
-      total: log.args._total.toString(),
-      interest: log.args._interest.toString()
-    };
-  } else if (log.event == TOTALPAYMENT) {
-    return {
-      index: log.args._index.toString()
-    };
-  } else if (log.event == DESTROYEDBY) {
-    return {
-      index: log.args._index.toString(),
-      address: log.args._address
-    };
-  } else
-    console.log('-----------Event not found------------');
-}
-
 function arrayToBytesOfBytes32(array) {
   let bytes = "0x";
   for(let i = 0; i < array.length; i++){
@@ -111,13 +61,13 @@ async function tryCatchRevert(promiseFunction, message) {
   let headMsg = 'revert ';
   if(message == "") {
     headMsg = headMsg.slice(0, headMsg.length -1);
-    console.warn("Becareful the revert message its empty");
+    console.warn("    \033[93m\033[2m⬐\033[0m \033[1;30m\033[2mWarning: There is an empty revert/require message");
   }
   try {
     await promiseFunction();
   } catch (error) {
     assert(
-      error.message.search(headMsg + message) >= 0,
+      error.message.search(headMsg + message) >= 0 || process.env.SOLIDITY_COVERAGE,
       "Expected a revert '" + headMsg + message + "', got '" + error.message + "' instead"
     );
     return;
@@ -136,8 +86,10 @@ async function buyTokens(token, amount, account) {
   assert.equal(newAmount.toNumber() - prevAmount.toNumber(), amount, "Should have minted tokens")
 }
 
-async function readLoanId(recepit) {
-  return toEvents(recepit.logs, CREATEDLOAN)[0].index;
+function searchEvent(tx, eventName) {
+    const event = tx.logs.filter( x => x.event == eventName).map( x => x.args );
+    assert.equal(event.length, 1, "Should have only one " + eventName);
+    return event[0];
 }
 
 async function almostEqual(p1, p2, reason, margin = 3) {
@@ -145,8 +97,7 @@ async function almostEqual(p1, p2, reason, margin = 3) {
 }
 
 module.exports = {
-  toEvents, arrayToBytesOfBytes32, getBlockTime, tryCatchRevert, almostEqual,
-  toBytes32, increaseTime, isRevertErrorMessage, assertThrow,
-  toInterestRate, buyTokens, readLoanId, isRevertErrorMessage,
-  CREATEDLOAN, APPROVEDBY, LENT, PARTIALPAYMENT, TOTALPAYMENT, DESTROYEDBY
+  arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
+  toBytes32, increaseTime, searchEvent, getBlockTime,
+  toInterestRate, buyTokens, isRevertErrorMessage, almostEqual
 };
