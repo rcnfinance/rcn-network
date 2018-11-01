@@ -479,16 +479,9 @@ contract DebtEngine is ERC721Base {
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
 
         // Add balance to debt
-        debt.balance = _addBalanceToDebt(paidToken, debt.balance);
-    }
-
-    function _addBalanceToDebt(
-        uint256 paidToken,
-        uint256 balance
-    ) internal pure returns (uint128) {
-        uint256 newBalance = paidToken.add(balance);
+        uint256 newBalance = paidToken.add(debt.balance);
         require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
-        return uint128(newBalance);
+        debt.balance = uint128(newBalance);
     }
 
     function _getPaidToken(
