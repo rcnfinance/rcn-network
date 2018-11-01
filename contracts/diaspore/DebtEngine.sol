@@ -41,10 +41,22 @@ contract DebtEngine is ERC721Base {
         uint256 _tokens
     );
 
+    event ReadedOracleBatch(
+        uint256 _count,
+        uint256 _amount,
+        uint256 _decimals
+    );
+
     event ReadedOracle(
         bytes32 indexed _id,
         uint256 _amount,
         uint256 _decimals
+    );
+
+    event PayBatchError(
+        bytes32 indexed _id,
+        address _targetOracle,
+        bytes8 _targetCurrency
     );
 
     event Withdrawn(
@@ -86,11 +98,11 @@ contract DebtEngine is ERC721Base {
         address oracle;
     }
 
-    constructor(
+    constructor (
         Token _token
     ) public ERC721Base("RCN Debt Record", "RDR") {
         token = _token;
-        
+
         // Sanity checks
         require(address(_token).isContract(), "Token should be a contract");
     }
@@ -283,7 +295,7 @@ contract DebtEngine is ERC721Base {
             _tokens: paidToken
         });
     }
-    
+
     function payToken(
         bytes32 id,
         uint256 amount,
@@ -341,6 +353,126 @@ contract DebtEngine is ERC721Base {
         });
     }
 
+    function payBatch(
+        bytes32[] _ids,
+        uint256[] _amounts,
+        address _origin,
+        address _oracle,
+        bytes8 _currency,
+        bytes _oracleData
+    ) public returns (uint256[], uint256[]) {
+        uint256 count = _ids.length;
+        require(count == _amounts.length, "The loans and the amounts do not correspond.");
+
+        if (_oracle != address(0)) {
+            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
+            emit ReadedOracleBatch(count, rate, decimals);
+        }
+
+        uint256[] memory paid = new uint256[](count);
+        uint256[] memory paidTokens = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            uint256 amount = _amounts[i];
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
+
+            emit Paid({
+                _id: _ids[i],
+                _sender: msg.sender,
+                _origin: _origin,
+                _requested: amount,
+                _requestedTokens: 0,
+                _paid: paid[i],
+                _tokens: paidTokens[i]
+            });
+        }
+
+        return (paid, paidTokens);
+    }
+
+    function payTokenBatch(
+        bytes32[] _ids,
+        uint256[] _amounts,
+        address _origin,
+        address _oracle,
+        bytes8 _currency,
+        bytes _oracleData
+    ) public returns (uint256[], uint256[]) {
+        uint256 count = _ids.length;
+        require(count == _amounts.length, "The loans and the amounts do not correspond.");
+
+        if (_oracle != address(0)) {
+            (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
+            emit ReadedOracleBatch(count, rate, decimals);
+        }
+
+        uint256[] memory paid = new uint256[](count);
+        uint256[] memory paidTokens = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            uint256 amount = _oracle != address(0) ? _fromToken(_amounts[i], rate, decimals) : _amounts[i];
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
+
+            emit Paid({
+                _id: _ids[i],
+                _sender: msg.sender,
+                _origin: _origin,
+                _requested: 0,
+                _requestedTokens: amount,
+                _paid: paid[i],
+                _tokens: paidTokens[i]
+            });
+
+        }
+
+        return (paid, paidTokens);
+    }
+
+    /**
+        Internal method to pay a loan, during a payment batch context
+
+        @param _id Pay identifier
+        @param _oracle Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
+        @param _currency The currency to use with the oracle.
+        @param _amount Amount to pay, in currency
+        @param _rate Rate used to convert to tokens
+        @param _decimals Decimals used to convert to tokens
+
+        @return paid and paidTokens, similar to external pay
+    */
+    function _pay(
+        bytes32 _id,
+        address _oracle,
+        bytes8 _currency,
+        uint256 _amount,
+        uint256 _rate,
+        uint256 _decimals
+    ) internal returns (uint256 paid, uint256 paidToken){
+        Debt storage debt = debts[_id];
+        if (_currency != debt.currency || _oracle != debt.oracle) {
+            emit PayBatchError(
+                _id,
+                _oracle,
+                _currency
+            );
+
+            return (0,0);
+        }
+
+        // Paid only required amount
+        paid = _safePay(_id, debt.model, _amount);
+        require(paid <= _amount, "Paid can't be more than requested");
+
+        paidToken = _oracle != address(0) ? _toToken(paid, _rate, _decimals) : paid;
+        require(paidToken <= _amount, "Paid can't exceed requested");
+
+        // Pull tokens from payer
+        require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
+
+        // Add balance to debt
+        uint256 newBalance = paidToken.add(debt.balance);
+        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
+        debt.balance = uint128(newBalance);
+    }
+
     function _safePay(
         bytes32 _id,
         Model _model,
@@ -366,7 +498,7 @@ contract DebtEngine is ERC721Base {
                     _result: paid,
                     _callData: msg.data
                 });
-                
+
                 delete debts[_id].error;
             }
 
@@ -440,7 +572,7 @@ contract DebtEngine is ERC721Base {
                     _result: result,
                     _callData: msg.data
                 });
-                
+
                 delete debt.error;
             }
 
