@@ -4,7 +4,7 @@ const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require("./utils/test/TestToken.sol");
 const TestCosigner = artifacts.require("./examples/TestCosigner.sol");
 
-const Helper = require('./Helper.js');
+const Helper = require('../Helper.js');
 const Web3Utils = require('web3-utils');
 
 contract('Test LoanManager Diaspore', function(accounts) {
