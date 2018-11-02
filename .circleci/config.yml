@@ -46,6 +46,10 @@ jobs:
                 keys:
                 - v1-dependencies-{{ checksum "package.json" }}
                 - v1-dependencies-
+            # Create migrations folder
+            - run:
+                name: Create migrations folder
+                command: mkdir migrations
             # Start ganache
             - run:
                 name: Start ganache instance
