@@ -34,7 +34,7 @@ contract LoanManager {
         token = debtEngine.token();
         require(token != address(0), "Error loading token");
     }
-    
+
     function getDirectory() external view returns (bytes32[]) { return directory; }
 
     function getDirectoryLength() external view returns (uint256) { return directory.length; }
@@ -132,7 +132,7 @@ contract LoanManager {
         );
 
         require(requests[futureDebt].borrower == address(0), "Request already exist");
-        
+
         bool approved = msg.sender == _borrower;
 
         requests[futureDebt] = Request({
@@ -306,9 +306,9 @@ contract LoanManager {
                 )
             )
         );
-        
+
         futureDebt = _buildSettleId(_requestData, _loanData, internalNonce);
-            
+
         require(requests[futureDebt].borrower == address(0), "Request already exist");
 
         validateRequest(futureDebt, _requestData, _loanData, _borrowerSig, _creatorSig);
@@ -350,7 +350,7 @@ contract LoanManager {
             position: 0,
             expiration: uint64(_requestData[R_EXPIRATION])
         });
-        
+
         Request storage request = requests[futureDebt];
 
         // Call the cosigner
@@ -385,7 +385,7 @@ contract LoanManager {
             request.creator == msg.sender || request.borrower == msg.sender,
             "Only borrower or creator can cancel a request"
         );
-        
+
         if(request.approved){
             // Remove directory entry
             bytes32 last = directory[directory.length - 1];
@@ -454,7 +454,7 @@ contract LoanManager {
         bytes _creatorSig
     ) internal {
         require(!canceledSettles[_sig], "Settle was canceled");
-        
+
         // bytes32 expected = uint256(_sig) XOR keccak256("approve-loan-request");
         bytes32 expected = _sig ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
         address borrower = address(_requestData[R_BORROWER]);
