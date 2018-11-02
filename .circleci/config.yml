@@ -6,7 +6,7 @@ jobs:
     install:
         working_directory: ~/project
         docker:
-            - image: circleci/buildpack-deps:18.04
+            - image: circleci/node:8.12
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -33,7 +33,7 @@ jobs:
     test:
         working_directory: ~/project
         docker:
-            - image: circleci/buildpack-deps:18.04
+            - image: circleci/node:8.12
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
