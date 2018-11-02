@@ -29,6 +29,20 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await Helper.assertThrow(await DebtEngine.new(accounts[2]));
     });
 
+    it("Should fail to create if model returned false", async function() {
+        await testModel.setGlobalErrorFlag(8);
+
+        await Helper.assertThrow(debtEngine.create(
+            testModel.address,
+            accounts[1],
+            0x0,
+            0x0,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
+        ));
+        
+        await testModel.setGlobalErrorFlag(0);
+    });
+
     it("Should create a debt using create", async function() {
         await debtEngine.create(
             testModel.address,
