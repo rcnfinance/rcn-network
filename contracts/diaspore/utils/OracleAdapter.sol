@@ -54,7 +54,6 @@ contract OracleAdapter is RateOracle, ERC165 {
 
     function readSample(bytes _data) external returns (uint256 _currency, uint256 _tokens) {
         (_currency, _tokens) = legacyOracle.getRate(icurrency, _data);
-        require(_tokens <= 18, "Max decimals is 18");
-        _tokens = 10 ** (18 - _tokens);
-    }    
+        _tokens = 10 ** _tokens;
+    }
 }

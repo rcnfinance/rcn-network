@@ -36,7 +36,7 @@ contract('Test Oracle adapter', function(accounts) {
         const rate = await legacyOracle.getRate.call(0x415253, data);
         const sample = await oracle.readSample.call(data);
         assert.equal(rate[0].toNumber(), sample[0].toNumber());
-        assert.equal(10 ** (18 - rate[1]), sample[1].toNumber());
+        assert.equal(10 ** rate[1], sample[1].toNumber());
     });
 
     it("Should convert legacy oracle getReturn, data 2", async function() {
@@ -44,7 +44,7 @@ contract('Test Oracle adapter', function(accounts) {
         const rate = await legacyOracle.getRate.call(0x415253, data);
         const sample = await oracle.readSample.call(data);
         assert.equal(rate[0].toNumber(), sample[0].toNumber());
-        assert.equal(10 ** (18 - rate[1]), sample[1].toNumber());
+        assert.equal(10 ** rate[1], sample[1].toNumber());
     });
 
     it("Should fail with invalid data", async function() {

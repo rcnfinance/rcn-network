@@ -525,7 +525,7 @@ contract DebtEngine is ERC721Base {
         uint256 _rate,
         uint256 _tokens
     ) internal pure returns (uint256) {
-        return _rate.mult(_amount).mult(_tokens) / 1000000000000000000;
+        return _rate.mult(_amount) / _tokens;
     }
 
     /**
@@ -542,7 +542,7 @@ contract DebtEngine is ERC721Base {
         uint256 _rate,
         uint256 _tokens
     ) internal pure returns (uint256) {
-        return (_amount.mult(1000000000000000000) / _rate) / _tokens;
+        return _amount.mult(_tokens) / _rate;
     }
 
     function run(bytes32 _id) external returns (bool) {

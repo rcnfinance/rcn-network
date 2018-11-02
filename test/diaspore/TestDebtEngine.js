@@ -1294,12 +1294,12 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
         const data = await testOracle.encodeRate(400023333566612312000000, 82711175222132156792);
 
-        await rcn.setBalance(accounts[0], 5000);
-        await rcn.approve(debtEngine.address, 5000);
+        await rcn.setBalance(accounts[0], 4836387);
+        await rcn.approve(debtEngine.address, 4836387);
 
-        await debtEngine.pay(id, 1, 0x0, data);
+        await debtEngine.pay(id, 1000, 0x0, data);
 
-        assert.equal(await rcn.balanceOf(accounts[0]), 850);
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
     // Notice: Keep this test last
