@@ -80,10 +80,48 @@ jobs:
                 name: Start ganache instance
                 command: node_modules/.bin/ganache-cli --gasLimit 7000000
                 background: true
-            # Build the project
+            # Run truffle test
             - run:
                 name: Run truffle tests
                 command: node_modules/.bin/truffle test
+
+    # The coverage job
+    coverage:
+        working_directory: ~/project
+        docker:
+            - image: circleci/node:8.12
+        steps:
+            # Checkout the code from the branch into the working_directory
+            - checkout
+            # Log the current branch
+            - run:
+                name: Show current branch
+                command: echo ${CIRCLE_BRANCH}
+            # Restore local dependencies from cache
+            - restore_cache:
+                keys:
+                - v1-dependencies-{{ checksum "package.json" }}
+                - v1-dependencies-
+            # Create migrations folder
+            - run:
+                name: Create migrations folder
+                command: mkdir migrations
+            # Start test-rpc
+            - run:
+                name: Start testrpc instance
+                command: node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff
+                background: true
+            # Run coverage
+            - run:
+                name: solidity-coverage
+                command: node_modules/.bin/solidity-coverage
+            # Upload results
+            - run:
+                name: Upload coverage to coveralls
+                command: cat coverage/lcov.info | node_modules/.bin/coveralls
+            # Save artifacts
+            - store_artifacts:
+                path: coverage
 
 workflows:
     version: 2
@@ -95,5 +133,8 @@ workflows:
                 requires:
                     - install
             - test:
+                requires:
+                    - install
+            - coverage:
                 requires:
                     - install
