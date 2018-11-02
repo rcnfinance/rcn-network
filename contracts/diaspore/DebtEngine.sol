@@ -525,6 +525,7 @@ contract DebtEngine is ERC721Base {
         uint256 _rate,
         uint256 _tokens
     ) internal pure returns (uint256) {
+        require(_rate != 0, "Oracle provided invalid rate");
         return _rate.mult(_amount) / _tokens;
     }
 
@@ -542,6 +543,7 @@ contract DebtEngine is ERC721Base {
         uint256 _rate,
         uint256 _tokens
     ) internal pure returns (uint256) {
+        require(_tokens != 0, "Oracle provided invalid rate");
         return _amount.mult(_tokens) / _rate;
     }
 
