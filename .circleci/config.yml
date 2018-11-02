@@ -1,0 +1,66 @@
+version: 2
+
+# List of jobs
+jobs:
+    # The install job
+    install:
+        working_directory: ~/project
+        docker:
+            - image: circleci/buildpack-deps:18.04
+        steps:
+            # Checkout the code from the branch into the working_directory
+            - checkout
+            # Log the current branch
+            - run:
+                name: Show current branch
+                command: echo ${CIRCLE_BRANCH}
+            # Restore local dependencies from cache
+            - restore_cache:
+                keys:
+                - v1-dependencies-{{ checksum "package.json" }}
+                - v1-dependencies-
+            # Install project dependencies
+            - run:
+                name: Install local dependencies
+                command: npm install
+            # Cache local dependencies if they don't exist
+            - save_cache:
+                key: v1-dependencies-{{ checksum "package.json" }}
+                paths:
+                    - node_modules
+
+    # The test job
+    test:
+        working_directory: ~/project
+        docker:
+            - image: circleci/buildpack-deps:18.04
+        steps:
+            # Checkout the code from the branch into the working_directory
+            - checkout
+            # Log the current branch
+            - run:
+                name: Show current branch
+                command: echo ${CIRCLE_BRANCH}
+            # Restore local dependencies from cache
+            - restore_cache:
+                keys:
+                - v1-dependencies-{{ checksum "package.json" }}
+                - v1-dependencies-
+            # Start ganache
+            - run:
+                name: Start ganache instance
+                command: node_modules/.bin/ganache-cli --gasLimit 7000000 > /dev/null &
+            # Build the project
+            - run:
+                name: Run truffle tests
+                command: truffle test
+
+workflows:
+    version: 2
+    # The build and deploy workflow
+    build_and_deploy:
+        jobs:
+            - install
+            - test:
+                requires:
+                    - install
