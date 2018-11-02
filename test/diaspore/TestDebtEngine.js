@@ -26,7 +26,15 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     });
 
     it("Creation should fail if token is not a contract", async function() {
-        await Helper.assertThrow(await DebtEngine.new(accounts[2]));
+        var err;
+        
+        try {
+            await DebtEngine.new(accounts[2]);
+        } catch (e) {
+            err = e;
+        }
+
+        assert.ok(err);
     });
 
     it("Should fail to create if model returned false", async function() {
