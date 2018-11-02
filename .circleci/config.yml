@@ -53,7 +53,7 @@ jobs:
             # Build the project
             - run:
                 name: Run truffle tests
-                command: truffle test
+                command: node_modules/.bin/truffle test
 
 workflows:
     version: 2
