@@ -1302,6 +1302,58 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
+    it("Pay should fail if rate includes zero", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+        
+        var data = await testOracle.encodeRate(0, 82711175222132156792);
+
+        await rcn.setBalance(accounts[0], 10 ** 32);
+        await rcn.approve(debtEngine.address, 10 ** 32);
+
+        await Helper.assertThrow(debtEngine.pay(id, 1000, 0x0, data));
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 10 ** 32);
+        assert.equal(await testModel.getPaid(id), 0);
+
+        data = await testOracle.encodeRate(14123, 0);
+
+        await Helper.assertThrow(debtEngine.pay(id, 1000, 0x0, data));
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 10 ** 32);
+        assert.equal(await testModel.getPaid(id), 0);
+    });
+
+    it("Pay tokens fail if rate includes zero", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+        
+        var data = await testOracle.encodeRate(0, 82711175222132156792);
+
+        await rcn.setBalance(accounts[0], 10 ** 32);
+        await rcn.approve(debtEngine.address, 10 ** 32);
+
+        await Helper.assertThrow(debtEngine.payToken(id, 1000, 0x0, data));
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 10 ** 32);
+        assert.equal(await testModel.getPaid(id), 0);
+
+        data = await testOracle.encodeRate(14123, 0);
+
+        await Helper.assertThrow(debtEngine.payToken(id, 1000, 0x0, data));
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 10 ** 32);
+        assert.equal(await testModel.getPaid(id), 0);
+    });
+
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
         const id = await getId(debtEngine.create(
