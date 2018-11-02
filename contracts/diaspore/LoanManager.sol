@@ -38,7 +38,7 @@ contract LoanManager is BytesUtils {
         token = debtEngine.token();
         require(token != address(0), "Error loading token");
     }
-    
+
     function getDirectory() external view returns (bytes32[]) { return directory; }
 
     function getDirectoryLength() external view returns (uint256) { return directory.length; }
@@ -127,13 +127,13 @@ contract LoanManager is BytesUtils {
                 address(this),
                 _model,
                 _oracle,
-                _salt,
+                internalSalt,
                 _loanData
             )
         );
 
         require(requests[futureDebt].borrower == address(0), "Request already exist");
-        
+
         bool approved = msg.sender == _borrower;
 
         requests[futureDebt] = Request({
@@ -151,7 +151,7 @@ contract LoanManager is BytesUtils {
             expiration: _expiration
         });
 
-        emit Requested(futureDebt, _salt);
+        emit Requested(futureDebt, internalSalt);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
@@ -430,7 +430,7 @@ contract LoanManager is BytesUtils {
             position: 0,
             expiration: uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION))
         });
-        
+
         Request storage request = requests[futureDebt];
 
         // Call the cosigner
@@ -466,7 +466,7 @@ contract LoanManager is BytesUtils {
         bytes _creatorSig
     ) internal {
         require(!canceledSettles[_sig], "Settle was canceled");
-        
+
         // bytes32 expected = uint256(_sig) XOR keccak256("approve-loan-request");
         bytes32 expected = _sig ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
         address borrower = address(read(_requestData, O_BORROWER, L_BORROWER));
