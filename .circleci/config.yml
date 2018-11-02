@@ -29,6 +29,31 @@ jobs:
                 paths:
                     - node_modules
 
+    # The build job
+    build:
+        working_directory: ~/project
+        docker:
+            - image: circleci/node:8.12
+        steps:
+            # Checkout the code from the branch into the working_directory
+            - checkout
+            # Log the current branch
+            - run:
+                name: Show current branch
+                command: echo ${CIRCLE_BRANCH}
+            # Restore local dependencies from cache
+            - restore_cache:
+                keys:
+                - v1-dependencies-{{ checksum "package.json" }}
+                - v1-dependencies-
+            # Run compile
+            - run:
+                name: Truffle compile
+                command: node_modules/.bin/truffle compile
+            # Save build
+            - store_artifacts:
+                path: build
+
     # The test job
     test:
         working_directory: ~/project
@@ -66,6 +91,9 @@ workflows:
     build_and_test:
         jobs:
             - install
+            - build:
+                requires:
+                    - install
             - test:
                 requires:
                     - install
