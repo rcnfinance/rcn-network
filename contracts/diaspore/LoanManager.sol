@@ -34,7 +34,7 @@ contract LoanManager {
         token = debtEngine.token();
         require(token != address(0), "Error loading token");
     }
-    
+
     function getDirectory() external view returns (bytes32[]) { return directory; }
 
     function getDirectoryLength() external view returns (uint256) { return directory.length; }
@@ -76,7 +76,7 @@ contract LoanManager {
         address creator;
         address oracle;
         address borrower;
-        uint256 nonce;
+        uint256 salt;
         bytes loanData;
     }
 
@@ -118,7 +118,7 @@ contract LoanManager {
         require(_borrower != address(0), "The request should have a borrower");
         require(Model(_model).validate(_loanData), "The loan data is not valid");
 
-        uint256 internalNonce = uint256(keccak256(abi.encodePacked(msg.sender, _salt)));
+        uint256 internalSalt = uint256(keccak256(abi.encodePacked(msg.sender, _salt)));
         futureDebt = keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -126,13 +126,13 @@ contract LoanManager {
                 _model,
                 _oracle,
                 _currency,
-                _salt,
+                internalSalt,
                 _loanData
             )
         );
 
         require(requests[futureDebt].borrower == address(0), "Request already exist");
-        
+
         bool approved = msg.sender == _borrower;
 
         requests[futureDebt] = Request({
@@ -146,12 +146,12 @@ contract LoanManager {
             creator: msg.sender,
             oracle: _oracle,
             borrower: _borrower,
-            nonce: internalNonce,
+            salt: internalSalt,
             loanData: _loanData,
             expiration: _expiration
         });
 
-        emit Requested(futureDebt, _salt);
+        emit Requested(futureDebt, internalSalt);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
@@ -239,7 +239,7 @@ contract LoanManager {
                 msg.sender,
                 request.oracle,
                 request.currency,
-                request.nonce,
+                request.salt,
                 request.loanData
             ) == _futureDebt,
             "Error creating the debt"
@@ -257,9 +257,9 @@ contract LoanManager {
 
         // Call the cosigner
         if (_cosigner != address(0)) {
-            uint256 auxNonce = request.nonce;
+            uint256 auxSalt = request.salt;
             request.cosigner = address(uint256(_cosigner) + 2);
-            request.nonce = _cosignerLimit; // Risky ?
+            request.salt = _cosignerLimit; // Risky ?
             require(Cosigner(_cosigner).requestCosign(
                     Engine(address(this)),
                     uint256(_futureDebt),
@@ -269,7 +269,7 @@ contract LoanManager {
                 "Cosign method returned false"
             );
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
-            request.nonce = auxNonce;
+            request.salt = auxSalt;
         }
 
         return true;
@@ -298,7 +298,7 @@ contract LoanManager {
         require(address(_requestData[R_BORROWER]) != address(0), "Borrower can't be 0x0");
         require(address(_requestData[R_CREATOR]) != address(0), "Creator can't be 0x0");
 
-        uint256 internalNonce = uint256(
+        uint256 internalSalt = uint256(
             keccak256(
                 abi.encodePacked(
                     address(_requestData[R_CREATOR]),
@@ -306,9 +306,9 @@ contract LoanManager {
                 )
             )
         );
-        
-        futureDebt = _buildSettleId(_requestData, _loanData, internalNonce);
-            
+
+        futureDebt = _buildSettleId(_requestData, _loanData, internalSalt);
+
         require(requests[futureDebt].borrower == address(0), "Request already exist");
 
         validateRequest(futureDebt, _requestData, _loanData, _borrowerSig, _creatorSig);
@@ -328,7 +328,7 @@ contract LoanManager {
             createDebt(
                 _requestData,
                 _loanData,
-                internalNonce
+                internalSalt
             ) == futureDebt,
             "Error creating debt registry"
         );
@@ -345,12 +345,12 @@ contract LoanManager {
             creator: address(_requestData[R_CREATOR]),
             oracle: address(_requestData[R_ORACLE]),
             borrower: address(_requestData[R_BORROWER]),
-            nonce: _cosigner != address(0) ? _maxCosignerCost : internalNonce,
+            salt: _cosigner != address(0) ? _maxCosignerCost : internalSalt,
             loanData: "",
             position: 0,
             expiration: uint64(_requestData[R_EXPIRATION])
         });
-        
+
         Request storage request = requests[futureDebt];
 
         // Call the cosigner
@@ -358,7 +358,7 @@ contract LoanManager {
             request.cosigner = address(uint256(_cosigner) + 2);
             require(Cosigner(_cosigner).requestCosign(Engine(address(this)), uint256(futureDebt), _cosignerData, _oracleData), "Cosign method returned false");
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
-            request.nonce = internalNonce;
+            request.salt = internalSalt;
         }
     }
 
@@ -385,7 +385,7 @@ contract LoanManager {
             request.creator == msg.sender || request.borrower == msg.sender,
             "Only borrower or creator can cancel a request"
         );
-        
+
         if(request.approved){
             // Remove directory entry
             bytes32 last = directory[directory.length - 1];
@@ -407,7 +407,7 @@ contract LoanManager {
         bytes32[8] _requestData,
         bytes _loanData
     ) external returns (bool) {
-        uint256 internalNonce = uint256(
+        uint256 internalSalt = uint256(
             keccak256(
                 abi.encodePacked(
                     address(_requestData[R_CREATOR]),
@@ -416,7 +416,7 @@ contract LoanManager {
             )
         );
 
-        bytes32 id = _buildSettleId(_requestData, _loanData, internalNonce);
+        bytes32 id = _buildSettleId(_requestData, _loanData, internalSalt);
         require(
             msg.sender == address(_requestData[R_BORROWER]) ||
             msg.sender == address(_requestData[R_CREATOR]),
@@ -454,7 +454,7 @@ contract LoanManager {
         bytes _creatorSig
     ) internal {
         require(!canceledSettles[_sig], "Settle was canceled");
-        
+
         // bytes32 expected = uint256(_sig) XOR keccak256("approve-loan-request");
         bytes32 expected = _sig ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
         address borrower = address(_requestData[R_BORROWER]);
@@ -490,14 +490,14 @@ contract LoanManager {
     function createDebt(
         bytes32[8] _requestData,
         bytes _loanData,
-        uint256 _internalNonce
+        uint256 _internalSalt
     ) internal returns (bytes32) {
         return debtEngine.create2(
             Model(address(_requestData[R_MODEL])),
             msg.sender,
             address(_requestData[R_ORACLE]),
             bytes8(_requestData[R_CURRENCY]),
-            _internalNonce,
+            _internalSalt,
             _loanData
         );
     }
@@ -509,7 +509,7 @@ contract LoanManager {
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
         request.cosigner = msg.sender;
-        require(request.nonce >= _cost || request.nonce == 0, "Cosigner cost exceeded");
+        require(request.salt >= _cost || request.salt == 0, "Cosigner cost exceeded");
         require(token.transferFrom(debtEngine.ownerOf(_futureDebt), msg.sender, _cost), "Error paying cosigner");
         emit Cosigned(bytes32(_futureDebt), msg.sender, _cost);
         return true;
