@@ -25,6 +25,10 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         oracle = await TestOracle.new();
     });
 
+    it("Creation should fail if token is not a contract", async function() {
+        await Helper.assertThrow(await DebtEngine.new(accounts[2]));
+    });
+
     it("Should create a debt using create", async function() {
         await debtEngine.create(
             testModel.address,
