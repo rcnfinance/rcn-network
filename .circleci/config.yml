@@ -49,7 +49,8 @@ jobs:
             # Start ganache
             - run:
                 name: Start ganache instance
-                command: node_modules/.bin/ganache-cli --gasLimit 7000000 > /dev/null &
+                command: node_modules/.bin/ganache-cli --gasLimit 7000000
+                background: true
             # Build the project
             - run:
                 name: Run truffle tests
