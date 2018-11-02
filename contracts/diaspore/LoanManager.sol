@@ -126,7 +126,7 @@ contract LoanManager {
                 _model,
                 _oracle,
                 _currency,
-                _salt,
+                internalNonce,
                 _loanData
             )
         );
@@ -151,7 +151,7 @@ contract LoanManager {
             expiration: _expiration
         });
 
-        emit Requested(futureDebt, _salt);
+        emit Requested(futureDebt, internalNonce);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
