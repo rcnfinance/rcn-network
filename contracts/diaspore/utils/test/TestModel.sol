@@ -18,9 +18,13 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
     uint256 public constant ERROR_WRITE_STORAGE_STATUS = 5;
     uint256 public constant ERROR_RUN = 6;
     uint256 public constant ERROR_INFINITE_LOOP_RUN = 7;
+    uint256 public constant ERROR_CREATE = 8;
+    uint256 public constant ERROR_PAY_EXTRA = 9;
+    uint256 public constant ERROR_ALLOW_INFINITE_PAY = 10;
 
     event SetEngine(address _engine);
     event SetErrorFlag(bytes32 _id, uint256 _flag);
+    event SetGlobalErrorFlag(uint256 _flag);
 
     mapping(bytes4 => bool) private _supportedInterface;
 
@@ -38,6 +42,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
     mapping(bytes32 => Entry) public registry;
 
     address public engine;
+    uint256 public errorFlag;
 
     struct Entry {
         uint64 errorFlag;
@@ -50,6 +55,11 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
     modifier onlyEngine() {
         require(msg.sender == engine, "Sender is not engine");
         _;
+    }
+
+    function setGlobalErrorFlag(uint256 _flag) external onlyOwner {
+        errorFlag = _flag;
+        emit SetGlobalErrorFlag(_flag);
     }
 
     function setErrorFlag(bytes32 _id, uint64 _flag) external onlyOwner {
@@ -139,6 +149,8 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
     function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
         require(data.length == L_DATA, "Invalid data length");
 
+        if (errorFlag == ERROR_CREATE) return false;
+
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
         uint128 total = uint128(btotal);
         uint64 dueTime = uint64(bdue);
@@ -173,6 +185,12 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
             uint256 aux;
             while(aux / aux != 2) aux++;
             return aux;
+        } else if (entry.errorFlag == ERROR_PAY_EXTRA) {
+            return amount + 5;
+        } else if (entry.errorFlag == ERROR_ALLOW_INFINITE_PAY) {
+            entry.paid += uint128(amount);
+            emit AddedPaid(id, amount);
+            return amount;
         }
 
         uint256 total = entry.total;
