@@ -2049,6 +2049,40 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(debt2[2], 500);
     });
 
+    it("Withdraw multiple times same id should make no difference", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 3000);
+        await rcn.approve(debtEngine.address, 3000);
+
+        await debtEngine.payBatch([id, id2], [1500, 1500], 0x0, 0x0, 0x0, 0x0);
+
+        await rcn.setBalance(accounts[2], 0);
+        await debtEngine.withdrawalList([id, id, id2, id, id, id, id], accounts[2], { from: accounts[2] });
+
+        assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+    });
+
+    it("Withdraw zero debts should have no effect", async function() {
+        await rcn.setBalance(accounts[7], 0);
+        await debtEngine.withdrawalList([], accounts[7], { from: accounts[7] });
+        assert.equal(await rcn.balanceOf(accounts[7]), 0);
+    });
+
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
         const id = await getId(debtEngine.create(
