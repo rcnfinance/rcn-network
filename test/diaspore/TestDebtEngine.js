@@ -1853,6 +1853,64 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
+    it("Should fail withdraw if debt engine has no funds", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 3000);
+        await rcn.approve(debtEngine.address, 3000);
+
+        await debtEngine.pay(id, 3000, 0x0, 0x0);
+
+        const auxBalance = await rcn.balanceOf(debtEngine.address);
+        await rcn.setBalance(debtEngine.address, 0);
+
+        await rcn.setBalance(accounts[2], 0);
+        await Helper.assertThrow(debtEngine.withdrawal(id, accounts[2], { from: accounts[2] }));
+
+        assert.equal(await rcn.balanceOf(accounts[2]), 0);
+
+        await rcn.setBalance(debtEngine.address, auxBalance);
+    });
+
+    it("Should fail withdraw batch if debt engine has no funds", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 3000);
+        await rcn.approve(debtEngine.address, 3000);
+
+        await debtEngine.payBatch([id, id2], [1500, 1500], 0x0, 0x0, 0x0, 0x0);
+
+        const auxBalance = await rcn.balanceOf(debtEngine.address);
+        await rcn.setBalance(debtEngine.address, 0);
+
+        await rcn.setBalance(accounts[2], 0);
+        await Helper.assertThrow(debtEngine.withdrawalList([id, id2], accounts[2], { from: accounts[2] }));
+
+        assert.equal(await rcn.balanceOf(accounts[2]), 0);
+
+        await rcn.setBalance(debtEngine.address, auxBalance);
+    });
+
     it("Should fail withdraw batch not authorized", async function() {
         const id1 = await getId(debtEngine.create(
             testModel.address,
