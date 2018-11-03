@@ -114,6 +114,8 @@ jobs:
             # Run coverage
             - run:
                 name: solidity-coverage
+                environment:
+                  SOLIDITY_COVERAGE: true
                 command: node_modules/.bin/solidity-coverage || true
             # Upload results
             - run:
