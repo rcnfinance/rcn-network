@@ -1825,6 +1825,106 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
+    it("Should fail withdraw not authorized", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 3000);
+        await rcn.approve(debtEngine.address, 3000);
+
+        await debtEngine.pay(id, 3000, 0x0, 0x0);
+        
+        await rcn.setBalance(accounts[3], 0);
+        await rcn.setBalance(accounts[2], 0);
+        await Helper.assertThrow(debtEngine.withdrawal(id, accounts[3], { from: accounts[3] }));
+        await Helper.assertThrow(debtEngine.withdrawal(id, accounts[2], { from: accounts[3] }));
+
+        assert.equal(await rcn.balanceOf(accounts[3]), 0);
+        assert.equal(await rcn.balanceOf(accounts[2]), 0);
+        
+        await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
+        assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+        await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
+        assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+    });
+
+    it("Should fail withdraw batch not authorized", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 3000);
+        await rcn.approve(debtEngine.address, 3000);
+
+        await debtEngine.payBatch([id1, id2], [1500, 1500], 0x0, 0x0, 0x0, 0x0);
+        
+        await rcn.setBalance(accounts[3], 0);
+        await rcn.setBalance(accounts[2], 0);
+        await debtEngine.withdrawalList([id1, id2], accounts[3], { from: accounts[3] });
+        await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[3] });
+
+        assert.equal(await rcn.balanceOf(accounts[3]), 0);
+        assert.equal(await rcn.balanceOf(accounts[2]), 0);
+        
+        await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[2] });
+        assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+        await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[2] });
+        assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+    });
+
+    it("Should fail withdraw batch not authorized mixed", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 3000);
+        await rcn.approve(debtEngine.address, 3000);
+
+        await debtEngine.payBatch([id1, id2], [1500, 1500], 0x0, 0x0, 0x0, 0x0);
+        
+        await rcn.setBalance(accounts[3], 0);
+        await rcn.setBalance(accounts[2], 0);
+        await debtEngine.withdrawalList([id1, id2], accounts[3], { from: accounts[3] });
+        await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[3] });
+
+        assert.equal(await rcn.balanceOf(accounts[3]), 0);
+        assert.equal(await rcn.balanceOf(accounts[2]), 0);
+        
+        await rcn.setBalance(accounts[4], 0);
+        await debtEngine.withdrawalList([id1, id2], accounts[4], { from: accounts[4] });
+
+        assert.equal(await rcn.balanceOf(accounts[4]), 1500);
+    });
+
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
         const id = await getId(debtEngine.create(
