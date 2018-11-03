@@ -188,6 +188,8 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         } else if (entry.errorFlag == ERROR_PAY_EXTRA) {
             return amount + 5;
         } else if (entry.errorFlag == ERROR_ALLOW_INFINITE_PAY) {
+            entry.paid += uint128(amount);
+            emit AddedPaid(id, amount);
             return amount;
         }
 

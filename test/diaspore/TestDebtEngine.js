@@ -1450,7 +1450,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await Helper.assertThrow(debtEngine.pay(id, 100, 0x0, 0x0));
 
         assert.equal(await testModel.getPaid(id), 0);
-        assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
+        assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
     })
 
     it("Pay tokens should fail if paid is more than requested", async function() {
@@ -1472,7 +1472,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await Helper.assertThrow(debtEngine.payToken(id, 100, 0x0, 0x0));
 
         assert.equal(await testModel.getPaid(id), 0);
-        assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
+        assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
     })
 
     it("Pay batch should fail if one debt paid is more than requested", async function() {
@@ -1503,7 +1503,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(await testModel.getPaid(id1), 0);
         assert.equal(await testModel.getPaid(id2), 0);
-        assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
+        assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
     })
 
     it("Pay tokens batch should fail if one debt paid is more than requested", async function() {
@@ -1534,7 +1534,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(await testModel.getPaid(id1), 0);
         assert.equal(await testModel.getPaid(id2), 0);
-        assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
+        assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
     });
 
     it("Pay should fail if payer has not enought balance", async function() {
@@ -1771,8 +1771,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await Helper.assertThrow(debtEngine.payBatch([id2, id], [10, 2 ** 129], 0x0, 0x0, 0x0, 0x0));
 
-        assert.equal(await testModel.getPaid(id), 3000);
-        assert.equal(await testModel.getPaid(id2), 10);
+        assert.equal((await testModel.getPaid(id)).toNumber(), 3000);
+        assert.equal(await testModel.getPaid(id2), 0);
 
         const ndebt = await debtEngine.debts(id);
         assert.equal(ndebt[2], 3000);
@@ -1815,7 +1815,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await Helper.assertThrow(debtEngine.payTokenBatch([id2, id], [10, 2 ** 129], 0x0, 0x0, 0x0, 0x0));
 
         assert.equal(await testModel.getPaid(id), 3000);
-        assert.equal(await testModel.getPaid(id2), 10);
+        assert.equal(await testModel.getPaid(id2), 0);
 
         const ndebt = await debtEngine.debts(id);
         assert.equal(ndebt[2], 3000);
