@@ -1431,6 +1431,112 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(ids[0]), 3000);
     })
 
+    it("Pay should fail if paid is more than requested", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 10000);
+        await rcn.approve(debtEngine.address, 10000);
+        
+        const prevBalance = await rcn.balanceOf(accounts[0]);
+
+        await testModel.setErrorFlag(id, 9);
+
+        await Helper.assertThrow(debtEngine.pay(id, 100, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id), 0);
+        assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
+    })
+
+    it("Pay tokens should fail if paid is more than requested", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 10000);
+        await rcn.approve(debtEngine.address, 10000);
+
+        const prevBalance = await rcn.balanceOf(accounts[0]);
+
+        await testModel.setErrorFlag(id, 9);
+
+        await Helper.assertThrow(debtEngine.payToken(id, 100, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id), 0);
+        assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
+    })
+
+    it("Pay batch should fail if one debt paid is more than requested", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 10000);
+        await rcn.approve(debtEngine.address, 10000);
+
+        const prevBalance = await rcn.balanceOf(accounts[0]);
+
+        await testModel.setErrorFlag(id1, 9);
+
+        await Helper.assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], 0x0, 0x0, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id1), 0);
+        assert.equal(await testModel.getPaid(id2), 0);
+        assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
+    })
+
+    it("Pay tokens batch should fail if one debt paid is more than requested", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 10000);
+        await rcn.approve(debtEngine.address, 10000);
+
+        const prevBalance = await rcn.balanceOf(accounts[0]);
+
+        await testModel.setErrorFlag(id2, 9);
+
+        await Helper.assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], 0x0, 0x0, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id1), 0);
+        assert.equal(await testModel.getPaid(id2), 0);
+        assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
+    })
+
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
         const id = await getId(debtEngine.create(

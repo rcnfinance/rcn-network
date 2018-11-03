@@ -19,6 +19,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
     uint256 public constant ERROR_RUN = 6;
     uint256 public constant ERROR_INFINITE_LOOP_RUN = 7;
     uint256 public constant ERROR_CREATE = 8;
+    uint256 public constant ERROR_PAY_EXTRA = 9;
 
     event SetEngine(address _engine);
     event SetErrorFlag(bytes32 _id, uint256 _flag);
@@ -183,6 +184,8 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
             uint256 aux;
             while(aux / aux != 2) aux++;
             return aux;
+        } else if (entry.errorFlag == ERROR_PAY_EXTRA) {
+            return amount + 5;
         }
 
         uint256 total = entry.total;
