@@ -1535,7 +1535,146 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id1), 0);
         assert.equal(await testModel.getPaid(id2), 0);
         assert.equal((await rcn.balanceOf(accounts[0])).toString(), prevBalance.toString());
-    })
+    });
+
+    it("Pay should fail if payer has not enought balance", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1000);
+        await rcn.approve(debtEngine.address, 1000);
+
+        await Helper.assertThrow(debtEngine.pay(id, 2000, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id), 0);
+    });
+
+    it("Pay tokens should fail if payer has not enought balance", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1000);
+        await rcn.approve(debtEngine.address, 1000);
+
+        await Helper.assertThrow(debtEngine.payToken(id, 2000, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id), 0);
+    });
+
+    it("Pay batch should fail if payer has balance for zero payments", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 500);
+        await rcn.approve(debtEngine.address, 500);
+
+        await Helper.assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], 0x0, 0x0, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id1), 0);
+        assert.equal(await testModel.getPaid(id2), 0);
+    });
+
+    it("Pay tokens batch should fail if payer has balance for zero payments", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 500);
+        await rcn.approve(debtEngine.address, 500);
+
+        await Helper.assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], 0x0, 0x0, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id1), 0);
+        assert.equal(await testModel.getPaid(id2), 0);
+    });
+
+    it("Pay batch should fail if payer has balance below total", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1500);
+        await rcn.approve(debtEngine.address, 1500);
+
+        await Helper.assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], 0x0, 0x0, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id1), 0);
+        assert.equal(await testModel.getPaid(id2), 0);
+    });
+
+    it("Pay tokens batch should fail if payer has balance below total", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1500);
+        await rcn.approve(debtEngine.address, 1500);
+
+        await Helper.assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], 0x0, 0x0, 0x0, 0x0));
+
+        assert.equal(await testModel.getPaid(id1), 0);
+        assert.equal(await testModel.getPaid(id2), 0);
+    });
+
 
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
