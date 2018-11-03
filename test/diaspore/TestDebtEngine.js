@@ -1983,6 +1983,72 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[4]), 1500);
     });
 
+    it("Pay batch multiple times multiple id should be like paying the sum", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 3000);
+        await rcn.approve(debtEngine.address, 3000);
+
+        await debtEngine.payBatch([id1, id1, id2], [1000, 1000, 500], 0x0, 0x0, 0x0, 0x0);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 500);
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 500);
+
+        const debt1 = await debtEngine.debts(id1);
+        assert.equal(debt1[2], 2000);
+
+        const debt2 = await debtEngine.debts(id2);
+        assert.equal(debt2[2], 500);
+    });
+
+    it("Pay tokens batch multiple times multiple id should be like paying the sum", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 3000);
+        await rcn.approve(debtEngine.address, 3000);
+
+        await debtEngine.payTokenBatch([id1, id2, id1], [1000, 500, 1000], 0x0, 0x0, 0x0, 0x0);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 500);
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 500);
+
+        const debt1 = await debtEngine.debts(id1);
+        assert.equal(debt1[2], 2000);
+
+        const debt2 = await debtEngine.debts(id2);
+        assert.equal(debt2[2], 500);
+    });
+
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
         const id = await getId(debtEngine.create(
