@@ -117,6 +117,7 @@ contract DebtEngine is ERC721Base {
         id = keccak256(
             abi.encodePacked(
                 uint8(1),
+                address(this),
                 _owner,
                 nonce
             )
@@ -150,6 +151,7 @@ contract DebtEngine is ERC721Base {
         id = keccak256(
             abi.encodePacked(
                 uint8(2),
+                address(this),
                 msg.sender,
                 _model,
                 _oracle,
@@ -186,6 +188,7 @@ contract DebtEngine is ERC721Base {
         id = keccak256(
             abi.encodePacked(
                 uint8(3),
+                address(this),
                 msg.sender,
                 _salt
             )
@@ -212,10 +215,11 @@ contract DebtEngine is ERC721Base {
     function buildId(
         address _creator,
         uint256 _nonce
-    ) external pure returns (bytes32) {
+    ) external view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
                 uint8(1),
+                address(this),
                 _creator,
                 _nonce
             )
@@ -228,10 +232,11 @@ contract DebtEngine is ERC721Base {
         address _oracle,
         uint256 _salt,
         bytes _data
-    ) external pure returns (bytes32) {
+    ) external view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
                 uint8(2),
+                address(this),
                 _creator,
                 _model,
                 _oracle,
@@ -244,10 +249,11 @@ contract DebtEngine is ERC721Base {
     function buildId3(
         address _creator,
         uint256 _salt
-    ) external pure returns (bytes32) {
+    ) external view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
                 uint8(3),
+                address(this),
                 _creator,
                 _salt
             )
