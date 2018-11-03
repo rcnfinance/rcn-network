@@ -155,6 +155,97 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 3000);
     });
 
+    it("Differents debt engine should give differents ids, create", async function(){
+        const engine1 = await DebtEngine.new(rcn.address);
+        const engine2 = await DebtEngine.new(rcn.address);
+
+        await testModel.setEngine(engine1.address);
+
+        const id1 = await getId(engine1.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await testModel.setEngine(engine2.address);
+
+        const id2 = await getId(engine2.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await testModel.setEngine(debtEngine.address);
+
+        assert.notEqual(id1, id2);
+    });
+
+    it("Differents debt engine should give differents ids, create2", async function(){
+        const engine1 = await DebtEngine.new(rcn.address);
+        const engine2 = await DebtEngine.new(rcn.address);
+
+        await testModel.setEngine(engine1.address);
+
+        const id1 = await getId(engine1.create2(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            768484844,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await testModel.setEngine(engine2.address);
+
+        const id2 = await getId(engine2.create2(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            768484844,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await testModel.setEngine(debtEngine.address);
+
+        assert.notEqual(id1, id2);
+    });
+
+    it("Differents debt engine should give differents ids, create3", async function(){
+        const engine1 = await DebtEngine.new(rcn.address);
+        const engine2 = await DebtEngine.new(rcn.address);
+
+        await testModel.setEngine(engine1.address);
+
+        const id1 = await getId(engine1.create3(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            768484844,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await testModel.setEngine(engine2.address);
+
+        const id2 = await getId(engine2.create3(
+            testModel.address,
+            accounts[0],
+            0x0,
+            0x0,
+            768484844,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await testModel.setEngine(debtEngine.address);
+
+        assert.notEqual(id1, id2);
+    });
+
     it("Should withdraw funds from payment", async function() {
         const id = await getId(debtEngine.create(
             testModel.address,
@@ -338,23 +429,23 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
     it("Should create different ids create2 and create3", async function() {
         const expireTime = (await Helper.getBlockTime()) + 2000;
-        const id1 = await debtEngine.create2(
+        const id1 = await getId(debtEngine.create2(
             testModel.address,
             accounts[0],
             0x0,
             0x0,
             89999,
             await testModel.encodeData(1001, expireTime)
-        );
+        ));
 
-        const id2 = await debtEngine.create3(
+        const id2 = await getId(debtEngine.create3(
             testModel.address,
             accounts[0],
             0x0,
             0x0,
             89999,
             await testModel.encodeData(1001, expireTime)
-        );
+        ));
 
         assert.notEqual(id1, id2);
     });
