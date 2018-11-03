@@ -1726,8 +1726,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         const debt = await debtEngine.debts(id);
         assert.equal(debt[2], 3000);
 
-        await rcn.setBalance(accounts[0], 2 ** 129);
-        await rcn.approve(debtEngine.address, 2 ** 129);
+        await rcn.setBalance(accounts[0], 2 ** 130);
+        await rcn.approve(debtEngine.address, 2 ** 130);
 
         await Helper.assertThrow(debtEngine.payToken(id, 2 ** 129, 0x0, 0x0));
 
@@ -1766,8 +1766,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         const debt = await debtEngine.debts(id);
         assert.equal(debt[2], 3000);
 
-        await rcn.setBalance(accounts[0], 2 ** 129);
-        await rcn.approve(debtEngine.address, 2 ** 129);
+        await rcn.setBalance(accounts[0], 2 ** 130);
+        await rcn.approve(debtEngine.address, 2 ** 130);
 
         await Helper.assertThrow(debtEngine.payBatch([id2, id], [10, 2 ** 129], 0x0, 0x0, 0x0, 0x0));
 
