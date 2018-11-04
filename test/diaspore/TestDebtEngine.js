@@ -7,6 +7,12 @@ const TestRateOracle = artifacts.require('./diaspore/utils/test/TestRateOracle.s
 
 const Helper = require('../Helper.js');
 
+const BigNumber = web3.BigNumber;
+
+require('chai')
+    .use(require('chai-bignumber')(BigNumber))
+    .should();
+
 contract('Test DebtEngine Diaspore', function(accounts) {
     let rcn;
     let debtEngine;
@@ -1590,20 +1596,20 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         // 4 RCN = 22.94 ETH :)
         const data = await testOracle.encodeRate(4, 2294);
 
-        await rcn.setBalance(accounts[0], web3.toWei(2));
-        await rcn.approve(debtEngine.address, web3.toWei(2));
+        await rcn.setBalance(accounts[0], web3.toWei(2000));
+        await rcn.approve(debtEngine.address, web3.toWei(2000));
 
         await debtEngine.payToken(id1, web3.toWei(1), 0x0, data);
         await debtEngine.payTokenBatch([id3], [web3.toWei(1)], 0x0, testOracle.address, data);
 
         const paid1 = await testModel.getPaid(id1);
-        assert.equal(paid1, await testModel.getPaid(id3));
+        paid1.should.be.bignumber.equal(await testModel.getPaid(id3));
 
         await debtEngine.pay(id2, paid1, 0x0, data);
         await debtEngine.payBatch([id4], [paid1], 0x0, testOracle.address, data);
 
-        assert.equal(paid1, await testModel.getPaid(id4));
-        assert.equal(paid1, await testModel.getPaid(id2));
+        paid1.should.be.bignumber.equal(await testModel.getPaid(id4));
+        paid1.should.be.bignumber.equal(await testModel.getPaid(id2));
     });
 
     it("Pay should fail if rate includes zero", async function() {
@@ -2272,6 +2278,118 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.setBalance(accounts[7], 0);
         await debtEngine.withdrawalList([], accounts[7], { from: accounts[7] });
         assert.equal(await rcn.balanceOf(accounts[7]), 0);
+    });
+
+    it("Should pay batch with tokens less expensive than currency", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await legacyOracle.dummyData3();
+
+        await rcn.setBalance(accounts[0], 6000);
+        await rcn.approve(debtEngine.address, 6000);
+
+        await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
+
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 1000);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
+    it("Should pay tokens batch with tokens less expensive than currency", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await legacyOracle.dummyData3();
+
+        await rcn.setBalance(accounts[0], 6000);
+        await rcn.approve(debtEngine.address, 6000);
+
+        await debtEngine.payTokenBatch([id1, id2], [4000, 2000], accounts[4], oracle.address, data);
+
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 1000);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
+    it("Should pay batch with tokens more expensive than currency", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await legacyOracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 1500);
+        await rcn.approve(debtEngine.address, 1500);
+
+        await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
+
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 1000);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
+    it("Should pay tokens batch with tokens more expensive than currency", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await legacyOracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 1500);
+        await rcn.approve(debtEngine.address, 1500);
+
+        await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], oracle.address, data);
+
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 1000);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
     // Notice: Keep this test last
