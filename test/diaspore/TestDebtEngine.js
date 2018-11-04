@@ -1440,6 +1440,172 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
+    it("Should apply rate with token more expensive than currency", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 1.22 RCN = 22.94 ETH :)
+        const data = await testOracle.encodeRate(122, 2294);
+
+        await rcn.setBalance(accounts[0], "53182214472537053");
+        await rcn.approve(debtEngine.address, "53182214472537053");
+
+        await debtEngine.pay(id, web3.toWei(1), 0x0, data);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
+    it("Should apply rate pay tokens even when tokens is not divisible by 10", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 2.82711175222132156792 ETH = 4010.23333566612312 RCN
+        const data = await testOracle.encodeRate(401023333566612312000000, 282711175222132156792);
+
+        await rcn.setBalance(accounts[0], web3.toWei(1));
+        await rcn.approve(debtEngine.address, web3.toWei(1));
+
+        await debtEngine.payToken(id, web3.toWei(1), 0x0, data);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 249);
+        assert.equal(await testModel.getPaid(id), 704974378193313);
+    });
+
+    it("Should apply rate pay tokens with token more expensive than currency", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 4.122224 RCN = 0.5 ETH :)
+        const data = await testOracle.encodeRate(41222240, 5);
+
+        await rcn.setBalance(accounts[0], web3.toWei(2));
+        await rcn.approve(debtEngine.address, web3.toWei(2));
+
+        await debtEngine.payToken(id, web3.toWei(2), 0x0, data);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 1834816);
+        assert.equal(await testModel.getPaid(id), 242587496458);
+    });
+
+    it("Should apply rate pay batch with token more expensive than currency", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 1.22 RCN = 22.94 ETH :)
+        const data = await testOracle.encodeRate(122, 2294);
+
+        await rcn.setBalance(accounts[0], "53182214472537053");
+        await rcn.approve(debtEngine.address, web3.toWei(1));
+
+        await debtEngine.payBatch([id], [web3.toWei(1)], 0x0, testOracle.address, data);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
+    it("Should apply rate pay batch tokens even when tokens is not divisible by 10", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 2.82711175222132156792 ETH = 4010.23333566612312 RCN
+        const data = await testOracle.encodeRate(401023333566612312000000, 282711175222132156792);
+
+        await rcn.setBalance(accounts[0], web3.toWei(1));
+        await rcn.approve(debtEngine.address, web3.toWei(1));
+
+        await debtEngine.payTokenBatch([id], [web3.toWei(1)], 0x0, testOracle.address, data);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 249);
+        assert.equal(await testModel.getPaid(id), 704974378193313);
+    });
+
+    it("Should apply rate pay batch tokens with token more expensive than currency", async function() {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 4.122224 RCN = 0.5 ETH :)
+        const data = await testOracle.encodeRate(41222240, 5);
+
+        await rcn.setBalance(accounts[0], web3.toWei(2));
+        await rcn.approve(debtEngine.address, web3.toWei(2));
+
+        await debtEngine.payTokenBatch([id], [web3.toWei(2)], 0x0, testOracle.address, data);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 1834816);
+        assert.equal(await testModel.getPaid(id), 242587496458);
+    });
+
+    it("Calling pay, payTokens, payBatch or payBatchTokens should get the same rate", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id3 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id4 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 4 RCN = 22.94 ETH :)
+        const data = await testOracle.encodeRate(4, 2294);
+
+        await rcn.setBalance(accounts[0], web3.toWei(2));
+        await rcn.approve(debtEngine.address, web3.toWei(2));
+
+        await debtEngine.payToken(id1, web3.toWei(1), 0x0, data);
+        await debtEngine.payTokenBatch([id3], [web3.toWei(1)], 0x0, testOracle.address, data);
+
+        const paid1 = await testModel.getPaid(id1);
+        assert.equal(paid1, await testModel.getPaid(id3));
+
+        await debtEngine.pay(id2, paid1, 0x0, data);
+        await debtEngine.payBatch([id4], [paid1], 0x0, testOracle.address, data);
+
+        assert.equal(paid1, await testModel.getPaid(id4));
+        assert.equal(paid1, await testModel.getPaid(id2));
+    });
+
     it("Pay should fail if rate includes zero", async function() {
         const id = await getId(debtEngine.create(
             testModel.address,
