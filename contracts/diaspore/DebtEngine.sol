@@ -7,7 +7,7 @@ import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
 
 interface IOracle {
-    function readSample(bytes _data) external returns (uint256 _currency, uint256 _token);
+    function readSample(bytes _data) external returns (uint256 _tokens, uint256 _equivalent);
 }
 
 contract DebtEngine is ERC721Base {
@@ -275,9 +275,9 @@ contract DebtEngine is ERC721Base {
         IOracle oracle = IOracle(debt.oracle);
         if (oracle != address(0)) {
             // Convert
-            (uint256 rate, uint256 tokens) = oracle.readSample(_oracleData);
-            emit ReadedOracle(_id, rate, tokens);
-            paidToken = _toToken(paid, rate, tokens);
+            (uint256 tokens, uint256 equivalent) = oracle.readSample(_oracleData);
+            emit ReadedOracle(_id, tokens, equivalent);
+            paidToken = _toToken(paid, tokens, equivalent);
         } else {
             paidToken = paid;
         }
@@ -313,15 +313,15 @@ contract DebtEngine is ERC721Base {
         // Read storage
         IOracle oracle = IOracle(debt.oracle);
 
-        uint256 rate;
+        uint256 equivalent;
         uint256 tokens;
         uint256 available;
 
         // Get available <currency> amount
         if (oracle != address(0)) {
-            (rate, tokens) = oracle.readSample(oracleData);
-            emit ReadedOracle(id, rate, tokens);
-            available = _fromToken(amount, rate, tokens);
+            (tokens, equivalent) = oracle.readSample(oracleData);
+            emit ReadedOracle(id, tokens, equivalent);
+            available = _fromToken(amount, tokens, equivalent);
         } else {
             available = amount;
         }
@@ -332,7 +332,7 @@ contract DebtEngine is ERC721Base {
 
         // Convert back to required pull amount
         if (oracle != address(0)) {
-            paidToken = _toToken(paid, rate, tokens);
+            paidToken = _toToken(paid, tokens, equivalent);
             require(paidToken <= amount, "Paid can't exceed requested");
         } else {
             paidToken = paid;
@@ -370,15 +370,15 @@ contract DebtEngine is ERC721Base {
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
 
         if (_oracle != address(0)) {
-            (uint256 rate, uint256 tokens) = IOracle(_oracle).readSample(_oracleData);
-            emit ReadedOracleBatch(_oracle, count, rate, tokens);
+            (uint256 tokens, uint256 equivalent) = IOracle(_oracle).readSample(_oracleData);
+            emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
         uint256[] memory paid = new uint256[](count);
         uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 amount = _amounts[i];
-            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, rate, tokens);
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, tokens, equivalent);
 
             emit Paid({
                 _id: _ids[i],
@@ -405,15 +405,15 @@ contract DebtEngine is ERC721Base {
         require(count == _amounts.length, "The loans and the amounts do not correspond.");
 
         if (_oracle != address(0)) {
-            (uint256 rate, uint256 tokens) = IOracle(_oracle).readSample(_oracleData);
-            emit ReadedOracleBatch(_oracle, count, rate, tokens);
+            (uint256 tokens, uint256 equivalent) = IOracle(_oracle).readSample(_oracleData);
+            emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
         uint256[] memory paid = new uint256[](count);
         uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            uint256 amount = _oracle != address(0) ? _fromToken(_amounts[i], rate, tokens) : _amounts[i];
-            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, rate, tokens);
+            uint256 amount = _oracle != address(0) ? _fromToken(_amounts[i], tokens, equivalent) : _amounts[i];
+            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, tokens, equivalent);
 
             emit Paid({
                 _id: _ids[i],
@@ -436,8 +436,8 @@ contract DebtEngine is ERC721Base {
         @param _id Pay identifier
         @param _oracle Address of the Oracle contract, if the loan does not use any oracle, this field should be 0x0.
         @param _amount Amount to pay, in currency
-        @param _rate Rate used to convert to tokens
-        @param _decimals Decimals used to convert to tokens
+        @param _tokens How many tokens
+        @param _equivalent How much currency _tokens equivales
 
         @return paid and paidTokens, similar to external pay
     */
@@ -445,8 +445,8 @@ contract DebtEngine is ERC721Base {
         bytes32 _id,
         address _oracle,
         uint256 _amount,
-        uint256 _rate,
-        uint256 _decimals
+        uint256 _tokens,
+        uint256 _equivalent
     ) internal returns (uint256 paid, uint256 paidToken){
         Debt storage debt = debts[_id];
         if (_oracle != debt.oracle) {
@@ -462,7 +462,7 @@ contract DebtEngine is ERC721Base {
         paid = _safePay(_id, debt.model, _amount);
         require(paid <= _amount, "Paid can't be more than requested");
 
-        paidToken = _oracle != address(0) ? _toToken(paid, _rate, _decimals) : paid;
+        paidToken = _oracle != address(0) ? _toToken(paid, _tokens, _equivalent) : paid;
         require(paidToken <= _amount, "Paid can't exceed requested");
 
         // Pull tokens from payer
@@ -521,36 +521,36 @@ contract DebtEngine is ERC721Base {
         Converts an amount in the rate currency to an amount in token
 
         @param _amount Amount to convert in rate currency
-        @param _rate Rate to use in the convertion
-        @param _tokens Base difference between rate and tokens
+        @param _tokens How many tokens
+        @param _equivalent How much currency _tokens equivales
 
         @return Amount in tokens
     */
     function _toToken(
         uint256 _amount,
-        uint256 _rate,
-        uint256 _tokens
+        uint256 _tokens,
+        uint256 _equivalent
     ) internal pure returns (uint256) {
-        require(_rate != 0, "Oracle provided invalid rate");
-        return _rate.mult(_amount) / _tokens;
+        require(_tokens != 0, "Oracle provided invalid rate");
+        return _tokens.mult(_amount) / _equivalent;
     }
 
     /**
         Converts an amount in token to the rate currency
 
         @param _amount Amount to convert in token
-        @param _rate Rate to use in the convertion
-        @param _tokens Base difference between rate and tokens
+        @param _tokens How many tokens
+        @param _equivalent How much currency _tokens equivales
 
         @return Amount in rate currency
     */
     function _fromToken(
         uint256 _amount,
-        uint256 _rate,
-        uint256 _tokens
+        uint256 _tokens,
+        uint256 _equivalent
     ) internal pure returns (uint256) {
-        require(_tokens != 0, "Oracle provided invalid rate");
-        return _amount.mult(_tokens) / _rate;
+        require(_equivalent != 0, "Oracle provided invalid rate");
+        return _amount.mult(_equivalent) / _tokens;
     }
 
     function run(bytes32 _id) external returns (bool) {

@@ -27,15 +27,15 @@ contract TestRateOracle is BytesUtils, ERC165, RateOracle {
     function url() external view returns (string) {}
 
     function encodeRate(
-        uint256 _rate,
-        uint256 _token
+        uint128 _tokens,
+        uint128 _equivalent
     ) external pure returns (bytes) {
-        return abi.encodePacked(_rate, _token);
+        return abi.encodePacked(_tokens, _equivalent);
     }
 
-    function readSample(bytes _data) external returns (uint256 _rate, uint256 _tokens) {
-        (bytes32 brate, bytes32 btoken) = decode(_data, 32, 32);
-        _rate = uint256(brate);
-        _tokens = uint256(btoken);
+    function readSample(bytes _data) external returns (uint256 tokens, uint256 equivalent) {
+        (bytes32 btokens, bytes32 bequivalent) = decode(_data, 16, 16);
+        tokens = uint256(btokens);
+        equivalent = uint256(bequivalent);
     }
 }
