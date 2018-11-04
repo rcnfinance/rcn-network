@@ -1,6 +1,6 @@
 
 # RCN
-[![Build Status](https://travis-ci.com/ripio/rcn-network.svg?branch=master)](https://travis-ci.com/ripio/rcn-network)
+[![CircleCI](https://circleci.com/gh/ripio/rcn-network.svg?style=shield)](https://circleci.com/gh/ripio/rcn-network)
 
 RCN is a protocol based on smart contracts that standardizes credit lending through blockchain technology. The network can connect borrowers, lenders, and other network agents all over the world, allowing each one of them to manage the credit in their local currencies.
 
