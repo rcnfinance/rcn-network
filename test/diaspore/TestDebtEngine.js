@@ -2174,6 +2174,126 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[7]), 0);
     });
 
+    it("Should pay batch with tokens less expensive than currency", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            0x123,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            0x123,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await oracle.dummyData3();
+
+        await rcn.setBalance(accounts[0], 6000);
+        await rcn.approve(debtEngine.address, 6000);
+
+        await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, 0x123, data);
+
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 1000);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
+    it("Should pay tokens batch with tokens less expensive than currency", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            0x123,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            0x123,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await oracle.dummyData3();
+
+        await rcn.setBalance(accounts[0], 6000);
+        await rcn.approve(debtEngine.address, 6000);
+
+        await debtEngine.payTokenBatch([id1, id2], [4000, 2000], accounts[4], oracle.address, 0x123, data);
+
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 1000);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
+    it("Should pay batch with tokens more expensive than currency", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            0x123,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            0x123,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 1500);
+        await rcn.approve(debtEngine.address, 1500);
+
+        await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, 0x123, data);
+
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 1000);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
+    it("Should pay tokens batch with tokens more expensive than currency", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            0x123,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            0x123,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await oracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 1500);
+        await rcn.approve(debtEngine.address, 1500);
+
+        await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], oracle.address, 0x123, data);
+
+        assert.equal(await testModel.getPaid(id1), 2000);
+        assert.equal(await testModel.getPaid(id2), 1000);
+
+        assert.equal(await rcn.balanceOf(accounts[0]), 0);
+    });
+
     // Notice: Keep this test last
     it("Should not be possible to brute-forze an infinite loop", async function() {
         const id = await getId(debtEngine.create(

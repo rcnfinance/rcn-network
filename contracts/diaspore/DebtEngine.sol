@@ -407,14 +407,14 @@ contract DebtEngine is ERC721Base {
 
     function payTokenBatch(
         bytes32[] _ids,
-        uint256[] _amounts,
+        uint256[] _tokenAmounts,
         address _origin,
         address _oracle,
         bytes8 _currency,
         bytes _oracleData
     ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
-        require(count == _amounts.length, "The loans and the amounts do not correspond.");
+        require(count == _tokenAmounts.length, "The loans and the amounts do not correspond.");
 
         if (_oracle != address(0)) {
             (uint256 rate, uint256 decimals) = IOracle(_oracle).getRate(_currency, _oracleData);
@@ -424,8 +424,9 @@ contract DebtEngine is ERC721Base {
         uint256[] memory paid = new uint256[](count);
         uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            uint256 amount = _oracle != address(0) ? _fromToken(_amounts[i], rate, decimals) : _amounts[i];
+            uint256 amount = _oracle != address(0) ? _fromToken(_tokenAmounts[i], rate, decimals) : _tokenAmounts[i];
             (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, _currency, amount, rate, decimals);
+            require(paidTokens[i] <= _tokenAmounts[i], "Paid can't exceed requested");
 
             emit Paid({
                 _id: _ids[i],
@@ -477,8 +478,8 @@ contract DebtEngine is ERC721Base {
         paid = _safePay(_id, debt.model, _amount);
         require(paid <= _amount, "Paid can't be more than requested");
 
+        // Get token amount to use as payment
         paidToken = _oracle != address(0) ? _toToken(paid, _rate, _decimals) : paid;
-        require(paidToken <= _amount, "Paid can't exceed requested");
 
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
