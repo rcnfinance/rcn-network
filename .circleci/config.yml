@@ -17,15 +17,15 @@ jobs:
             # Restore local dependencies from cache
             - restore_cache:
                 keys:
-                - v1-dependencies-{{ checksum "package.json" }}
-                - v1-dependencies-
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
             # Install project dependencies
             - run:
                 name: Install local dependencies
                 command: npm install
             # Cache local dependencies if they don't exist
             - save_cache:
-                key: v1-dependencies-{{ checksum "package.json" }}
+                key: v2-dependencies-{{ checksum "package.json" }}
                 paths:
                     - node_modules
 
@@ -44,8 +44,8 @@ jobs:
             # Restore local dependencies from cache
             - restore_cache:
                 keys:
-                - v1-dependencies-{{ checksum "package.json" }}
-                - v1-dependencies-
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
             # Run compile
             - run:
                 name: Truffle compile
@@ -69,8 +69,8 @@ jobs:
             # Restore local dependencies from cache
             - restore_cache:
                 keys:
-                - v1-dependencies-{{ checksum "package.json" }}
-                - v1-dependencies-
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
             # Create migrations folder
             - run:
                 name: Create migrations folder
@@ -100,8 +100,8 @@ jobs:
             # Restore local dependencies from cache
             - restore_cache:
                 keys:
-                - v1-dependencies-{{ checksum "package.json" }}
-                - v1-dependencies-
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
             # Create migrations folder
             - run:
                 name: Create migrations folder
@@ -109,12 +109,14 @@ jobs:
             # Start test-rpc
             - run:
                 name: Start testrpc instance
-                command: node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff
+                command: node_modules/ganache-cli-coverage/cli.js --emitFreeLogs true --gasLimit 0xffffffffffffffffff --allowUnlimitedContractSize true
                 background: true
             # Run coverage
             - run:
                 name: solidity-coverage
-                command: node_modules/.bin/solidity-coverage || true
+                environment:
+                  SOLIDITY_COVERAGE: true
+                command: node_modules/.bin/solidity-coverage
             # Upload results
             - run:
                 name: Upload coverage to coveralls
