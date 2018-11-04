@@ -109,12 +109,14 @@ jobs:
             # Start test-rpc
             - run:
                 name: Start testrpc instance
-                command: node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff
+                command: node_modules/ganache-cli-coverage/cli.js --emitFreeLogs true --gasLimit 0xffffffffffffffffff --allowUnlimitedContractSize true
                 background: true
             # Run coverage
             - run:
                 name: solidity-coverage
-                command: node_modules/.bin/solidity-coverage || true
+                environment:
+                  SOLIDITY_COVERAGE: true
+                command: node_modules/.bin/solidity-coverage
             # Upload results
             - run:
                 name: Upload coverage to coveralls
