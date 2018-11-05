@@ -2,7 +2,14 @@ var TestToken = artifacts.require("./utils/TestToken.sol");
 var NanoLoanEngine = artifacts.require("./basalt/NanoLoanEngine.sol");
 var TestOracle = artifacts.require("./examples/TestOracle.sol");
 var TestCosigner = artifacts.require("./examples/TestCosigner.sol");
+
 const Helper = require('./Helper.js');
+
+const BigNumber = web3.BigNumber;
+
+require('chai')
+    .use(require('chai-bignumber')(BigNumber))
+    .should();
 
 contract('NanoLoanEngine', function(accounts) {
     let rcn;
@@ -589,6 +596,147 @@ contract('NanoLoanEngine', function(accounts) {
         assert.equal(loanStatus.toNumber(), 0, "The status should be initial")
     })
 
+    it("Should withdraw batch", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "11");
+        let id2 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "22");
+        let id3 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "44");
+
+        await lendLoan(rcn, engine, accounts[2], id1, web3.toWei(2));
+        await lendLoan(rcn, engine, accounts[2], id2, web3.toWei(2));
+        await lendLoan(rcn, engine, accounts[2], id3, web3.toWei(2));
+
+        // pay the loans
+        await Helper.buyTokens(rcn, web3.toWei(20), accounts[0]);
+        await rcn.increaseApproval(engine.address, web3.toWei(20));
+        await engine.pay(id1, web3.toWei(2), accounts[1], []);
+        await engine.pay(id2, web3.toWei(1), accounts[1], []);
+        await engine.pay(id3, web3.toWei(0.5), accounts[1], []);
+        
+        // Empty account 4
+        await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[4]), { from: accounts[4] });
+
+        // Withdraw 3 loans
+        await engine.withdrawalList([id1, id2, id3], accounts[4], { from: accounts[2] });
+        (await rcn.balanceOf(accounts[4])).should.be.bignumber.equal(web3.toWei(3.5));
+
+        // Multiples withdrawal should have no effect
+        await engine.withdrawalList([id1, id3], accounts[4], { from: accounts[2] });
+        (await rcn.balanceOf(accounts[4])).should.be.bignumber.equal(web3.toWei(3.5));
+    })
+
+    it("Should withdraw only from owned loans", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "62");
+        let id2 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "21");
+        let id3 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "44");
+
+        await lendLoan(rcn, engine, accounts[2], id1, web3.toWei(2));
+        await lendLoan(rcn, engine, accounts[2], id2, web3.toWei(2));
+        await lendLoan(rcn, engine, accounts[2], id3, web3.toWei(2));
+
+        await engine.transfer(accounts[9], id2, { from: accounts[2] });
+
+        // pay the loans
+        await Helper.buyTokens(rcn, web3.toWei(20), accounts[0]);
+        await rcn.increaseApproval(engine.address, web3.toWei(20));
+        await engine.pay(id1, web3.toWei(2), accounts[1], []);
+        await engine.pay(id2, web3.toWei(1), accounts[1], []);
+        await engine.pay(id3, web3.toWei(0.5), accounts[1], []);
+        
+        // Empty account 4
+        await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[4]), { from: accounts[4] });
+
+        // Withdraw 3 loans
+        await engine.withdrawalList([id1, id2, id3], accounts[4], { from: accounts[2] });
+        (await rcn.balanceOf(accounts[4])).should.be.bignumber.equal(web3.toWei(2.5));
+
+        // Multiples withdrawal should have no effect
+        await engine.withdrawalList([id1, id3], accounts[4], { from: accounts[2] });
+        (await rcn.balanceOf(accounts[4])).should.be.bignumber.equal(web3.toWei(2.5));
+    })
+
+    it("Should remove approve after transfer", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Remove approve");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await engine.approve(accounts[7], id1, { from: accounts[0] });
+
+        await engine.transfer(accounts[2], id1);
+
+        await Helper.assertThrow(engine.transferFrom(accounts[0], accounts[7], id1, { from: accounts[7] }));
+        await Helper.assertThrow(engine.transferFrom(accounts[2], accounts[7], id1, { from: accounts[7] }));
+
+        (await engine.ownerOf(id1)).should.be.equal(accounts[2]);
+    })
+
+    it("Should transfer using approve", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "9");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await engine.approve(accounts[7], id1, { from: accounts[0] });
+
+        await engine.transferFrom(accounts[0], accounts[7], id1, { from: accounts[7] });
+
+        (await engine.ownerOf(id1)).should.be.equal(accounts[7]);
+    })
+
+    it("Only current owner can approve", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Only current owner can approve");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await engine.transfer(accounts[2], id1);
+
+        await Helper.assertThrow(engine.approve(accounts[7], id1));
+        await Helper.assertThrow(engine.transferFrom(accounts[2], accounts[7], id1, { from: accounts[7] }));
+
+        (await engine.ownerOf(id1)).should.be.equal(accounts[2]);
+    })
+
+    it("Transfer to 0x0 should fail", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Fail transfer to 0x0");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await engine.approve(accounts[7], id1, { from: accounts[0] });
+
+        await Helper.assertThrow(engine.transferFrom(accounts[0], 0x0, id1, { from: accounts[7] }));
+
+        (await engine.ownerOf(id1)).should.be.equal(accounts[0]);
+    })
+
+    it("Transfer from should check from", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Fail transfer from");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await Helper.assertThrow(engine.transferFrom(accounts[1], accounts[2], id1));
+        (await engine.ownerOf(id1)).should.be.equal(accounts[0]);
+    })
+
+    it("Create loan should fail if deprecated", async function(){
+        await engine.setDeprecated(true);
+        await Helper.assertThrow(createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Fail, engine deprecated"));
+        await engine.setDeprecated(false);
+    })
+
+    it("Should revert destroy invalid identifier", async function(){
+        await Helper.assertThrow(engine.destroyIdentifier(0x123));
+    })
+
     it("Test E2 28% Anual interest, 91 days", e_test(10000, 11108571428571, 7405714285714, 7862400, 30, 10233, 31,  10474, 91, 11469));
     it("Test E3 28% Anual interest, 30 days", e_test(800000, 11108571428571, 7405714285714, 2592000, 10, 806222, 10,  812444, 30, 837768));
     it("Test E4 27% Anual interest, 30 days", e_test(10000, 11520000000000, 7680000000000, 2592000, 10, 10075, 10, 10150, 30, 10455));
@@ -599,12 +747,16 @@ contract('NanoLoanEngine', function(accounts) {
     it("Test E9 42% Anual interset, 30 days", e_test(500000, 7405714285714, 4937142857142, 2592000, 10, 505833, 10, 511667, 30, 535613));
     it("Test E10 30% Anual interset, 30 days", e_test(300000, 10368000000000, 6912000000000, 2592000, 10, 302500, 10, 305000, 30, 315188));
 
+    it("Test E8 27% Anual interset, 30 days", e_test2(70000, 11520000000000, 7680000000000, 2592000, 10, 70525, 10, 71050, 30, 73185));
+    it("Test E9 42% Anual interset, 30 days", e_test2(500000, 7405714285714, 4937142857142, 2592000, 10, 505833, 10, 511667, 30, 535613));
+    it("Test E10 30% Anual interset, 30 days", e_test2(300000, 10368000000000, 6912000000000, 2592000, 10, 302500, 10, 305000, 30, 315188));
+
     function e_test(amount, interest, punitoryInterest, duesIn, d1, v1, d2, v2, d3, v3) { return async() => {
         let secondsInDay = 86400;
 
         // Create a new loan with the received params
         let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, amount, interest, punitoryInterest,
-            duesIn, 0, 10 * 10**20, accounts[1], "");
+            duesIn, 0, 10 * 10**20, accounts[1], "e1");
 
         // test configuration params
         let cosigner = await engine.getCosigner(loanId)
@@ -672,6 +824,105 @@ contract('NanoLoanEngine', function(accounts) {
         await engine.addInterest(loanId);
         let d1PendingAmount = await engine.getRawPendingAmount(loanId);
         var d1Diff = Math.abs(d1PendingAmount.toNumber() - v1);
+        assert.isBelow(d1Diff, 2, "The v1 should aprox the interest rate in the d1 timestamp");
+
+        // forward time, d2 days
+        await Helper.increaseTime(d2 * secondsInDay);
+
+        // check that the interest accumulated it's close to the defined by the test
+        await engine.addInterest(loanId);
+        let d2PendingAmount = await engine.getRawPendingAmount(loanId);
+        var d2Diff = Math.abs(d2PendingAmount.toNumber() - v2);
+        assert.isBelow(d2Diff, 2, "The v2 should aprox the interest rate in the d2 timestamp");
+
+        // forward time, d3 days
+        await Helper.increaseTime(d3 * secondsInDay);
+
+        // check that the interest accumulated it's close to the defined by the test
+        await engine.addInterest(loanId);
+        let d3PendingAmount = await engine.getRawPendingAmount(loanId);
+        var d3Diff = Math.abs(d3PendingAmount.toNumber() - v3);
+        assert.isBelow(d3Diff, 2, "The v3 should aprox the interest rate in the d3 timestamp");
+    } }
+
+    function e_test2(amount, interest, punitoryInterest, duesIn, d1, v1, d2, v2, d3, v3) { return async() => {
+        let secondsInDay = 86400;
+
+        // Create a new loan with the received params
+        let loanId = await createLoan(engine, 0x0, accounts[1], 0x0, amount, interest, punitoryInterest,
+            duesIn, d1 * secondsInDay, 10 * 10**20, accounts[1], "e2");
+
+        // test configuration params
+        let cosigner = await engine.getCosigner(loanId)
+        let borrower = await engine.getBorrower(loanId)
+        let creator = await engine.getCreator(loanId)
+        let lender = await engine.ownerOf(loanId)
+        let currency = await engine.getCurrency(loanId)
+        let oracle = await engine.getOracle(loanId)
+        let status = await engine.getStatus(loanId)
+        let loanAmount = await engine.getAmount(loanId)
+        let loanInterest = await engine.getInterest(loanId)
+        let loanPunitoryInterest = await engine.getPunitoryInterest(loanId)
+        let interestTimestamp = await engine.getInterestTimestamp(loanId)
+        let paid = await engine.getPaid(loanId)
+        let interestRate = await engine.getInterestRate(loanId)
+        let interestRatePunitory = await engine.getInterestRatePunitory(loanId)
+        let dueTime = await engine.getDueTime(loanId)
+        let loanDuesIn = await engine.getDuesIn(loanId)
+        let cancelableAt = await engine.getCancelableAt(loanId)
+        let lenderBalance = await engine.getLenderBalance(loanId)
+        let approvedTransfer = await engine.getApproved(loanId)
+        let expirationRequest = await engine.getExpirationRequest(loanId)
+
+        assert.equal(expirationRequest.toNumber(), 10 * 10**20, "Should had the defined expiration")
+        assert.equal(approvedTransfer, 0x0, "Approved transfer should start empty")
+        assert.equal(cancelableAt.toNumber(), d1 * secondsInDay, "Cancelable at should be 0")
+        assert.equal(lenderBalance.toNumber(), 0, "Lender balance should start at 0")
+        assert.equal(dueTime.toNumber(), 0, "Due time should start at 0")
+        assert.equal(loanDuesIn.toNumber(), duesIn, "Dues in should be the defined")
+        assert.equal(interestRate.toNumber(), interest, "Interest rate should be the defined")
+        assert.equal(interestRatePunitory.toNumber(), punitoryInterest, "Interest rate punitory should be the defined")
+        assert.equal(paid.toNumber(), 0, "Paid should start at 0")
+        assert.equal(interestTimestamp.toNumber(), 0, "Interest timestamp should start at 0")
+        assert.equal(loanInterest.toNumber(), 0, "Interest should start at 0")
+        assert.equal(loanPunitoryInterest.toNumber(), 0, "Punitory interest should start at 0")
+        assert.equal(loanAmount.toNumber(), amount, "Amount should be the defined amount")
+        assert.equal(status.toNumber(), 0, "Status should be initial")
+        assert.equal(cosigner, 0x0, "Cosigner should be empty")
+        assert.equal(borrower, accounts[1], "Borrower should be account 1")
+        assert.equal(creator, accounts[1], "Creator should be account 0")
+        assert.equal(lender, 0x0, "Lender should be empty")
+        assert.equal(currency, 0x0, "Currency should be empty")
+        assert.equal(oracle, 0x0, "Oracle should be empty")
+
+
+        // Check if the loan is approved
+        let isApproved = await engine.isApproved(loanId)
+        assert.isTrue(isApproved, "Should be approved")
+
+        // Buy tokens and prepare the lender to do the lent
+        await Helper.buyTokens(rcn, web3.toWei(100), accounts[2]);
+        await rcn.approve(engine.address, web3.toWei(100), {from:accounts[2]})
+
+        // accounts[2] lends to the borrower
+        await engine.lend(loanId, [], 0x0, [], {from:accounts[2]})
+
+        // check that the borrower received the RCN
+        let received = await rcn.balanceOf(accounts[1]);
+        assert.equal(received.toNumber(), amount, "The borrower should have the RCN")
+
+        // check cancelable at assigned value
+        var d1PendingAmount = await engine.getRawPendingAmount(loanId);
+        var d1Diff = Math.abs(d1PendingAmount.toNumber() - v1);
+        assert.isBelow(d1Diff, 2, "The v1 should aprox the interest rate in the d1 timestamp");
+
+        // forward time, d1 days
+        await Helper.increaseTime(d1 * secondsInDay);
+
+        // check that the interest accumulated it's close to the defined by the test
+        await engine.addInterest(loanId);
+        d1PendingAmount = await engine.getRawPendingAmount(loanId);
+        d1Diff = Math.abs(d1PendingAmount.toNumber() - v1);
         assert.isBelow(d1Diff, 2, "The v1 should aprox the interest rate in the d1 timestamp");
 
         // forward time, d2 days
