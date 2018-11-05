@@ -124,6 +124,7 @@ contract LoanManager is BytesUtils {
         futureDebt = keccak256(
             abi.encodePacked(
                 uint8(2),
+                debtEngine,
                 address(this),
                 _model,
                 _oracle,
