@@ -1,8 +1,5 @@
-const SimpleDelegable = artifacts.require("../utils/SimpleDelegable.sol");
-const Helper = require('../Helper.js');
-
-require('chai')
-    .should();
+const SimpleDelegable = artifacts.require("./utils/SimpleDelegable.sol");
+const Helper = require('./Helper.js');
 
 contract('SimpleDelegable', function(accounts) {
     it("Should add delegates", async function(){
