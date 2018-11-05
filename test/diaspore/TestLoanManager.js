@@ -97,5 +97,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         );
 
         const request = await getRequest(id);
+
+        assert.equal(await loanManager.getCurrency(id), 0x0);
     });
 });
