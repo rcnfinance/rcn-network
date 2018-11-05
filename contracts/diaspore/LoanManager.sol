@@ -2,12 +2,15 @@ pragma solidity ^0.4.24;
 
 import "./DebtEngine.sol";
 import "./interfaces/LoanApprover.sol";
+import "./interfaces/RateOracle.sol";
 import "./../utils/ImplementsInterface.sol";
 import "./../utils/IsContract.sol";
+import "./../utils/SafeMath.sol";
 
 contract LoanManager {
     using ImplementsInterface for address;
     using IsContract for address;
+    using SafeMath for uint256;
 
     DebtEngine public debtEngine;
     Token public token;
@@ -43,7 +46,7 @@ contract LoanManager {
     function getCreator(uint256 _id) external view returns (address) { return requests[bytes32(_id)].creator; }
     function getOracle(uint256 _id) external view returns (address) { return requests[bytes32(_id)].oracle; }
     function getCosigner(uint256 _id) external view returns (address) { return requests[bytes32(_id)].cosigner; }
-    function getCurrency(uint256 _id) external view returns (bytes32) { return requests[bytes32(_id)].currency; }
+    function getCurrency(uint256 _id) external view returns (bytes32) { return RateOracle(requests[bytes32(_id)].oracle).currency(); }
     function getAmount(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].amount; }
 
     function getExpirationRequest(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].expiration; }
@@ -67,7 +70,6 @@ contract LoanManager {
     struct Request {
         bool open;
         bool approved;
-        bytes8 currency;
         uint64 position;
         uint64 expiration;
         uint128 amount;
@@ -84,7 +86,6 @@ contract LoanManager {
         address _creator,
         address _model,
         address _oracle,
-        bytes8 _currency,
         uint256 _salt,
         bytes _data
     ) external view returns (bytes32) {
@@ -92,7 +93,6 @@ contract LoanManager {
             address(this),
             _model,
             _oracle,
-            _currency,
             uint256(
                 keccak256(
                     abi.encodePacked(
@@ -106,7 +106,6 @@ contract LoanManager {
     }
 
     function requestLoan(
-        bytes8 _currency,
         uint128 _amount,
         address _model,
         address _oracle,
@@ -125,7 +124,6 @@ contract LoanManager {
                 address(this),
                 _model,
                 _oracle,
-                _currency,
                 internalSalt,
                 _loanData
             )
@@ -140,7 +138,6 @@ contract LoanManager {
             approved: approved,
             position: 0,
             cosigner: address(0),
-            currency: _currency,
             amount: _amount,
             model: _model,
             creator: msg.sender,
@@ -220,7 +217,7 @@ contract LoanManager {
 
         request.open = false;
 
-        uint256 tokens = currencyToToken(request.oracle, request.currency, request.amount, _oracleData);
+        uint256 tokens = currencyToToken(request.oracle, request.amount, _oracleData);
         require(
             token.transferFrom(
                 msg.sender,
@@ -238,7 +235,6 @@ contract LoanManager {
                 Model(request.model),
                 msg.sender,
                 request.oracle,
-                request.currency,
                 request.salt,
                 request.loanData
             ) == _futureDebt,
@@ -275,17 +271,16 @@ contract LoanManager {
         return true;
     }
 
-    uint256 public constant R_CURRENCY = 0;
-    uint256 public constant R_AMOUNT = 1;
-    uint256 public constant R_MODEL = 2;
-    uint256 public constant R_ORACLE = 3;
-    uint256 public constant R_BORROWER = 4;
-    uint256 public constant R_SALT = 5;
-    uint256 public constant R_EXPIRATION = 6;
-    uint256 public constant R_CREATOR = 7;
+    uint256 public constant R_AMOUNT = 0;
+    uint256 public constant R_MODEL = 1;
+    uint256 public constant R_ORACLE = 2;
+    uint256 public constant R_BORROWER = 3;
+    uint256 public constant R_SALT = 4;
+    uint256 public constant R_EXPIRATION = 5;
+    uint256 public constant R_CREATOR = 6;
 
     function settleLend(
-        bytes32[8] _requestData,
+        bytes32[7] _requestData,
         bytes _loanData,
         address _cosigner,
         uint256 _maxCosignerCost,
@@ -339,7 +334,6 @@ contract LoanManager {
             open: false,
             approved: true,
             cosigner: _cosigner,
-            currency: bytes8(_requestData[R_CURRENCY]),
             amount: uint128(_requestData[R_AMOUNT]),
             model: address(_requestData[R_MODEL]),
             creator: address(_requestData[R_CREATOR]),
@@ -363,7 +357,7 @@ contract LoanManager {
     }
 
     function _buildSettleId(
-        bytes32[8] _requestData,
+        bytes32[7] _requestData,
         bytes _loanData,
         uint256 _salt
     ) internal returns (bytes32) {
@@ -371,7 +365,6 @@ contract LoanManager {
             address(this),
             address(_requestData[R_MODEL]),
             address(_requestData[R_ORACLE]),
-            bytes8(_requestData[R_CURRENCY]),
             _salt,
             _loanData
         );
@@ -404,7 +397,7 @@ contract LoanManager {
     }
 
     function settleCancel(
-        bytes32[8] _requestData,
+        bytes32[7] _requestData,
         bytes _loanData
     ) external returns (bool) {
         uint256 internalSalt = uint256(
@@ -448,7 +441,7 @@ contract LoanManager {
 
     function validateRequest(
         bytes32 _sig,
-        bytes32[8] _requestData,
+        bytes32[7] _requestData,
         bytes _loanData,
         bytes _borrowerSig,
         bytes _creatorSig
@@ -488,7 +481,7 @@ contract LoanManager {
     }
 
     function createDebt(
-        bytes32[8] _requestData,
+        bytes32[7] _requestData,
         bytes _loanData,
         uint256 _internalSalt
     ) internal returns (bytes32) {
@@ -496,7 +489,6 @@ contract LoanManager {
             Model(address(_requestData[R_MODEL])),
             msg.sender,
             address(_requestData[R_ORACLE]),
-            bytes8(_requestData[R_CURRENCY]),
             _internalSalt,
             _loanData
         );
@@ -516,12 +508,11 @@ contract LoanManager {
     }
 
     function currencyToToken(
-        bytes32[8] _requestData,
+        bytes32[7] _requestData,
         bytes _oracleData
     ) internal returns (uint256) {
         return currencyToToken(
             address(_requestData[R_ORACLE]),
-            bytes16(_requestData[R_CURRENCY]),
             uint256(_requestData[R_AMOUNT]),
             _oracleData
         );
@@ -529,16 +520,12 @@ contract LoanManager {
 
     function currencyToToken(
         address _oracle,
-        bytes16 _currency,
         uint256 _amount,
         bytes _oracleData
     ) internal returns (uint256) {
-        if (_oracle != 0x0) {
-            (uint256 rate, uint256 decimals) = Oracle(_oracle).getRate(_currency, _oracleData);
-            return (rate * _amount * 10 ** (18 - decimals)) / 10 ** 18;
-        } else {
-            return _amount;
-        }
+        if (_oracle == address(0)) return _amount;
+        (uint256 tokens, uint256 equivalent) = RateOracle(_oracle).readSample(_oracleData);
+        return tokens.mult(_amount) / equivalent;
     }
 
     function _safeCall(

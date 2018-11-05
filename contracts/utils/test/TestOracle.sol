@@ -8,9 +8,17 @@ contract TestOracle is Oracle, BytesUtils {
     bytes32 public dummyData2 = keccak256("test_oracle_2");
     bytes32 public dummyData3 = keccak256("test_oracle_3");
 
+    bytes32 public invalidData = keccak256("invalidData");
+
     bytes public dummyDataBytes1 = buildData(dummyData1);
     bytes public dummyDataBytes2 = buildData(dummyData2);
     bytes public dummyDataBytes3 = buildData(dummyData3);
+
+    string private _purl = "";
+
+    function setUrl(string _url) external {
+        _purl = _url;
+    }
 
     function buildData(bytes32 d) internal pure returns (bytes o) {
         assembly {
@@ -23,7 +31,7 @@ contract TestOracle is Oracle, BytesUtils {
     }
 
     function url() public view returns (string) {
-        return "";
+        return _purl;
     }
 
     function getRate(bytes32, bytes data) public returns (uint256 rate, uint256 decimals) {
