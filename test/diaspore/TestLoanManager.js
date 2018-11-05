@@ -424,31 +424,30 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should lend a request using settleLend", async function() {
-        const id = await createId(creator);
         const expiration = (await Helper.getBlockTime()) + 1000;
-        const requestData = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
+        const loanData = await model.encodeData(amount, expiration);
+        const id = await calcId(creator, loanData);
+        const requestData = [amount, model.address, 0x0, borrower, salt, expiration, creator]
             .map(x => Helper.toBytes32(x));
-        const loanData = await model.encodeData(requestData[1], requestData[6]);
 
         // try settle lend with a expired data time
-        const requestDataexpired = [0x0, amount, model.address, 0x0, borrower, nonce, expiration - 2000, creator].map(x => Helper.toBytes32(x));
+        const requestDataexpired = [amount, model.address, 0x0, borrower, salt, expiration - 2000, creator].map(x => Helper.toBytes32(x));
         await Helper.tryCatchRevert(() => loanManager.settleLend(requestDataexpired, loanData, 0x0, 0, [], [], 0x0, 0x0),
             "Loan request is expired"
         );
         // try settle lend without borrower
-        const requestDataBorrower0x0 = [0x0, amount, model.address, 0x0, 0x0, nonce, expiration, creator].map(x => Helper.toBytes32(x));
+        const requestDataBorrower0x0 = [amount, model.address, 0x0, 0x0, salt, expiration, creator].map(x => Helper.toBytes32(x));
         await Helper.tryCatchRevert(() => loanManager.settleLend(requestDataBorrower0x0, loanData, 0x0, 0, [], [], 0x0, 0x0),
             "Borrower can't be 0x0"
         );
         // try settle lend without creator
-        const requestDataCreator0x0 = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, 0x0].map(x => Helper.toBytes32(x));
+        const requestDataCreator0x0 = [amount, model.address, 0x0, borrower, salt, expiration, 0x0].map(x => Helper.toBytes32(x));
         await Helper.tryCatchRevert(() => loanManager.settleLend(requestDataCreator0x0, loanData, 0x0, 0, [], [], 0x0, 0x0),
             "Creator can't be 0x0"
         );
 
-        const msg = await loanManager.requestSignature(requestData, loanData);
-        const creatorSig = await web3.eth.sign(creator, msg);
-        const borrowerSig = await web3.eth.sign(borrower, msg);
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
 
         // try settle lend without tokens balance
         await Helper.tryCatchRevert(() => loanManager.settleLend(requestData, loanData, 0x0, 0, [], [], creatorSig, borrowerSig, { from: lender }),
@@ -477,15 +476,16 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(request.approved, true, "The request should be approved");
         assert.equal(request.position, 0, "The loan its not approved");
         assert.equal(request.expiration.toNumber(), expiration);
-        assert.equal(request.currency, 0x0);
+        assert.equal(await loanManager.getCurrency(id), 0x0);
         assert.equal(request.amount, amount);
         assert.equal(request.cosigner, 0x0);
         assert.equal(request.model, model.address);
         assert.equal(request.creator, creator);
         assert.equal(request.oracle, 0x0);
         assert.equal(request.borrower, borrower);
-        assert.equal(web3.toHex(request.nonce), Web3Utils.soliditySha3(creator, nonce));
-        assert.equal(request.loanData,"0x");
+        const internalSalt = Web3Utils.hexToNumberString(Web3Utils.soliditySha3(creator, salt));
+        assert.equal(request.salt.toNumber(), internalSalt);
+        assert.equal(request.loanData, "0x");
 
         // try settle lend a request already exist
         await Helper.tryCatchRevert(() => loanManager.settleLend(requestData, loanData, 0x0, 0, [], [], creatorSig, borrowerSig, { from: lender }),
