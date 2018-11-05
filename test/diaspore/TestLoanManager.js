@@ -324,10 +324,10 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Use cosigner in lend", async function() {
-        const id = await createId(borrower);
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
-        await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce,
+        const id = await calcId(borrower, loanData);
+        await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt,
             expiration, loanData, { from: borrower });
         await rcn.setBalance(lender, amount + 666);
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
@@ -366,7 +366,8 @@ contract('Test LoanManager Diaspore', function(accounts) {
 
         const request = await getRequest(id);
         assert.equal(request.cosigner, cosigner.address);
-        assert.equal(web3.toHex(request.nonce), Web3Utils.soliditySha3(borrower, nonce));
+        const internalSalt = Web3Utils.hexToNumberString(Web3Utils.soliditySha3(borrower, salt));
+        assert.equal(request.salt.toNumber(), internalSalt);
     });
 
     it("Use cosigner in settleLend", async function() {
