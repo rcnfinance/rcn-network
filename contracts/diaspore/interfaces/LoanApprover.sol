@@ -41,5 +41,5 @@ contract LoanApprover is IERC165 {
 
         @return _signature XOR keccak256("approve-loan-request"), if the approve is accepted
     */
-    function settleApproveRequest(bytes32[8] _requestData, bytes _loanData, bool _isBorrower, uint256 _signature) external returns (bytes32);
+    function settleApproveRequest(bytes32[7] _requestData, bytes _loanData, bool _isBorrower, uint256 _signature) external returns (bytes32);
 }

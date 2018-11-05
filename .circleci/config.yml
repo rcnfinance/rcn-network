@@ -1,0 +1,142 @@
+version: 2
+
+# List of jobs
+jobs:
+    # The install job
+    install:
+        working_directory: ~/project
+        docker:
+            - image: circleci/node:8.12
+        steps:
+            # Checkout the code from the branch into the working_directory
+            - checkout
+            # Log the current branch
+            - run:
+                name: Show current branch
+                command: echo ${CIRCLE_BRANCH}
+            # Restore local dependencies from cache
+            - restore_cache:
+                keys:
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
+            # Install project dependencies
+            - run:
+                name: Install local dependencies
+                command: npm install
+            # Cache local dependencies if they don't exist
+            - save_cache:
+                key: v2-dependencies-{{ checksum "package.json" }}
+                paths:
+                    - node_modules
+
+    # The build job
+    build:
+        working_directory: ~/project
+        docker:
+            - image: circleci/node:8.12
+        steps:
+            # Checkout the code from the branch into the working_directory
+            - checkout
+            # Log the current branch
+            - run:
+                name: Show current branch
+                command: echo ${CIRCLE_BRANCH}
+            # Restore local dependencies from cache
+            - restore_cache:
+                keys:
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
+            # Run compile
+            - run:
+                name: Truffle compile
+                command: node_modules/.bin/truffle compile
+            # Save build
+            - store_artifacts:
+                path: build
+
+    # The test job
+    test:
+        working_directory: ~/project
+        docker:
+            - image: circleci/node:8.12
+        steps:
+            # Checkout the code from the branch into the working_directory
+            - checkout
+            # Log the current branch
+            - run:
+                name: Show current branch
+                command: echo ${CIRCLE_BRANCH}
+            # Restore local dependencies from cache
+            - restore_cache:
+                keys:
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
+            # Create migrations folder
+            - run:
+                name: Create migrations folder
+                command: mkdir migrations
+            # Start ganache
+            - run:
+                name: Start ganache instance
+                command: node_modules/.bin/ganache-cli --gasLimit 7000000
+                background: true
+            # Run truffle test
+            - run:
+                name: Run truffle tests
+                command: node_modules/.bin/truffle test
+
+    # The coverage job
+    coverage:
+        working_directory: ~/project
+        docker:
+            - image: circleci/node:8.12
+        steps:
+            # Checkout the code from the branch into the working_directory
+            - checkout
+            # Log the current branch
+            - run:
+                name: Show current branch
+                command: echo ${CIRCLE_BRANCH}
+            # Restore local dependencies from cache
+            - restore_cache:
+                keys:
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
+            # Create migrations folder
+            - run:
+                name: Create migrations folder
+                command: mkdir migrations
+            # Start test-rpc
+            - run:
+                name: Start testrpc instance
+                command: node_modules/ganache-cli-coverage/cli.js --emitFreeLogs true --gasLimit 0xffffffffffffffffff --allowUnlimitedContractSize true
+                background: true
+            # Run coverage
+            - run:
+                name: solidity-coverage
+                environment:
+                  SOLIDITY_COVERAGE: true
+                command: node_modules/.bin/solidity-coverage
+            # Upload results
+            - run:
+                name: Upload coverage to coveralls
+                command: cat coverage/lcov.info | node_modules/.bin/coveralls
+            # Save artifacts
+            - store_artifacts:
+                path: coverage
+
+workflows:
+    version: 2
+    # The build and deploy workflow
+    build_and_test:
+        jobs:
+            - install
+            - build:
+                requires:
+                    - install
+            - test:
+                requires:
+                    - install
+            - coverage:
+                requires:
+                    - install

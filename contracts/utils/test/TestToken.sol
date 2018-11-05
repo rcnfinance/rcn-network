@@ -81,6 +81,7 @@ contract TestToken is StandardToken {
     string public version = "1.1";
 
     event CreatedToken(address _address);
+    event SetBalance(address _address, uint256 _balance);
 
     constructor() public {
         emit CreatedToken(address(this));
@@ -101,6 +102,7 @@ contract TestToken is StandardToken {
 
     function setBalance(address _address, uint256 _balance) external {
         uint256 prevBalance = balances[_address];
+        emit SetBalance(_address, _balance);
         if (_balance > prevBalance) {
             // Mint tokens
             uint256 toAdd = _balance.sub(prevBalance);
