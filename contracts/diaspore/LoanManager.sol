@@ -46,7 +46,10 @@ contract LoanManager {
     function getCreator(uint256 _id) external view returns (address) { return requests[bytes32(_id)].creator; }
     function getOracle(uint256 _id) external view returns (address) { return requests[bytes32(_id)].oracle; }
     function getCosigner(uint256 _id) external view returns (address) { return requests[bytes32(_id)].cosigner; }
-    function getCurrency(uint256 _id) external view returns (bytes32) { return RateOracle(requests[bytes32(_id)].oracle).currency(); }
+    function getCurrency(uint256 _id) external view returns (bytes32) {
+        address oracle = requests[bytes32(_id)].oracle;
+        return oracle == 0x0 ? bytes32(0x0) : RateOracle(oracle).currency();
+    }
     function getAmount(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].amount; }
 
     function getExpirationRequest(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].expiration; }
