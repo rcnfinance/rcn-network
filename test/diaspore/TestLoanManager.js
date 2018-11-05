@@ -265,24 +265,24 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should lend a request using lend", async function() {
-        let id = await createId(creator);
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
-        await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce,
+        let id = await calcId(creator, loanData);
+        await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt,
             expiration, loanData, { from: creator });
-        // try lend a request without approve of the borrower
+        // try lend a request without approve osf the borrower
         await Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is not approved by the borrower");
-        // approve request
+        // approve requests
         await loanManager.approveRequest(id, { from: borrower });
         await Helper.increaseTime(2000);
-        // try lend a expired request
+        // try lend a expired requests
         await Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is expired");
-        // create a debt
-        id = await createId(creator);
+        // create a debts
         const amount2 = 2000;
         const expiration2 = (await Helper.getBlockTime()) + 1500;
         const loanData2 = await model.encodeData(amount, expiration2);
-        await loanManager.requestLoan(0x0, amount2, model.address, 0x0, borrower, nonce,
+        id = await calcId(creator, loanData2);
+        await loanManager.requestLoan(amount2, model.address, 0x0, borrower, salt,
             expiration2, loanData2, { from: creator });
         await loanManager.approveRequest(id, { from: borrower });
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: accounts[9] });
@@ -307,7 +307,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
 
         const debt = await getDebt(id);
         assert.equal(debt.error, false, "The debt should not have error");
-        assert.equal(debt.currency, 0x0, "The debt should not have currency");
+        assert.equal(await loanManager.getCurrency(id), 0x0);
         assert.equal(debt.balance, 0, "The debt should not be balance");
         assert.equal(debt.model, model.address, "The model should be the model");
         assert.equal(debt.creator, loanManager.address, "The creator should be the loanManager");
