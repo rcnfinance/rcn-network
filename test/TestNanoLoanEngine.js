@@ -726,6 +726,17 @@ contract('NanoLoanEngine', function(accounts) {
         (await engine.ownerOf(id1)).should.be.equal(accounts[0]);
     })
 
+    it("Create loan should fail if deprecated", async function(){
+        await engine.setDeprecated(true);
+        await Helper.assertThrow(createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Fail, engine deprecated"));
+        await engine.setDeprecated(false);
+    })
+
+    it("Should revert destroy invalid identifier", async function(){
+        await Helper.assertThrow(engine.destroyIdentifier(0x123));
+    })
+
     it("Test E2 28% Anual interest, 91 days", e_test(10000, 11108571428571, 7405714285714, 7862400, 30, 10233, 31,  10474, 91, 11469));
     it("Test E3 28% Anual interest, 30 days", e_test(800000, 11108571428571, 7405714285714, 2592000, 10, 806222, 10,  812444, 30, 837768));
     it("Test E4 27% Anual interest, 30 days", e_test(10000, 11520000000000, 7680000000000, 2592000, 10, 10075, 10, 10150, 30, 10455));
