@@ -371,16 +371,15 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Use cosigner in settleLend", async function() {
-        const idSettle = await createId(creator);
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
-        const settleData = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
+        const idSettle = await calcId(creator, loanData);
+        const settleData = [amount, model.address, 0x0, borrower, salt, expiration, creator]
             .map(x => Helper.toBytes32(x));
-        const settleLoanData = await model.encodeData(settleData[1], settleData[6]);
+        const settleLoanData = await model.encodeData(settleData[0], settleData[5]);
 
-        const msgSL = await loanManager.requestSignature(settleData, settleLoanData);
-        const creatorSigSL = await web3.eth.sign(creator, msgSL);
-        const borrowerSigSL = await web3.eth.sign(borrower, msgSL);
+        const creatorSigSL = await web3.eth.sign(creator, idSettle);
+        const borrowerSigSL = await web3.eth.sign(borrower, idSettle);
 
         await rcn.setBalance(lender, amount);
         await rcn.setBalance(borrower, 0);
@@ -420,7 +419,8 @@ contract('Test LoanManager Diaspore', function(accounts) {
 
         const settleRequest = await getRequest(idSettle);
         assert.equal(settleRequest.cosigner, cosigner.address);
-        assert.equal(web3.toHex(settleRequest.nonce), Web3Utils.soliditySha3(creator, nonce));
+        const internalSalt = Web3Utils.hexToNumberString(Web3Utils.soliditySha3(creator, salt));
+        assert.equal(settleRequest.salt.toNumber(), internalSalt);
     });
 
     it("Should lend a request using settleLend", async function() {
