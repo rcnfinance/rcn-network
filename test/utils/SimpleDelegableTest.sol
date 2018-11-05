@@ -22,10 +22,9 @@ contract SimpleDelegableTest {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
         (uint256 success, bytes32 result) = _safeCall(
             delegable,
-            abi.encodePacked(delegable.ping.selector)
+            abi.encodeWithSelector(delegable.ping.selector)
         );
         Assert.equal(success, uint256(0), "Call should fail");
-        Assert.equal(result, bytes32(0), "Should return 0");
     }
 
     function _safeCall(
