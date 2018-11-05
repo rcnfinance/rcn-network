@@ -44,14 +44,14 @@ contract DebtEngine is ERC721Base {
     event ReadedOracleBatch(
         address _oracle,
         uint256 _count,
-        uint256 _rate,
-        uint256 _tokens
+        uint256 _tokens,
+        uint256 _equivalent
     );
 
     event ReadedOracle(
         bytes32 indexed _id,
-        uint256 _rate,
-        uint256 _tokens
+        uint256 _tokens,
+        uint256 _equivalent
     );
 
     event PayBatchError(
