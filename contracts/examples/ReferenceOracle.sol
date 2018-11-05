@@ -1,12 +1,12 @@
 pragma solidity ^0.4.24;
 
-import './../utils/Delegable.sol';
+import './../utils/SimpleDelegable.sol';
 import './../interfaces/Token.sol';
 import './../utils/TokenLockable.sol';
 import './../utils/BytesUtils.sol';
 import './../interfaces/Oracle.sol';
 
-contract ReferenceOracle is Oracle, Delegable, BytesUtils {
+contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
     event DelegatedCall(address requester, address to);
     event CacheHit(address requester, bytes32 currency, uint256 requestTimestamp, uint256 deliverTimestamp, uint256 rate, uint256 decimals);
     event DeliveredRate(address requester, bytes32 currency, address signer, uint256 requestTimestamp, uint256 rate, uint256 decimals);
