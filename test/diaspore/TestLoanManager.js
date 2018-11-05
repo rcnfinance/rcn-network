@@ -247,10 +247,10 @@ contract('Test LoanManager Diaspore', function(accounts) {
     });
 
     it("Should approve a request using approveRequest", async function() {
-        const id = await createId(creator);
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
-        await loanManager.requestLoan( 0x0, amount, model.address, 0x0, borrower, nonce,
+        const id = await calcId(creator, loanData);
+        await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt,
             expiration, loanData, { from: creator }
         );
         // try approve a request without being the borrower
