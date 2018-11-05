@@ -24,7 +24,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         const _oracle = '0x0000000000000000000000000000000000000000';
         const _two = '0x02';
         const id = await loanManager.calcId( _creator, model.address, _oracle, ++salt, _data);
-        const internalSalt = Web3Utils.hexToNumberString(Web3Utils.soliditySha3(creator, salt));
+        const internalSalt = Web3Utils.hexToNumberString(Web3Utils.soliditySha3(_creator, salt));
         const localCalculateId = Web3Utils.soliditySha3(_two, debtEngine.address, loanManager.address,
             model.address, _oracle, internalSalt, _data);
         assert.equal(id, localCalculateId, "bug in loanManager.createId");
@@ -177,7 +177,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(settledCancel._canceler, creator);
     });
 
-    it("Should create a loan using requestLoan", async function() {
+    it("Should request a loan using requestLoan", async function() {
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
         const id = await calcId(creator, loanData);
@@ -196,11 +196,11 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(request.open, true, "The request should be open");
         assert.equal(await loanManager.getApproved(id), false, "The request should not be approved");
         assert.equal(request.approved, false, "The request should not be approved");
+        assert.equal(await loanManager.isApproved(id), false, "The request should not be approved");
         assert.equal(request.position, 0, "The loan its not approved");
         assert.equal(await loanManager.getExpirationRequest(id), expiration);
         assert.equal(request.expiration.toNumber(), expiration);
         assert.equal(await loanManager.getCurrency(id), 0x0);
-        assert.equal(request.currency, 0x0);
         assert.equal(await loanManager.getAmount(id), amount);
         assert.equal(request.amount, amount);
         assert.equal(await loanManager.getCosigner(id), 0x0);
@@ -212,35 +212,31 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(request.oracle, 0x0);
         assert.equal(await loanManager.getBorrower(id), borrower);
         assert.equal(request.borrower, borrower);
-        assert.equal(web3.toHex(request.nonce), Web3Utils.soliditySha3(creator, nonce));
+        assert.equal(request.salt.toNumber(), Web3Utils.hexToNumberString(Web3Utils.soliditySha3(creator, salt)));
         assert.equal(request.loanData[0], loanData[0]);
         assert.equal(request.loanData[1], loanData[1]);
-
         assert.equal(await loanManager.canceledSettles(id), false);
-
         assert.equal(await loanManager.getStatus(id), 0);
         assert.equal(await loanManager.getDueTime(id), 0);
         // try request 2 identical loans
         await Helper.tryCatchRevert(() => loanManager.requestLoan(
-            0x0,
             amount,
             model.address,
             0x0,
             borrower,
-            nonce,
+            salt,
             expiration,
             loanData,
             { from: creator }
         ), "Request already exist");
         // The loan must be approved
-        const newId = await createId(borrower);
+        const newId = await calcId(borrower, loanData);
         await loanManager.requestLoan(
-            0x0,
             amount,
             model.address,
             0x0,
             borrower,
-            nonce,
+            salt,
             expiration,
             loanData,
             { from: borrower }
