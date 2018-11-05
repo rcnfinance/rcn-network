@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
-import "../contracts/utils/SimpleDelegable.sol";
+import "../../contracts/utils/SimpleDelegable.sol";
 
 contract SimpleDelegableMock is SimpleDelegable {
     function ping() external onlyDelegate returns (bytes32) {
