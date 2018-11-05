@@ -2308,6 +2308,122 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
+    it("Pay batch should emit pay event", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await legacyOracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 1500);
+        await rcn.approve(debtEngine.address, 1500);
+
+        const receipt = await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
+
+        // Test read oracle event
+        const oracleEvent = receipt.logs.find((l) => l.event === "ReadedOracleBatch");
+        assert.isOk(oracleEvent);
+        oracleEvent.args._count.should.be.bignumber.equal(2);
+        oracleEvent.args._tokens.should.be.bignumber.equal(5);
+        oracleEvent.args._equivalent.should.be.bignumber.equal(10);
+
+        // Test paid events
+        const paidLogs = receipt.logs.filter((l) => l.event === "Paid");
+        paidLogs.length.should.be.equal(2);
+        paidLogs.filter((e) => e.args._id === id1).length.should.be.equal(1);
+        paidLogs.filter((e) => e.args._id === id2).length.should.be.equal(1);
+        paidLogs.forEach((event) => {
+            switch (event.args._id) {
+                case id1:
+                    var args = event.args;
+                    args._requested.should.be.bignumber.equal(2000);
+                    args._requestedTokens.should.be.bignumber.equal(0);
+                    args._paid.should.be.bignumber.equal(2000);
+                    args._tokens.should.be.bignumber.equal(1000);
+                    args._sender.should.be.equal(accounts[0]);
+                    args._origin.should.be.equal(accounts[4]);
+                    break;
+                case id2:
+                    var args = event.args;
+                    args._requested.should.be.bignumber.equal(1000);
+                    args._requestedTokens.should.be.bignumber.equal(0);
+                    args._paid.should.be.bignumber.equal(1000);
+                    args._tokens.should.be.bignumber.equal(500);
+                    args._sender.should.be.equal(accounts[0]);
+                    args._origin.should.be.equal(accounts[4]);
+                    break;
+            }
+        });
+    });
+
+    it("Pay token batch should emit pay event", async function() {
+        const id1 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[2],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const id2 = await getId(debtEngine.create(
+            testModel.address,
+            accounts[4],
+            oracle.address,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        const data = await legacyOracle.dummyData2();
+
+        await rcn.setBalance(accounts[0], 1500);
+        await rcn.approve(debtEngine.address, 1500);
+
+        const receipt = await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], oracle.address, data);
+
+        // Test read oracle event
+        const oracleEvent = receipt.logs.find((l) => l.event === "ReadedOracleBatch") ;
+        assert.isOk(oracleEvent);
+        oracleEvent.args._count.should.be.bignumber.equal(2);
+        oracleEvent.args._tokens.should.be.bignumber.equal(5);
+        oracleEvent.args._equivalent.should.be.bignumber.equal(10);
+
+        // Test paid events
+        const paidLogs = receipt.logs.filter((l) => l.event === "Paid");
+        paidLogs.length.should.be.equal(2);
+        paidLogs.filter((e) => e.args._id === id1).length.should.be.equal(1);
+        paidLogs.filter((e) => e.args._id === id2).length.should.be.equal(1);
+        paidLogs.forEach((event) => {
+            switch (event.args._id) {
+                case id1:
+                    var args = event.args;
+                    args._requested.should.be.bignumber.equal(0);
+                    args._requestedTokens.should.be.bignumber.equal(1000);
+                    args._paid.should.be.bignumber.equal(2000);
+                    args._tokens.should.be.bignumber.equal(1000);
+                    args._sender.should.be.equal(accounts[0]);
+                    args._origin.should.be.equal(accounts[4]);
+                    break;
+                case id2:
+                    var args = event.args;
+                    args._requested.should.be.bignumber.equal(0);
+                    args._requestedTokens.should.be.bignumber.equal(500);
+                    args._paid.should.be.bignumber.equal(1000);
+                    args._tokens.should.be.bignumber.equal(500);
+                    args._sender.should.be.equal(accounts[0]);
+                    args._origin.should.be.equal(accounts[4]);
+                    break;
+            }
+        });
+    });
+
     it("Should pay tokens batch with tokens less expensive than currency", async function() {
         const id1 = await getId(debtEngine.create(
             testModel.address,
