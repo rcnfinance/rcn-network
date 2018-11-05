@@ -57,5 +57,5 @@ contract RateOracle is IERC165 {
     /** 
         Returns a sample on how many token() are equals to how many currency()
     */
-    function readSample(bytes _data) external returns (uint256 _currency, uint256 _token);
+    function readSample(bytes _data) external returns (uint256 _tokens, uint256 _equivalent);
 }

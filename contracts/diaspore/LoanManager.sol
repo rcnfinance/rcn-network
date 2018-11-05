@@ -629,12 +629,9 @@ contract LoanManager is BytesUtils {
         uint256 _amount,
         bytes _oracleData
     ) internal returns (uint256) {
-        if (_oracle != 0x0) {
-            (uint256 rate, uint256 tokens) = RateOracle(_oracle).readSample(_oracleData);
-            return rate.mult(tokens).mult(_amount) / 1000000000000000000;
-        } else {
-            return _amount;
-        }
+        if (_oracle == address(0)) return _amount;
+        (uint256 tokens, uint256 equivalent) = RateOracle(_oracle).readSample(_oracleData);
+        return tokens.mult(_amount) / equivalent;
     }
 
     function _safeCall(
