@@ -2,7 +2,14 @@ var TestToken = artifacts.require("./utils/TestToken.sol");
 var NanoLoanEngine = artifacts.require("./basalt/NanoLoanEngine.sol");
 var TestOracle = artifacts.require("./examples/TestOracle.sol");
 var TestCosigner = artifacts.require("./examples/TestCosigner.sol");
+
 const Helper = require('./Helper.js');
+
+const BigNumber = web3.BigNumber;
+
+require('chai')
+    .use(require('chai-bignumber')(BigNumber))
+    .should();
 
 contract('NanoLoanEngine', function(accounts) {
     let rcn;
@@ -587,6 +594,136 @@ contract('NanoLoanEngine', function(accounts) {
         // the loan should be in initial status
         let loanStatus = await engine.getStatus(loanId)
         assert.equal(loanStatus.toNumber(), 0, "The status should be initial")
+    })
+
+    it("Should withdraw batch", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "11");
+        let id2 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "22");
+        let id3 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "44");
+
+        await lendLoan(rcn, engine, accounts[2], id1, web3.toWei(2));
+        await lendLoan(rcn, engine, accounts[2], id2, web3.toWei(2));
+        await lendLoan(rcn, engine, accounts[2], id3, web3.toWei(2));
+
+        // pay the loans
+        await Helper.buyTokens(rcn, web3.toWei(20), accounts[0]);
+        await rcn.increaseApproval(engine.address, web3.toWei(20));
+        await engine.pay(id1, web3.toWei(2), accounts[1], []);
+        await engine.pay(id2, web3.toWei(1), accounts[1], []);
+        await engine.pay(id3, web3.toWei(0.5), accounts[1], []);
+        
+        // Empty account 4
+        await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[4]), { from: accounts[4] });
+
+        // Withdraw 3 loans
+        await engine.withdrawalList([id1, id2, id3], accounts[4], { from: accounts[2] });
+        (await rcn.balanceOf(accounts[4])).should.be.bignumber.equal(web3.toWei(3.5));
+
+        // Multiples withdrawal should have no effect
+        await engine.withdrawalList([id1, id3], accounts[4], { from: accounts[2] });
+        (await rcn.balanceOf(accounts[4])).should.be.bignumber.equal(web3.toWei(3.5));
+    })
+
+    it("Should withdraw only from owned loans", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "62");
+        let id2 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "21");
+        let id3 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "44");
+
+        await lendLoan(rcn, engine, accounts[2], id1, web3.toWei(2));
+        await lendLoan(rcn, engine, accounts[2], id2, web3.toWei(2));
+        await lendLoan(rcn, engine, accounts[2], id3, web3.toWei(2));
+
+        await engine.transfer(accounts[9], id2, { from: accounts[2] });
+
+        // pay the loans
+        await Helper.buyTokens(rcn, web3.toWei(20), accounts[0]);
+        await rcn.increaseApproval(engine.address, web3.toWei(20));
+        await engine.pay(id1, web3.toWei(2), accounts[1], []);
+        await engine.pay(id2, web3.toWei(1), accounts[1], []);
+        await engine.pay(id3, web3.toWei(0.5), accounts[1], []);
+        
+        // Empty account 4
+        await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[4]), { from: accounts[4] });
+
+        // Withdraw 3 loans
+        await engine.withdrawalList([id1, id2, id3], accounts[4], { from: accounts[2] });
+        (await rcn.balanceOf(accounts[4])).should.be.bignumber.equal(web3.toWei(2.5));
+
+        // Multiples withdrawal should have no effect
+        await engine.withdrawalList([id1, id3], accounts[4], { from: accounts[2] });
+        (await rcn.balanceOf(accounts[4])).should.be.bignumber.equal(web3.toWei(2.5));
+    })
+
+    it("Should remove approve after transfer", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Remove approve");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await engine.approve(accounts[7], id1, { from: accounts[0] });
+
+        await engine.transfer(accounts[2], id1);
+
+        await Helper.assertThrow(engine.transferFrom(accounts[0], accounts[7], id1, { from: accounts[7] }));
+        await Helper.assertThrow(engine.transferFrom(accounts[2], accounts[7], id1, { from: accounts[7] }));
+
+        (await engine.ownerOf(id1)).should.be.equal(accounts[2]);
+    })
+
+    it("Should transfer using approve", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "9");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await engine.approve(accounts[7], id1, { from: accounts[0] });
+
+        await engine.transferFrom(accounts[0], accounts[7], id1, { from: accounts[7] });
+
+        (await engine.ownerOf(id1)).should.be.equal(accounts[7]);
+    })
+
+    it("Only current owner can approve", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Only current owner can approve");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await engine.transfer(accounts[2], id1);
+
+        await Helper.assertThrow(engine.approve(accounts[7], id1));
+        await Helper.assertThrow(engine.transferFrom(accounts[2], accounts[7], id1, { from: accounts[7] }));
+
+        (await engine.ownerOf(id1)).should.be.equal(accounts[2]);
+    })
+
+    it("Transfer to 0x0 should fail", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Fail transfer to 0x0");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await engine.approve(accounts[7], id1, { from: accounts[0] });
+
+        await Helper.assertThrow(engine.transferFrom(accounts[0], 0x0, id1, { from: accounts[7] }));
+
+        (await engine.ownerOf(id1)).should.be.equal(accounts[0]);
+    })
+
+    it("Transfer from should check from", async function(){
+        let id1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+            86400, 0, 10 * 10**20, accounts[1], "Fail transfer from");
+
+        await lendLoan(rcn, engine, accounts[0], id1, web3.toWei(2));
+
+        await Helper.assertThrow(engine.transferFrom(accounts[1], accounts[2], id1));
+        (await engine.ownerOf(id1)).should.be.equal(accounts[0]);
     })
 
     it("Test E2 28% Anual interest, 91 days", e_test(10000, 11108571428571, 7405714285714, 7862400, 30, 10233, 31,  10474, 91, 11469));
