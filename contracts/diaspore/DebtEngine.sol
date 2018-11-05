@@ -412,20 +412,25 @@ contract DebtEngine is ERC721Base {
         uint256[] memory paid = new uint256[](count);
         uint256[] memory paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            uint256 amount = _oracle != address(0) ? _fromToken(_tokenAmounts[i], tokens, equivalent) : _tokenAmounts[i];
-            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, tokens, equivalent);
-            require(paidTokens[i] <= _tokenAmounts[i], "Paid can't exceed requested");
+            uint256 tokenAmount = _tokenAmounts[i];
+            (paid[i], paidTokens[i]) = _pay(
+                _ids[i],
+                _oracle,
+                _oracle != address(0) ? _fromToken(tokenAmount, tokens, equivalent) : tokenAmount,
+                tokens,
+                equivalent
+            );
+            require(paidTokens[i] <= tokenAmount, "Paid can't exceed requested");
 
             emit Paid({
                 _id: _ids[i],
                 _sender: msg.sender,
                 _origin: _origin,
                 _requested: 0,
-                _requestedTokens: amount,
+                _requestedTokens: tokenAmount,
                 _paid: paid[i],
                 _tokens: paidTokens[i]
             });
-
         }
 
         return (paid, paidTokens);
