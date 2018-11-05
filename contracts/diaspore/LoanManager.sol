@@ -108,6 +108,22 @@ contract LoanManager is BytesUtils {
         );
     }
 
+    function buildInternalSalt(
+        uint128 _amount,
+        address _borrower,
+        address _creator,
+        uint256 _salt,
+        uint64 _expiration
+    ) external pure returns (uint256) {
+        return _buildInternalSalt(
+            _amount,
+            _borrower,
+            _creator,
+            _salt,
+            _expiration
+        );
+    }
+
     function requestLoan(
         uint128 _amount,
         address _model,
@@ -568,8 +584,8 @@ contract LoanManager is BytesUtils {
                 abi.encodePacked(
                     _amount,
                     _borrower,
-                    _salt,
                     _creator,
+                    _salt,
                     _expiration
                 )
             )
