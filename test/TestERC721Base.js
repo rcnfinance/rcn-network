@@ -79,4 +79,39 @@ contract('ERC721 Base', function(accounts) {
         assert.equal(await receiver.lastFrom(), accounts[0]);
         assert.equal(await receiver.lastTokenId(), assetId);
     });
+
+
+      it("Test approve a third party operator to manage one particular asset ", async function(){
+            let assetId = 9;
+
+            await token.generate(assetId, accounts[0]);
+            await token.approve(accounts[1], assetId);
+
+            assert.equal(await token.getApprovedAddress(assetId), accounts[1]);
+            assert.equal(await token.isApprovedForAll(accounts[1],accounts[0]),false);
+        });
+
+      it("Test approve a third party and transfer asset from the third party to another new owner ", async function(){
+              let assetId = 10;
+
+              await token.generate(assetId, accounts[0]);
+              await token.approve(accounts[1], assetId);
+
+              await token.safeTransferFrom(accounts[0], accounts[2], assetId,{from: accounts[1]});
+
+              assert.equal(await token.ownerOf(assetId), accounts[2]);
+          });
+
+      it("Test approve a third party operator to manage all asset", async function(){
+                let assetId = 11;
+
+                await token.generate(assetId, accounts[0]);
+                await token.setApprovalForAll(accounts[1], true);
+
+
+                assert.equal(await token.isApprovedForAll(accounts[1],accounts[0]),true);
+
+            });
+
+
 })
