@@ -27,7 +27,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         const internalSalt = Web3Utils.hexToNumberString(Web3Utils.soliditySha3(_creator, salt));
         const localCalculateId = Web3Utils.soliditySha3(_two, debtEngine.address, loanManager.address,
             model.address, _oracle, internalSalt, _data);
-        assert.equal(id, localCalculateId, "bug in loanManager.createId");
+        assert.equal(id, localCalculateId, "bug in loanManager.calcId");
         return id;
     }
 
@@ -81,45 +81,44 @@ contract('Test LoanManager Diaspore', function(accounts) {
         cosigner = await TestCosigner.new(rcn.address);
     });
 
-    it("test events", async function() {
+    it("Test events", async function() {
         function toEvent(tx, event) {
           return tx.logs.filter( x => x.event == event).map( x => x.args )[0];
         }
 
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
+        const id = await calcId(creator, loanData);
 
-        const id = await createId(creator);
-
-        // event Requested(bytes32 indexed _id, uint256 _nonce);
+        //event Requested(bytes32 indexed _id, uint256 _salt);
         const requested = toEvent(
-            await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: creator }),
+            await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt, expiration, loanData, { from: creator }),
             'Requested');
         assert.equal(requested._id, id);
-        assert.equal(requested._nonce.toNumber(), nonce);
+        assert.equal(requested._salt.toNumber(), Web3Utils.hexToNumberString(Web3Utils.soliditySha3(creator, salt)));
 
         //event Approved(bytes32 indexed _id);
         const approved = toEvent(
             await loanManager.approveRequest(id, { from: borrower }),
             'Approved');
-        assert.equal(approved._id, id);
+            assert.equal(approved._id, id);
 
         //event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
         await rcn.setBalance(lender, amount);
         await rcn.approve(loanManager.address, amount, { from: lender });
         const lent = toEvent(
-            await loanManager.lend(id, [], 0x0, 0, [], { from: lender }),
-            'Lent');
+        await loanManager.lend(id, [], 0x0, 0, [], { from: lender }),
+        'Lent');
         assert.equal(lent._id, id);
         assert.equal(lent._lender, lender);
         assert.equal(lent._tokens, amount);
 
         //event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
-        const idCosign = await createId(borrower);
         const cosignAmount = 666;
         const expirationCosign = (await Helper.getBlockTime()) + 1000;
         const loanDataCosign = await model.encodeData(amount, expirationCosign);
-        await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce,
+        const idCosign = await calcId(borrower, loanDataCosign);
+        await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt,
             expirationCosign, loanDataCosign, { from: borrower });
         await rcn.setBalance(lender, amount + cosignAmount);
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
@@ -131,49 +130,49 @@ contract('Test LoanManager Diaspore', function(accounts) {
         assert.equal(cosigned._cost, cosignAmount);
 
         //event Canceled(bytes32 indexed _id, address _canceler);
-        const idCancel = await createId(borrower);
         const loanDataCancel = await model.encodeData(amount, expiration);
-        await loanManager.requestLoan(0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanDataCancel, { from: borrower });
+        const idCancel = await calcId(borrower, loanDataCancel);
+        await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt, expiration, loanDataCancel, { from: borrower });
         const canceled = toEvent(
             await loanManager.cancel(idCancel, { from: borrower }),
             'Canceled');
         assert.equal(canceled._id, idCancel);
+        assert.equal(canceled._canceler, borrower);
 
-        //event SettledLend(bytes32 indexed _id, bytes32 _sig, address _lender, uint256 _tokens);
-        const idSettleLend = await createId(creator);
-        const settleData = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
+        //event SettledLend(bytes32 indexed _id, address _lender, uint256 _tokens);
+        const settleLoanData = await model.encodeData(amount, expiration);
+        const idSettleLend = await calcId(creator, settleLoanData);
+        const settleData = [amount, model.address, 0x0, borrower, salt, expiration, creator]
             .map(x => Helper.toBytes32(x));
-        const settleLoanData = await model.encodeData(settleData[1], settleData[6]);
-        const msg = await loanManager.requestSignature(settleData, settleLoanData);
-        const creatorSig = await web3.eth.sign(creator, msg);
-        const borrowerSig = await web3.eth.sign(borrower, msg);
+
+        const creatorSig = await web3.eth.sign(creator, idSettleLend);
+        const borrowerSig = await web3.eth.sign(borrower, idSettleLend);
+
         await rcn.setBalance(lender, amount);
         await rcn.approve(loanManager.address, amount, { from: lender });
         const settledLend = toEvent(
             await loanManager.settleLend(settleData, settleLoanData, 0x0, 0, [], [], creatorSig, borrowerSig, { from: lender } ),
             'SettledLend');
         assert.equal(settledLend._id, idSettleLend);
-        const settleDataBytes = toBytes(settleData);
-        assert.equal(settledLend._sig, Web3Utils.soliditySha3(loanManager.address, settleDataBytes, settleLoanData));
         assert.equal(settledLend._lender, lender);
         assert.equal(settledLend._tokens, amount);
 
-        //event SettledCancel(bytes32 _sig, address _canceler);
-        const idSettleCancel = await createId(creator);
-        const settleDataC = [0x0, amount, model.address, 0x0, borrower, nonce, expiration, creator]
+        //event SettledCancel(bytes32 indexed _id, address _canceler);
+        const settleLoanDataC = await model.encodeData(amount, expiration);
+        const idSettleCancel = await calcId(creator, settleLoanData);
+        const settleDataC = [amount, model.address, 0x0, borrower, salt, expiration, creator]
             .map(x => Helper.toBytes32(x));
-        const settleLoanDataC = await model.encodeData(settleDataC[1], settleDataC[6]);
-        const msgCancel = await loanManager.requestSignature(settleDataC, settleLoanDataC);
-        const creatorSigC = await web3.eth.sign(creator, msgCancel);
-        const borrowerSigC = await web3.eth.sign(borrower, msgCancel);
+
+        const creatorSigC = await web3.eth.sign(creator, idSettleCancel);
+        const borrowerSigC = await web3.eth.sign(borrower, idSettleCancel);
+
         await rcn.setBalance(lender, amount);
         await rcn.approve(loanManager.address, amount, { from: lender });
         await loanManager.settleLend(settleDataC, settleLoanDataC, 0x0, 0, [], [], creatorSigC, borrowerSigC, { from: lender } );
         const settledCancel = toEvent(
             await loanManager.settleCancel(settleDataC, settleLoanDataC, { from: creator } ),
             'SettledCancel');
-        const settleDataBytesC = toBytes(settleDataC);
-        assert.equal(settledCancel._sig, Web3Utils.soliditySha3(loanManager.address, settleDataBytesC, settleLoanDataC));
+        assert.equal(settledCancel._id, idSettleCancel);
         assert.equal(settledCancel._canceler, creator);
     });
 
@@ -376,7 +375,6 @@ contract('Test LoanManager Diaspore', function(accounts) {
         const idSettle = await calcId(creator, loanData);
         const settleData = [amount, model.address, 0x0, borrower, salt, expiration, creator]
             .map(x => Helper.toBytes32(x));
-        const settleLoanData = await model.encodeData(settleData[0], settleData[5]);
 
         const creatorSigSL = await web3.eth.sign(creator, idSettle);
         const borrowerSigSL = await web3.eth.sign(borrower, idSettle);
@@ -385,7 +383,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         await rcn.setBalance(borrower, 0);
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
         // Cosign return false
-        await Helper.tryCatchRevert(() => loanManager.settleLend(settleData, settleLoanData,
+        await Helper.tryCatchRevert(() => loanManager.settleLend(settleData, loanData,
             cosigner.address, // Cosigner
             0,                // Max cosigner cost
             toBytes([
@@ -396,7 +394,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         ),
         "Cosign method returned false");
         // Cosigner dont cosign
-        await Helper.tryCatchRevert(() => loanManager.settleLend(settleData, settleLoanData,
+        await Helper.tryCatchRevert(() => loanManager.settleLend(settleData, loanData,
                 cosigner.address, // Cosigner
                 0,                // Max cosigner cost
                 toBytes([
@@ -407,7 +405,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
             ),
             "Cosigner didn't callback");
         // settleLend with cosigner
-        await loanManager.settleLend(settleData, settleLoanData,
+        await loanManager.settleLend(settleData, loanData,
             cosigner.address, // Cosigner
             0,                // Max cosigner cost
             toBytes([
@@ -536,25 +534,28 @@ contract('Test LoanManager Diaspore', function(accounts) {
     it("Should cancel a request using settle cancel", async function() {
         const expiration = (await Helper.getBlockTime()) + 1000;
         const loanData = await model.encodeData(amount, expiration);
-        let requestData = [0x0, amount, model.address, 0x0, borrower, ++nonce, expiration, creator]
+        const idCreator = await calcId(creator, loanData);
+        let requestData = [amount, model.address, 0x0, borrower, salt, expiration, creator]
             .map(x => Helper.toBytes32(x));
         await loanManager.requestLoan(
-            0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: creator }
+            amount, model.address, 0x0, borrower, salt, expiration, loanData, { from: creator }
         );
+
         // try cancel a request without have the signature
         await Helper.tryCatchRevert(() =>  loanManager.settleCancel(requestData, loanData, { from: lender }), "Only borrower or creator can cancel a settle");
+
         // creator cancel
         await loanManager.settleCancel(requestData, loanData, { from: creator });
-        let signature = await loanManager.requestSignature(requestData, loanData);
-        assert.equal(await loanManager.canceledSettles(signature), true);
+        assert.equal(await loanManager.canceledSettles(idCreator), true);
+
         // borrower cancel
-        requestData = [0x0, amount, model.address, 0x0, borrower, ++nonce, expiration, creator]
+        const idBorrower = await calcId(creator, loanData);
+        requestData = [amount, model.address, 0x0, borrower, salt, expiration, creator]
             .map(x => Helper.toBytes32(x));
         await loanManager.requestLoan(
-            0x0, amount, model.address, 0x0, borrower, nonce, expiration, loanData, { from: creator }
+            amount, model.address, 0x0, borrower, salt, expiration, loanData, { from: creator }
         );
         await loanManager.settleCancel(requestData, loanData, { from: borrower });
-        signature = await loanManager.requestSignature(requestData, loanData);
-        assert.equal(await loanManager.canceledSettles(signature), true);
+        assert.equal(await loanManager.canceledSettles(idBorrower), true);
     });
 });
