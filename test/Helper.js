@@ -1,3 +1,5 @@
+const address0x = "0x0000000000000000000000000000000000000000";
+
 function arrayToBytesOfBytes32(array) {
   let bytes = "0x";
   for(let i = 0; i < array.length; i++){
@@ -97,7 +99,7 @@ async function almostEqual(p1, p2, reason, margin = 3) {
 }
 
 module.exports = {
-  arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
+  address0x, arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
   toBytes32, increaseTime, searchEvent, getBlockTime,
   toInterestRate, buyTokens, isRevertErrorMessage, almostEqual
 };

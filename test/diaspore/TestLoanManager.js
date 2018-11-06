@@ -7,6 +7,12 @@ const TestCosigner = artifacts.require("./examples/TestCosigner.sol");
 const Helper = require('../Helper.js');
 const Web3Utils = require('web3-utils');
 
+const BigNumber = web3.BigNumber;
+
+require('chai')
+    .use(require('chai-bignumber')(BigNumber))
+    .should();
+
 contract('Test LoanManager Diaspore', function(accounts) {
     let salt = 0;
     let rcn;
@@ -16,18 +22,49 @@ contract('Test LoanManager Diaspore', function(accounts) {
     let cosigner;
     const amount = 1000;
 
-    const creator  = accounts[1];
-    const borrower = accounts[2];
-    const lender   = accounts[3];
-
-    async function calcId(_creator, _data) {
-        const _oracle = '0x0000000000000000000000000000000000000000';
+    async function calcId(_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
         const _two = '0x02';
-        const id = await loanManager.calcId( _creator, model.address, _oracle, ++salt, _data);
-        const internalSalt = Web3Utils.hexToNumberString(Web3Utils.soliditySha3(_creator, salt));
-        const localCalculateId = Web3Utils.soliditySha3(_two, debtEngine.address, loanManager.address,
-            model.address, _oracle, internalSalt, _data);
-        assert.equal(id, localCalculateId, "bug in loanManager.calcId");
+        const controlId = await loanManager.calcId(
+            _amount,
+            _borrower,
+            _creator,
+            model.address,
+            _oracle,
+            _salt,
+            _expiration,
+            _data
+        );
+
+        const controlInternalSalt = await loanManager.buildInternalSalt(
+            _amount,
+            _borrower,
+            _creator,
+            _salt,
+            _expiration
+        );
+
+        const internalSalt = Web3Utils.hexToNumberString(
+            Web3Utils.soliditySha3(
+                { t: 'uint128', v: _amount },
+                { t: 'address', v: _borrower },
+                { t: 'address', v: _creator },
+                { t: 'uint256', v: _salt },
+                { t: 'uint64', v: _expiration }
+            )
+        );
+
+        const id = Web3Utils.soliditySha3(
+            { t: 'uint8', v: _two },
+            { t: 'address', v: debtEngine.address },
+            { t: 'address', v: loanManager.address },
+            { t: 'address', v: model.address },
+            { t: 'address', v: _oracle },
+            { t: 'uint256', v: internalSalt },
+            { t: 'bytes', v: _data }
+        );
+
+        internalSalt.should.be.bignumber.equal(controlInternalSalt, "bug internalsalt");
+        id.should.be.equal(controlId, "bug calcId");
         return id;
     }
 
@@ -81,27 +118,26 @@ contract('Test LoanManager Diaspore', function(accounts) {
         cosigner = await TestCosigner.new(rcn.address);
     });
 
-    it("Test events", async function() {
-        function toEvent(tx, event) {
-          return tx.logs.filter( x => x.event == event).map( x => x.args )[0];
-        }
+    it("Should create a loan using requestLoan", async function() {
+        const creator  = accounts[1];
+        const borrower = accounts[2];
 
         const expiration = (await Helper.getBlockTime()) + 1000;
+
+        let salt = 1;
+        const amount = 1000;
+
         const loanData = await model.encodeData(amount, expiration);
-        const id = await calcId(creator, loanData);
-
-        //event Requested(bytes32 indexed _id, uint256 _salt);
-        const requested = toEvent(
-            await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt, expiration, loanData, { from: creator }),
-            'Requested');
-        assert.equal(requested._id, id);
-        assert.equal(requested._salt.toNumber(), Web3Utils.hexToNumberString(Web3Utils.soliditySha3(creator, salt)));
-
-        //event Approved(bytes32 indexed _id);
-        const approved = toEvent(
-            await loanManager.approveRequest(id, { from: borrower }),
-            'Approved');
-            assert.equal(approved._id, id);
+        const id = await calcId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
 
         //event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
         await rcn.setBalance(lender, amount);
@@ -183,7 +219,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         await loanManager.requestLoan(
             amount,           // Amount
             model.address,    // Model
-            0x0,              // Oracle
+            Helper.address0x, // Oracle
             borrower,         // Borrower
             salt,             // salt
             expiration,       // Expiration
