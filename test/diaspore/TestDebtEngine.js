@@ -2505,7 +2505,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
-    it('Should always round in favor of the owner', async function () {
+    it('Pay should round in favor of the owner', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -2520,6 +2520,65 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await rcn.approve(debtEngine.address, 0);
 
         await Helper.assertThrow(debtEngine.pay(id, 1, 0x0, data));
+
+        (await testModel.getPaid(id)).should.be.bignumber.equal(0);
+    });
+
+    it('Pay tokens round in favor of the owner', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(10, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 1 ETH = 2 RCN
+        const data = await testOracle.encodeRate(2, 1);
+
+        await rcn.setBalance(accounts[0], 1);
+        await rcn.approve(debtEngine.address, 1);
+
+        await debtEngine.payToken(id, 1, 0x0, data);
+
+        (await testModel.getPaid(id)).should.be.bignumber.equal(0);
+    });
+
+    it('Pay batch should round in favor of the owner', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(10, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 2 ETH = 1 RCN
+        const data = await testOracle.encodeRate(1, 2);
+
+        await rcn.setBalance(accounts[0], 0);
+        await rcn.approve(debtEngine.address, 0);
+
+        await Helper.assertThrow(debtEngine.payBatch([id, id], [1, 0], 0x0, testOracle.address, data));
+        await Helper.assertThrow(debtEngine.payBatch([id], [1], 0x0, testOracle.address, data));
+        await debtEngine.payBatch([id], [0], 0x0, testOracle.address, data);
+
+        (await testModel.getPaid(id)).should.be.bignumber.equal(0);
+    });
+
+    it('Pay tokens batch round in favor of the owner', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(10, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 1 ETH = 2 RCN
+        const data = await testOracle.encodeRate(2, 1);
+
+        await rcn.setBalance(accounts[0], 2);
+        await rcn.approve(debtEngine.address, 2);
+
+        await debtEngine.payTokenBatch([id, id], [1, 1], 0x0, testOracle.address, data);
 
         (await testModel.getPaid(id)).should.be.bignumber.equal(0);
     });
