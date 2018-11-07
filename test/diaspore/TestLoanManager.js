@@ -743,7 +743,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const expiration = (await Helper.getBlockTime()) + 1700;
         const loanData = await model.encodeData(amount, expiration);
 
-        const id = await calcId(
+        let id = await calcId(
             amount,
             borrower,
             creator,
@@ -757,7 +757,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.requestLoan(
             amount,
             model.address,
-            0x0,
+            Helper.address0x,
             borrower,
             salt,
             expiration,
@@ -774,15 +774,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         // creator cancel
-        const canceled = await toEvent(
+        let canceled = await toEvent(
             loanManager.cancel(
                 id,
-                { from: borrower }
+                { from: creator }
             ),
            'Canceled'
         );
         assert.equal(canceled._id, id);
-        assert.equal(canceled._canceler, borrower);
+        assert.equal(canceled._canceler, creator);
 
         let cancelRequest = await loanManager.requests(id);
 
@@ -802,20 +802,53 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.getLoanData(id), "0x");
 
         // borrower cancel
+        id = await calcId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt + 1,
+            expiration,
+            loanData
+        );
+
         await loanManager.requestLoan(
             amount,
             model.address,
-            0x0,
+            Helper.address0x,
             borrower,
-            salt,
+            salt + 1,
             expiration,
             loanData,
             { from: creator }
         );
-        await loanManager.cancel(id, { from: borrower });
+
+        canceled = await toEvent(
+            loanManager.cancel(
+                id,
+                { from: borrower }
+            ),
+           'Canceled'
+        );
+        assert.equal(canceled._id, id);
+        assert.equal(canceled._canceler, borrower);
+
         cancelRequest = await loanManager.requests(id);
-        assert.equal(cancelRequest[8], 0x0);
-        assert.equal(cancelRequest[3], 0, "The loan its not approved");
+
+        assert.equal(cancelRequest[0], 0);
+        assert.equal(cancelRequest[1], 0);
+        assert.equal(cancelRequest[2], 0);
+        assert.equal(cancelRequest[3], 0);
+        assert.equal(cancelRequest[4], 0);
+        assert.equal(cancelRequest[5], 0);
+        assert.equal(cancelRequest[6], 0);
+        assert.equal(cancelRequest[7], 0);
+        assert.equal(cancelRequest[8], 0);
+        assert.equal(cancelRequest[9], 0);
+        assert.equal(cancelRequest[10], 0);
+        assert.equal(cancelRequest[11], "0x");
+
         assert.equal(await loanManager.getLoanData(id), "0x");
     });
 
