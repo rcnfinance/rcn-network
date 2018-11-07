@@ -1,13 +1,13 @@
 pragma solidity ^0.4.19;
 
-import './../utils/BytesUtils.sol';
-import './../utils/RpSafeMath.sol';
-import './../interfaces/Oracle.sol';
-import './../interfaces/Token.sol';
-import './../basalt/interfaces/Engine.sol';
-import './../interfaces/Cosigner.sol';
-import './../utils/Ownable.sol';
-import './../utils/SimpleDelegable.sol';
+import "./../utils/BytesUtils.sol";
+import "./../utils/RpSafeMath.sol";
+import "./../interfaces/Oracle.sol";
+import "./../interfaces/Token.sol";
+import "./../basalt/interfaces/Engine.sol";
+import "./../interfaces/Cosigner.sol";
+import "./../utils/Ownable.sol";
+import "./../utils/SimpleDelegable.sol";
 
 contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils {
     Token public rcn;
@@ -82,8 +82,10 @@ contract ReferenceCosigner is RpSafeMath, SimpleDelegable, Cosigner, BytesUtils 
         require(coverage != 0);
 
         bytes32 hash = keccak256(this, currentCost, engine, index, coverage, requiredArrears, expiration);
-        address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32",hash),uint8(readBytes32(data, INDEX_V)),
-            readBytes32(data, INDEX_R),readBytes32(data, INDEX_S));
+        address signer = ecrecover(
+            keccak256("\x19Ethereum Signed Message:\n32",hash),
+            uint8(readBytes32(data, INDEX_V)),readBytes32(data, INDEX_R),readBytes32(data, INDEX_S)
+        );
         require(isDelegate(signer));
 
         liabilities[engine][index] = Liability(coverage, requiredArrears, false);
