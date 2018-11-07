@@ -325,7 +325,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.approved, true, 'The request should be approved');
         assert.equal(await loanManager.isApproved(id), true, 'The request should be approved');
         assert.equal(request.position, await loanManager.getDirectoryLength() - 1, 'The request position should be the last position of directory array');
-        assert.equal(await loanManager.directory(request.position), id, 'The request should be have in directory');
+        assert.equal(await loanManager.directory(request.position), id, 'The request should be in directory');
 
         assert.equal(request.open, true, 'The request should be open');
         assert.equal(await loanManager.getExpirationRequest(id), expiration);
