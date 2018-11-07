@@ -172,4 +172,41 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         assert.notEqual(id1, id2);
     });
+
+    it('Should return future internal salt', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 3;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const pInternalSalt = await loanManager.buildInternalSalt(
+            amount,
+            borrower,
+            creator,
+            salt,
+            expiration
+        );
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        pInternalSalt.should.be.bignumber.equal(await loanManager.internalSalt(id));
+    });
+
+    it('Should fail internal salt if id does not exist', async function () {
+        await Helper.tryCatchRevert(loanManager.internalSalt(0x2), 'Request does not exist');
+    });
 });
