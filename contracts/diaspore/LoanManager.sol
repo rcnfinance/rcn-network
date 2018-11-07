@@ -279,7 +279,8 @@ contract LoanManager is BytesUtils {
             uint256 auxSalt = request.internalSalt;
             request.cosigner = address(uint256(_cosigner) + 2);
             request.internalSalt = _cosignerLimit; // Risky ?
-            require(Cosigner(_cosigner).requestCosign(
+            require(
+                Cosigner(_cosigner).requestCosign(
                     Engine(address(this)),
                     uint256(_futureDebt),
                     _cosignerData,
@@ -303,7 +304,7 @@ contract LoanManager is BytesUtils {
             "Only borrower or creator can cancel a request"
         );
         
-        if(request.approved){
+        if (request.approved){
             // Remove directory entry
             bytes32 last = directory[directory.length - 1];
             requests[last].position = request.position;

@@ -98,7 +98,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
             return uint256(10) / uint256(0);
         } else if (entry.errorFlag == ERROR_INFINITE_LOOP_STATUS) {
             uint256 aux;
-            while(aux / aux != 2) aux++;
+            while (aux / aux != 2) aux++;
             return aux;
         } else if (entry.errorFlag == ERROR_WRITE_STORAGE_STATUS) {
             entry.lastPing = uint64(now);
@@ -183,7 +183,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
             return uint256(10) / uint256(0);
         } else if (entry.errorFlag == ERROR_INFINITE_LOOP_PAY) {
             uint256 aux;
-            while(aux / aux != 2) aux++;
+            while (aux / aux != 2) aux++;
             return aux;
         } else if (entry.errorFlag == ERROR_PAY_EXTRA) {
             return amount + 5;
@@ -243,7 +243,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
             return uint256(10) / uint256(0) == 9;
         } else if (entry.errorFlag == ERROR_INFINITE_LOOP_RUN) {
             uint256 aux;
-            while(aux / aux != 2) aux++;
+            while (aux / aux != 2) aux++;
             return aux == 1;
         }
 
