@@ -24,7 +24,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return tx.logs.filter( x => x.event == event).map( x => x.args )[0];
     }
 
-    async function calcId(_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
+    async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
         const _two = '0x02';
         const controlId = await loanManager.calcId(
             _amount,
@@ -152,7 +152,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           model:   debt[2],
           creator: debt[3],
           oracle:  debt[4]
-        }
+        };
     }
 
     before('Create engine and model', async function () {
@@ -278,7 +278,78 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.directory(newRequest.position), newId);
     });
 
-    it("Should approve a request using approveRequest", async function() {
+    it('Different loan managers should have different ids', async function () {
+        const loanManager2 = await LoanManager.new(debtEngine.address);
+
+        const creator = accounts[1];
+        const borrower = accounts[2];
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 2;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id1 = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const id2 = await getId(await loanManager2.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        assert.notEqual(id1, id2);
+    });
+
+    it('Should return future internal salt', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 3;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const pInternalSalt = await loanManager.buildInternalSalt(
+            amount,
+            borrower,
+            creator,
+            salt,
+            expiration
+        );
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        pInternalSalt.should.be.bignumber.equal(await loanManager.internalSalt(id));
+    });
+
+    it('Should approve a request using approveRequest', async function() {
         const creator  = accounts[1];
         const borrower = accounts[2];
         const salt = 13132123;
@@ -286,18 +357,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const expiration = (await Helper.getBlockTime()) + 11100;
         const loanData = await model.encodeData(amount, expiration);
 
-        const id = await calcId(
+        const pInternalSalt = await loanManager.buildInternalSalt(
             amount,
             borrower,
             creator,
-            model.address,
-            Helper.address0x,
             salt,
-            expiration,
-            loanData
+            expiration
         );
 
-        await loanManager.requestLoan(
+        const id = await getId(loanManager.requestLoan(
             amount,           // Amount
             model.address,    // Model
             Helper.address0x, // Oracle
@@ -321,6 +389,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.approved, true, "The request should be approved");
         assert.equal(request.position, await positionDirectory(id), "The loan its not approved");
         assert.equal(await loanManager.directory(request.position), id);
+    });
+
+    it('Should fail internal salt if id does not exist', async function () {
+        await Helper.tryCatchRevert(loanManager.internalSalt(0x2), 'Request does not exist');
     });
 
     it("Should lend a request using lend", async function() {
