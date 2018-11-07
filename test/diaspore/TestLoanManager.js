@@ -240,16 +240,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.getStatus(id), 0);
         assert.equal(await loanManager.getDueTime(id), 0);
         // try request 2 identical loans
-        await Helper.tryCatchRevert(() => loanManager.requestLoan(
-            amount,
-            model.address,
-            0x0,
-            borrower,
-            salt,
-            expiration,
-            loanData,
-            { from: creator }
-        ), "Request already exist");
+        await Helper.tryCatchRevert(
+            () => loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                salt,
+                expiration,
+                loanData,
+                { from: creator }
+            ),
+            "Request already exist"
+        );
         // The loan must be approved
         const salt2 = 2;
         const amount2 = 1031230;
@@ -269,7 +272,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.requestLoan(
             amount2,
             model.address,
-            0x0,
+            Helper.address0x,
             borrower,
             salt2,
             expiration2,
@@ -311,7 +314,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
             { from: creator } // Creator
         );
         // try approve a request without being the borrower
-        await Helper.tryCatchRevert(() => loanManager.approveRequest(id, { from: creator }), "Only borrower can approve");
+        await Helper.tryCatchRevert(
+            () => loanManager.approveRequest(
+                id,
+                { from: creator }
+            ),
+            "Only borrower can approve"
+        );
         // approve request
         const approved = await toEvent(
             loanManager.approveRequest(
@@ -348,15 +357,43 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData
         );
 
-        await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt,
-            expiration, loanData, { from: creator });
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: creator }
+        );
         // try lend a request without approve osf the borrower
-        await Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is not approved by the borrower");
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id,
+                [],
+                Helper.address0x,
+                0,
+                [],
+                { from: lender }
+            ),
+            "The request is not approved by the borrower"
+        );
         // approve requests
         await loanManager.approveRequest(id, { from: borrower });
         await Helper.increaseTime(2000);
         // try lend a expired requests
-        await Helper.tryCatchRevert(() => loanManager.lend(id, [], 0x0, 0, [], { from: lender }), "The request is expired");
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id,
+                [],
+                Helper.address0x,
+                0,
+                [],
+                { from: lender }
+            ),
+            "The request is expired"
+        );
         // create a debts
         const salt2 = 5333;
         const amount2 = 530;
@@ -374,14 +411,30 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData2
         );
 
-        await loanManager.requestLoan(amount2, model.address, 0x0, borrower, salt2,
-            expiration2, loanData2, { from: creator });
+        await loanManager.requestLoan(
+            amount2,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt2,
+            expiration2,
+            loanData2,
+            { from: creator }
+        );
         await loanManager.approveRequest(id2, { from: borrower });
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: accounts[9] });
         // try lend without tokens balance
-        await Helper.tryCatchRevert(() => loanManager.lend(
-            id2, [], 0x0, 0, [], { from: accounts[9] }
-        ), "Error sending tokens to borrower");
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id2,
+                [],
+                Helper.address0x,
+                0,
+                [],
+                { from: accounts[9]}
+            ),
+            "Error sending tokens to borrower"
+        );
         await rcn.setBalance(lender, amount2);
         await rcn.setBalance(borrower, 0);
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
@@ -390,9 +443,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await rcn.approve(loanManager.address, amount2, { from: lender });
         const lent = await toEvent(
             loanManager.lend(
-                id2,                 // Index
+                id2,                // Index
                 [],                 // OracleData
-                0x0,                // Cosigner
+                Helper.address0x,   // Cosigner
                 0,                  // Cosigner limit
                 [],                 // Cosigner data
                 { from: lender }    // Owner/Lender
@@ -420,7 +473,17 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.position, 0);
 
         // try lend a closed request
-        await Helper.tryCatchRevert(() => loanManager.lend(id2, [], 0x0, 0, [], { from: lender }), "Request is no longer open");
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id2,
+                [],
+                Helper.address0x,
+                0,
+                [],
+                { from: lender }
+            ),
+            "Request is no longer open"
+        );
     });
 
     it("Use cosigner in lend", async function() {
@@ -443,8 +506,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData
         );
 
-        await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt,
-            expiration, loanData, { from: borrower });
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
         await rcn.setBalance(lender, amount + 666);
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
         // Cosign return false
@@ -682,15 +753,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
 
         await loanManager.settleLend(
-            settleData,     // Request data
-            loanData,        // Loan data
-            0x0,             // Cosigner
-            0,               // Max cosigner cost
-            [],              // Cosigner data
-            [],              // Oracle data
-            creatorSig,      // Creator signature
-            borrowerSig,     // Borrower signature
-            { from: lender } // Lender
+            settleData,       // Request data
+            loanData,         // Loan data
+            Helper.address0x, // Cosigner
+            0,                // Max cosigner cost
+            [],               // Cosigner data
+            [],               // Oracle data
+            creatorSig,       // Creator signature
+            borrowerSig,      // Borrower signature
+            { from: lender }  // Lender
         );
 
         const request = await getRequest(idSettle);
@@ -722,7 +793,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             () => loanManager.settleLend(
                 settleData,
                 loanData,
-                0x0,
+                Helper.address0x,
                 0,
                 [],
                 [],
@@ -927,7 +998,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.requestLoan(
             amount,
             model.address,
-            0x0,
+            Helper.address0x,
             borrower,
             salt + 1,
             expiration,
@@ -1014,6 +1085,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
     });
 
     it('Should fail internal salt if id does not exist', async function () {
-        await Helper.tryCatchRevert(loanManager.internalSalt(0x2), 'Request does not exist');
+        await Helper.tryCatchRevert(
+            loanManager.internalSalt(
+                0x2
+            ),
+            'Request does not exist'
+        );
     });
 });
