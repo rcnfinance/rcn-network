@@ -1,8 +1,7 @@
 const LoanManager = artifacts.require('./diaspore/LoanManager.sol');
 const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
-const TestToken = artifacts.require("./utils/test/TestToken.sol");
-const TestCosigner = artifacts.require("./examples/TestCosigner.sol");
+const TestToken = artifacts.require('./utils/test/TestToken.sol');
 
 const Helper = require('../Helper.js');
 const Web3Utils = require('web3-utils');
@@ -13,14 +12,13 @@ require('chai')
     .use(require('chai-bignumber')(BigNumber))
     .should();
 
-contract('Test LoanManager Diaspore', function(accounts) {
+contract('Test LoanManager Diaspore', function (accounts) {
     let rcn;
     let debtEngine;
     let loanManager;
     let model;
-    let cosigner;
 
-    async function calcId(_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
+    async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
         const _two = '0x02';
         const controlId = await loanManager.calcId(
             _amount,
@@ -61,68 +59,45 @@ contract('Test LoanManager Diaspore', function(accounts) {
             { t: 'bytes', v: _data }
         );
 
-        internalSalt.should.be.bignumber.equal(controlInternalSalt, "bug internalsalt");
-        id.should.be.equal(controlId, "bug calcId");
+        internalSalt.should.be.bignumber.equal(controlInternalSalt, 'bug internalsalt');
+        id.should.be.equal(controlId, 'bug calcId');
         return id;
     }
 
-    function toBytes(target) {
-        return target.toString().replace(new RegExp(',0x', 'g'), '');
-    }
-
-    async function getRequest(id){
+    async function getRequest (id) {
         const request = await loanManager.requests(id);
-        if ( request[9] == 0x0 )
-          throw new Error("Request id: " + id + " does not exists");
+        if (request[9] === 0x0) { throw new Error('Request id: ' + id + ' does not exists'); }
         return {
-          open:       request[0],
-          approved:   request[1],
-          position:   request[2],
-          expiration: request[3],
-          amount:     request[4],
-          cosigner:   request[5],
-          model:      request[6],
-          creator:    request[7],
-          oracle:     request[8],
-          borrower:   request[9],
-          salt:       request[10],
-          loanData: await loanManager.getLoanData(id)
-        }
+            open: request[0],
+            approved: request[1],
+            position: request[2],
+            expiration: request[3],
+            amount: request[4],
+            cosigner: request[5],
+            model: request[6],
+            creator: request[7],
+            oracle: request[8],
+            borrower: request[9],
+            salt: request[10],
+            loanData: await loanManager.getLoanData(id),
+        };
     }
 
-    async function positionDirectory(id){
-        return (await loanManager.getDirectory()).indexOf(id);
-    }
-
-    async function getDebt(id){
-        const debt = await debtEngine.debts(id);
-        if ( debt[3] == 0x0 )
-          throw new Error("Debt id: " + id + " does not exists");
-        return {
-          error:   debt[0],
-          balance: debt[1],
-          model:   debt[2],
-          creator: debt[3],
-          oracle:  debt[4]
-        }
-    }
-
-    before("Create engine and model", async function(){
+    before('Create engine and model', async function () {
         rcn = await TestToken.new();
         debtEngine = await DebtEngine.new(rcn.address);
         loanManager = await LoanManager.new(debtEngine.address);
         model = await TestModel.new();
         await model.setEngine(debtEngine.address);
-        cosigner = await TestCosigner.new(rcn.address);
     });
 
-    it("Should create a loan using requestLoan", async function() {
-        const creator  = accounts[1];
+    it('Should create a loan using requestLoan', async function () {
+        const creator = accounts[1];
         const borrower = accounts[2];
 
         const expiration = (await Helper.getBlockTime()) + 1000;
 
-        let salt = 1;
+        const salt = 1;
         const amount = 1000;
 
         const loanData = await model.encodeData(amount, expiration);
@@ -148,7 +123,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
             { from: creator } // Creator
         );
 
-        const request = await getRequest(id);
+        await getRequest(id);
 
         assert.equal(await loanManager.getCurrency(id), 0x0);
     });

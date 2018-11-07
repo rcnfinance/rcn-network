@@ -2,7 +2,7 @@ pragma solidity ^0.4.19;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
-import "../contracts/utils/BytesUtils.sol";
+import "../../contracts/utils/BytesUtils.sol";
 
 interface BytesUtilsInterface {
     function pReadBytes32(bytes data, uint256 index) external;
