@@ -20,8 +20,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
     let model;
     let cosigner;
 
-    function toEvent(tx, event) {
-        return tx.logs.filter( x => x.event == event).map( x => x.args )[0];
+    async function toEvent(promise, event) {
+        return (await promise).logs.filter( x => x.event === event).map( x => x.args )[0];
+    }
+    async function getId (promise) {
+        return (await toEvent(promise, 'Requested'))._id;
     }
 
     async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
@@ -152,7 +155,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           model:   debt[2],
           creator: debt[3],
           oracle:  debt[4]
-        };
+        }
     }
 
     before('Create engine and model', async function () {
@@ -183,8 +186,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData
         );
 
-        const requested = toEvent(
-            await loanManager.requestLoan(
+        const requested = await toEvent(
+            loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
                 Helper.address0x, // Oracle
@@ -208,7 +211,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         assert.equal(requested._id, id);
-        assert.equal(requested._salt.toNumber(), internalSalt);
+        assert.equal(requested._internalSalt.toNumber(), internalSalt);
 
         const request = await getRequest(id);
         assert.equal(request.open, true, "The request should be open");
@@ -230,7 +233,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.oracle, 0x0);
         assert.equal(await loanManager.getBorrower(id), borrower);
         assert.equal(request.borrower, borrower);
-        assert.equal(request.salt.toNumber(), internalSalt);
+        assert.equal(request.salt.toNumber(), salt);
         assert.equal(request.loanData[0], loanData[0]);
         assert.equal(request.loanData[1], loanData[1]);
         assert.equal(await loanManager.canceledSettles(id), false);
@@ -278,78 +281,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.directory(newRequest.position), newId);
     });
 
-    it('Different loan managers should have different ids', async function () {
-        const loanManager2 = await LoanManager.new(debtEngine.address);
-
-        const creator = accounts[1];
-        const borrower = accounts[2];
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 2;
-        const amount = 1000;
-
-        const loanData = await model.encodeData(amount, expiration);
-
-        const id1 = await getId(loanManager.requestLoan(
-            amount,           // Amount
-            model.address,    // Model
-            Helper.address0x, // Oracle
-            borrower,         // Borrower
-            salt,             // salt
-            expiration,       // Expiration
-            loanData,         // Loan data
-            { from: creator } // Creator
-        ));
-
-        const id2 = await getId(await loanManager2.requestLoan(
-            amount,           // Amount
-            model.address,    // Model
-            Helper.address0x, // Oracle
-            borrower,         // Borrower
-            salt,             // salt
-            expiration,       // Expiration
-            loanData,         // Loan data
-            { from: creator } // Creator
-        ));
-
-        assert.notEqual(id1, id2);
-    });
-
-    it('Should return future internal salt', async function () {
-        const creator = accounts[1];
-        const borrower = accounts[2];
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 3;
-        const amount = 1000;
-
-        const loanData = await model.encodeData(amount, expiration);
-
-        const pInternalSalt = await loanManager.buildInternalSalt(
-            amount,
-            borrower,
-            creator,
-            salt,
-            expiration
-        );
-
-        const id = await getId(loanManager.requestLoan(
-            amount,           // Amount
-            model.address,    // Model
-            Helper.address0x, // Oracle
-            borrower,         // Borrower
-            salt,             // salt
-            expiration,       // Expiration
-            loanData,         // Loan data
-            { from: creator } // Creator
-        ));
-
-        pInternalSalt.should.be.bignumber.equal(await loanManager.internalSalt(id));
-    });
-
-    it('Should approve a request using approveRequest', async function() {
+    it("Should approve a request using approveRequest", async function() {
         const creator  = accounts[1];
         const borrower = accounts[2];
         const salt = 13132123;
@@ -357,15 +289,18 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const expiration = (await Helper.getBlockTime()) + 11100;
         const loanData = await model.encodeData(amount, expiration);
 
-        const pInternalSalt = await loanManager.buildInternalSalt(
+        const id = await calcId(
             amount,
             borrower,
             creator,
+            model.address,
+            Helper.address0x,
             salt,
-            expiration
+            expiration,
+            loanData
         );
 
-        const id = await getId(loanManager.requestLoan(
+        await loanManager.requestLoan(
             amount,           // Amount
             model.address,    // Model
             Helper.address0x, // Oracle
@@ -378,8 +313,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
         // try approve a request without being the borrower
         await Helper.tryCatchRevert(() => loanManager.approveRequest(id, { from: creator }), "Only borrower can approve");
         // approve request
-        const approved = toEvent(
-            await loanManager.approveRequest(id, { from: borrower }),
+        const approved = await toEvent(
+            loanManager.approveRequest(
+                id, { from: borrower }
+            ),
             'Approved'
         );
 
@@ -389,10 +326,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.approved, true, "The request should be approved");
         assert.equal(request.position, await positionDirectory(id), "The loan its not approved");
         assert.equal(await loanManager.directory(request.position), id);
-    });
-
-    it('Should fail internal salt if id does not exist', async function () {
-        await Helper.tryCatchRevert(loanManager.internalSalt(0x2), 'Request does not exist');
     });
 
     it("Should lend a request using lend", async function() {
@@ -455,8 +388,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         // lend
         await rcn.setBalance(lender, amount2);
         await rcn.approve(loanManager.address, amount2, { from: lender });
-        const lent = toEvent(
-            await loanManager.lend(
+        const lent = await toEvent(
+            loanManager.lend(
                 id2,                 // Index
                 [],                 // OracleData
                 0x0,                // Cosigner
@@ -544,8 +477,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ),
             "Cosigner didn't callback");
         // lend with cosigner
-        const cosigned = toEvent(
-            await loanManager.lend(
+        const cosigned = await toEvent(
+            loanManager.lend(
                 id,
                 [],
                 cosigner.address,        // Cosigner
@@ -574,7 +507,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { t: 'uint64',  v: expiration }
             )
         );
-        assert.equal(request.salt.toNumber(), internalSalt);
+        assert.equal(request.salt.toNumber(), salt);
     });
 
     it("Use cosigner in settleLend", async function() {
@@ -641,8 +574,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         // settleLend with cosigner
-        const settledLend = toEvent(
-            await loanManager.settleLend(
+        const settledLend = await toEvent(
+            loanManager.settleLend(
                 settleData,
                 loanData,
                 cosigner.address, // Cosigner
@@ -674,7 +607,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { t: 'uint64',  v: expiration }
             )
         );
-        assert.equal(settleRequest.salt.toNumber(), internalSalt);
+        assert.equal(settleRequest.salt.toNumber(), salt);
     });
 
     it("Should lend a request using settleLend", async function() {
@@ -782,8 +715,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { t: 'uint64',  v: expiration }
             )
         );
-        assert.equal(request.salt.toNumber(), internalSalt);
-        
+        assert.equal(request.salt.toNumber(), salt);
+
         // try settle lend a request already exist
         await Helper.tryCatchRevert(
             () => loanManager.settleLend(
@@ -841,8 +774,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         // creator cancel
-        const canceled = toEvent(
-            await loanManager.cancel(
+        const canceled = await toEvent(
+            loanManager.cancel(
                 id,
                 { from: borrower }
             ),
@@ -930,8 +863,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         // creator cancel
-        const settledCancel = toEvent(
-            await loanManager.settleCancel(
+        const settledCancel = await toEvent(
+            loanManager.settleCancel(
                 settleData,
                 loanData,
                 { from: creator }
@@ -974,5 +907,80 @@ contract('Test LoanManager Diaspore', function (accounts) {
             { from: borrower }
         );
         assert.equal(await loanManager.canceledSettles(idBorrower), true);
+    });
+
+    it('Different loan managers should have different ids', async function () {
+        const loanManager2 = await LoanManager.new(debtEngine.address);
+
+        const creator = accounts[1];
+        const borrower = accounts[2];
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 2;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id1 = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const id2 = await getId(loanManager2.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        assert.notEqual(id1, id2);
+    });
+
+    it('Should return future internal salt', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 3;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const pInternalSalt = await loanManager.buildInternalSalt(
+            amount,
+            borrower,
+            creator,
+            salt,
+            expiration
+        );
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        pInternalSalt.should.be.bignumber.equal(await loanManager.internalSalt(id));
+    });
+
+    it('Should fail internal salt if id does not exist', async function () {
+        await Helper.tryCatchRevert(loanManager.internalSalt(0x2), 'Request does not exist');
     });
 });
