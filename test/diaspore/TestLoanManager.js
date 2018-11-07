@@ -130,9 +130,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
             { from: creator } // Creator
         );
 
-        await getRequest(id);
+        const request = await getRequest(id);
 
         assert.equal(await loanManager.getCurrency(id), 0x0);
+        assert.equal(await loanManager.directory(request.position), 0);
     });
 
     it('Different loan managers should have different ids', async function () {
