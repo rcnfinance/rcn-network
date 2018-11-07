@@ -167,7 +167,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         cosigner = await TestCosigner.new(rcn.address);
     });
 
-    it('Should create a loan using requestLoan', async function () {
+    it('Should request a loan using requestLoan', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
         const salt = 1;
@@ -324,7 +324,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.getApproved(id), true, 'The request should be approved');
         assert.equal(request.approved, true, 'The request should be approved');
         assert.equal(await loanManager.isApproved(id), true, 'The request should be approved');
-        assert.equal(request.position, 0, 'The request should be have position');
+        assert.equal(request.position, await loanManager.getDirectoryLength() - 1, 'The request position should be the last position of directory array');
         assert.equal(await loanManager.directory(request.position), id, 'The request should be have in directory');
 
         assert.equal(request.open, true, 'The request should be open');
