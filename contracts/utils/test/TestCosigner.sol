@@ -8,12 +8,17 @@ import "./../../interfaces/Token.sol";
 contract TestCosigner is Cosigner, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
     bytes public data = buildData(keccak256("test_oracle"), dummyCost);
+    bytes public noCosignData = buildData(keccak256("return_true_no_cosign"), dummyCost);
     bytes public badData = buildData(keccak256("bad_data"), dummyCost);
 
     Token public token;
 
     function TestCosigner(Token _token) public {
         token = _token;
+    }
+
+    function getDummyCost() public view returns(uint256) {
+        return uint256(dummyCost);
     }
 
     function buildData(bytes32 a, bytes32 b) internal returns (bytes o) {
