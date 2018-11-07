@@ -435,12 +435,79 @@ contract('Test LoanManager Diaspore', function (accounts) {
     });
 
     it('Should lend a request using lend', async function () {
-        const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
         const salt = 23;
         const amount = 30;
         const expiration = (await Helper.getBlockTime()) + 900;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        const prevDirLength = await loanManager.getDirectoryLength();
+
+        const lent = await toEvent(
+            loanManager.lend(
+                id,                // Index
+                [],                 // OracleData
+                Helper.address0x,   // Cosigner
+                0,                  // Cosigner limit
+                [],                 // Cosigner data
+                { from: lender }    // Owner/Lender
+            ),
+            'Lent'
+        );
+        assert.equal(lent._id, id);
+        assert.equal(lent._lender, lender);
+        assert.equal(lent._tokens, amount);
+
+        assert.equal(await rcn.balanceOf(lender), 0, 'The lender does not have to have tokens');
+        assert.equal(await rcn.balanceOf(borrower), amount, 'The borrower should have ' + amount + ' tokens');
+
+        const debt = await getDebt(id);
+        assert.equal(debt.error, false, 'The debt should not have error');
+        assert.equal(await loanManager.getCurrency(id), 0x0);
+        assert.equal(debt.balance, 0, 'The debt should not be balance');
+        assert.equal(debt.model, model.address, 'The model should be the model');
+        assert.equal(debt.creator, loanManager.address, 'The creator should be the loanManager');
+        assert.equal(debt.oracle, 0x0, 'The debt should not have oracle');
+
+        assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
+
+        const request = await getRequest(id);
+        assert.equal(request.position, 0);
+        assert.equal(await loanManager.getDirectoryLength(), prevDirLength - 1);
+    });
+
+    it('Try lend a loan without approve of the borrower', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = 213;
+        const amount = 300;
+        const expiration = (await Helper.getBlockTime()) + 9010;
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -464,7 +531,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData,
             { from: creator }
         );
-        // try lend a request without approve osf the borrower
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
         await Helper.tryCatchRevert(
             () => loanManager.lend(
                 id,
@@ -476,10 +546,45 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ),
             'The request is not approved by the borrower'
         );
+    });
+
+    it('Try lend a expired loan', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = 313;
+        const amount = 440;
+        const expiration = (await Helper.getBlockTime()) + 1010;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
         // approve requests
         await loanManager.approveRequest(id, { from: borrower });
         await Helper.increaseTime(2000);
-        // try lend a expired requests
+
         await Helper.tryCatchRevert(
             () => loanManager.lend(
                 id,
@@ -491,39 +596,40 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ),
             'The request is expired'
         );
-        // create a debts
-        const salt2 = 5333;
-        const amount2 = 530;
-        const expiration2 = (await Helper.getBlockTime()) + 5900;
-        const loanData2 = await model.encodeData(amount2, expiration2);
+    });
 
-        const id2 = await calcId(
-            amount2,
+    it('Try lend a loan without tokens balance', async function () {
+        const borrower = accounts[2];
+        const salt = 763;
+        const amount = 700;
+        const expiration = (await Helper.getBlockTime()) + 9010;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
             borrower,
-            creator,
+            borrower,
             model.address,
             Helper.address0x,
-            salt2,
-            expiration2,
-            loanData2
+            salt,
+            expiration,
+            loanData
         );
 
         await loanManager.requestLoan(
-            amount2,
+            amount,
             model.address,
             Helper.address0x,
             borrower,
-            salt2,
-            expiration2,
-            loanData2,
-            { from: creator }
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
         );
-        await loanManager.approveRequest(id2, { from: borrower });
-        await rcn.approve(loanManager.address, web3.toWei(100000), { from: accounts[9] });
-        // try lend without tokens balance
+
         await Helper.tryCatchRevert(
             () => loanManager.lend(
-                id2,
+                id,
                 [],
                 Helper.address0x,
                 0,
@@ -532,47 +638,53 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ),
             'Error sending tokens to borrower'
         );
-        await rcn.setBalance(lender, amount2);
-        await rcn.setBalance(borrower, 0);
-        await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
-        // lend
-        await rcn.setBalance(lender, amount2);
-        await rcn.approve(loanManager.address, amount2, { from: lender });
-        const lent = await toEvent(
-            loanManager.lend(
-                id2,                // Index
-                [],                 // OracleData
-                Helper.address0x,   // Cosigner
-                0,                  // Cosigner limit
-                [],                 // Cosigner data
-                { from: lender }    // Owner/Lender
-            ),
-            'Lent'
+    });
+
+    it('Try lend a closed loan', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = 2223;
+        const amount = 32231;
+        const expiration = (await Helper.getBlockTime()) + 3300;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
         );
-        assert.equal(lent._id, id2);
-        assert.equal(lent._lender, lender);
-        assert.equal(lent._tokens, amount2);
 
-        assert.equal(await rcn.balanceOf(lender), 0, 'The lender does not have to have tokens');
-        assert.equal(await rcn.balanceOf(borrower), amount2, 'The borrower should have ' + amount2 + ' tokens');
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
 
-        const debt = await getDebt(id2);
-        assert.equal(debt.error, false, 'The debt should not have error');
-        assert.equal(await loanManager.getCurrency(id2), 0x0);
-        assert.equal(debt.balance, 0, 'The debt should not be balance');
-        assert.equal(debt.model, model.address, 'The model should be the model');
-        assert.equal(debt.creator, loanManager.address, 'The creator should be the loanManager');
-        assert.equal(debt.oracle, 0x0, 'The debt should not have oracle');
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
 
-        assert.equal(await debtEngine.ownerOf(id2), lender, 'The lender should be the owner of the new ERC721');
+        await loanManager.lend(
+            id,                // Index
+            [],                 // OracleData
+            Helper.address0x,   // Cosigner
+            0,                  // Cosigner limit
+            [],                 // Cosigner data
+            { from: lender }    // Owner/Lender
+        );
 
-        const request = await getRequest(id2);
-        assert.equal(request.position, 0);
-
-        // try lend a closed request
         await Helper.tryCatchRevert(
             () => loanManager.lend(
-                id2,
+                id,
                 [],
                 Helper.address0x,
                 0,
