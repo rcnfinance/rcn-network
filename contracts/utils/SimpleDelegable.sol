@@ -6,7 +6,7 @@ contract SimpleDelegable is Ownable {
     mapping(address => bool) delegates;
 
     modifier onlyDelegate() {
-        require(delegates[msg.sender]);
+        require(delegates[msg.sender], "Only delegable");
         _;
     }
 
@@ -14,12 +14,12 @@ contract SimpleDelegable is Ownable {
         return delegates[_delegate];
     }
 
-    function addDelegate(address _delegate) public onlyOwner returns (bool) {
+    function addDelegate(address _delegate) external onlyOwner returns (bool) {
         delegates[_delegate] = true;
         return true;
     }
 
-    function removeDelegate(address _delegate) public onlyOwner returns (bool) {
+    function removeDelegate(address _delegate) external onlyOwner returns (bool) {
         delegates[_delegate] = false;
         return true;
     }
