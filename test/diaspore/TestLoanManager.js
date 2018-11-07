@@ -65,7 +65,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             { t: 'bytes', v: _data }
         );
 
-        internalSalt.should.be.bignumber.equal(controlInternalSalt, 'bug internalsalt');
+        internalSalt.should.be.bignumber.equal(controlInternalSalt, 'bug internalSalt');
         id.should.be.equal(controlId, 'bug calcId');
         return id;
     }
@@ -90,6 +90,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             _salt,
             _expiration
         );
+
         const internalSalt = Web3Utils.hexToNumberString(
             Web3Utils.soliditySha3(
                 { t: 'uint128', v: _amount },
@@ -99,7 +100,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { t: 'uint64', v: _expiration }
             )
         );
-
 
         const id = Web3Utils.soliditySha3(
             { t: 'uint8', v: _two },
@@ -111,8 +111,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
             { t: 'bytes', v: _data }
         );
 
-        internalSalt.should.be.bignumber.equal(controlInternalSalt, "bug internalsalt");
-        id.should.be.equal(controlId, "bug calcId");
+        internalSalt.should.be.bignumber.equal(controlInternalSalt, 'bug internalSalt');
+        id.should.be.equal(controlId, 'bug calcId');
         return encodeData;
     }
 
@@ -145,8 +145,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
     async function getDebt(id){
         const debt = await debtEngine.debts(id);
-        if ( debt[3] == 0x0 )
-          throw new Error("Debt id: " + id + " does not exists");
+        if (debt[3] === 0x0) { throw new Error('Debt id: ' + id + ' does not exists'); }
         return {
           error:   debt[0],
           balance: debt[1],
@@ -413,7 +412,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await debtEngine.ownerOf(id2), lender, "The lender should be the owner of the new ERC721");
 
         const request = await getRequest(id2);
-        assert.equal(request.loanData, "0x");
         assert.equal(request.position, 0);
 
         // try lend a closed request
@@ -713,8 +711,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             )
         );
         assert.equal(request.salt.toNumber(), internalSalt);
-        assert.equal(request.loanData, "0x");
-
+        
         // try settle lend a request already exist
         await Helper.tryCatchRevert(
             () => loanManager.settleLend(
