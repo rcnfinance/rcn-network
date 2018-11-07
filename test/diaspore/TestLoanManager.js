@@ -20,8 +20,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
     let model;
     let cosigner;
 
-    async function toEvent(promise, event) {
-        return (await promise).logs.filter( x => x.event === event).map( x => x.args )[0];
+    async function toEvent (promise, event) {
+        return (await promise).logs.filter(x => x.event === event).map(x => x.args)[0];
     }
     async function getId (promise) {
         return (await toEvent(promise, 'Requested'))._id;
@@ -73,7 +73,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return id;
     }
 
-    async function calcSettleId(_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
+    async function calcSettleId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
         const _two = '0x02';
         const encodeData = await loanManager.encodeRequest(
             _amount,
@@ -119,7 +119,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return encodeData;
     }
 
-    function toBytes(target) {
+    function toBytes (target) {
         return target.toString().replace(new RegExp(',0x', 'g'), '');
     }
 
@@ -127,35 +127,35 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const request = await loanManager.requests(id);
         if (request[9] === 0x0) { throw new Error('Request id: ' + id + ' does not exists'); }
         return {
-          open:       request[0],
-          approved:   request[1],
-          position:   request[2],
-          expiration: request[3],
-          amount:     request[4],
-          cosigner:   request[5],
-          model:      request[6],
-          creator:    request[7],
-          oracle:     request[8],
-          borrower:   request[9],
-          salt:       request[10],
-          loanData: await loanManager.getLoanData(id)
-        }
+            open: request[0],
+            approved: request[1],
+            position: request[2],
+            expiration: request[3],
+            amount: request[4],
+            cosigner: request[5],
+            model: request[6],
+            creator: request[7],
+            oracle: request[8],
+            borrower: request[9],
+            salt: request[10],
+            loanData: await loanManager.getLoanData(id),
+        };
     }
 
-    async function positionDirectory(id){
+    async function positionDirectory (id) {
         return (await loanManager.getDirectory()).indexOf(id);
     }
 
-    async function getDebt(id){
+    async function getDebt (id) {
         const debt = await debtEngine.debts(id);
         if (debt[3] === 0x0) { throw new Error('Debt id: ' + id + ' does not exists'); }
         return {
-          error:   debt[0],
-          balance: debt[1],
-          model:   debt[2],
-          creator: debt[3],
-          oracle:  debt[4]
-        }
+            error: debt[0],
+            balance: debt[1],
+            model: debt[2],
+            creator: debt[3],
+            oracle: debt[4],
+        };
     }
 
     before('Create engine and model', async function () {
@@ -168,7 +168,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
     });
 
     it('Should create a loan using requestLoan', async function () {
-        const creator  = accounts[1];
+        const creator = accounts[1];
         const borrower = accounts[2];
         const salt = 1;
         const amount = 1031230;
@@ -206,7 +206,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { t: 'address', v: borrower },
                 { t: 'address', v: creator },
                 { t: 'uint256', v: salt },
-                { t: 'uint64',  v: expiration }
+                { t: 'uint64', v: expiration }
             )
         );
 
@@ -214,11 +214,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(requested._internalSalt.toNumber(), internalSalt);
 
         const request = await getRequest(id);
-        assert.equal(request.open, true, "The request should be open");
-        assert.equal(await loanManager.getApproved(id), false, "The request should not be approved");
-        assert.equal(request.approved, false, "The request should not be approved");
-        assert.equal(await loanManager.isApproved(id), false, "The request should not be approved");
-        assert.equal(request.position, 0, "The loan its not approved");
+        assert.equal(request.open, true, 'The request should be open');
+        assert.equal(await loanManager.getApproved(id), false, 'The request should not be approved');
+        assert.equal(request.approved, false, 'The request should not be approved');
+        assert.equal(await loanManager.isApproved(id), false, 'The request should not be approved');
+        assert.equal(request.position, 0, 'The loan its not approved');
         assert.equal(await loanManager.getExpirationRequest(id), expiration);
         assert.equal(request.expiration.toNumber(), expiration);
         assert.equal(await loanManager.getCurrency(id), 0x0);
@@ -251,7 +251,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData,
                 { from: creator }
             ),
-            "Request already exist"
+            'Request already exist'
         );
         // The loan must be approved
         const salt2 = 2;
@@ -280,12 +280,12 @@ contract('Test LoanManager Diaspore', function (accounts) {
             { from: borrower }
         );
         const newRequest = await getRequest(newId);
-        assert.equal(newRequest.approved, true, "The request should be approved");
+        assert.equal(newRequest.approved, true, 'The request should be approved');
         assert.equal(await loanManager.directory(newRequest.position), newId);
     });
 
-    it("Should approve a request using approveRequest", async function() {
-        const creator  = accounts[1];
+    it('Should approve a request using approveRequest', async function () {
+        const creator = accounts[1];
         const borrower = accounts[2];
         const salt = 13132123;
         const amount = 10230;
@@ -319,7 +319,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 { from: creator }
             ),
-            "Only borrower can approve"
+            'Only borrower can approve'
         );
         // approve request
         const approved = await toEvent(
@@ -332,13 +332,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(approved._id, id);
 
         const request = await getRequest(id);
-        assert.equal(request.approved, true, "The request should be approved");
-        assert.equal(request.position, await positionDirectory(id), "The loan its not approved");
+        assert.equal(request.approved, true, 'The request should be approved');
+        assert.equal(request.position, await positionDirectory(id), 'The loan its not approved');
         assert.equal(await loanManager.directory(request.position), id);
     });
 
-    it("Should lend a request using lend", async function() {
-        const creator  = accounts[1];
+    it('Should lend a request using lend', async function () {
+        const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
         const salt = 23;
@@ -377,7 +377,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 { from: lender }
             ),
-            "The request is not approved by the borrower"
+            'The request is not approved by the borrower'
         );
         // approve requests
         await loanManager.approveRequest(id, { from: borrower });
@@ -392,7 +392,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 { from: lender }
             ),
-            "The request is expired"
+            'The request is expired'
         );
         // create a debts
         const salt2 = 5333;
@@ -431,9 +431,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 Helper.address0x,
                 0,
                 [],
-                { from: accounts[9]}
+                { from: accounts[9] }
             ),
-            "Error sending tokens to borrower"
+            'Error sending tokens to borrower'
         );
         await rcn.setBalance(lender, amount2);
         await rcn.setBalance(borrower, 0);
@@ -456,18 +456,18 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(lent._lender, lender);
         assert.equal(lent._tokens, amount2);
 
-        assert.equal(await rcn.balanceOf(lender), 0, "The lender does not have to have tokens");
-        assert.equal(await rcn.balanceOf(borrower), amount2, "The borrower should have " + amount2 + " tokens");
+        assert.equal(await rcn.balanceOf(lender), 0, 'The lender does not have to have tokens');
+        assert.equal(await rcn.balanceOf(borrower), amount2, 'The borrower should have ' + amount2 + ' tokens');
 
         const debt = await getDebt(id2);
-        assert.equal(debt.error, false, "The debt should not have error");
+        assert.equal(debt.error, false, 'The debt should not have error');
         assert.equal(await loanManager.getCurrency(id2), 0x0);
-        assert.equal(debt.balance, 0, "The debt should not be balance");
-        assert.equal(debt.model, model.address, "The model should be the model");
-        assert.equal(debt.creator, loanManager.address, "The creator should be the loanManager");
-        assert.equal(debt.oracle, 0x0, "The debt should not have oracle");
+        assert.equal(debt.balance, 0, 'The debt should not be balance');
+        assert.equal(debt.model, model.address, 'The model should be the model');
+        assert.equal(debt.creator, loanManager.address, 'The creator should be the loanManager');
+        assert.equal(debt.oracle, 0x0, 'The debt should not have oracle');
 
-        assert.equal(await debtEngine.ownerOf(id2), lender, "The lender should be the owner of the new ERC721");
+        assert.equal(await debtEngine.ownerOf(id2), lender, 'The lender should be the owner of the new ERC721');
 
         const request = await getRequest(id2);
         assert.equal(request.position, 0);
@@ -482,12 +482,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 { from: lender }
             ),
-            "Request is no longer open"
+            'Request is no longer open'
         );
     });
 
-    it("Use cosigner in lend", async function() {
-        const creator  = accounts[1];
+    it('Use cosigner in lend', async function () {
         const borrower = accounts[2];
         const lender = accounts[3];
         const salt = 2323;
@@ -526,12 +525,12 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 cosigner.address,        // Cosigner
                 0,                       // Cosigner limit
                 toBytes([
-                    Web3Utils.soliditySha3("return_false"),
-                    Helper.toBytes32(0)
+                    Web3Utils.soliditySha3('return_false'),
+                    Helper.toBytes32(0),
                 ]), // Cosigner data
                 { from: lender }
             ),
-            "Cosign method returned false"
+            'Cosign method returned false'
         );
         // Cosigner dont cosign
         await Helper.tryCatchRevert(
@@ -541,12 +540,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 cosigner.address,        // Cosigner
                 0,                       // Cosigner limit
                 toBytes([
-                    Web3Utils.soliditySha3("return_true_no_cosign"),
-                    Helper.toBytes32(0)
+                    Web3Utils.soliditySha3('return_true_no_cosign'),
+                    Helper.toBytes32(0),
                 ]), // Cosigner data
                 { from: lender }
             ),
-            "Cosigner didn't callback");
+            'Cosigner didn\'t callback'
+        );
         // lend with cosigner
         const cosigned = await toEvent(
             loanManager.lend(
@@ -555,8 +555,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 cosigner.address,        // Cosigner
                 0,                       // Cosigner limit
                 toBytes([
-                    Web3Utils.soliditySha3("test_oracle"),
-                    Helper.toBytes32(amount)
+                    Web3Utils.soliditySha3('test_oracle'),
+                    Helper.toBytes32(amount),
                 ]), // Cosigner data
                 { from: lender }
             ),
@@ -569,20 +569,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         const request = await getRequest(id);
         assert.equal(request.cosigner, cosigner.address);
-        const internalSalt = Web3Utils.hexToNumberString(
-            Web3Utils.soliditySha3(
-                { t: 'uint128', v: amount },
-                { t: 'address', v: borrower },
-                { t: 'address', v: borrower },
-                { t: 'uint256', v: salt },
-                { t: 'uint64',  v: expiration }
-            )
-        );
         assert.equal(request.salt.toNumber(), salt);
     });
 
-    it("Use cosigner in settleLend", async function() {
-        const creator  = accounts[1];
+    it('Use cosigner in settleLend', async function () {
+        const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
         const salt = 2763;
@@ -610,22 +601,22 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await rcn.setBalance(borrower, 0);
         await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
         // Cosign return false
-         await Helper.tryCatchRevert(
+        await Helper.tryCatchRevert(
             () => loanManager.settleLend(
                 settleData,
                 loanData,
                 cosigner.address, // Cosigner
                 0,                // Max cosigner cost
                 toBytes([
-                    Web3Utils.soliditySha3("return_false"),
-                    Helper.toBytes32(0)
+                    Web3Utils.soliditySha3('return_false'),
+                    Helper.toBytes32(0),
                 ]),                // Cosigner data
                 [],
                 creatorSigSL,
                 borrowerSigSL,
                 { from: lender }
             ),
-            "Cosign method returned false"
+            'Cosign method returned false'
         );
         // Cosigner dont cosign
         await Helper.tryCatchRevert(
@@ -633,15 +624,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 cosigner.address, // Cosigner
                 0,                // Max cosigner cost
                 toBytes([
-                    Web3Utils.soliditySha3("return_true_no_cosign"),
-                    Helper.toBytes32(0)
+                    Web3Utils.soliditySha3('return_true_no_cosign'),
+                    Helper.toBytes32(0),
                 ]),                // Cosigner data
                 [],
                 creatorSigSL,
                 borrowerSigSL,
                 { from: lender }
             ),
-            "Cosigner didn't callback"
+            'Cosigner didn\'t callback'
         );
 
         // settleLend with cosigner
@@ -652,8 +643,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 cosigner.address, // Cosigner
                 0,                // Max cosigner cost
                 toBytes([
-                    Web3Utils.soliditySha3("test_oracle"),
-                    Helper.toBytes32(0)
+                    Web3Utils.soliditySha3('test_oracle'),
+                    Helper.toBytes32(0),
                 ]),                // Cosigner data
                 [],
                 creatorSigSL,
@@ -669,20 +660,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         const settleRequest = await getRequest(idSettle);
         assert.equal(settleRequest.cosigner, cosigner.address);
-        const internalSalt = Web3Utils.hexToNumberString(
-            Web3Utils.soliditySha3(
-                { t: 'uint128', v: amount },
-                { t: 'address', v: borrower },
-                { t: 'address', v: creator },
-                { t: 'uint256', v: salt },
-                { t: 'uint64',  v: expiration }
-            )
-        );
         assert.equal(settleRequest.salt.toNumber(), salt);
     });
 
-    it("Should lend a request using settleLend", async function() {
-        const creator  = accounts[1];
+    it('Should lend a request using settleLend', async function () {
+        const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
         const salt = 9999999999;
@@ -726,7 +708,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 0x0,
                 0x0
             ),
-            "Loan request is expired"
+            'Loan request is expired'
         );
 
         const creatorSig = await web3.eth.sign(creator, idSettle);
@@ -745,7 +727,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrowerSig,
                 { from: lender }
             ),
-            "Error sending tokens to borrower"
+            'Error sending tokens to borrower'
         );
 
         await rcn.setBalance(lender, amount);
@@ -766,9 +748,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         const request = await getRequest(idSettle);
 
-        assert.equal(request.open, false, "The request should not be open");
-        assert.equal(request.approved, true, "The request should be approved");
-        assert.equal(request.position, 0, "The loan its not approved");
+        assert.equal(request.open, false, 'The request should not be open');
+        assert.equal(request.approved, true, 'The request should be approved');
+        assert.equal(request.position, 0, 'The loan its not approved');
         assert.equal(request.expiration.toNumber(), expiration);
         assert.equal(await loanManager.getCurrency(idSettle), 0x0);
         assert.equal(request.amount, amount);
@@ -777,15 +759,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.creator, creator);
         assert.equal(request.oracle, 0x0);
         assert.equal(request.borrower, borrower);
-        const internalSalt = Web3Utils.hexToNumberString(
-            Web3Utils.soliditySha3(
-                { t: 'uint128', v: amount },
-                { t: 'address', v: borrower },
-                { t: 'address', v: creator },
-                { t: 'uint256', v: salt },
-                { t: 'uint64',  v: expiration }
-            )
-        );
         assert.equal(request.salt.toNumber(), salt);
 
         // try settle lend a request already exist
@@ -801,12 +774,12 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrowerSig,
                 { from: lender }
             ),
-            "Request already exist"
+            'Request already exist'
         );
     });
 
-    it("Should cancel a request using cancel", async function() {
-        const creator  = accounts[1];
+    it('Should cancel a request using cancel', async function () {
+        const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
         const salt = 3434225;
@@ -841,7 +814,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 { from: lender }
             ),
-            "Only borrower or creator can cancel a request"
+            'Only borrower or creator can cancel a request'
         );
 
         // creator cancel
@@ -850,7 +823,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 { from: creator }
             ),
-           'Canceled'
+            'Canceled'
         );
         assert.equal(canceled._id, id);
         assert.equal(canceled._canceler, creator);
@@ -868,9 +841,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(cancelRequest[8], 0);
         assert.equal(cancelRequest[9], 0);
         assert.equal(cancelRequest[10], 0);
-        assert.equal(cancelRequest[11], "0x");
+        assert.equal(cancelRequest[11], '0x');
 
-        assert.equal(await loanManager.getLoanData(id), "0x");
+        assert.equal(await loanManager.getLoanData(id), '0x');
 
         // borrower cancel
         id = await calcId(
@@ -900,7 +873,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 { from: borrower }
             ),
-           'Canceled'
+            'Canceled'
         );
         assert.equal(canceled._id, id);
         assert.equal(canceled._canceler, borrower);
@@ -918,13 +891,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(cancelRequest[8], 0);
         assert.equal(cancelRequest[9], 0);
         assert.equal(cancelRequest[10], 0);
-        assert.equal(cancelRequest[11], "0x");
+        assert.equal(cancelRequest[11], '0x');
 
-        assert.equal(await loanManager.getLoanData(id), "0x");
+        assert.equal(await loanManager.getLoanData(id), '0x');
     });
 
-    it("Should cancel a request using settle cancel", async function() {
-        const creator  = accounts[1];
+    it('Should cancel a request using settle cancel', async function () {
+        const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
         const salt = 2956;
@@ -958,12 +931,12 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         // try cancel a request without have the signature
         await Helper.tryCatchRevert(
-            () =>  loanManager.settleCancel(
+            () => loanManager.settleCancel(
                 settleData,
                 loanData,
                 { from: lender }
             ),
-            "Only borrower or creator can cancel a settle"
+            'Only borrower or creator can cancel a settle'
         );
 
         // creator cancel
@@ -977,7 +950,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
         assert.equal(settledCancel._id, idCreator);
         assert.equal(settledCancel._canceler, creator);
-
 
         assert.equal(await loanManager.canceledSettles(idCreator), true);
 
