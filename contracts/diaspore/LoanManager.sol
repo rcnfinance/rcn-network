@@ -264,9 +264,6 @@ contract LoanManager is BytesUtils {
             "Error creating the debt"
         );
 
-        // Purge request
-        delete request.loanData;
-
         // Remove directory entry
         bytes32 last = directory[directory.length - 1];
         requests[last].position = request.position;
@@ -447,7 +444,7 @@ contract LoanManager is BytesUtils {
             oracle: address(read(_requestData, O_ORACLE, L_ORACLE)),
             borrower: address(read(_requestData, O_BORROWER, L_BORROWER)),
             internalSalt: _cosigner != address(0) ? _maxCosignerCost : internalSalt,
-            loanData: "",
+            loanData: _loanData,
             position: 0,
             expiration: uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION))
         });
