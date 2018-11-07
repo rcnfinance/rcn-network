@@ -37,6 +37,7 @@ contract LoanManager is BytesUtils {
         debtEngine = _debtEngine;
         token = debtEngine.token();
         require(token != address(0), "Error loading token");
+        directory.length++;
     }
 
     function getDirectory() external view returns (bytes32[]) { return directory; }
@@ -316,7 +317,7 @@ contract LoanManager is BytesUtils {
             request.creator == msg.sender || request.borrower == msg.sender,
             "Only borrower or creator can cancel a request"
         );
-        
+
         if (request.approved){
             // Remove directory entry
             bytes32 last = directory[directory.length - 1];
@@ -421,7 +422,7 @@ contract LoanManager is BytesUtils {
         // Get id
         uint256 interSalt;
         (futureDebt, interSalt) = _buildSettleId(_requestData, _loanData);
-        
+
         // Validate signatures
         require(requests[futureDebt].borrower == address(0), "Request already exist");
         _validateSettleSignatures(futureDebt, _requestData, _loanData, _borrowerSig, _creatorSig);
@@ -571,7 +572,7 @@ contract LoanManager is BytesUtils {
             uint64 expiration,
             address creator
         ) = _decodeSettle(_requestData);
-        
+
         internalSalt = _buildInternalSalt(
             amount,
             borrower,

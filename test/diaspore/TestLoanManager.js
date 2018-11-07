@@ -167,7 +167,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         cosigner = await TestCosigner.new(rcn.address);
     });
 
-    it('Should request a loan using requestLoan', async function () {
+    it('Should create a loan using requestLoan', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
         const salt = 1;
