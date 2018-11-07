@@ -698,8 +698,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Use cosigner in lend', async function () {
         const borrower = accounts[2];
         const lender = accounts[3];
-        const salt = 2323;
-        const amount = 330;
+        const salt = new BigNumber('123123');
+        const amount = new BigNumber('5545');
+        const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
+        const totalCost = cosignerCost.plus(new BigNumber(amount));
         const expiration = (await Helper.getBlockTime()) + 1700;
         const loanData = await model.encodeData(amount, expiration);
 
@@ -724,63 +726,205 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData,
             { from: borrower }
         );
-        await rcn.setBalance(lender, amount + 666);
-        await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
-        // Cosign return false
-        await Helper.tryCatchRevert(
-            () => loanManager.lend(
-                id,
-                [],
-                cosigner.address,        // Cosigner
-                0,                       // Cosigner limit
-                toBytes([
-                    Web3Utils.soliditySha3('return_false'),
-                    Helper.toBytes32(0),
-                ]), // Cosigner data
-                { from: lender }
-            ),
-            'Cosign method returned false'
-        );
-        // Cosigner dont cosign
-        await Helper.tryCatchRevert(
-            () => loanManager.lend(
-                id,
-                [],
-                cosigner.address,        // Cosigner
-                0,                       // Cosigner limit
-                toBytes([
-                    Web3Utils.soliditySha3('return_true_no_cosign'),
-                    Helper.toBytes32(0),
-                ]), // Cosigner data
-                { from: lender }
-            ),
-            'Cosigner didn\'t callback'
-        );
-        // lend with cosigner
+
+        await rcn.setBalance(lender, totalCost);
+        await rcn.setBalance(borrower, 0);
+        await rcn.setBalance(cosigner.address, 0);
+        await rcn.approve(loanManager.address, totalCost, { from: lender });
+        const data = await cosigner.data();
+
         const cosigned = await toEvent(
             loanManager.lend(
                 id,
                 [],
-                cosigner.address,        // Cosigner
-                0,                       // Cosigner limit
-                toBytes([
-                    Web3Utils.soliditySha3('test_oracle'),
-                    Helper.toBytes32(amount),
-                ]), // Cosigner data
+                cosigner.address, // Cosigner
+                0,                // Cosigner limit
+                data,             // Cosigner data
                 { from: lender }
             ),
             'Cosigned'
         );
 
+        assert.equal((await rcn.balanceOf(cosigner.address)).toString(), cosignerCost.toString());
+        assert.equal(await rcn.balanceOf(lender), 0);
+        assert.equal(await rcn.balanceOf(debtEngine.address), 0);
+        assert.equal(await rcn.balanceOf(loanManager.address), 0);
+        assert.equal((await rcn.balanceOf(borrower)).toString(), amount.toString());
+
         assert.equal(cosigned._id, id);
         assert.equal(cosigned._cosigner, cosigner.address);
-        assert.equal(cosigned._cost.toNumber(), amount);
+        assert.equal(cosigned._cost.toString(), cosignerCost.toString());
 
         const request = await getRequest(id);
         assert.equal(request.cosigner, cosigner.address);
-        assert.equal(request.salt.toNumber(), salt);
+        assert.equal(request.salt.toString(), salt.toString());
     });
 
+    it('Try lend a loan with cosigner and Cosign function return false', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber(57476);
+        const amount = new BigNumber(574);
+        const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
+        const totalCost = cosignerCost.plus(new BigNumber(amount));
+        const expiration = (await Helper.getBlockTime()) + 1700;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, totalCost);
+        await rcn.setBalance(borrower, 0);
+        await rcn.setBalance(cosigner.address, 0);
+        await rcn.approve(debtEngine.address, cosignerCost, { from: lender });
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        const badData = await cosigner.badData();
+
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id,
+                [],
+                cosigner.address, // Cosigner
+                0,                // Cosigner limit
+                badData,          // Cosigner data
+                { from: lender }
+            ),
+            'Cosign method returned false'
+        );
+
+        assert.equal(await rcn.balanceOf(cosigner.address), 0);
+        assert.equal(await rcn.balanceOf(borrower), 0);
+        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+    });
+
+    it('Try lend a loan with cosigner and requestCosign dont callback to the engine with Cosign', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber(87868);
+        const amount = new BigNumber(456345);
+        const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
+        const totalCost = cosignerCost.plus(new BigNumber(amount));
+        const expiration = (await Helper.getBlockTime()) + 1600;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, totalCost);
+        await rcn.setBalance(borrower, 0);
+        await rcn.setBalance(cosigner.address, 0);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        const noCosignData = await cosigner.noCosignData();
+
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id,
+                [],
+                cosigner.address, // Cosigner
+                0,                // Cosigner limit
+                noCosignData,     // Cosigner data
+                { from: lender }
+            ),
+            'Cosigner didn\'t callback'
+        );
+
+        assert.equal(await rcn.balanceOf(cosigner.address), 0);
+        assert.equal(await rcn.balanceOf(borrower), 0);
+        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+    });
+
+    it('Try lend a loan with cosigner and dont have balance to pay the cosign', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber(123123);
+        const amount = new BigNumber(5545);
+        const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
+        const totalCost = cosignerCost.plus(new BigNumber(amount));
+        const expiration = (await Helper.getBlockTime()) + 1700;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, totalCost);
+        await rcn.setBalance(borrower, 0);
+        await rcn.setBalance(cosigner.address, 0);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        const data = await cosigner.data();
+
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id,
+                [],
+                cosigner.address, // Cosigner
+                0,                // Cosigner limit
+                data,             // Cosigner data
+                { from: lender }
+            ),
+            'Error paying cosigner'
+        );
+
+        assert.equal(await rcn.balanceOf(cosigner.address), 0);
+        assert.equal(await rcn.balanceOf(borrower), 0);
+        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+    });
     it('Use cosigner in settleLend', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
