@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
-import './../utils/SimpleDelegable.sol';
-import './../interfaces/Token.sol';
-import './../utils/TokenLockable.sol';
-import './../utils/BytesUtils.sol';
-import './../interfaces/Oracle.sol';
+import "./../utils/SimpleDelegable.sol";
+import "./../interfaces/Token.sol";
+import "./../utils/TokenLockable.sol";
+import "./../utils/BytesUtils.sol";
+import "./../interfaces/Oracle.sol";
 
 contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
     event DelegatedCall(address requester, address to);
@@ -48,7 +48,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
     }
 
     /**
-        @dev Sets the url to retrieve the data for 'getRate'
+        @dev Sets the url to retrieve the data for "getRate"
 
         @param _url New url
     */
@@ -59,7 +59,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
 
     /**
         @dev Sets another oracle as the replacement to this oracle
-        All 'getRate' calls will be forwarded to this new oracle
+        All "getRate" calls will be forwarded to this new oracle
 
         @param _fallback New oracle
     */

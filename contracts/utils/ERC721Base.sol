@@ -299,8 +299,8 @@ contract ERC721Base {
         bytes userData,
         bool doCheck
     )
-        onlyAuthorized(assetId)
         internal
+        onlyAuthorized(assetId)
     {
         _moveToken(from, to, assetId, userData, doCheck);
     }

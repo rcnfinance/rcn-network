@@ -188,9 +188,18 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             the request is no longer valid.
         @param _metadata String with loan metadata.
     */
-    function createLoan(Oracle _oracleContract, address _borrower, bytes32 _currency, uint256 _amount, uint256 _interestRate,
-        uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest, string _metadata) public returns (uint256) {
-
+    function createLoan(
+        Oracle _oracleContract,
+        address _borrower,
+        bytes32 _currency,
+        uint256 _amount,
+        uint256 _interestRate,
+        uint256 _interestRatePunitory,
+        uint256 _duesIn,
+        uint256 _cancelableAt,
+        uint256 _expirationRequest,
+        string _metadata
+    ) public returns (uint256) {
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
         require(_oracleContract != address(0) || _currency == 0x0);
@@ -200,8 +209,29 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(_interestRate != 0);
         require(_expirationRequest > block.timestamp);
 
-        var loan = Loan(Status.initial, _oracleContract, _borrower, 0x0, msg.sender, 0x0, _amount, 0, 0, 0, 0, _interestRate,
-            _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest, _metadata);
+        var loan = Loan(
+            Status.initial,
+            _oracleContract,
+            _borrower,
+            0x0,
+            msg.sender,
+            0x0,
+            _amount,
+            0,
+            0,
+            0,
+            0,
+            _interestRate,
+            _interestRatePunitory,
+            0,
+            _duesIn,
+            _currency,
+            _cancelableAt,
+            0,
+            0x0,
+            _expirationRequest,
+            _metadata
+        );
 
         uint index = loans.push(loan) - 1;
         CreatedLoan(index, _borrower, msg.sender);
@@ -242,8 +272,10 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
     function getIdentifier(uint index) public view returns (bytes32) {
         Loan memory loan = loans[index];
-        return buildIdentifier(loan.oracle, loan.borrower, loan.creator, loan.currency, loan.amount, loan.interestRate,
-            loan.interestRatePunitory, loan.duesIn, loan.cancelableAt, loan.expirationRequest, loan.metadata);
+        return buildIdentifier(
+            loan.oracle, loan.borrower, loan.creator, loan.currency, loan.amount, loan.interestRate,
+            loan.interestRatePunitory, loan.duesIn, loan.cancelableAt, loan.expirationRequest, loan.metadata
+        );
     }
 
     /**
@@ -253,10 +285,14 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return The signature hash of the loan configuration
     */
-    function buildIdentifier(Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
-        uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string metadata) view returns (bytes32) {
-        return keccak256(this, oracle, borrower, creator, currency, amount, interestRate, interestRatePunitory, duesIn,
-                        cancelableAt, expirationRequest, metadata);
+    function buildIdentifier(
+        Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
+        uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string metadata
+    ) public view returns (bytes32) {
+        return keccak256(
+            this, oracle, borrower, creator, currency, amount, interestRate,
+            interestRatePunitory, duesIn, cancelableAt, expirationRequest, metadata
+        );
     }
 
     /**
