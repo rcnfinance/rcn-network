@@ -2505,6 +2505,25 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
+    it('Should always round in favor of the owner', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            testOracle.address,
+            await testModel.encodeData(10, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        // 2 ETH = 1 RCN
+        const data = await testOracle.encodeRate(1, 2);
+
+        await rcn.setBalance(accounts[0], 0);
+        await rcn.approve(debtEngine.address, 0);
+
+        await Helper.assertThrow(debtEngine.pay(id, 1, 0x0, data));
+
+        (await testModel.getPaid(id)).should.be.bignumber.equal(0);
+    });
+
     // Notice: Keep this test last
     it('Should not be possible to brute-forze an infinite loop', async function () {
         const id = await getId(debtEngine.create(
