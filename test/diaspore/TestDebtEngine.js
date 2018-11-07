@@ -2534,7 +2534,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             }
 
             assert.equal(await debtEngine.getStatus(id), 1);
-            if (await testModel.getPaid(id) === 150) {
+            // eslint-disable-next-line eqeqeq
+            if (await testModel.getPaid(id) == 150) {
                 break;
             }
         }
