@@ -264,9 +264,6 @@ contract LoanManager is BytesUtils {
             "Error creating the debt"
         );
 
-        // Purge request
-        delete request.loanData;
-
         // Remove directory entry
         bytes32 last = directory[directory.length - 1];
         requests[last].position = request.position;
@@ -279,7 +276,8 @@ contract LoanManager is BytesUtils {
             uint256 auxSalt = request.internalSalt;
             request.cosigner = address(uint256(_cosigner) + 2);
             request.internalSalt = _cosignerLimit; // Risky ?
-            require(Cosigner(_cosigner).requestCosign(
+            require(
+                Cosigner(_cosigner).requestCosign(
                     Engine(address(this)),
                     uint256(_futureDebt),
                     _cosignerData,
@@ -303,7 +301,7 @@ contract LoanManager is BytesUtils {
             "Only borrower or creator can cancel a request"
         );
         
-        if(request.approved){
+        if (request.approved){
             // Remove directory entry
             bytes32 last = directory[directory.length - 1];
             requests[last].position = request.position;
@@ -446,7 +444,7 @@ contract LoanManager is BytesUtils {
             oracle: address(read(_requestData, O_ORACLE, L_ORACLE)),
             borrower: address(read(_requestData, O_BORROWER, L_BORROWER)),
             internalSalt: _cosigner != address(0) ? _maxCosignerCost : internalSalt,
-            loanData: "",
+            loanData: _loanData,
             position: 0,
             expiration: uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION))
         });

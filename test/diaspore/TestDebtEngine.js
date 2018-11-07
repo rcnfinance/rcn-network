@@ -1,7 +1,7 @@
 const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
-const TestToken = artifacts.require("./utils/test/TestToken.sol");
-const TestOracle = artifacts.require("./examples/TestOracle.sol");
+const TestToken = artifacts.require('./utils/test/TestToken.sol');
+const TestOracle = artifacts.require('./examples/TestOracle.sol');
 const OracleAdapter = artifacts.require('./diaspore/utils/OracleAdapter.sol');
 const TestRateOracle = artifacts.require('./diaspore/utils/test/TestRateOracle.sol');
 
@@ -13,7 +13,7 @@ require('chai')
     .use(require('chai-bignumber')(BigNumber))
     .should();
 
-contract('Test DebtEngine Diaspore', function(accounts) {
+contract('Test DebtEngine Diaspore', function (accounts) {
     let rcn;
     let debtEngine;
     let testModel;
@@ -21,13 +21,13 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     let oracle;
     let testOracle;
 
-    async function getId(promise) {
+    async function getId (promise) {
         const receipt = await promise;
-        const event = receipt.logs.find(l => l.event == "Created2" || l.event == "Created3" || l.event == "Created");
-        return event["args"]["_id"];
+        const event = receipt.logs.find(l => l.event === 'Created2' || l.event === 'Created3' || l.event === 'Created');
+        return event.args._id;
     }
 
-    before("Create engine and model", async function(){
+    before('Create engine and model', async function () {
         rcn = await TestToken.new();
         debtEngine = await DebtEngine.new(rcn.address);
         testModel = await TestModel.new();
@@ -36,18 +36,18 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         legacyOracle = await TestOracle.new();
         oracle = await OracleAdapter.new(
             legacyOracle.address,
-            "ARS",
-            "Argentine Peso",
-            "Test oracle, ripiocredit.network",
+            'ARS',
+            'Argentine Peso',
+            'Test oracle, ripiocredit.network',
             2,
             0x415253,
             rcn.address
         );
     });
 
-    it("Creation should fail if token is not a contract", async function() {
-        var err;
-        
+    it('Creation should fail if token is not a contract', async function () {
+        let err;
+
         try {
             await DebtEngine.new(accounts[2]);
         } catch (e) {
@@ -57,7 +57,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.ok(err);
     });
 
-    it("Should fail to create if model returned false", async function() {
+    it('Should fail to create if model returned false', async function () {
         await testModel.setGlobalErrorFlag(8);
 
         await Helper.assertThrow(debtEngine.create(
@@ -66,11 +66,11 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             0x0,
             await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
         ));
-        
+
         await testModel.setGlobalErrorFlag(0);
     });
 
-    it("Should fail to create2 if model returned false", async function() {
+    it('Should fail to create2 if model returned false', async function () {
         await testModel.setGlobalErrorFlag(8);
 
         await Helper.assertThrow(debtEngine.create2(
@@ -80,11 +80,11 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             9489342,
             await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
         ));
-        
+
         await testModel.setGlobalErrorFlag(0);
     });
 
-    it("Should fail to create3 if model returned false", async function() {
+    it('Should fail to create3 if model returned false', async function () {
         await testModel.setGlobalErrorFlag(8);
 
         await Helper.assertThrow(debtEngine.create3(
@@ -94,11 +94,11 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             948934233,
             await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
         ));
-        
+
         await testModel.setGlobalErrorFlag(0);
     });
 
-    it("Should create a debt using create", async function() {
+    it('Should create a debt using create', async function () {
         await debtEngine.create(
             testModel.address,
             accounts[1],
@@ -106,10 +106,10 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
         );
 
-        assert.equal(await debtEngine.balanceOf(accounts[1]), 1, "Account 1 should have a new asset");
+        assert.equal(await debtEngine.balanceOf(accounts[1]), 1, 'Account 1 should have a new asset');
     });
 
-    it("Should create 2 debts using create2", async function() {
+    it('Should create 2 debts using create2', async function () {
         await debtEngine.create2(
             testModel.address,
             accounts[1],
@@ -118,7 +118,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
         );
 
-        assert.equal(await debtEngine.balanceOf(accounts[1]), 2, "Account 1 should have a new asset");
+        assert.equal(await debtEngine.balanceOf(accounts[1]), 2, 'Account 1 should have a new asset');
 
         await debtEngine.create2(
             testModel.address,
@@ -128,10 +128,10 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             await testModel.encodeData(2000, (await Helper.getBlockTime()) + 3000)
         );
 
-        assert.equal(await debtEngine.balanceOf(accounts[2]), 1, "Account 1 should have a new asset");
+        assert.equal(await debtEngine.balanceOf(accounts[2]), 1, 'Account 1 should have a new asset');
     });
 
-    it("Should create and pay a debt", async function() {
+    it('Should create and pay a debt', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -149,7 +149,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 3000);
     });
 
-    it("Should create and pay a debt using payToken", async function() {
+    it('Should create and pay a debt using payToken', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -167,7 +167,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 3000);
     });
 
-    it("Differents debt engine should give differents ids, create", async function(){
+    it('Differents debt engine should give differents ids, create', async function () {
         const engine1 = await DebtEngine.new(rcn.address);
         const engine2 = await DebtEngine.new(rcn.address);
 
@@ -194,7 +194,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.notEqual(id1, id2);
     });
 
-    it("Differents debt engine should give differents ids, create2", async function(){
+    it('Differents debt engine should give differents ids, create2', async function () {
         const engine1 = await DebtEngine.new(rcn.address);
         const engine2 = await DebtEngine.new(rcn.address);
 
@@ -223,7 +223,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.notEqual(id1, id2);
     });
 
-    it("Differents debt engine should give differents ids, create3", async function(){
+    it('Differents debt engine should give differents ids, create3', async function () {
         const engine1 = await DebtEngine.new(rcn.address);
         const engine2 = await DebtEngine.new(rcn.address);
 
@@ -252,7 +252,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.notEqual(id1, id2);
     });
 
-    it("Should withdraw funds from payment", async function() {
+    it('Should withdraw funds from payment', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -280,7 +280,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[5]), 0);
     });
 
-    it("Funds should follow the debt", async function() {
+    it('Funds should follow the debt', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -306,7 +306,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[6]), 3000);
     });
 
-    it("Should withdraw funds from multiple debts", async function() {
+    it('Should withdraw funds from multiple debts', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -340,7 +340,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[5]), 0);
     });
 
-    it("Should withdraw partial payments, authorized", async function() {
+    it('Should withdraw partial payments, authorized', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -382,7 +382,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[8]), 200);
     });
 
-    it("Should fail to create2 with the same nonce", async function() {
+    it('Should fail to create2 with the same nonce', async function () {
         const expireTime = (await Helper.getBlockTime()) + 2000;
         await debtEngine.create2(
             testModel.address,
@@ -403,7 +403,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         );
     });
 
-    it("Should fail to create3 with the same nonce", async function() {
+    it('Should fail to create3 with the same nonce', async function () {
         const expireTime = (await Helper.getBlockTime()) + 2000;
         await debtEngine.create3(
             testModel.address,
@@ -424,7 +424,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         );
     });
 
-    it("Should create different ids create2 and create3", async function() {
+    it('Should create different ids create2 and create3', async function () {
         const expireTime = (await Helper.getBlockTime()) + 2000;
         const id1 = await getId(debtEngine.create2(
             testModel.address,
@@ -444,13 +444,13 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.notEqual(id1, id2);
     });
-    it("Should predict id create 3", async function() {
-        let pid = await debtEngine.buildId3(
+    it('Should predict id create 3', async function () {
+        const pid = await debtEngine.buildId3(
             accounts[0],
             12200
         );
 
-        let id = await getId(debtEngine.create3(
+        const id = await getId(debtEngine.create3(
             testModel.address,
             accounts[0],
             0x0,
@@ -460,8 +460,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(pid, id);
     });
-    it("Should predict Ids", async function() {
-        let pid1 = await debtEngine.buildId2(
+    it('Should predict Ids', async function () {
+        const pid1 = await debtEngine.buildId2(
             accounts[0],
             testModel.address,
             0x0,
@@ -469,7 +469,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         );
 
-        let id1 = await getId(debtEngine.create2(
+        const id1 = await getId(debtEngine.create2(
             testModel.address,
             accounts[0],
             0x0,
@@ -480,8 +480,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(pid1, id1);
 
         let nonce = await debtEngine.nonces(accounts[0]);
-        let pid2 = await debtEngine.buildId(accounts[0], nonce++);
-        let id2 = await getId(debtEngine.create(
+        const pid2 = await debtEngine.buildId(accounts[0], nonce++);
+        const id2 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             0x0,
@@ -491,8 +491,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(pid2, id2);
     });
 
-    it("It should create diferent IDs create2 with any change", async function(){
-        let ids = [];
+    it('It should create diferent IDs create2 with any change', async function () {
+        const ids = [];
 
         ids.push(await debtEngine.buildId2(
             accounts[0],
@@ -569,15 +569,15 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(new Set(ids).size, 9);
     });
 
-    it("Should generate diferents ids create and create2", async function() {
+    it('Should generate diferents ids create and create2', async function () {
         let nonce = await debtEngine.nonces(accounts[0]);
-        let id1 = await getId(debtEngine.create(
+        const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             0x0,
             await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
         ));
-        let id2 = await getId(debtEngine.create2(
+        const id2 = await getId(debtEngine.create2(
             testModel.address,
             accounts[0],
             0x0,
@@ -587,7 +587,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.notEqual(id1, id2);
     });
 
-    it("Should pay using an Oracle", async function() {
+    it('Should pay using an Oracle', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -621,7 +621,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await debtEngine.getStatus(id), 2);
     });
 
-    it("Should pay using an Oracle and withdraw", async function() {
+    it('Should pay using an Oracle and withdraw', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -657,7 +657,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[9]), 0);
     });
 
-    it("Should payToken using an Oracle", async function() {
+    it('Should payToken using an Oracle', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -691,7 +691,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await debtEngine.getStatus(id), 2);
     });
 
-    it("Should catch and recover from a pay error", async function() {
+    it('Should catch and recover from a pay error', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -737,7 +737,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 150);
     });
 
-    it("Should catch and recover from a pay error, with an Oracle", async function() {
+    it('Should catch and recover from a pay error, with an Oracle', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -785,7 +785,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 150);
     });
 
-    it("Should catch and recover from a payToken error", async function() {
+    it('Should catch and recover from a payToken error', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -831,7 +831,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 150);
     });
 
-    it("Should catch and recover from a payToken error, with an Oracle", async function() {
+    it('Should catch and recover from a payToken error, with an Oracle', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -879,7 +879,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 150);
     });
 
-    it("Should catch and recover from a pay infinite loop", async function() {
+    it('Should catch and recover from a pay infinite loop', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -925,7 +925,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 150);
     });
 
-    it("Should catch and recover from a pay infinite loop, with an Oracle", async function() {
+    it('Should catch and recover from a pay infinite loop, with an Oracle', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -973,7 +973,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 150);
     });
 
-    it("Should catch and recover from a payToken infinite loop", async function() {
+    it('Should catch and recover from a payToken infinite loop', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1019,7 +1019,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 150);
     });
 
-    it("Should catch and recover from a payToken infinite loop, with an Oracle", async function() {
+    it('Should catch and recover from a payToken infinite loop, with an Oracle', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1067,7 +1067,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 150);
     });
 
-    it("Should catch a getStatus error", async function() {
+    it('Should catch a getStatus error', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1096,7 +1096,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 100);
     });
 
-    it("Should catch a getStatus infinite loop", async function() {
+    it('Should catch a getStatus infinite loop', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1125,8 +1125,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 100);
     });
 
-
-    it("Should catch and recover from a run error", async function() {
+    it('Should catch and recover from a run error', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1151,7 +1150,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await debtEngine.getStatus(id), 1);
     });
 
-    it("Should catch and recover from a run infinite loop", async function() {
+    it('Should catch and recover from a run infinite loop', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1176,7 +1175,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await debtEngine.getStatus(id), 1);
     });
 
-    it("Should catch a getStatus write storage error", async function() {
+    it('Should catch a getStatus write storage error', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1209,8 +1208,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     * Batch Methods
     */
 
-    it("Should create and pay debts in batch", async function() {
-        var ids = [];
+    it('Should create and pay debts in batch', async function () {
+        const ids = [];
         ids[0] = await getId(
             debtEngine.create(
                 testModel.address, // model
@@ -1236,7 +1235,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             )
         );
 
-        var amounts = [4000, 3000, 150];
+        const amounts = [4000, 3000, 150];
 
         await rcn.setBalance(accounts[0], 7150);
         await rcn.approve(debtEngine.address, 7150);
@@ -1248,8 +1247,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(ids[0]), 3000);
     });
 
-    it("Should create and pay a debts using payTokens in batch", async function() {
-        var ids = [];
+    it('Should create and pay a debts using payTokens in batch', async function () {
+        const ids = [];
         ids[0] = await getId(
             debtEngine.create(
                 testModel.address,
@@ -1275,7 +1274,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             )
         );
 
-        var amounts = [4000, 3000, 150];
+        const amounts = [4000, 3000, 150];
 
         await rcn.setBalance(accounts[0], 7150);
         await rcn.approve(debtEngine.address, 7150);
@@ -1287,7 +1286,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(ids[0]), 3000);
     });
 
-    it("Should pay batch using a oracle", async function() {
+    it('Should pay batch using a oracle', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -1299,7 +1298,6 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.setBalance(accounts[2], 500);
         await rcn.approve(debtEngine.address, 500, { from: accounts[2] });
-
 
         await debtEngine.payBatch([id], [1000], accounts[1], oracle.address, dummyData1, { from: accounts[2] });
 
@@ -1307,7 +1305,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 1000);
     });
 
-    it("Should pay token batch using a oracle", async function() {
+    it('Should pay token batch using a oracle', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
@@ -1320,14 +1318,13 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.setBalance(accounts[2], 500);
         await rcn.approve(debtEngine.address, 500, { from: accounts[2] });
 
-
         await debtEngine.payTokenBatch([id], [500], accounts[1], oracle.address, dummyData1, { from: accounts[2] });
 
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
         assert.equal(await testModel.getPaid(id), 1000);
     });
 
-    it("Pay 0 loans should make no change", async function() {
+    it('Pay 0 loans should make no change', async function () {
         await rcn.setBalance(accounts[2], 0);
         await debtEngine.payBatch(
             [],
@@ -1339,7 +1336,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         );
     });
 
-    it("Should fail because are different size input arrays (payBatch, payTokenBatch)", async function() {
+    it('Should fail because are different size input arrays (payBatch, payTokenBatch)', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1388,8 +1385,8 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         );
     });
 
-    it("Should not pay the third debt because not correspond the currency and oracle.", async function() {
-        var ids = [];
+    it('Should not pay the third debt because not correspond the currency and oracle.', async function () {
+        const ids = [];
         ids[0] = await getId(
             debtEngine.create(
                 testModel.address,
@@ -1415,7 +1412,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
             )
         );
 
-        var amounts = [4000, 3000, 150];
+        const amounts = [4000, 3000, 150];
 
         await rcn.setBalance(accounts[0], 7150);
         await rcn.approve(debtEngine.address, 7150);
@@ -1425,16 +1422,16 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 4150);
         assert.equal(await debtEngine.getStatus(ids[0]), 2);
         assert.equal(await testModel.getPaid(ids[0]), 3000);
-    })
+    });
 
-    it("Should apply rate even when tokens is not divisible by 10", async function() {
+    it('Should apply rate even when tokens is not divisible by 10', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
-        
+
         // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
         const data = await testOracle.encodeRate(400023333566612312000000, 82711175222132156792);
 
@@ -1446,31 +1443,31 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
-    it("Should apply rate with token more expensive than currency", async function() {
+    it('Should apply rate with token more expensive than currency', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         // 1.22 RCN = 22.94 ETH :)
         const data = await testOracle.encodeRate(122, 2294);
 
-        await rcn.setBalance(accounts[0], "53182214472537053");
-        await rcn.approve(debtEngine.address, "53182214472537053");
+        await rcn.setBalance(accounts[0], '53182214472537053');
+        await rcn.approve(debtEngine.address, '53182214472537053');
 
         await debtEngine.pay(id, web3.toWei(1), 0x0, data);
 
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
-    it("Should apply rate pay tokens even when tokens is not divisible by 10", async function() {
+    it('Should apply rate pay tokens even when tokens is not divisible by 10', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         // 2.82711175222132156792 ETH = 4010.23333566612312 RCN
@@ -1485,12 +1482,12 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 704974378193313);
     });
 
-    it("Should apply rate pay tokens with token more expensive than currency", async function() {
+    it('Should apply rate pay tokens with token more expensive than currency', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         // 4.122224 RCN = 0.5 ETH :)
@@ -1505,18 +1502,18 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 242587496458);
     });
 
-    it("Should apply rate pay batch with token more expensive than currency", async function() {
+    it('Should apply rate pay batch with token more expensive than currency', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         // 1.22 RCN = 22.94 ETH :)
         const data = await testOracle.encodeRate(122, 2294);
 
-        await rcn.setBalance(accounts[0], "53182214472537053");
+        await rcn.setBalance(accounts[0], '53182214472537053');
         await rcn.approve(debtEngine.address, web3.toWei(1));
 
         await debtEngine.payBatch([id], [web3.toWei(1)], 0x0, testOracle.address, data);
@@ -1524,12 +1521,12 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
-    it("Should apply rate pay batch tokens even when tokens is not divisible by 10", async function() {
+    it('Should apply rate pay batch tokens even when tokens is not divisible by 10', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         // 2.82711175222132156792 ETH = 4010.23333566612312 RCN
@@ -1544,12 +1541,12 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 704974378193313);
     });
 
-    it("Should apply rate pay batch tokens with token more expensive than currency", async function() {
+    it('Should apply rate pay batch tokens with token more expensive than currency', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         // 4.122224 RCN = 0.5 ETH :)
@@ -1564,33 +1561,33 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 242587496458);
     });
 
-    it("Calling pay, payTokens, payBatch or payBatchTokens should get the same rate", async function() {
+    it('Calling pay, payTokens, payBatch or payBatchTokens should get the same rate', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         const id2 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         const id3 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         const id4 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
         // 4 RCN = 22.94 ETH :)
@@ -1612,15 +1609,15 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         paid1.should.be.bignumber.equal(await testModel.getPaid(id2));
     });
 
-    it("Pay should fail if rate includes zero", async function() {
+    it('Pay should fail if rate includes zero', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
-        
-        var data = await testOracle.encodeRate(0, 82711175222132156792);
+
+        let data = await testOracle.encodeRate(0, 82711175222132156792);
 
         await rcn.setBalance(accounts[0], 10 ** 32);
         await rcn.approve(debtEngine.address, 10 ** 32);
@@ -1638,15 +1635,15 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 0);
     });
 
-    it("Pay tokens fail if rate includes zero", async function() {
+    it('Pay tokens fail if rate includes zero', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(web3.toWei("900000"), (await Helper.getBlockTime()) + 2000)
+            await testModel.encodeData(web3.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
-        
-        var data = await testOracle.encodeRate(0, 82711175222132156792);
+
+        let data = await testOracle.encodeRate(0, 82711175222132156792);
 
         await rcn.setBalance(accounts[0], 10 ** 32);
         await rcn.approve(debtEngine.address, 10 ** 32);
@@ -1664,7 +1661,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 0);
     });
 
-    it("Pay should fail if paid is more than requested", async function() {
+    it('Pay should fail if paid is more than requested', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1674,7 +1671,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         await rcn.setBalance(accounts[0], 10000);
         await rcn.approve(debtEngine.address, 10000);
-        
+
         const prevBalance = await rcn.balanceOf(accounts[0]);
 
         await testModel.setErrorFlag(id, 9);
@@ -1683,9 +1680,9 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(await testModel.getPaid(id), 0);
         assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
-    })
+    });
 
-    it("Pay tokens should fail if paid is more than requested", async function() {
+    it('Pay tokens should fail if paid is more than requested', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1704,9 +1701,9 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(await testModel.getPaid(id), 0);
         assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
-    })
+    });
 
-    it("Pay batch should fail if one debt paid is more than requested", async function() {
+    it('Pay batch should fail if one debt paid is more than requested', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1733,9 +1730,9 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id1), 0);
         assert.equal(await testModel.getPaid(id2), 0);
         assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
-    })
+    });
 
-    it("Pay tokens batch should fail if one debt paid is more than requested", async function() {
+    it('Pay tokens batch should fail if one debt paid is more than requested', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1764,7 +1761,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
     });
 
-    it("Pay should fail if payer has not enought balance", async function() {
+    it('Pay should fail if payer has not enought balance', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1780,7 +1777,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 0);
     });
 
-    it("Pay tokens should fail if payer has not enought balance", async function() {
+    it('Pay tokens should fail if payer has not enought balance', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1796,7 +1793,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id), 0);
     });
 
-    it("Pay batch should fail if payer has balance for zero payments", async function() {
+    it('Pay batch should fail if payer has balance for zero payments', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1820,7 +1817,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id2), 0);
     });
 
-    it("Pay tokens batch should fail if payer has balance for zero payments", async function() {
+    it('Pay tokens batch should fail if payer has balance for zero payments', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1844,7 +1841,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id2), 0);
     });
 
-    it("Pay batch should fail if payer has balance below total", async function() {
+    it('Pay batch should fail if payer has balance below total', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1868,7 +1865,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id2), 0);
     });
 
-    it("Pay tokens batch should fail if payer has balance below total", async function() {
+    it('Pay tokens batch should fail if payer has balance below total', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1892,14 +1889,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await testModel.getPaid(id2), 0);
     });
 
-    it("Pay shoud not overflow the debt balance", async function() {
+    it('Pay shoud not overflow the debt balance', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
             0x0,
             await testModel.encodeData(10, (await Helper.getBlockTime()) + 2000)
         ));
-        
+
         await testModel.setErrorFlag(id, 10);
 
         await rcn.setBalance(accounts[0], 3000);
@@ -1923,14 +1920,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
-    it("Pay token shoud not overflow the debt balance", async function() {
+    it('Pay token shoud not overflow the debt balance', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
             0x0,
             await testModel.encodeData(10, (await Helper.getBlockTime()) + 2000)
         ));
-        
+
         await testModel.setErrorFlag(id, 10);
 
         await rcn.setBalance(accounts[0], 3000);
@@ -1954,14 +1951,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
-    it("Pay batch shoud not overflow the debt balance", async function() {
+    it('Pay batch shoud not overflow the debt balance', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
             0x0,
             await testModel.encodeData(10, (await Helper.getBlockTime()) + 2000)
         ));
-        
+
         const id2 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1995,14 +1992,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
-    it("Pay token batch shoud not overflow the debt balance", async function() {
+    it('Pay token batch shoud not overflow the debt balance', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
             0x0,
             await testModel.encodeData(10, (await Helper.getBlockTime()) + 2000)
         ));
-        
+
         const id2 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2036,7 +2033,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
-    it("Should fail withdraw not authorized", async function() {
+    it('Should fail withdraw not authorized', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2048,7 +2045,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.approve(debtEngine.address, 3000);
 
         await debtEngine.pay(id, 3000, 0x0, 0x0);
-        
+
         await rcn.setBalance(accounts[3], 0);
         await rcn.setBalance(accounts[2], 0);
         await Helper.assertThrow(debtEngine.withdrawal(id, accounts[3], { from: accounts[3] }));
@@ -2056,14 +2053,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(await rcn.balanceOf(accounts[3]), 0);
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
-        
+
         await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
         await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
-    it("Should fail withdraw if debt engine has no funds", async function() {
+    it('Should fail withdraw if debt engine has no funds', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2087,7 +2084,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.setBalance(debtEngine.address, auxBalance);
     });
 
-    it("Should fail withdraw batch if debt engine has no funds", async function() {
+    it('Should fail withdraw batch if debt engine has no funds', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2118,7 +2115,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.setBalance(debtEngine.address, auxBalance);
     });
 
-    it("Should fail withdraw batch not authorized", async function() {
+    it('Should fail withdraw batch not authorized', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2137,7 +2134,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.approve(debtEngine.address, 3000);
 
         await debtEngine.payBatch([id1, id2], [1500, 1500], 0x0, 0x0, 0x0);
-        
+
         await rcn.setBalance(accounts[3], 0);
         await rcn.setBalance(accounts[2], 0);
         await debtEngine.withdrawalList([id1, id2], accounts[3], { from: accounts[3] });
@@ -2145,14 +2142,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(await rcn.balanceOf(accounts[3]), 0);
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
-        
+
         await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
         await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
-    it("Should fail withdraw batch not authorized mixed", async function() {
+    it('Should fail withdraw batch not authorized mixed', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2171,7 +2168,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.approve(debtEngine.address, 3000);
 
         await debtEngine.payBatch([id1, id2], [1500, 1500], 0x0, 0x0, 0x0);
-        
+
         await rcn.setBalance(accounts[3], 0);
         await rcn.setBalance(accounts[2], 0);
         await debtEngine.withdrawalList([id1, id2], accounts[3], { from: accounts[3] });
@@ -2179,14 +2176,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
 
         assert.equal(await rcn.balanceOf(accounts[3]), 0);
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
-        
+
         await rcn.setBalance(accounts[4], 0);
         await debtEngine.withdrawalList([id1, id2], accounts[4], { from: accounts[4] });
 
         assert.equal(await rcn.balanceOf(accounts[4]), 1500);
     });
 
-    it("Pay batch multiple times multiple id should be like paying the sum", async function() {
+    it('Pay batch multiple times multiple id should be like paying the sum', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2217,7 +2214,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(debt2[1], 500);
     });
 
-    it("Pay tokens batch multiple times multiple id should be like paying the sum", async function() {
+    it('Pay tokens batch multiple times multiple id should be like paying the sum', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2248,7 +2245,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(debt2[1], 500);
     });
 
-    it("Withdraw multiple times same id should make no difference", async function() {
+    it('Withdraw multiple times same id should make no difference', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2274,13 +2271,13 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
-    it("Withdraw zero debts should have no effect", async function() {
+    it('Withdraw zero debts should have no effect', async function () {
         await rcn.setBalance(accounts[7], 0);
         await debtEngine.withdrawalList([], accounts[7], { from: accounts[7] });
         assert.equal(await rcn.balanceOf(accounts[7]), 0);
     });
 
-    it("Should pay batch with tokens less expensive than currency", async function() {
+    it('Should pay batch with tokens less expensive than currency', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2308,7 +2305,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
-    it("Pay batch should emit pay event", async function() {
+    it('Pay batch should emit pay event', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2331,42 +2328,42 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         const receipt = await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
 
         // Test read oracle event
-        const oracleEvent = receipt.logs.find((l) => l.event === "ReadedOracleBatch");
+        const oracleEvent = receipt.logs.find((l) => l.event === 'ReadedOracleBatch');
         assert.isOk(oracleEvent);
         oracleEvent.args._count.should.be.bignumber.equal(2);
         oracleEvent.args._tokens.should.be.bignumber.equal(5);
         oracleEvent.args._equivalent.should.be.bignumber.equal(10);
 
         // Test paid events
-        const paidLogs = receipt.logs.filter((l) => l.event === "Paid");
+        const paidLogs = receipt.logs.filter((l) => l.event === 'Paid');
         paidLogs.length.should.be.equal(2);
         paidLogs.filter((e) => e.args._id === id1).length.should.be.equal(1);
         paidLogs.filter((e) => e.args._id === id2).length.should.be.equal(1);
         paidLogs.forEach((event) => {
             switch (event.args._id) {
-                case id1:
-                    var args = event.args;
-                    args._requested.should.be.bignumber.equal(2000);
-                    args._requestedTokens.should.be.bignumber.equal(0);
-                    args._paid.should.be.bignumber.equal(2000);
-                    args._tokens.should.be.bignumber.equal(1000);
-                    args._sender.should.be.equal(accounts[0]);
-                    args._origin.should.be.equal(accounts[4]);
-                    break;
-                case id2:
-                    var args = event.args;
-                    args._requested.should.be.bignumber.equal(1000);
-                    args._requestedTokens.should.be.bignumber.equal(0);
-                    args._paid.should.be.bignumber.equal(1000);
-                    args._tokens.should.be.bignumber.equal(500);
-                    args._sender.should.be.equal(accounts[0]);
-                    args._origin.should.be.equal(accounts[4]);
-                    break;
+            case id1:
+                const args = event.args;
+                args._requested.should.be.bignumber.equal(2000);
+                args._requestedTokens.should.be.bignumber.equal(0);
+                args._paid.should.be.bignumber.equal(2000);
+                args._tokens.should.be.bignumber.equal(1000);
+                args._sender.should.be.equal(accounts[0]);
+                args._origin.should.be.equal(accounts[4]);
+                break;
+            case id2:
+                const args2 = event.args;
+                args2._requested.should.be.bignumber.equal(1000);
+                args2._requestedTokens.should.be.bignumber.equal(0);
+                args2._paid.should.be.bignumber.equal(1000);
+                args2._tokens.should.be.bignumber.equal(500);
+                args2._sender.should.be.equal(accounts[0]);
+                args2._origin.should.be.equal(accounts[4]);
+                break;
             }
         });
     });
 
-    it("Pay token batch should emit pay event", async function() {
+    it('Pay token batch should emit pay event', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2389,42 +2386,42 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         const receipt = await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], oracle.address, data);
 
         // Test read oracle event
-        const oracleEvent = receipt.logs.find((l) => l.event === "ReadedOracleBatch") ;
+        const oracleEvent = receipt.logs.find((l) => l.event === 'ReadedOracleBatch');
         assert.isOk(oracleEvent);
         oracleEvent.args._count.should.be.bignumber.equal(2);
         oracleEvent.args._tokens.should.be.bignumber.equal(5);
         oracleEvent.args._equivalent.should.be.bignumber.equal(10);
 
         // Test paid events
-        const paidLogs = receipt.logs.filter((l) => l.event === "Paid");
+        const paidLogs = receipt.logs.filter((l) => l.event === 'Paid');
         paidLogs.length.should.be.equal(2);
         paidLogs.filter((e) => e.args._id === id1).length.should.be.equal(1);
         paidLogs.filter((e) => e.args._id === id2).length.should.be.equal(1);
         paidLogs.forEach((event) => {
             switch (event.args._id) {
-                case id1:
-                    var args = event.args;
-                    args._requested.should.be.bignumber.equal(0);
-                    args._requestedTokens.should.be.bignumber.equal(1000);
-                    args._paid.should.be.bignumber.equal(2000);
-                    args._tokens.should.be.bignumber.equal(1000);
-                    args._sender.should.be.equal(accounts[0]);
-                    args._origin.should.be.equal(accounts[4]);
-                    break;
-                case id2:
-                    var args = event.args;
-                    args._requested.should.be.bignumber.equal(0);
-                    args._requestedTokens.should.be.bignumber.equal(500);
-                    args._paid.should.be.bignumber.equal(1000);
-                    args._tokens.should.be.bignumber.equal(500);
-                    args._sender.should.be.equal(accounts[0]);
-                    args._origin.should.be.equal(accounts[4]);
-                    break;
+            case id1:
+                const args = event.args;
+                args._requested.should.be.bignumber.equal(0);
+                args._requestedTokens.should.be.bignumber.equal(1000);
+                args._paid.should.be.bignumber.equal(2000);
+                args._tokens.should.be.bignumber.equal(1000);
+                args._sender.should.be.equal(accounts[0]);
+                args._origin.should.be.equal(accounts[4]);
+                break;
+            case id2:
+                const args2 = event.args;
+                args2._requested.should.be.bignumber.equal(0);
+                args2._requestedTokens.should.be.bignumber.equal(500);
+                args2._paid.should.be.bignumber.equal(1000);
+                args2._tokens.should.be.bignumber.equal(500);
+                args2._sender.should.be.equal(accounts[0]);
+                args2._origin.should.be.equal(accounts[4]);
+                break;
             }
         });
     });
 
-    it("Should pay tokens batch with tokens less expensive than currency", async function() {
+    it('Should pay tokens batch with tokens less expensive than currency', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2452,7 +2449,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
-    it("Should pay batch with tokens more expensive than currency", async function() {
+    it('Should pay batch with tokens more expensive than currency', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2480,7 +2477,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await rcn.balanceOf(accounts[0]), 0);
     });
 
-    it("Should pay tokens batch with tokens more expensive than currency", async function() {
+    it('Should pay tokens batch with tokens more expensive than currency', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2509,7 +2506,7 @@ contract('Test DebtEngine Diaspore', function(accounts) {
     });
 
     // Notice: Keep this test last
-    it("Should not be possible to brute-forze an infinite loop", async function() {
+    it('Should not be possible to brute-forze an infinite loop', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -2530,13 +2527,14 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         await rcn.approve(debtEngine.address, 100);
 
         // Try to pay with different gas limits
-        for(i = 20000; i < 8000000; i += 1010) {
+        for (let i = 20000; i < 8000000; i += 1010) {
             try {
                 await debtEngine.payToken(id, 100, accounts[3], [], { gas: i });
-            } catch(ignored) {
+            } catch (ignored) {
             }
 
             assert.equal(await debtEngine.getStatus(id), 1);
+            // eslint-disable-next-line eqeqeq
             if (await testModel.getPaid(id) == 150) {
                 break;
             }
@@ -2546,5 +2544,4 @@ contract('Test DebtEngine Diaspore', function(accounts) {
         assert.equal(await debtEngine.getStatus(id), 1);
         assert.equal(await testModel.getPaid(id), 150);
     });
-
 });

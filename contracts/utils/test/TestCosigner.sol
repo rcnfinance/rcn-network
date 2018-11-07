@@ -27,12 +27,12 @@ contract TestCosigner is Cosigner, BytesUtils {
         }
     }
 
-    function cost(address, uint256, bytes data, bytes) constant returns (uint256) {
+    function cost(address, uint256, bytes data, bytes) public view returns (uint256) {
         return uint256(readBytes32(data, 1));
     }
 
-    function requestCosign(Engine engine, uint256 index, bytes data, bytes) returns (bool) {
-        if(readBytes32(data, 0) == keccak256("test_oracle")) {
+    function requestCosign(Engine engine, uint256 index, bytes data, bytes) public returns (bool) {
+        if (readBytes32(data, 0) == keccak256("test_oracle")) {
             require(engine.cosign(index, uint256(readBytes32(data, 1))));
             return true;
         }
@@ -41,7 +41,7 @@ contract TestCosigner is Cosigner, BytesUtils {
         }
     }
 
-    function url() constant returns (string) {
+    function url() public view returns (string) {
         return "";
     }
 

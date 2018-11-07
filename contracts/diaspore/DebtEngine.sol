@@ -618,7 +618,7 @@ contract DebtEngine is ERC721Base {
         uint256 balance;
         for (uint256 i = 0; i < _ids.length; i++) {
             target = _ids[i];
-            if(_isAuthorized(msg.sender, uint256(target))) {
+            if (_isAuthorized(msg.sender, uint256(target))) {
                 balance = debts[target].balance;
                 debts[target].balance = 0;
                 amount += balance;

@@ -1,8 +1,8 @@
 const LoanManager = artifacts.require('./diaspore/LoanManager.sol');
 const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
-const TestToken = artifacts.require("./utils/test/TestToken.sol");
-const TestCosigner = artifacts.require("./examples/TestCosigner.sol");
+const TestToken = artifacts.require('./utils/test/TestToken.sol');
+const TestCosigner = artifacts.require('./examples/TestCosigner.sol');
 
 const Helper = require('../Helper.js');
 const Web3Utils = require('web3-utils');
@@ -13,7 +13,7 @@ require('chai')
     .use(require('chai-bignumber')(BigNumber))
     .should();
 
-contract('Test LoanManager Diaspore', function(accounts) {
+contract('Test LoanManager Diaspore', function (accounts) {
     let rcn;
     let debtEngine;
     let loanManager;
@@ -65,8 +65,8 @@ contract('Test LoanManager Diaspore', function(accounts) {
             { t: 'bytes', v: _data }
         );
 
-        internalSalt.should.be.bignumber.equal(controlInternalSalt, "bug internalsalt");
-        id.should.be.equal(controlId, "bug calcId");
+        internalSalt.should.be.bignumber.equal(controlInternalSalt, 'bug internalsalt');
+        id.should.be.equal(controlId, 'bug calcId');
         return id;
     }
 
@@ -120,10 +120,9 @@ contract('Test LoanManager Diaspore', function(accounts) {
         return target.toString().replace(new RegExp(',0x', 'g'), '');
     }
 
-    async function getRequest(id){
+    async function getRequest (id) {
         const request = await loanManager.requests(id);
-        if ( request[9] == 0x0 )
-          throw new Error("Request id: " + id + " does not exists");
+        if (request[9] === 0x0) { throw new Error('Request id: ' + id + ' does not exists'); }
         return {
           open:       request[0],
           approved:   request[1],
@@ -157,7 +156,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         }
     }
 
-    before("Create engine and model", async function(){
+    before('Create engine and model', async function () {
         rcn = await TestToken.new();
         debtEngine = await DebtEngine.new(rcn.address);
         loanManager = await LoanManager.new(debtEngine.address);
@@ -166,7 +165,7 @@ contract('Test LoanManager Diaspore', function(accounts) {
         cosigner = await TestCosigner.new(rcn.address);
     });
 
-    it("Should request a loan using requestLoan", async function() {
+    it('Should create a loan using requestLoan', async function () {
         const creator  = accounts[1];
         const borrower = accounts[2];
         const salt = 1;
@@ -299,8 +298,15 @@ contract('Test LoanManager Diaspore', function(accounts) {
             loanData
         );
 
-        await loanManager.requestLoan(amount, model.address, 0x0, borrower, salt,
-            expiration, loanData, { from: creator }
+        await loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
         );
         // try approve a request without being the borrower
         await Helper.tryCatchRevert(() => loanManager.approveRequest(id, { from: creator }), "Only borrower can approve");

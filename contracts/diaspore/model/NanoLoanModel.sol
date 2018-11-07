@@ -107,8 +107,10 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
             * look in _decodeData function documentation for more info
     */
     function validate(bytes data) external view returns (bool) {
-        (uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
-             uint64 duesIn, uint64 cancelableAt) = _decodeData(data);
+        (
+            uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
+            uint64 duesIn, uint64 cancelableAt
+        ) = _decodeData(data);
         _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
         return true;
     }
@@ -308,18 +310,18 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
                 newTimestamp = startPunitory.add(realDelta);
             }
 
-            if(newInterest != state.interest || newPunitoryInterest != state.punitoryInterest) {
+            if (newInterest != state.interest || newPunitoryInterest != state.punitoryInterest) {
                 require(newTimestamp < U_64_OVERFLOW, "newTimestamp overflow");
                 state.interestTimestamp = uint64(newTimestamp);
                 emit _setInterestTimestamp(id, newTimestamp);
 
-                if(newInterest != state.interest) {
+                if (newInterest != state.interest) {
                     require(newInterest < U_128_OVERFLOW, "newInterest overflow");
                     state.interest = uint128(newInterest);
                     emit _setInterest(id, uint128(newInterest));
                 }
 
-                if(newPunitoryInterest != state.punitoryInterest) {
+                if (newPunitoryInterest != state.punitoryInterest) {
                     require(newPunitoryInterest < U_128_OVERFLOW, "newPunitoryInterest overflow");
                     state.punitoryInterest = uint128(newPunitoryInterest);
                     emit _setPunitoryInterest(id, uint128(newPunitoryInterest));
