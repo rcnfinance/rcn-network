@@ -379,15 +379,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData,         // Loan data
             { from: creator } // Creator
         );
-        // try approve a request without being the borrower
-        await Helper.tryCatchRevert(
-            () => loanManager.approveRequest(
-                id,
-                { from: creator }
-            ),
-            'Only borrower can approve'
-        );
-        // approve request
+
         const approved = await toEvent(
             loanManager.approveRequest(
                 id, { from: borrower }
@@ -401,6 +393,45 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.approved, true, 'The request should be approved');
         assert.equal(request.position, await positionDirectory(id), 'The loan its not approved');
         assert.equal(await loanManager.directory(request.position), id);
+    });
+
+    it('Try approve a request without being the borrower', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const salt = 1312123;
+        const amount = 130;
+        const expiration = (await Helper.getBlockTime()) + 1100;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        );
+
+        await Helper.tryCatchRevert(
+            () => loanManager.approveRequest(
+                id,
+                { from: creator }
+            ),
+            'Only borrower can approve'
+        );
     });
 
     it('Should lend a request using lend', async function () {
