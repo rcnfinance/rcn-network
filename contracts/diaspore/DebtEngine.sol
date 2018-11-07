@@ -541,7 +541,7 @@ contract DebtEngine is ERC721Base {
         uint256 aux = _tokens.mult(_amount);
         _result = aux / _equivalent;
         if (aux % _equivalent > 0) {
-            _result += 1;
+            _result = _result.add(1);
         }
     }
 
