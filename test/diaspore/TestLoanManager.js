@@ -167,7 +167,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         cosigner = await TestCosigner.new(rcn.address);
     });
 
-    it('Should create a loan using requestLoan', async function () {
+    it('Should request a loan using requestLoan', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
         const salt = 1;
@@ -239,7 +239,27 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.canceledSettles(id), false);
         assert.equal(await loanManager.getStatus(id), 0);
         assert.equal(await loanManager.getDueTime(id), 0);
-        // try request 2 identical loans
+    });
+
+    it('Try request 2 identical loans', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const salt = 19;
+        const amount = 1431230;
+        const expiration = (await Helper.getBlockTime()) + 1000;
+        const loanData = await model.encodeData(amount, expiration);
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: creator }
+        );
+
         await Helper.tryCatchRevert(
             () => loanManager.requestLoan(
                 amount,
@@ -253,35 +273,81 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ),
             'Request already exist'
         );
-        // The loan must be approved
-        const salt2 = 2;
-        const amount2 = 1031230;
-        const expiration2 = (await Helper.getBlockTime()) + 1000;
-        const loanData2 = await model.encodeData(amount2, expiration2);
-        const newId = await calcId(
-            amount2,
+    });
+
+    it('Should create a loan using requestLoan with the same borrower and creator', async function () {
+        const borrower = accounts[2];
+        const salt = 1;
+        const amount = 1031230;
+        const expiration = (await Helper.getBlockTime()) + 1000;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
             borrower,
             borrower,
             model.address,
             Helper.address0x,
-            salt2,
-            expiration2,
-            loanData2
+            salt,
+            expiration,
+            loanData
         );
 
-        await loanManager.requestLoan(
-            amount2,
-            model.address,
-            Helper.address0x,
-            borrower,
-            salt2,
-            expiration2,
-            loanData2,
-            { from: borrower }
+        const requested = await toEvent(
+            loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ),
+            'Requested'
         );
-        const newRequest = await getRequest(newId);
-        assert.equal(newRequest.approved, true, 'The request should be approved');
-        assert.equal(await loanManager.directory(newRequest.position), newId);
+
+        const internalSalt = Web3Utils.hexToNumberString(
+            Web3Utils.soliditySha3(
+                { t: 'uint128', v: amount },
+                { t: 'address', v: borrower },
+                { t: 'address', v: borrower },
+                { t: 'uint256', v: salt },
+                { t: 'uint64', v: expiration }
+            )
+        );
+
+        assert.equal(requested._id, id);
+        assert.equal(requested._internalSalt.toNumber(), internalSalt);
+
+        const request = await getRequest(id);
+        assert.equal(await loanManager.getApproved(id), true, 'The request should be approved');
+        assert.equal(request.approved, true, 'The request should be approved');
+        assert.equal(await loanManager.isApproved(id), true, 'The request should be approved');
+        assert.equal(request.position, 0, 'The request should be have position');
+        assert.equal(await loanManager.directory(request.position), id, 'The request should be have in directory');
+
+        assert.equal(request.open, true, 'The request should be open');
+        assert.equal(await loanManager.getExpirationRequest(id), expiration);
+        assert.equal(request.expiration.toNumber(), expiration);
+        assert.equal(await loanManager.getCurrency(id), 0x0);
+        assert.equal(await loanManager.getAmount(id), amount);
+        assert.equal(request.amount, amount);
+        assert.equal(await loanManager.getCosigner(id), 0x0);
+        assert.equal(request.cosigner, 0x0);
+        assert.equal(request.model, model.address);
+        assert.equal(await loanManager.getCreator(id), borrower);
+        assert.equal(request.creator, borrower);
+        assert.equal(await loanManager.getOracle(id), 0x0);
+        assert.equal(request.oracle, 0x0);
+        assert.equal(await loanManager.getBorrower(id), borrower);
+        assert.equal(request.borrower, borrower);
+        assert.equal(request.salt.toNumber(), salt);
+        assert.equal(request.loanData[0], loanData[0]);
+        assert.equal(request.loanData[1], loanData[1]);
+        assert.equal(await loanManager.canceledSettles(id), false);
+        assert.equal(await loanManager.getStatus(id), 0);
+        assert.equal(await loanManager.getDueTime(id), 0);
     });
 
     it('Should approve a request using approveRequest', async function () {
