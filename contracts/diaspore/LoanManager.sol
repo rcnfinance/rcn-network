@@ -20,7 +20,7 @@ contract LoanManager is BytesUtils {
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
-    event Requested(bytes32 indexed _id, uint256 _salt);
+    event Requested(bytes32 indexed _id, uint256 _internalSalt);
     event Approved(bytes32 indexed _id);
     event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
     event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
@@ -117,7 +117,7 @@ contract LoanManager is BytesUtils {
         address _creator,
         uint256 _salt,
         uint64 _expiration
-    ) external view returns (uint256) {
+    ) external pure returns (uint256) {
         return _buildInternalSalt(
             _amount,
             _borrower,
