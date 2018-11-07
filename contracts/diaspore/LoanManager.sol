@@ -82,7 +82,7 @@ contract LoanManager is BytesUtils {
         address creator;
         address oracle;
         address borrower;
-        uint256 internalSalt;
+        uint256 salt;
         bytes loanData;
     }
 
@@ -117,13 +117,29 @@ contract LoanManager is BytesUtils {
         address _creator,
         uint256 _salt,
         uint64 _expiration
-    ) external pure returns (uint256) {
+    ) external view returns (uint256) {
         return _buildInternalSalt(
             _amount,
             _borrower,
             _creator,
             _salt,
             _expiration
+        );
+    }
+
+    function internalSalt(bytes32 _id) external view returns (uint256) {
+        Request storage request = requests[_id];
+        require(request.borrower != address(0), "Request does not exist");
+        return _internalSalt(request);
+    }
+
+    function _internalSalt(Request _request) internal view returns (uint256) {
+        return _buildInternalSalt(
+            _request.amount,
+            _request.borrower,
+            _request.creator,
+            _request.salt,
+            _request.expiration
         );
     }
 
@@ -166,7 +182,7 @@ contract LoanManager is BytesUtils {
             creator: msg.sender,
             oracle: _oracle,
             borrower: _borrower,
-            internalSalt: internalSalt,
+            salt: _salt,
             loanData: _loanData,
             expiration: _expiration
         });
@@ -258,7 +274,7 @@ contract LoanManager is BytesUtils {
                 Model(request.model),
                 msg.sender,
                 request.oracle,
-                request.internalSalt,
+                _internalSalt(request),
                 request.loanData
             ) == _futureDebt,
             "Error creating the debt"
@@ -273,9 +289,9 @@ contract LoanManager is BytesUtils {
 
         // Call the cosigner
         if (_cosigner != address(0)) {
-            uint256 auxSalt = request.internalSalt;
+            uint256 auxSalt = request.salt;
             request.cosigner = address(uint256(_cosigner) + 2);
-            request.internalSalt = _cosignerLimit; // Risky ?
+            request.salt = _cosignerLimit; // Risky ?
             require(
                 Cosigner(_cosigner).requestCosign(
                     Engine(address(this)),
@@ -286,7 +302,7 @@ contract LoanManager is BytesUtils {
                 "Cosign method returned false"
             );
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
-            request.internalSalt = auxSalt;
+            request.salt = auxSalt;
         }
 
         return true;
@@ -325,7 +341,7 @@ contract LoanManager is BytesUtils {
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
         request.cosigner = msg.sender;
-        require(request.internalSalt >= _cost || request.internalSalt == 0, "Cosigner cost exceeded");
+        require(request.salt >= _cost || request.salt == 0, "Cosigner cost exceeded");
         require(token.transferFrom(debtEngine.ownerOf(_futureDebt), msg.sender, _cost), "Error paying cosigner");
         emit Cosigned(bytes32(_futureDebt), msg.sender, _cost);
         return true;
@@ -403,8 +419,8 @@ contract LoanManager is BytesUtils {
         require(uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION)) > now, "Loan request is expired");
 
         // Get id
-        uint256 internalSalt;
-        (futureDebt, internalSalt) = _buildSettleId(_requestData, _loanData);
+        uint256 interSalt;
+        (futureDebt, interSalt) = _buildSettleId(_requestData, _loanData);
         
         // Validate signatures
         require(requests[futureDebt].borrower == address(0), "Request already exist");
@@ -426,7 +442,7 @@ contract LoanManager is BytesUtils {
             _createDebt(
                 _requestData,
                 _loanData,
-                internalSalt
+                interSalt
             ) == futureDebt,
             "Error creating debt registry"
         );
@@ -443,7 +459,7 @@ contract LoanManager is BytesUtils {
             creator: address(read(_requestData, O_CREATOR, L_CREATOR)),
             oracle: address(read(_requestData, O_ORACLE, L_ORACLE)),
             borrower: address(read(_requestData, O_BORROWER, L_BORROWER)),
-            internalSalt: _cosigner != address(0) ? _maxCosignerCost : internalSalt,
+            salt: _cosigner != address(0) ? _maxCosignerCost : uint256(read(_requestData, O_SALT, L_SALT)),
             loanData: _loanData,
             position: 0,
             expiration: uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION))
@@ -456,7 +472,7 @@ contract LoanManager is BytesUtils {
             request.cosigner = address(uint256(_cosigner) + 2);
             require(Cosigner(_cosigner).requestCosign(Engine(address(this)), uint256(futureDebt), _cosignerData, _oracleData), "Cosign method returned false");
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
-            request.internalSalt = internalSalt;
+            request.salt = uint256(read(_requestData, O_SALT, L_SALT));
         }
     }
 
