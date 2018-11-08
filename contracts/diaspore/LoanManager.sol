@@ -243,6 +243,31 @@ contract LoanManager is BytesUtils {
         return true;
     }
 
+    function registerApproveRequest(
+        bytes32 _futureDebt,
+        bytes _signature
+    ) external returns (bool approved) {
+        Request storage request = requests[_futureDebt];
+        address borrower = request.borrower;
+
+        if (!request.approved) {
+            if (borrower.isContract() && borrower.implements(0x76ba6009)) {
+                approved = _requestContractApprove(_futureDebt, borrower);
+            } else {
+                approved = borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _futureDebt)), _signature);
+            }
+        }
+
+        // Check request.approved again, protect against reentrancy
+        if (approved && !request.approved) {
+            request.position = uint64(directory.push(_futureDebt) - 1);
+            request.approved = true;
+            emit Approved(_futureDebt);
+        }
+
+        return true;
+    }
+
     function lend(
         bytes32 _futureDebt,
         bytes _oracleData,
