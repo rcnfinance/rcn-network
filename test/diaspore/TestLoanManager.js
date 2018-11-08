@@ -485,7 +485,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         const expiration = (await Helper.getBlockTime()) + 1000;
 
-        const salt = 6;
+        const salt = 8;
         const amount = 1000;
 
         const loanData = await model.encodeData(amount, expiration);
