@@ -120,10 +120,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return encodeData;
     }
 
-    function toBytes (target) {
-        return target.toString().replace(new RegExp(',0x', 'g'), '');
-    }
-
     async function getRequest (id) {
         const request = await loanManager.requests(id);
         if (request[9] === 0x0) { throw new Error('Request id: ' + id + ' does not exists'); }
