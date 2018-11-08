@@ -32,14 +32,14 @@ contract LoanApprover is IERC165 {
         Request the approve of a loan being settled, the contract can be called as borrower or creator.
         To approve the request the contract should return:
 
-        _signature XOR 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a
+        _id XOR 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a
 
         @param _requestData All the parameters of the loan request
         @param _loanData Data to feed to the Model
         @param _isBorrower True if this contract is the borrower, False if the contract is the creator
-        @param _signature loanManager.requestSignature(_requestDatam _loanData)
+        @param _id loanManager.requestSignature(_requestDatam _loanData)
 
-        @return _signature XOR keccak256("approve-loan-request"), if the approve is accepted
+        @return _id XOR keccak256("approve-loan-request"), if the approve is accepted
     */
-    function settleApproveRequest(bytes _requestData, bytes _loanData, bool _isBorrower, uint256 _signature) external returns (bytes32);
+    function settleApproveRequest(bytes _requestData, bytes _loanData, bool _isBorrower, uint256 _id) external returns (bytes32);
 }
