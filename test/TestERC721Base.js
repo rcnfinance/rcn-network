@@ -6,6 +6,7 @@ const TestERC721ReceiverMultiple = artifacts.require('./utils/test/TestERC721Rec
 const TestNoReceive = artifacts.require('./utils/test/TokenLockable.sol');
 const Helper = require('./Helper.js');
 
+
 contract('ERC721 Base', function (accounts) {
     let token;
 
@@ -175,7 +176,7 @@ contract('ERC721 Base', function (accounts) {
         assert.equal(allTokens.length, 11);
     });
 
-    it('Test safeTransferFrom modifiers onlyAuthorized, isCurrentOwner,AddressDefined ', async function () {
+    it('Test safeTransferFrom modifiers onlyAuthorized, isCurrentOwner,AddressDefined, isAuthorized ', async function () {
         const assetId = 12;
 
         await token.generate(assetId, accounts[0]);
@@ -186,20 +187,26 @@ contract('ERC721 Base', function (accounts) {
             assert(err);
         }
         try {
-            await token.safeTransferFrom(accounts[0], '0x0', assetId, '0x0');
+            await token.safeTransferFrom(accounts[0], '0x0', assetId, '0x031');
             assert(false);
         } catch (err) {
             assert(err);
         }
         try {
-            await token.safeTransferFrom(accounts[0], accounts[2], 13, '0x0');
+            await token.safeTransferFrom(accounts[0], accounts[2], 13);
+            assert(false);
+        } catch (err) {
+            assert(err);
+        }
+        try {
+            await token.isAuthorized('0x0', 12);
             assert(false);
         } catch (err) {
             assert(err);
         }
     });
 
-    it('Test a token does not exists, and token is not from owner or index is out of bounds', async function () {
+    it('Test that a token does not exists, and token is not from owner or index is out of bounds', async function () {
         const assetId = 13;
 
         await token.generate(assetId, accounts[0]);
@@ -236,5 +243,24 @@ contract('ERC721 Base', function (accounts) {
             console.log(err);
             assert(err);
         }
+    });
+
+    it('test transferAsset that is not in the last position of the assetsOwner array', async function () {
+        const assetId1 = 15;
+        const assetId2 = 16;
+        await token.generate(assetId1, accounts[0]);
+        await token.generate(assetId2, accounts[0]);
+
+        const assetsOfAddr1Before = await token.balanceOf(accounts[0]);
+        const assetsOfAddr5Before = await token.balanceOf(accounts[5]);
+
+        await token.safeTransferFrom(accounts[0], accounts[5], assetId1);
+
+        const assetsOfAddr1after = await token.balanceOf(accounts[0]);
+        const assetsOfAddr5After = await token.balanceOf(accounts[5]);
+
+        assert.equal(await token.ownerOf(assetId1), accounts[5]);
+        assert.equal(parseInt(assetsOfAddr1after), parseInt(assetsOfAddr1Before) - 1);
+        assert.equal(parseInt(assetsOfAddr5After), parseInt(assetsOfAddr5Before) + 1);
     });
 });
