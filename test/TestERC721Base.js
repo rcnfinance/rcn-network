@@ -159,6 +159,7 @@ contract('ERC721 Base', function (accounts) {
 
         await token.generate(assetId, accounts[0]);
         const totalSupply = await token.totalSupply();
+        const allTokens = await token.allTokens();
         const name = await token.name();
         const symbol = await token.symbol();
 
@@ -171,5 +172,69 @@ contract('ERC721 Base', function (accounts) {
         assert.equal(name, 'Test ERC721');
         assert.equal(symbol, 'TST');
         assert.equal(parseInt(tokenAtIndex), parseInt(tokenOfOwnerByIndex), 'Tokens Id of owner and allTokens at indexes should be equal');
+        assert.equal(allTokens.length, 11);
+    });
+
+    it('Test safeTransferFrom modifiers onlyAuthorized, isCurrentOwner,AddressDefined ', async function () {
+        const assetId = 12;
+
+        await token.generate(assetId, accounts[0]);
+        try {
+            await token.safeTransferFrom(accounts[1], accounts[2], assetId);
+            assert(false);
+        } catch (err) {
+            assert(err);
+        }
+        try {
+            await token.safeTransferFrom(accounts[0], '0x0', assetId, '0x0');
+            assert(false);
+        } catch (err) {
+            assert(err);
+        }
+        try {
+            await token.safeTransferFrom(accounts[0], accounts[2], 13, '0x0');
+            assert(false);
+        } catch (err) {
+            assert(err);
+        }
+    });
+
+    it('Test a token does not exists, and token is not from owner or index is out of bounds', async function () {
+        const assetId = 13;
+
+        await token.generate(assetId, accounts[0]);
+        try {
+            await token.tokenByIndex(14);
+            assert(false);
+        } catch (err) {
+            assert(err);
+        }
+        try {
+            await token.tokenOfOwnerByIndex(accounts[0], 14);
+            assert(false);
+        } catch (err) {
+            assert(err);
+        }
+        try {
+            await token.tokenOfOwnerByIndex('0x0', 1);
+            assert(false);
+        } catch (err) {
+            assert(err);
+        }
+    });
+
+    it('test that an operator has been previously set approval to manage all tokens', async function () {
+        const assetId = 14;
+        await token.generate(assetId, accounts[0]);
+        await token.setApprovalForAll(accounts[3], true);
+
+        try {
+            const receipt = await token.setApprovalForAll(accounts[3], true);
+            await Helper.eventNotEmitted(receipt, 'ApprovalForAll');
+            assert(true);
+        } catch (err) {
+            console.log(err);
+            assert(err);
+        }
     });
 });
