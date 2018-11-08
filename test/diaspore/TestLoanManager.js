@@ -927,9 +927,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
-        const salt = 9999999999;
-        const amount = 300000;
-        const expiration = (await Helper.getBlockTime()) + 6265;
+        const salt = new BigNumber('2763');
+        const amount = new BigNumber('3320');
+        const expiration = (await Helper.getBlockTime()) + 7400;
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -943,10 +943,63 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData
         );
         const settleData = encodeData[0];
-        const idSettle = encodeData[1];
+        const id = encodeData[1];
 
-        // try settle lend with a expired data time
-        const requestDataExpired = (await calcSettleId(
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.setBalance(borrower, 0);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        const settledLend = await toEvent(
+            loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                0,
+                [],
+                [],
+                creatorSig,
+                borrowerSig,
+                { from: lender }
+            ),
+            'SettledLend'
+        );
+
+        assert.equal(settledLend._id, id);
+        assert.equal(settledLend._lender, lender);
+        assert.equal(settledLend._tokens.toString(), amount.toString());
+
+        assert.equal(await rcn.balanceOf(lender), 0);
+        assert.equal(await rcn.balanceOf(loanManager.address), 0);
+        assert.equal((await rcn.balanceOf(borrower)).toString(), amount.toString());
+
+        const request = await getRequest(id);
+        assert.equal(request.open, false, 'The request should not be open');
+        assert.equal(request.approved, true, 'The request should be approved');
+        assert.equal(request.position, 0, 'The loan its not approved');
+        assert.equal(request.expiration.toNumber(), expiration);
+        assert.equal(await loanManager.getCurrency(id), 0x0);
+        assert.equal(request.amount.toString(), amount.toString());
+        assert.equal(request.cosigner, 0x0);
+        assert.equal(request.model, model.address);
+        assert.equal(request.creator, creator);
+        assert.equal(request.oracle, 0x0);
+        assert.equal(request.borrower, borrower);
+        assert.equal(request.salt.toString(), salt.toString());
+    });
+
+    it('Try settleLend with a expired data time', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('2763');
+        const amount = new BigNumber('3320');
+        const expiration = (await Helper.getBlockTime()) + 7400;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
             amount,
             borrower,
             creator,
@@ -955,26 +1008,68 @@ contract('Test LoanManager Diaspore', function (accounts) {
             salt,
             expiration - 10000,
             loanData
-        ))[0];
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.setBalance(borrower, 0);
+        await rcn.approve(loanManager.address, amount, { from: lender });
 
         await Helper.tryCatchRevert(
             () => loanManager.settleLend(
-                requestDataExpired,
+                settleData,
                 loanData,
                 Helper.address0x,
                 0,
                 [],
                 [],
-                0x0,
-                0x0
+                creatorSig,
+                borrowerSig,
+                { from: lender }
             ),
             'Loan request is expired'
         );
 
-        const creatorSig = await web3.eth.sign(creator, idSettle);
-        const borrowerSig = await web3.eth.sign(borrower, idSettle);
+        assert.equal((await rcn.balanceOf(lender)).toString(), amount.toString());
+        assert.equal(await rcn.balanceOf(loanManager.address), 0);
+        assert.equal(await rcn.balanceOf(borrower), 0);
+    });
 
-        // try settle lend without tokens balance
+    it('Try settleLend without approve tokens to loanManager', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('2763');
+        const amount = new BigNumber('3320');
+        const expiration = (await Helper.getBlockTime()) + 7400;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.setBalance(borrower, 0);
+        await rcn.approve(loanManager.address, 0, { from: lender });
+
         await Helper.tryCatchRevert(
             () => loanManager.settleLend(
                 settleData,
@@ -990,38 +1085,53 @@ contract('Test LoanManager Diaspore', function (accounts) {
             'Error sending tokens to borrower'
         );
 
-        await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, 0);
-        await rcn.approve(loanManager.address, web3.toWei(100000), { from: lender });
+        assert.equal((await rcn.balanceOf(lender)).toString(), amount.toString());
+        assert.equal(await rcn.balanceOf(loanManager.address), 0);
+        assert.equal(await rcn.balanceOf(borrower), 0);
+    });
 
-        await loanManager.settleLend(
-            settleData,       // Request data
-            loanData,         // Loan data
-            Helper.address0x, // Cosigner
-            0,                // Max cosigner cost
-            [],               // Cosigner data
-            [],               // Oracle data
-            creatorSig,       // Creator signature
-            borrowerSig,      // Borrower signature
-            { from: lender }  // Lender
+    it('Try settleLend a request already exist', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('2763');
+        const amount = new BigNumber('3320');
+        const expiration = (await Helper.getBlockTime()) + 7400;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
         );
 
-        const request = await getRequest(idSettle);
+        const settleData = encodeData[0];
+        const id = encodeData[1];
 
-        assert.equal(request.open, false, 'The request should not be open');
-        assert.equal(request.approved, true, 'The request should be approved');
-        assert.equal(request.position, 0, 'The loan its not approved');
-        assert.equal(request.expiration.toNumber(), expiration);
-        assert.equal(await loanManager.getCurrency(idSettle), 0x0);
-        assert.equal(request.amount, amount);
-        assert.equal(request.cosigner, 0x0);
-        assert.equal(request.model, model.address);
-        assert.equal(request.creator, creator);
-        assert.equal(request.oracle, 0x0);
-        assert.equal(request.borrower, borrower);
-        assert.equal(request.salt.toNumber(), salt);
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
 
-        // try settle lend a request already exist
+        await rcn.setBalance(lender, amount.mul(2));
+        await rcn.setBalance(borrower, 0);
+        await rcn.approve(loanManager.address, amount.mul(2), { from: lender });
+
+        await loanManager.settleLend(
+            settleData,
+            loanData,
+            Helper.address0x,
+            0,
+            [],
+            [],
+            creatorSig,
+            borrowerSig,
+            { from: lender }
+        );
+
         await Helper.tryCatchRevert(
             () => loanManager.settleLend(
                 settleData,
@@ -1036,14 +1146,18 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ),
             'Request already exist'
         );
+
+        assert.equal((await rcn.balanceOf(lender)).toString(), amount.toString());
+        assert.equal(await rcn.balanceOf(loanManager.address), 0);
+        assert.equal((await rcn.balanceOf(borrower)).toString(), amount.toString());
     });
 
     it('Use cosigner in settleLend', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
-        const salt = new BigNumber('2763');
-        const amount = new BigNumber('3320');
+        const salt = new BigNumber('2732463');
+        const amount = new BigNumber('355320');
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
         const expiration = (await Helper.getBlockTime()) + 7400;
