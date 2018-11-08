@@ -498,6 +498,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(debt.oracle, 0x0, 'The debt should not have oracle');
 
         assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
+        assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
 
         const request = await getRequest(id);
         assert.equal(request.position, 0);
@@ -994,6 +995,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.oracle, 0x0);
         assert.equal(request.borrower, borrower);
         assert.equal(request.salt.toString(), salt.toString());
+
+        assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
+        assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
     });
 
     it('Try settleLend with a expired data time', async function () {
