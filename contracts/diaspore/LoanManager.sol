@@ -152,12 +152,12 @@ contract LoanManager is BytesUtils {
         uint256 _salt,
         uint64 _expiration,
         bytes _loanData
-    ) external returns (bytes32 futureDebt) {
+    ) external returns (bytes32 id) {
         require(_borrower != address(0), "The request should have a borrower");
         require(Model(_model).validate(_loanData), "The loan data is not valid");
 
         uint256 internalSalt = _buildInternalSalt(_amount, _borrower, msg.sender, _salt, _expiration);
-        futureDebt = keccak256(
+        id = keccak256(
             abi.encodePacked(
                 uint8(2),
                 debtEngine,
@@ -169,11 +169,11 @@ contract LoanManager is BytesUtils {
             )
         );
 
-        require(requests[futureDebt].borrower == address(0), "Request already exist");
+        require(requests[id].borrower == address(0), "Request already exist");
 
         bool approved = msg.sender == _borrower;
 
-        requests[futureDebt] = Request({
+        requests[id] = Request({
             open: true,
             approved: approved,
             position: 0,
@@ -188,33 +188,33 @@ contract LoanManager is BytesUtils {
             expiration: _expiration
         });
 
-        emit Requested(futureDebt, internalSalt);
+        emit Requested(id, internalSalt);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
             if (_borrower.isContract() && _borrower.implements(0x76ba6009)) {
-                approved = _requestContractApprove(futureDebt, _borrower);
-                requests[futureDebt].approved = approved;
+                approved = _requestContractApprove(id, _borrower);
+                requests[id].approved = approved;
             }
         }
 
         if (approved) {
-            requests[futureDebt].position = uint64(directory.push(futureDebt) - 1);
-            emit Approved(futureDebt);
+            requests[id].position = uint64(directory.push(id) - 1);
+            emit Approved(id);
         }
     }
 
     function _requestContractApprove(
-        bytes32 _futureDebt,
+        bytes32 _id,
         address _borrower
     ) internal returns (bool approved) {
-        // bytes32 expected = futureDebt XOR keccak256("approve-loan-request");
-        bytes32 expected = _futureDebt ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
+        // bytes32 expected = _id XOR keccak256("approve-loan-request");
+        bytes32 expected = _id ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
         (uint256 success, bytes32 result) = _safeCall(
             _borrower,
             abi.encodeWithSelector(
                 0x76ba6009,
-                _futureDebt
+                _id
             )
         );
 
@@ -223,59 +223,59 @@ contract LoanManager is BytesUtils {
         // Emit events if approve was rejected or failed
         if (!approved) {
             if (success == 0) {
-                emit ApprovedError(_futureDebt);
+                emit ApprovedError(_id);
             } else {
-                emit ApprovedRejected(_futureDebt, result);
+                emit ApprovedRejected(_id, result);
             }
         }
     }
 
     function approveRequest(
-        bytes32 _futureDebt
+        bytes32 _id
     ) external returns (bool) {
-        Request storage request = requests[_futureDebt];
+        Request storage request = requests[_id];
         require(msg.sender == request.borrower, "Only borrower can approve");
         if (!request.approved) {
-            request.position = uint64(directory.push(_futureDebt) - 1);
+            request.position = uint64(directory.push(_id) - 1);
             request.approved = true;
-            emit Approved(_futureDebt);
+            emit Approved(_id);
         }
         return true;
     }
 
     function registerApproveRequest(
-        bytes32 _futureDebt,
+        bytes32 _id,
         bytes _signature
     ) external returns (bool approved) {
-        Request storage request = requests[_futureDebt];
+        Request storage request = requests[_id];
         address borrower = request.borrower;
 
         if (!request.approved) {
             if (borrower.isContract() && borrower.implements(0x76ba6009)) {
-                approved = _requestContractApprove(_futureDebt, borrower);
+                approved = _requestContractApprove(_id, borrower);
             } else {
-                approved = borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _futureDebt)), _signature);
+                approved = borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _signature);
             }
         }
 
         // Check request.approved again, protect against reentrancy
         if (approved && !request.approved) {
-            request.position = uint64(directory.push(_futureDebt) - 1);
+            request.position = uint64(directory.push(_id) - 1);
             request.approved = true;
-            emit Approved(_futureDebt);
+            emit Approved(_id);
         }
 
         return true;
     }
 
     function lend(
-        bytes32 _futureDebt,
+        bytes32 _id,
         bytes _oracleData,
         address _cosigner,
         uint256 _cosignerLimit,
         bytes _cosignerData
     ) public returns (bool) {
-        Request storage request = requests[_futureDebt];
+        Request storage request = requests[_id];
         require(request.open, "Request is no longer open");
         require(request.approved, "The request is not approved by the borrower");
         require(request.expiration > now, "The request is expired");
@@ -292,7 +292,7 @@ contract LoanManager is BytesUtils {
             "Error sending tokens to borrower"
         );
 
-        emit Lent(_futureDebt, msg.sender, tokens);
+        emit Lent(_id, msg.sender, tokens);
 
         // Generate the debt
         require(
@@ -302,7 +302,7 @@ contract LoanManager is BytesUtils {
                 request.oracle,
                 _internalSalt(request),
                 request.loanData
-            ) == _futureDebt,
+            ) == _id,
             "Error creating the debt"
         );
 
@@ -321,7 +321,7 @@ contract LoanManager is BytesUtils {
             require(
                 Cosigner(_cosigner).requestCosign(
                     Engine(address(this)),
-                    uint256(_futureDebt),
+                    uint256(_id),
                     _cosignerData,
                     _oracleData
                 ),
@@ -334,8 +334,8 @@ contract LoanManager is BytesUtils {
         return true;
     }
 
-    function cancel(bytes32 _futureDebt) external returns (bool) {
-        Request storage request = requests[_futureDebt];
+    function cancel(bytes32 _id) external returns (bool) {
+        Request storage request = requests[_id];
 
         require(request.open, "Request is no longer open or not requested");
         require(
@@ -353,23 +353,23 @@ contract LoanManager is BytesUtils {
         }
 
         delete request.loanData;
-        delete requests[_futureDebt];
+        delete requests[_id];
 
-        emit Canceled(_futureDebt, msg.sender);
+        emit Canceled(_id, msg.sender);
 
         return true;
     }
 
-    function cosign(uint256 _futureDebt, uint256 _cost) external returns (bool) {
-        Request storage request = requests[bytes32(_futureDebt)];
+    function cosign(uint256 _id, uint256 _cost) external returns (bool) {
+        Request storage request = requests[bytes32(_id)];
         require(request.position == 0, "Request cosigned is invalid");
         require(request.cosigner != address(0), "Cosigner not valid");
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
         request.cosigner = msg.sender;
         require(request.salt >= _cost || request.salt == 0, "Cosigner cost exceeded");
-        require(token.transferFrom(debtEngine.ownerOf(_futureDebt), msg.sender, _cost), "Error paying cosigner");
-        emit Cosigned(bytes32(_futureDebt), msg.sender, _cost);
+        require(token.transferFrom(debtEngine.ownerOf(_id), msg.sender, _cost), "Error paying cosigner");
+        emit Cosigned(bytes32(_id), msg.sender, _cost);
         return true;
     }
 
@@ -440,17 +440,17 @@ contract LoanManager is BytesUtils {
         bytes _oracleData,
         bytes _creatorSig,
         bytes _borrowerSig
-    ) public returns (bytes32 futureDebt) {
+    ) public returns (bytes32 id) {
         // Validate request
         require(uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION)) > now, "Loan request is expired");
 
         // Get id
         uint256 interSalt;
-        (futureDebt, interSalt) = _buildSettleId(_requestData, _loanData);
+        (id, interSalt) = _buildSettleId(_requestData, _loanData);
 
         // Validate signatures
-        require(requests[futureDebt].borrower == address(0), "Request already exist");
-        _validateSettleSignatures(futureDebt, _requestData, _loanData, _borrowerSig, _creatorSig);
+        require(requests[id].borrower == address(0), "Request already exist");
+        _validateSettleSignatures(id, _requestData, _loanData, _borrowerSig, _creatorSig);
 
         // Transfer tokens to borrower
         uint256 tokens = _currencyToToken(_requestData, _oracleData);
@@ -469,14 +469,14 @@ contract LoanManager is BytesUtils {
                 _requestData,
                 _loanData,
                 interSalt
-            ) == futureDebt,
+            ) == id,
             "Error creating debt registry"
         );
 
-        emit SettledLend(futureDebt, msg.sender, tokens);
+        emit SettledLend(id, msg.sender, tokens);
 
         // Save the request info
-        requests[futureDebt] = Request({
+        requests[id] = Request({
             open: false,
             approved: true,
             cosigner: _cosigner,
@@ -491,12 +491,12 @@ contract LoanManager is BytesUtils {
             expiration: uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION))
         });
 
-        Request storage request = requests[futureDebt];
+        Request storage request = requests[id];
 
         // Call the cosigner
         if (_cosigner != address(0)) {
             request.cosigner = address(uint256(_cosigner) + 2);
-            require(Cosigner(_cosigner).requestCosign(Engine(address(this)), uint256(futureDebt), _cosignerData, _oracleData), "Cosign method returned false");
+            require(Cosigner(_cosigner).requestCosign(Engine(address(this)), uint256(id), _cosignerData, _oracleData), "Cosign method returned false");
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
             request.salt = uint256(read(_requestData, O_SALT, L_SALT));
         }
