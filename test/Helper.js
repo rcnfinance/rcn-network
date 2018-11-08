@@ -24,10 +24,9 @@ function toBytes32(source) {
   }
   return "0x" + source;
 }
-// haves a delta error about one second
+
 async function increaseTime(delta) {
   await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 0});
-  await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0});
 }
 
 function isRevertErrorMessage( error ) {
@@ -38,7 +37,7 @@ function isRevertErrorMessage( error ) {
 }
 
 async function getBlockTime() {
-  return (await web3.eth.getBlock("latest")).timestamp;
+  return (await web3.eth.getBlock("pending")).timestamp;
 }
 
 async function assertThrow(promise) {
@@ -56,7 +55,7 @@ async function assertThrow(promise) {
     return;
   }
   assert.fail('Expected throw not received');
-};
+}
 
 // the promiseFunction should be a function
 async function tryCatchRevert(promise, message) {
