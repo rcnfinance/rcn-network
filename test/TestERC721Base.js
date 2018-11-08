@@ -6,7 +6,6 @@ const TestERC721ReceiverMultiple = artifacts.require('./utils/test/TestERC721Rec
 const TestNoReceive = artifacts.require('./utils/test/TokenLockable.sol');
 const Helper = require('./Helper.js');
 
-
 contract('ERC721 Base', function (accounts) {
     let token;
 
