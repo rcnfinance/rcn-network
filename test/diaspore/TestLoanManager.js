@@ -3,6 +3,7 @@ const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require('./utils/test/TestToken.sol');
 const TestCosigner = artifacts.require('./examples/TestCosigner.sol');
+const TestLoanApprover = artifacts.require('./diaspore/utils/test/TestLoanApprover.sol');
 
 const Helper = require('../Helper.js');
 const Web3Utils = require('web3-utils');
@@ -19,13 +20,17 @@ contract('Test LoanManager Diaspore', function (accounts) {
     let loanManager;
     let model;
     let cosigner;
+    let loanApprover;
 
     async function toEvent (promise, event) {
         return (await promise).logs.filter(x => x.event === event).map(x => x.args)[0];
     }
 
     async function getId (promise) {
-        return (await toEvent(promise, 'Requested'))._id;
+        const receipt = await promise;
+        const event = receipt.logs.find(l => l.event === 'Requested');
+        assert.ok(event);
+        return event.args._id;
     }
 
     async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
@@ -161,6 +166,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager = await LoanManager.new(debtEngine.address);
         model = await TestModel.new();
         await model.setEngine(debtEngine.address);
+        loanApprover = await TestLoanApprover.new();
         cosigner = await TestCosigner.new(rcn.address);
     });
 
@@ -1665,5 +1671,347 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ),
             'Request does not exist'
         );
+    });
+
+    it('Should register approve using the borrower signature', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 4;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        // Sign loan id
+        const signature = await web3.eth.sign(borrower, id);
+
+        const receipt = await loanManager.registerApproveRequest(id, signature, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), true);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.equal(event.args._id, id);
+
+        // Should add the entry to the directory
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength.toNumber() + 1);
+        (await loanManager.directory(dlength)).should.be.bignumber.equal(id);
+    });
+
+    it('Should ignore approve with wrong borrower signature', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 5;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        // Sign loan id
+        const signature = await web3.eth.sign(borrower, Helper.toBytes32(accounts[3]));
+
+        const receipt = await loanManager.registerApproveRequest(id, signature, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), false);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.notOk(event);
+
+        // Should not add the entry to the directory
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
+    });
+
+    it('Should ignore a second approve using registerApprove', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 6;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        // Sign loan id
+        const signature = await web3.eth.sign(borrower, id);
+
+        const receipt = await loanManager.registerApproveRequest(id, signature, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), true);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.equal(event.args._id, id);
+
+        const receipt2 = await loanManager.registerApproveRequest(id, signature, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), true);
+
+        const event2 = receipt2.logs.find(l => l.event === 'Approved');
+        assert.notOk(event2);
+
+        // Should add the entry to the directory once
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength.toNumber() + 1);
+        (await loanManager.directory(dlength)).should.be.bignumber.equal(id);
+    });
+
+    it('Should register approve using the borrower callback', async function () {
+        const creator = accounts[1];
+        const borrower = loanApprover.address;
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 4;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        // Set expected id
+        await loanApprover.setExpectedApprove(id);
+
+        const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), true);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.equal(event.args._id, id);
+
+        // Should add the entry to the directory
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength.toNumber() + 1);
+        (await loanManager.directory(dlength)).should.be.bignumber.equal(id);
+    });
+
+    it('Should ignore approve if borrower callback reverts', async function () {
+        const creator = accounts[1];
+        const borrower = loanApprover.address;
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 5;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        await loanApprover.setErrorBehavior(0);
+
+        const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), false);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.notOk(event);
+
+        // Should not add the entry to the directory
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
+    });
+
+    it('Should ignore approve if borrower callback returns false', async function () {
+        const creator = accounts[1];
+        const borrower = loanApprover.address;
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 6;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        await loanApprover.setErrorBehavior(1);
+
+        const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), false);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.notOk(event);
+
+        // Should not add the entry to the directory
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
+    });
+
+    it('Should ignore approve if borrower callback returns wrong value', async function () {
+        const creator = accounts[1];
+        const borrower = loanApprover.address;
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 7;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        await loanApprover.setErrorBehavior(2);
+
+        const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), false);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.notOk(event);
+
+        // Should not add the entry to the directory
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
+    });
+
+    it('Should ignore a second approve using registerApprove and callbacks', async function () {
+        const creator = accounts[1];
+        const borrower = loanApprover.address;
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 8;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        await loanApprover.setExpectedApprove(id);
+
+        const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), true);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.equal(event.args._id, id);
+
+        const receipt2 = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), true);
+
+        const event2 = receipt2.logs.find(l => l.event === 'Approved');
+        assert.notOk(event2);
+
+        // Should add the entry to the directory once
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength.toNumber() + 1);
+        (await loanManager.directory(dlength)).should.be.bignumber.equal(id);
+    });
+
+    it('Should not call callback if the borrower contract does not implements loan approver', async function () {
+        const creator = accounts[1];
+        const borrower = debtEngine.address;
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const salt = 7;
+        const amount = 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await getId(loanManager.requestLoan(
+            amount,           // Amount
+            model.address,    // Model
+            Helper.address0x, // Oracle
+            borrower,         // Borrower
+            salt,             // salt
+            expiration,       // Expiration
+            loanData,         // Loan data
+            { from: creator } // Creator
+        ));
+
+        const dlength = await loanManager.getDirectoryLength();
+
+        const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+        assert.equal(await loanManager.isApproved(id), false);
+
+        const event = receipt.logs.find(l => l.event === 'Approved');
+        assert.notOk(event);
+
+        // Should not add the entry to the directory
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
     });
 });
