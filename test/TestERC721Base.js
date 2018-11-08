@@ -186,7 +186,7 @@ contract('ERC721 Base', function (accounts) {
             assert(err);
         }
         try {
-            await token.safeTransferFrom(accounts[0], '0x0', assetId, '0x031');
+            await token.safeTransferFrom(accounts[0], '0x0', assetId);
             assert(false);
         } catch (err) {
             assert(err);
