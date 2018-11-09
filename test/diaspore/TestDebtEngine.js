@@ -2583,6 +2583,157 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         (await testModel.getPaid(id)).should.be.bignumber.equal(0);
     });
 
+    it('Should fail to withdraw partially if sender is not authorized', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[1],
+            0x0,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1000);
+        await rcn.approve(debtEngine.address, 1000);
+
+        await debtEngine.pay(id, 1000, accounts[0], []);
+
+        await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[0], 500), 'Sender not authorized');
+        await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[1], 500), 'Sender not authorized');
+
+        (await rcn.balanceOf(accounts[1])).should.be.bignumber.equal(0);
+        (await rcn.balanceOf(accounts[0])).should.be.bignumber.equal(0);
+
+        const debt = await debtEngine.debts(id);
+        debt[1].should.be.bignumber.equal(1000);
+    });
+
+    it('Should withdraw partially if sender is authorized', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[1],
+            0x0,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[2], 0);
+        await rcn.setBalance(accounts[0], 1000);
+        await rcn.approve(debtEngine.address, 1000);
+        await debtEngine.approve(accounts[0], id, { from: accounts[1] });
+
+        await debtEngine.pay(id, 1000, accounts[0], []);
+
+        await debtEngine.withdrawPartial(id, accounts[2], 600);
+
+        (await rcn.balanceOf(accounts[2])).should.be.bignumber.equal(600);
+        (await rcn.balanceOf(accounts[1])).should.be.bignumber.equal(0);
+        (await rcn.balanceOf(accounts[0])).should.be.bignumber.equal(0);
+
+        const debt = await debtEngine.debts(id);
+        debt[1].should.be.bignumber.equal(400);
+    });
+
+    it('Should withdraw partially total amount', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1000);
+        await rcn.approve(debtEngine.address, 1000);
+
+        await debtEngine.pay(id, 1000, accounts[0], []);
+
+        await rcn.setBalance(accounts[0], 0);
+        await rcn.setBalance(accounts[2], 0);
+
+        await debtEngine.withdrawPartial(id, accounts[2], 1000);
+
+        (await rcn.balanceOf(accounts[2])).should.be.bignumber.equal(1000);
+        (await rcn.balanceOf(accounts[0])).should.be.bignumber.equal(0);
+
+        const debt = await debtEngine.debts(id);
+        debt[1].should.be.bignumber.equal(0);
+    });
+
+    it('Should fail to withdraw more than available', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1000);
+        await rcn.approve(debtEngine.address, 1000);
+
+        await debtEngine.pay(id, 1000, accounts[0], []);
+
+        await rcn.setBalance(accounts[0], 0);
+        await rcn.setBalance(accounts[2], 0);
+
+        await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 1100), 'Debt balance is not enought');
+
+        (await rcn.balanceOf(accounts[2])).should.be.bignumber.equal(0);
+        (await rcn.balanceOf(accounts[0])).should.be.bignumber.equal(0);
+
+        const debt = await debtEngine.debts(id);
+        debt[1].should.be.bignumber.equal(1000);
+    });
+
+    it('Should fail to withdraw a more than possible balance', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1000);
+        await rcn.approve(debtEngine.address, 1000);
+
+        await debtEngine.pay(id, 1000, accounts[0], []);
+
+        await rcn.setBalance(accounts[0], 0);
+        await rcn.setBalance(accounts[2], 0);
+
+        await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 0xfffffffffffffffffffffffffffffffff), 'Debt balance is not enought');
+
+        (await rcn.balanceOf(accounts[2])).should.be.bignumber.equal(0);
+        (await rcn.balanceOf(accounts[0])).should.be.bignumber.equal(0);
+
+        const debt = await debtEngine.debts(id);
+        debt[1].should.be.bignumber.equal(1000);
+    });
+
+    it('Should fail to withdraw if debt engine has no tokens', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 1000);
+        await rcn.approve(debtEngine.address, 1000);
+
+        await debtEngine.pay(id, 1000, accounts[0], []);
+
+        await rcn.setBalance(accounts[0], 0);
+        await rcn.setBalance(accounts[2], 0);
+
+        const prevBalance = await rcn.balanceOf(debtEngine.address);
+        await rcn.setBalance(debtEngine.address, 0);
+        await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 200), 'Error sending tokens');
+        await rcn.setBalance(debtEngine.address, prevBalance);
+
+        (await rcn.balanceOf(accounts[2])).should.be.bignumber.equal(0);
+        (await rcn.balanceOf(accounts[0])).should.be.bignumber.equal(0);
+
+        const debt = await debtEngine.debts(id);
+        debt[1].should.be.bignumber.equal(1000);
+    });
+
     // Notice: Keep this test last
     it('Should not be possible to brute-forze an infinite loop', async function () {
         const id = await getId(debtEngine.create(
