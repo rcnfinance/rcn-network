@@ -5,6 +5,7 @@ const TestERC721ReceiverLegacyRaw = artifacts.require('./utils/test/TestERC721Re
 const TestERC721ReceiverMultiple = artifacts.require('./utils/test/TestERC721ReceiverMultiple.sol');
 const TestNoReceive = artifacts.require('./utils/test/TokenLockable.sol');
 const Helper = require('./Helper.js');
+const TestURIProvider = artifacts.require('./utils/test/TestURIProvider.sol');
 
 contract('ERC721 Base', function (accounts) {
     let token;
@@ -261,5 +262,17 @@ contract('ERC721 Base', function (accounts) {
         assert.equal(await token.ownerOf(assetId1), accounts[5]);
         assert.equal(parseInt(assetsOfAddr1after), parseInt(assetsOfAddr1Before) - 1);
         assert.equal(parseInt(assetsOfAddr5After), parseInt(assetsOfAddr5Before) + 1);
+    });
+
+    it('test to setURIProvider and tokenURI functions', async function () {
+        const assetId1 = 17;
+        const instance = await TestURIProvider.new();
+
+        await instance.generate(assetId1, accounts[0]);
+        await instance.setURIProvider(instance.address);
+
+        const uri = await instance.tokenURI(assetId1);
+
+        assert.equal(uri, 'https://ripioCreditNetwork/debtId');
     });
 });
