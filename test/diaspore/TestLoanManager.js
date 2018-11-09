@@ -1390,16 +1390,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
     });
 
-    it('Should cancel a request using cancel', async function () {
+    it('The creator should cancel a request using cancel', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const lender = accounts[3];
         const salt = 3434225;
         const amount = 55;
         const expiration = (await Helper.getBlockTime()) + 1700;
         const loanData = await model.encodeData(amount, expiration);
 
-        let id = await calcId(
+        const id = await calcId(
             amount,
             borrower,
             creator,
@@ -1420,17 +1419,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData,
             { from: creator }
         );
-        // try cancel a request without being the borrower or the creator
-        await Helper.tryCatchRevert(
-            () => loanManager.cancel(
-                id,
-                { from: lender }
-            ),
-            'Only borrower or creator can cancel a request'
-        );
 
-        // creator cancel
-        let canceled = await toEvent(
+        const canceled = await toEvent(
             loanManager.cancel(
                 id,
                 { from: creator }
@@ -1440,7 +1430,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(canceled._id, id);
         assert.equal(canceled._canceler, creator);
 
-        let cancelRequest = await loanManager.requests(id);
+        const cancelRequest = await loanManager.requests(id);
 
         assert.equal(cancelRequest[0], 0);
         assert.equal(cancelRequest[1], 0);
@@ -1456,15 +1446,23 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(cancelRequest[11], '0x');
 
         assert.equal(await loanManager.getLoanData(id), '0x');
+    });
 
-        // borrower cancel
-        id = await calcId(
+    it('The borrower should cancel a request using cancel', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const salt = 3522;
+        const amount = 5000;
+        const expiration = (await Helper.getBlockTime()) + 1700;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
             amount,
             borrower,
             creator,
             model.address,
             Helper.address0x,
-            salt + 1,
+            salt,
             expiration,
             loanData
         );
@@ -1474,23 +1472,24 @@ contract('Test LoanManager Diaspore', function (accounts) {
             model.address,
             Helper.address0x,
             borrower,
-            salt + 1,
+            salt,
             expiration,
             loanData,
             { from: creator }
         );
 
-        canceled = await toEvent(
+        const canceled = await toEvent(
             loanManager.cancel(
                 id,
                 { from: borrower }
             ),
             'Canceled'
         );
+
         assert.equal(canceled._id, id);
         assert.equal(canceled._canceler, borrower);
 
-        cancelRequest = await loanManager.requests(id);
+        const cancelRequest = await loanManager.requests(id);
 
         assert.equal(cancelRequest[0], 0);
         assert.equal(cancelRequest[1], 0);
@@ -1506,6 +1505,46 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(cancelRequest[11], '0x');
 
         assert.equal(await loanManager.getLoanData(id), '0x');
+    });
+
+    it('Try cancel a request without being the borrower or the creator', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = 6000;
+        const amount = 6000;
+        const expiration = (await Helper.getBlockTime()) + 1700;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: creator }
+        );
+
+        await Helper.tryCatchRevert(
+            () => loanManager.cancel(
+                id,
+                { from: lender }
+            ),
+            'Only borrower or creator can cancel a request'
+        );
     });
 
     it('Should cancel a request using settle cancel', async function () {
