@@ -2,6 +2,7 @@ const LoanManager = artifacts.require('./diaspore/LoanManager.sol');
 const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require('./utils/test/TestToken.sol');
+const TestDebtEngineWithToken0x0 = artifacts.require('./utils/test/TestDebtEngineWithToken0x0.sol');
 const TestCosigner = artifacts.require('./examples/TestCosigner.sol');
 const TestLoanApprover = artifacts.require('./diaspore/utils/test/TestLoanApprover.sol');
 
@@ -170,6 +171,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         cosigner = await TestCosigner.new(rcn.address);
     });
 
+    it('Try instance a LoanManager instance with token == 0x0', async function () {
+        const testDebtEngineWithToken0x0 = await TestDebtEngineWithToken0x0.new();
+
+        await Helper.tryCatchRevert(
+            () => LoanManager.new(testDebtEngineWithToken0x0.address),
+            'Error loading token'
+        );
+    });
+
     it('Should request a loan using requestLoan', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
@@ -241,6 +251,52 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.canceledSettles(id), false);
         await rcn.setBalance(await loanManager.getStatus(id), new BigNumber('0'));
         await rcn.setBalance(await loanManager.getDueTime(id), new BigNumber('0'));
+    });
+
+    it('Try request loan with 0x0 as borrower', async function () {
+        const creator = accounts[1];
+        const borrower = Helper.address0x;
+        const salt = new BigNumber('319');
+        const amount = new BigNumber('143441230');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        await Helper.tryCatchRevert(
+            () => loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                salt,
+                expiration,
+                loanData,
+                { from: creator }
+            ),
+            'The request should have a borrower'
+        );
+    });
+
+    it('Try request loan with 0x0 as borrower', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const salt = new BigNumber('11319');
+        const amount = new BigNumber('441230');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
+        const loanData = await model.encodeData(new BigNumber('0'), expiration);
+
+        await Helper.tryCatchRevert(
+            () => loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                salt,
+                expiration,
+                loanData,
+                { from: creator }
+            ),
+            'The loan data is not valid'
+        );
     });
 
     it('Try request 2 identical loans', async function () {
@@ -1528,26 +1584,25 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(canceled._id, id);
         assert.equal(canceled._canceler, creator);
 
-        const cancelRequest = await loanManager.requests(id);
+        const request = await loanManager.requests(id);
 
-        assert.equal(cancelRequest[0], 0);
-        assert.equal(cancelRequest[1], 0);
-        assert.equal(cancelRequest[2], 0);
-        assert.equal(cancelRequest[3], 0);
-        assert.equal(cancelRequest[4], 0);
-        assert.equal(cancelRequest[5], 0);
-        assert.equal(cancelRequest[6], 0);
-        assert.equal(cancelRequest[7], 0);
-        assert.equal(cancelRequest[8], 0);
-        assert.equal(cancelRequest[9], 0);
-        assert.equal(cancelRequest[10], 0);
-        assert.equal(cancelRequest[11], '0x');
+        assert.equal(request[0], 0);
+        assert.equal(request[1], 0);
+        assert.equal(request[2], 0);
+        assert.equal(request[3], 0);
+        assert.equal(request[4], 0);
+        assert.equal(request[5], 0);
+        assert.equal(request[6], 0);
+        assert.equal(request[7], 0);
+        assert.equal(request[8], 0);
+        assert.equal(request[9], 0);
+        assert.equal(request[10], 0);
+        assert.equal(request[11], '0x');
 
         assert.equal(await loanManager.getLoanData(id), '0x');
     });
 
     it('The borrower should cancel a request using cancel', async function () {
-        const creator = accounts[1];
         const borrower = accounts[2];
         const salt = new BigNumber('3522');
         const amount = new BigNumber('5000');
@@ -1557,7 +1612,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const id = await calcId(
             amount,
             borrower,
-            creator,
+            borrower,
             model.address,
             Helper.address0x,
             salt,
@@ -1573,8 +1628,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
             salt,
             expiration,
             loanData,
-            { from: creator }
+            { from: borrower }
         );
+
+        const dlength = await loanManager.getDirectoryLength();
 
         const canceled = await toEvent(
             loanManager.cancel(
@@ -1584,23 +1641,25 @@ contract('Test LoanManager Diaspore', function (accounts) {
             'Canceled'
         );
 
+        (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength.toNumber() - 1);
+
         assert.equal(canceled._id, id);
         assert.equal(canceled._canceler, borrower);
 
-        const cancelRequest = await loanManager.requests(id);
+        const request = await loanManager.requests(id);
 
-        assert.equal(cancelRequest[0], 0);
-        assert.equal(cancelRequest[1], 0);
-        assert.equal(cancelRequest[2], 0);
-        assert.equal(cancelRequest[3], 0);
-        assert.equal(cancelRequest[4], 0);
-        assert.equal(cancelRequest[5], 0);
-        assert.equal(cancelRequest[6], 0);
-        assert.equal(cancelRequest[7], 0);
-        assert.equal(cancelRequest[8], 0);
-        assert.equal(cancelRequest[9], 0);
-        assert.equal(cancelRequest[10], 0);
-        assert.equal(cancelRequest[11], '0x');
+        assert.equal(request[0], 0);
+        assert.equal(request[1], 0);
+        assert.equal(request[2], 0);
+        assert.equal(request[3], 0);
+        assert.equal(request[4], 0);
+        assert.equal(request[5], 0);
+        assert.equal(request[6], 0);
+        assert.equal(request[7], 0);
+        assert.equal(request[8], 0);
+        assert.equal(request[9], 0);
+        assert.equal(request[10], 0);
+        assert.equal(request[11], '0x');
 
         assert.equal(await loanManager.getLoanData(id), '0x');
     });
@@ -1642,6 +1701,57 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: lender }
             ),
             'Only borrower or creator can cancel a request'
+        );
+    });
+
+    it('Try cancel a closed request', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('33422');
+        const amount = new BigNumber('4555');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await loanManager.lend(
+            id,
+            [],
+            Helper.address0x,
+            new BigNumber('0'),
+            [],
+            { from: lender }
+        );
+
+        await Helper.tryCatchRevert(
+            () => loanManager.cancel(
+                id,
+                { from: lender }
+            ),
+            'Request is no longer open or not requested'
         );
     });
 
