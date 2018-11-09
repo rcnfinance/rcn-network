@@ -173,9 +173,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should request a loan using requestLoan', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const salt = 1;
-        const amount = 1031230;
-        const expiration = (await Helper.getBlockTime()) + 1000;
+        const salt = new BigNumber('1');
+        const amount = new BigNumber('1031230');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -214,19 +214,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         assert.equal(requested._id, id);
-        assert.equal(requested._internalSalt.toNumber(), internalSalt);
+        (requested._internalSalt).should.be.bignumber.equal(internalSalt);
 
         const request = await getRequest(id);
         assert.equal(request.open, true, 'The request should be open');
         assert.equal(await loanManager.getApproved(id), false, 'The request should not be approved');
         assert.equal(request.approved, false, 'The request should not be approved');
         assert.equal(await loanManager.isApproved(id), false, 'The request should not be approved');
-        assert.equal(request.position, 0, 'The loan its not approved');
-        assert.equal(await loanManager.getExpirationRequest(id), expiration);
-        assert.equal(request.expiration.toNumber(), expiration);
+        (request.position).should.be.bignumber.equal(new BigNumber('0'), 'The loan its not approved');
+        (await loanManager.getExpirationRequest(id)).should.be.bignumber.equal(expiration);
+        (request.expiration).should.be.bignumber.equal(expiration);
         assert.equal(await loanManager.getCurrency(id), 0x0);
-        assert.equal(await loanManager.getAmount(id), amount);
-        assert.equal(request.amount, amount);
+        (await loanManager.getAmount(id)).should.be.bignumber.equal(amount);
+        (request.amount).should.be.bignumber.equal(amount);
         assert.equal(await loanManager.getCosigner(id), 0x0);
         assert.equal(request.cosigner, 0x0);
         assert.equal(request.model, model.address);
@@ -236,20 +236,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.oracle, 0x0);
         assert.equal(await loanManager.getBorrower(id), borrower);
         assert.equal(request.borrower, borrower);
-        assert.equal(request.salt.toNumber(), salt);
-        assert.equal(request.loanData[0], loanData[0]);
-        assert.equal(request.loanData[1], loanData[1]);
+        (request.salt).should.be.bignumber.equal(salt);
+        assert.equal(request.loanData, loanData);
         assert.equal(await loanManager.canceledSettles(id), false);
-        assert.equal(await loanManager.getStatus(id), 0);
-        assert.equal(await loanManager.getDueTime(id), 0);
+        await rcn.setBalance(await loanManager.getStatus(id), new BigNumber('0'));
+        await rcn.setBalance(await loanManager.getDueTime(id), new BigNumber('0'));
     });
 
     it('Try request 2 identical loans', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const salt = 19;
-        const amount = 1431230;
-        const expiration = (await Helper.getBlockTime()) + 1000;
+        const salt = new BigNumber('19');
+        const amount = new BigNumber('1431230');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
         const loanData = await model.encodeData(amount, expiration);
 
         await loanManager.requestLoan(
@@ -280,9 +279,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
     it('Should create a loan using requestLoan with the same borrower and creator', async function () {
         const borrower = accounts[2];
-        const salt = 1;
-        const amount = 1031230;
-        const expiration = (await Helper.getBlockTime()) + 1000;
+        const salt = new BigNumber('1');
+        const amount = new BigNumber('1031230');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -321,7 +320,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         assert.equal(requested._id, id);
-        assert.equal(requested._internalSalt.toNumber(), internalSalt);
+        (requested._internalSalt).should.be.bignumber.equal(internalSalt);
 
         const request = await getRequest(id);
         assert.equal(await loanManager.getApproved(id), true, 'The request should be approved');
@@ -331,11 +330,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.directory(request.position), id, 'The request should be in directory');
 
         assert.equal(request.open, true, 'The request should be open');
-        assert.equal(await loanManager.getExpirationRequest(id), expiration);
-        assert.equal(request.expiration.toNumber(), expiration);
+        (await loanManager.getExpirationRequest(id)).should.be.bignumber.equal(expiration);
+        (request.expiration).should.be.bignumber.equal(expiration);
         assert.equal(await loanManager.getCurrency(id), 0x0);
-        assert.equal(await loanManager.getAmount(id), amount);
-        assert.equal(request.amount, amount);
+        (await loanManager.getAmount(id)).should.be.bignumber.equal(amount);
+        (request.amount).should.be.bignumber.equal(amount);
         assert.equal(await loanManager.getCosigner(id), 0x0);
         assert.equal(request.cosigner, 0x0);
         assert.equal(request.model, model.address);
@@ -345,20 +344,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.oracle, 0x0);
         assert.equal(await loanManager.getBorrower(id), borrower);
         assert.equal(request.borrower, borrower);
-        assert.equal(request.salt.toNumber(), salt);
-        assert.equal(request.loanData[0], loanData[0]);
-        assert.equal(request.loanData[1], loanData[1]);
+        (request.salt).should.be.bignumber.equal(salt);
+        assert.equal(request.loanData, loanData);
         assert.equal(await loanManager.canceledSettles(id), false);
-        assert.equal(await loanManager.getStatus(id), 0);
-        assert.equal(await loanManager.getDueTime(id), 0);
+        await rcn.setBalance(await loanManager.getStatus(id), new BigNumber('0'));
+        await rcn.setBalance(await loanManager.getDueTime(id), new BigNumber('0'));
     });
 
     it('Should approve a request using approveRequest', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const salt = 13132123;
-        const amount = 10230;
-        const expiration = (await Helper.getBlockTime()) + 11100;
+        const salt = new BigNumber('13132123');
+        const amount = new BigNumber('10230');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('11100'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -394,16 +392,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         const request = await getRequest(id);
         assert.equal(request.approved, true, 'The request should be approved');
-        assert.equal(request.position, await positionDirectory(id), 'The loan its not approved');
+        (request.position).should.be.bignumber.equal((await positionDirectory(id)), 'The loan its not approved');
         assert.equal(await loanManager.directory(request.position), id);
     });
 
     it('Try approve a request without being the borrower', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const salt = 1312123;
-        const amount = 130;
-        const expiration = (await Helper.getBlockTime()) + 1100;
+        const salt = new BigNumber('1312123');
+        const amount = new BigNumber('130');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1100'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -440,9 +438,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should lend a request using lend', async function () {
         const borrower = accounts[2];
         const lender = accounts[3];
-        const salt = 23;
-        const amount = 30;
-        const expiration = (await Helper.getBlockTime()) + 900;
+        const salt = new BigNumber('23');
+        const amount = new BigNumber('30');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('900'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -473,10 +471,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         const lent = await toEvent(
             loanManager.lend(
-                id,                // Index
+                id,                 // Index
                 [],                 // OracleData
                 Helper.address0x,   // Cosigner
-                0,                  // Cosigner limit
+                new BigNumber('0'), // Cosigner limit
                 [],                 // Cosigner data
                 { from: lender }    // Owner/Lender
             ),
@@ -484,15 +482,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
         assert.equal(lent._id, id);
         assert.equal(lent._lender, lender);
-        assert.equal(lent._tokens, amount);
+        lent._tokens.should.be.bignumber.equal(amount);
 
-        assert.equal(await rcn.balanceOf(lender), 0, 'The lender does not have to have tokens');
-        assert.equal(await rcn.balanceOf(borrower), amount, 'The borrower should have ' + amount + ' tokens');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(new BigNumber('0'), 'The lender does not have to have tokens');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount, 'The borrower should have ' + amount + ' tokens');
 
         const debt = await getDebt(id);
         assert.equal(debt.error, false, 'The debt should not have error');
         assert.equal(await loanManager.getCurrency(id), 0x0);
-        assert.equal(debt.balance, 0, 'The debt should not be balance');
+        (debt.balance).should.be.bignumber.equal(new BigNumber('0'), 'The debt should not be balance');
         assert.equal(debt.model, model.address, 'The model should be the model');
         assert.equal(debt.creator, loanManager.address, 'The creator should be the loanManager');
         assert.equal(debt.oracle, 0x0, 'The debt should not have oracle');
@@ -501,7 +499,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
 
         const request = await getRequest(id);
-        assert.equal(request.position, 0);
+        (request.position).should.be.bignumber.equal(new BigNumber('0'));
         assert.equal(await loanManager.getDirectoryLength(), prevDirLength - 1);
     });
 
@@ -509,9 +507,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
-        const salt = 213;
-        const amount = 300;
-        const expiration = (await Helper.getBlockTime()) + 9010;
+        const salt = new BigNumber('213');
+        const amount = new BigNumber('300');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('9010'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -544,7 +542,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 [],
                 Helper.address0x,
-                0,
+                new BigNumber('0'),
                 [],
                 { from: lender }
             ),
@@ -555,9 +553,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Try lend a expired loan', async function () {
         const borrower = accounts[2];
         const lender = accounts[3];
-        const salt = 313;
-        const amount = 440;
-        const expiration = (await Helper.getBlockTime()) + 1010;
+        const salt = new BigNumber('313');
+        const amount = new BigNumber('440');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1010'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -594,7 +592,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 [],
                 Helper.address0x,
-                0,
+                new BigNumber('0'),
                 [],
                 { from: lender }
             ),
@@ -604,9 +602,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
     it('Try lend a loan without tokens balance', async function () {
         const borrower = accounts[2];
-        const salt = 763;
-        const amount = 700;
-        const expiration = (await Helper.getBlockTime()) + 9010;
+        const salt = new BigNumber('763');
+        const amount = new BigNumber('700');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('9010'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -636,7 +634,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 [],
                 Helper.address0x,
-                0,
+                new BigNumber('0'),
                 [],
                 { from: accounts[9] }
             ),
@@ -647,9 +645,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Try lend a closed loan', async function () {
         const borrower = accounts[2];
         const lender = accounts[3];
-        const salt = 2223;
-        const amount = 32231;
-        const expiration = (await Helper.getBlockTime()) + 3300;
+        const salt = new BigNumber('2223');
+        const amount = new BigNumber('32231');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('3300'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -678,10 +676,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await rcn.approve(loanManager.address, amount, { from: lender });
 
         await loanManager.lend(
-            id,                // Index
+            id,                 // Index
             [],                 // OracleData
             Helper.address0x,   // Cosigner
-            0,                  // Cosigner limit
+            new BigNumber('0'), // Cosigner limit
             [],                 // Cosigner data
             { from: lender }    // Owner/Lender
         );
@@ -691,7 +689,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 [],
                 Helper.address0x,
-                0,
+                new BigNumber('0'),
                 [],
                 { from: lender }
             ),
@@ -706,7 +704,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const amount = new BigNumber('5545');
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
-        const expiration = (await Helper.getBlockTime()) + 1700;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -732,8 +730,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, 0);
-        await rcn.setBalance(cosigner.address, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, totalCost, { from: lender });
         const data = await cosigner.data();
 
@@ -741,27 +739,28 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanManager.lend(
                 id,
                 [],
-                cosigner.address, // Cosigner
-                0,                // Cosigner limit
-                data,             // Cosigner data
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Cosigner limit
+                data,               // Cosigner data
                 { from: lender }
             ),
             'Cosigned'
         );
 
-        assert.equal((await rcn.balanceOf(cosigner.address)).toString(), cosignerCost.toString());
-        assert.equal(await rcn.balanceOf(lender), 0);
-        assert.equal(await rcn.balanceOf(debtEngine.address), 0);
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal((await rcn.balanceOf(borrower)).toString(), amount.toString());
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal(cosignerCost);
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal('0');
+
+        (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount);
 
         assert.equal(cosigned._id, id);
         assert.equal(cosigned._cosigner, cosigner.address);
-        assert.equal(cosigned._cost.toString(), cosignerCost.toString());
+        (cosigned._cost).should.be.bignumber.equal(cosignerCost);
 
         const request = await getRequest(id);
         assert.equal(request.cosigner, cosigner.address);
-        assert.equal(request.salt.toString(), salt.toString());
+        (request.salt).should.be.bignumber.equal(salt);
     });
 
     it('Try lend a loan with cosigner and Cosign function return false', async function () {
@@ -771,7 +770,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const amount = new BigNumber(574);
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
-        const expiration = (await Helper.getBlockTime()) + 1700;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -797,8 +796,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, 0);
-        await rcn.setBalance(cosigner.address, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(debtEngine.address, cosignerCost, { from: lender });
         await rcn.approve(loanManager.address, amount, { from: lender });
         const badData = await cosigner.badData();
@@ -807,17 +806,17 @@ contract('Test LoanManager Diaspore', function (accounts) {
             () => loanManager.lend(
                 id,
                 [],
-                cosigner.address, // Cosigner
-                0,                // Cosigner limit
-                badData,          // Cosigner data
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Cosigner limit
+                badData,            // Cosigner data
                 { from: lender }
             ),
             'Cosign method returned false'
         );
 
-        assert.equal(await rcn.balanceOf(cosigner.address), 0);
-        assert.equal(await rcn.balanceOf(borrower), 0);
-        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(totalCost);
     });
 
     it('Try lend a loan with cosigner and requestCosign dont callback to the engine with Cosign', async function () {
@@ -827,7 +826,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const amount = new BigNumber(456345);
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
-        const expiration = (await Helper.getBlockTime()) + 1600;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1600'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -853,8 +852,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, 0);
-        await rcn.setBalance(cosigner.address, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         const noCosignData = await cosigner.noCosignData();
 
@@ -862,17 +861,17 @@ contract('Test LoanManager Diaspore', function (accounts) {
             () => loanManager.lend(
                 id,
                 [],
-                cosigner.address, // Cosigner
-                0,                // Cosigner limit
-                noCosignData,     // Cosigner data
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Cosigner limit
+                noCosignData,       // Cosigner data
                 { from: lender }
             ),
             'Cosigner didn\'t callback'
         );
 
-        assert.equal(await rcn.balanceOf(cosigner.address), 0);
-        assert.equal(await rcn.balanceOf(borrower), 0);
-        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(totalCost);
     });
 
     it('Try lend a loan with cosigner and dont have balance to pay the cosign', async function () {
@@ -882,7 +881,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const amount = new BigNumber(5545);
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
-        const expiration = (await Helper.getBlockTime()) + 1700;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -908,8 +907,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, 0);
-        await rcn.setBalance(cosigner.address, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         const data = await cosigner.data();
 
@@ -917,17 +916,17 @@ contract('Test LoanManager Diaspore', function (accounts) {
             () => loanManager.lend(
                 id,
                 [],
-                cosigner.address, // Cosigner
-                0,                // Cosigner limit
-                data,             // Cosigner data
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Cosigner limit
+                data,               // Cosigner data
                 { from: lender }
             ),
             'Error paying cosigner'
         );
 
-        assert.equal(await rcn.balanceOf(cosigner.address), 0);
-        assert.equal(await rcn.balanceOf(borrower), 0);
-        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(totalCost);
     });
 
     it('Should lend a request using settleLend', async function () {
@@ -936,7 +935,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const lender = accounts[3];
         const salt = new BigNumber('2763');
         const amount = new BigNumber('3320');
-        const expiration = (await Helper.getBlockTime()) + 7400;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -956,7 +955,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSig = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
 
         const settledLend = await toEvent(
@@ -964,7 +963,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 settleData,
                 loanData,
                 Helper.address0x,
-                0,
+                new BigNumber('0'),
                 [],
                 [],
                 creatorSig,
@@ -978,23 +977,23 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(settledLend._lender, lender);
         assert.equal(settledLend._tokens.toString(), amount.toString());
 
-        assert.equal(await rcn.balanceOf(lender), 0);
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal((await rcn.balanceOf(borrower)).toString(), amount.toString());
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount);
 
         const request = await getRequest(id);
         assert.equal(request.open, false, 'The request should not be open');
         assert.equal(request.approved, true, 'The request should be approved');
-        assert.equal(request.position, 0, 'The loan its not approved');
-        assert.equal(request.expiration.toNumber(), expiration);
+        (request.position).should.be.bignumber.equal(new BigNumber('0'), 'The loan its not approved');
+        (request.expiration).should.be.bignumber.equal(expiration);
         assert.equal(await loanManager.getCurrency(id), 0x0);
-        assert.equal(request.amount.toString(), amount.toString());
+        (request.amount).should.be.bignumber.equal(amount);
         assert.equal(request.cosigner, 0x0);
         assert.equal(request.model, model.address);
         assert.equal(request.creator, creator);
         assert.equal(request.oracle, 0x0);
         assert.equal(request.borrower, borrower);
-        assert.equal(request.salt.toString(), salt.toString());
+        (request.salt).should.be.bignumber.equal(salt);
 
         assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
         assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
@@ -1006,7 +1005,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const lender = accounts[3];
         const salt = new BigNumber('2763');
         const amount = new BigNumber('3320');
-        const expiration = (await Helper.getBlockTime()) + 7400;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1027,7 +1026,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSig = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
 
         await Helper.tryCatchRevert(
@@ -1035,7 +1034,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 settleData,
                 loanData,
                 Helper.address0x,
-                0,
+                new BigNumber('0'),
                 [],
                 [],
                 creatorSig,
@@ -1045,9 +1044,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             'Loan request is expired'
         );
 
-        assert.equal((await rcn.balanceOf(lender)).toString(), amount.toString());
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal(await rcn.balanceOf(borrower), 0);
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
     });
 
     it('Try settleLend without approve tokens to loanManager', async function () {
@@ -1056,7 +1055,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const lender = accounts[3];
         const salt = new BigNumber('2763');
         const amount = new BigNumber('3320');
-        const expiration = (await Helper.getBlockTime()) + 7400;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1077,7 +1076,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSig = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, 0, { from: lender });
 
         await Helper.tryCatchRevert(
@@ -1085,7 +1084,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 settleData,
                 loanData,
                 Helper.address0x,
-                0,
+                new BigNumber('0'),
                 [],
                 [],
                 creatorSig,
@@ -1095,9 +1094,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             'Error sending tokens to borrower'
         );
 
-        assert.equal((await rcn.balanceOf(lender)).toString(), amount.toString());
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal(await rcn.balanceOf(borrower), 0);
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
     });
 
     it('Try settleLend a request already exist', async function () {
@@ -1106,7 +1105,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const lender = accounts[3];
         const salt = new BigNumber('2763');
         const amount = new BigNumber('3320');
-        const expiration = (await Helper.getBlockTime()) + 7400;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1127,14 +1126,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSig = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount.mul(2));
-        await rcn.setBalance(borrower, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount.mul(2), { from: lender });
 
         await loanManager.settleLend(
             settleData,
             loanData,
             Helper.address0x,
-            0,
+            new BigNumber('0'),
             [],
             [],
             creatorSig,
@@ -1147,7 +1146,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 settleData,
                 loanData,
                 Helper.address0x,
-                0,
+                new BigNumber('0'),
                 [],
                 [],
                 creatorSig,
@@ -1157,9 +1156,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             'Request already exist'
         );
 
-        assert.equal((await rcn.balanceOf(lender)).toString(), amount.toString());
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal((await rcn.balanceOf(borrower)).toString(), amount.toString());
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount);
     });
 
     it('Use cosigner in settleLend', async function () {
@@ -1170,7 +1169,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const amount = new BigNumber('355320');
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
-        const expiration = (await Helper.getBlockTime()) + 7400;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1190,8 +1189,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, 0);
-        await rcn.setBalance(cosigner.address, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(debtEngine.address, cosignerCost, { from: lender });
         await rcn.approve(loanManager.address, totalCost, { from: lender });
         const data = await cosigner.data();
@@ -1200,9 +1199,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanManager.settleLend(
                 settleData,
                 loanData,
-                cosigner.address, // Cosigner
-                0,                // Max cosigner cost
-                data,             // Cosigner data
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Max cosigner cost
+                data,               // Cosigner data
                 [],
                 creatorSigSL,
                 borrowerSigSL,
@@ -1213,17 +1212,17 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         assert.equal(cosigned._id, id);
         assert.equal(cosigned._cosigner, cosigner.address);
-        assert.equal(cosigned._cost.toString(), cosignerCost.toString());
+        (cosigned._cost).should.be.bignumber.equal(cosignerCost);
 
-        assert.equal((await rcn.balanceOf(cosigner.address)).toString(), cosignerCost.toString());
-        assert.equal(await rcn.balanceOf(lender), 0);
-        assert.equal(await rcn.balanceOf(debtEngine.address), 0);
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal((await rcn.balanceOf(borrower)).toString(), amount.toString());
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal(cosignerCost);
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount);
 
         const request = await getRequest(id);
         assert.equal(request.cosigner, cosigner.address);
-        assert.equal(request.salt.toString(), salt.toString());
+        (request.salt).should.be.bignumber.equal(salt);
     });
 
     it('Try settleLend with cosigner and Cosign function return false', async function () {
@@ -1234,7 +1233,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const amount = new BigNumber('32134');
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
-        const expiration = (await Helper.getBlockTime()) + 7400;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1254,8 +1253,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, 0);
-        await rcn.setBalance(cosigner.address, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(debtEngine.address, cosignerCost, { from: lender });
         await rcn.approve(loanManager.address, amount, { from: lender });
         const badData = await cosigner.badData();
@@ -1264,9 +1263,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             () => loanManager.settleLend(
                 settleData,
                 loanData,
-                cosigner.address, // Cosigner
-                0,                // Max cosigner cost
-                badData,          // Cosigner data
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Max cosigner cost
+                badData,            // Cosigner data
                 [],
                 creatorSigSL,
                 borrowerSigSL,
@@ -1275,11 +1274,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             'Cosign method returned false'
         );
 
-        assert.equal(await rcn.balanceOf(cosigner.address), 0);
-        assert.equal(await rcn.balanceOf(borrower), 0);
-        assert.equal(await rcn.balanceOf(debtEngine.address), 0);
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(totalCost);
     });
 
     it('Try settleLend a loan with cosigner and requestCosign dont callback to the engine with Cosign', async function () {
@@ -1290,7 +1289,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const amount = new BigNumber('32134');
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
-        const expiration = (await Helper.getBlockTime()) + 7400;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1310,17 +1309,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, 0);
-        await rcn.setBalance(cosigner.address, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(debtEngine.address, cosignerCost, { from: lender });
         await rcn.approve(loanManager.address, amount, { from: lender });
         const noCosignData = await cosigner.noCosignData();
 
         await Helper.tryCatchRevert(
-            () => loanManager.settleLend(settleData, loanData,
-                cosigner.address, // Cosigner
-                0,                // Max cosigner cost
-                noCosignData,     // Cosigner data
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Max cosigner cost
+                noCosignData,       // Cosigner data
                 [],
                 creatorSigSL,
                 borrowerSigSL,
@@ -1329,11 +1330,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             'Cosigner didn\'t callback'
         );
 
-        assert.equal(await rcn.balanceOf(cosigner.address), 0);
-        assert.equal(await rcn.balanceOf(borrower), 0);
-        assert.equal(await rcn.balanceOf(debtEngine.address), 0);
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(totalCost);
     });
 
     it('Try settleLend a loan with cosigner and dont have balance to pay the cosign', async function () {
@@ -1344,7 +1345,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const amount = new BigNumber('74575');
         const cosignerCost = new BigNumber((await cosigner.getDummyCost()).toString());
         const totalCost = cosignerCost.plus(new BigNumber(amount));
-        const expiration = (await Helper.getBlockTime()) + 7400;
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1364,17 +1365,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, 0);
-        await rcn.setBalance(cosigner.address, 0);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(debtEngine.address, cosignerCost, { from: lender });
         await rcn.approve(loanManager.address, amount, { from: lender });
         const data = await cosigner.data();
 
         await Helper.tryCatchRevert(
-            () => loanManager.settleLend(settleData, loanData,
-                cosigner.address, // Cosigner
-                0,                // Max cosigner cost
-                data,     // Cosigner data
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Max cosigner cost
+                data,               // Cosigner data
                 [],
                 creatorSigSL,
                 borrowerSigSL,
@@ -1383,19 +1386,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
             'Error paying cosigner'
         );
 
-        assert.equal(await rcn.balanceOf(cosigner.address), 0);
-        assert.equal(await rcn.balanceOf(borrower), 0);
-        assert.equal(await rcn.balanceOf(debtEngine.address), 0);
-        assert.equal(await rcn.balanceOf(loanManager.address), 0);
-        assert.equal((await rcn.balanceOf(lender)).toString(), totalCost.toString());
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(totalCost);
     });
 
     it('The creator should cancel a request using cancel', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const salt = 3434225;
-        const amount = 55;
-        const expiration = (await Helper.getBlockTime()) + 1700;
+        const salt = new BigNumber('3434225');
+        const amount = new BigNumber('55');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -1451,9 +1454,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('The borrower should cancel a request using cancel', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const salt = 3522;
-        const amount = 5000;
-        const expiration = (await Helper.getBlockTime()) + 1700;
+        const salt = new BigNumber('3522');
+        const amount = new BigNumber('5000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -1511,9 +1514,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const creator = accounts[1];
         const borrower = accounts[2];
         const lender = accounts[3];
-        const salt = 6000;
-        const amount = 6000;
-        const expiration = (await Helper.getBlockTime()) + 1700;
+        const salt = new BigNumber('6000');
+        const amount = new BigNumber('6000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
         const loanData = await model.encodeData(amount, expiration);
 
         const id = await calcId(
@@ -1550,9 +1553,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('The creator should cancel a request using settleCancel', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const salt = 2956;
-        const amount = 9320;
-        const expiration = (await Helper.getBlockTime()) + 3400;
+        const salt = new BigNumber('2956');
+        const amount = new BigNumber('9320');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('3400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1596,9 +1599,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('The borrower should cancel a request using settleCancel', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const salt = 564465;
-        const amount = 9999;
-        const expiration = (await Helper.getBlockTime()) + 3400;
+        const salt = new BigNumber('564465');
+        const amount = new BigNumber('9999');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('3400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1644,9 +1647,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const creator = accounts[1];
         const borrower = accounts[2];
         const otherAcc = accounts[7];
-        const salt = 5345;
-        const amount = 9977699;
-        const expiration = (await Helper.getBlockTime()) + 3400;
+        const salt = new BigNumber('5345');
+        const amount = new BigNumber('9977699');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('3400'));
         const loanData = await model.encodeData(amount, expiration);
 
         const encodeData = await calcSettleId(
@@ -1688,11 +1691,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         const creator = accounts[1];
         const borrower = accounts[2];
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 2;
-        const amount = 1000;
+        const salt = new BigNumber('2');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -1724,11 +1725,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should return future internal salt', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 3;
-        const amount = 1000;
+        const salt = new BigNumber('3');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -1766,11 +1765,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should register approve using the borrower signature', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 4;
-        const amount = 1000;
+        const salt = new BigNumber('4');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -1804,11 +1801,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should ignore approve with wrong borrower signature', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 5;
-        const amount = 1000;
+        const salt = new BigNumber('5');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -1841,11 +1836,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should ignore a second approve using registerApprove', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 6;
-        const amount = 1000;
+        const salt = new BigNumber('6');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -1885,11 +1878,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should register approve using the borrower callback', async function () {
         const creator = accounts[1];
         const borrower = loanApprover.address;
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 4;
-        const amount = 1000;
+        const salt = new BigNumber('4');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -1923,11 +1914,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should ignore approve if borrower callback reverts', async function () {
         const creator = accounts[1];
         const borrower = loanApprover.address;
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 5;
-        const amount = 1000;
+        const salt = new BigNumber('5');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -1959,11 +1948,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should ignore approve if borrower callback returns false', async function () {
         const creator = accounts[1];
         const borrower = loanApprover.address;
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 6;
-        const amount = 1000;
+        const salt = new BigNumber('6');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -1995,11 +1982,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should ignore approve if borrower callback returns wrong value', async function () {
         const creator = accounts[1];
         const borrower = loanApprover.address;
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 7;
-        const amount = 1000;
+        const salt = new BigNumber('7');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -2031,11 +2016,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should ignore a second approve using registerApprove and callbacks', async function () {
         const creator = accounts[1];
         const borrower = loanApprover.address;
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 8;
-        const amount = 1000;
+        const salt = new BigNumber('8');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
@@ -2074,11 +2057,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
     it('Should not call callback if the borrower contract does not implements loan approver', async function () {
         const creator = accounts[1];
         const borrower = debtEngine.address;
-
-        const expiration = (await Helper.getBlockTime()) + 1000;
-
-        const salt = 7;
-        const amount = 1000;
+        const salt = new BigNumber('7');
+        const amount = new BigNumber('1000');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1000'));
 
         const loanData = await model.encodeData(amount, expiration);
 
