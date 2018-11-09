@@ -617,6 +617,21 @@ contract DebtEngine is ERC721Base {
         });
     }
 
+    function withdrawPartial(bytes32 _id, address _to, uint256 _amount) external returns (bool success) {
+        require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
+        Debt storage debt = debts[_id];
+        require(debt.balance >= _amount, "Debt balance is not enought");
+        debt.balance = uint128(uint256(debt.balance).sub(_amount));
+        require(token.transfer(_to, _amount), "Error sending tokens");
+        emit Withdrawn({
+            _id: _id,
+            _sender: msg.sender,
+            _to: _to,
+            _amount: _amount
+        });
+        success = true;
+    }
+
     function withdrawalList(bytes32[] _ids, address _to) external returns (uint256 amount) {
         bytes32 target;
         uint256 balance;
