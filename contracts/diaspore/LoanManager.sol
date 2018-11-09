@@ -28,7 +28,15 @@ contract LoanManager is BytesUtils {
     event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
 
     event ApprovedRejected(bytes32 indexed _id, bytes32 _response);
-    event ApprovedError(bytes32 indexed _id);
+    event ApprovedError(bytes32 indexed _id, bytes32 _response);
+
+    event ApprovedByCallback(bytes32 indexed _id);
+    event ApprovedBySignature(bytes32 indexed _id);
+
+    event CreatorByCallback(bytes32 indexed _id);
+    event BorrowerByCallback(bytes32 indexed _id);
+    event CreatorBySignature(bytes32 indexed _id);
+    event BorrowerBySignature(bytes32 indexed _id);
 
     event SettledLend(bytes32 indexed _id, address _lender, uint256 _tokens);
     event SettledCancel(bytes32 indexed _id, address _canceler);
@@ -221,9 +229,11 @@ contract LoanManager is BytesUtils {
         approved = success == 1 && result == expected;
 
         // Emit events if approve was rejected or failed
-        if (!approved) {
+        if (approved) {
+            emit ApprovedByCallback(_id);
+        } else {
             if (success == 0) {
-                emit ApprovedError(_id);
+                emit ApprovedError(_id, result);
             } else {
                 emit ApprovedRejected(_id, result);
             }
@@ -254,7 +264,10 @@ contract LoanManager is BytesUtils {
             if (borrower.isContract() && borrower.implements(0x76ba6009)) {
                 approved = _requestContractApprove(_id, borrower);
             } else {
-                approved = borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _signature);
+                if (borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _signature)) {
+                    emit ApprovedBySignature(_id);
+                    approved = true;
+                }
             }
         }
 
@@ -519,42 +532,50 @@ contract LoanManager is BytesUtils {
     }
 
     function _validateSettleSignatures(
-        bytes32 _sig,
+        bytes32 _id,
         bytes _requestData,
         bytes _loanData,
         bytes _borrowerSig,
         bytes _creatorSig
     ) internal {
-        require(!canceledSettles[_sig], "Settle was canceled");
+        require(!canceledSettles[_id], "Settle was canceled");
 
-        // bytes32 expected = uint256(_sig) XOR keccak256("approve-loan-request");
-        bytes32 expected = _sig ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
+        // bytes32 expected = uint256(_id) XOR keccak256("approve-loan-request");
+        bytes32 expected = _id ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
         address borrower = address(read(_requestData, O_BORROWER, L_BORROWER));
         address creator = address(read(_requestData, O_CREATOR, L_CREATOR));
 
         if (borrower.isContract()) {
             require(
-                LoanApprover(borrower).settleApproveRequest(_requestData, _loanData, true, uint256(_sig)) == expected,
+                LoanApprover(borrower).settleApproveRequest(_requestData, _loanData, true, uint256(_id)) == expected,
                 "Borrower contract rejected the loan"
             );
+
+            emit BorrowerByCallback(_id);
         } else {
             require(
-                borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _sig)), _borrowerSig),
+                borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _borrowerSig),
                 "Invalid borrower signature"
             );
+
+            emit BorrowerBySignature(_id);
         }
 
         if (borrower != creator) {
             if (creator.isContract()) {
                 require(
-                    LoanApprover(creator).settleApproveRequest(_requestData, _loanData, true, uint256(_sig)) == expected,
+                    LoanApprover(creator).settleApproveRequest(_requestData, _loanData, true, uint256(_id)) == expected,
                     "Creator contract rejected the loan"
                 );
+
+                emit CreatorByCallback(_id);
             } else {
                 require(
-                    creator == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _sig)), _creatorSig),
+                    creator == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _creatorSig),
                     "Invalid creator signature"
                 );
+
+                emit CreatorBySignature(_id);
             }
         }
     }
