@@ -271,12 +271,12 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         // Withdraw funds
         await rcn.setBalance(accounts[5], 0);
-        await debtEngine.withdrawal(id, accounts[5]);
+        await debtEngine.withdraw(id, accounts[5]);
         assert.equal(await rcn.balanceOf(accounts[5]), 3000);
 
         // Withdraw again, should be 0
         await rcn.setBalance(accounts[5], 0);
-        await debtEngine.withdrawal(id, accounts[5]);
+        await debtEngine.withdraw(id, accounts[5]);
         assert.equal(await rcn.balanceOf(accounts[5]), 0);
     });
 
@@ -302,7 +302,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         // Withdraw funds
         await rcn.setBalance(accounts[6], 0);
-        await debtEngine.withdrawal(id, accounts[6], { from: accounts[6] });
+        await debtEngine.withdraw(id, accounts[6], { from: accounts[6] });
         assert.equal(await rcn.balanceOf(accounts[6]), 3000);
     });
 
@@ -329,14 +329,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         // Withdraw funds
         await rcn.setBalance(accounts[5], 0);
-        await debtEngine.withdrawalList([id1, id2], accounts[5]);
+        await debtEngine.withdrawBatch([id1, id2], accounts[5]);
         assert.equal(await rcn.balanceOf(accounts[5]), 10000);
 
         // Withdraw again, should be 0
         await rcn.setBalance(accounts[5], 0);
-        await debtEngine.withdrawal(id1, accounts[5]);
-        await debtEngine.withdrawal(id2, accounts[5]);
-        await debtEngine.withdrawalList([id1, id2], accounts[5]);
+        await debtEngine.withdraw(id1, accounts[5]);
+        await debtEngine.withdraw(id2, accounts[5]);
+        await debtEngine.withdrawBatch([id1, id2], accounts[5]);
         assert.equal(await rcn.balanceOf(accounts[5]), 0);
     });
 
@@ -363,7 +363,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         await debtEngine.setApprovalForAll(accounts[7], true);
         await rcn.setBalance(accounts[7], 0);
-        await debtEngine.withdrawal(id, accounts[7], { from: accounts[7] });
+        await debtEngine.withdraw(id, accounts[7], { from: accounts[7] });
         await debtEngine.setApprovalForAll(accounts[7], false);
         assert.equal(await rcn.balanceOf(accounts[7]), 100);
 
@@ -372,13 +372,13 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         // Next withdraw should fail, no longer approved
         await rcn.setBalance(accounts[7], 0);
-        Helper.assertThrow(debtEngine.withdrawal(id, accounts[7], { from: accounts[7] }));
-        debtEngine.withdrawalList([id], accounts[7], { from: accounts[7] });
+        Helper.assertThrow(debtEngine.withdraw(id, accounts[7], { from: accounts[7] }));
+        debtEngine.withdrawBatch([id], accounts[7], { from: accounts[7] });
         assert.equal(await rcn.balanceOf(accounts[7]), 0);
 
         await debtEngine.approve(accounts[8], id);
         await rcn.setBalance(accounts[8], 0);
-        await debtEngine.withdrawalList([id], accounts[8], { from: accounts[8] });
+        await debtEngine.withdrawBatch([id], accounts[8], { from: accounts[8] });
         assert.equal(await rcn.balanceOf(accounts[8]), 200);
     });
 
@@ -647,13 +647,13 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         // Withdraw
         await debtEngine.transferFrom(accounts[0], accounts[9], id);
         await rcn.setBalance(accounts[9], 0);
-        await debtEngine.withdrawalList([id], accounts[9], { from: accounts[9] });
+        await debtEngine.withdrawBatch([id], accounts[9], { from: accounts[9] });
         assert.equal(await rcn.balanceOf(accounts[9]), 60000 + 500 + (10000 - 1010) / 2);
 
         // Withdraw again should transfer 0
         await rcn.setBalance(accounts[9], 0);
         await debtEngine.approve(accounts[3], id, { from: accounts[9] });
-        await debtEngine.withdrawalList([id], accounts[9], { from: accounts[3] });
+        await debtEngine.withdrawBatch([id], accounts[9], { from: accounts[3] });
         assert.equal(await rcn.balanceOf(accounts[9]), 0);
     });
 
@@ -1916,7 +1916,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         assert.equal(ndebt[1], 3000);
 
         await rcn.setBalance(accounts[2], 0);
-        await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
+        await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
@@ -1947,7 +1947,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         assert.equal(ndebt[1], 3000);
 
         await rcn.setBalance(accounts[2], 0);
-        await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
+        await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
@@ -1988,7 +1988,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         assert.equal(ndebt[1], 3000);
 
         await rcn.setBalance(accounts[2], 0);
-        await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
+        await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
@@ -2029,7 +2029,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         assert.equal(ndebt[1], 3000);
 
         await rcn.setBalance(accounts[2], 0);
-        await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
+        await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
@@ -2048,15 +2048,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         await rcn.setBalance(accounts[3], 0);
         await rcn.setBalance(accounts[2], 0);
-        await Helper.assertThrow(debtEngine.withdrawal(id, accounts[3], { from: accounts[3] }));
-        await Helper.assertThrow(debtEngine.withdrawal(id, accounts[2], { from: accounts[3] }));
+        await Helper.assertThrow(debtEngine.withdraw(id, accounts[3], { from: accounts[3] }));
+        await Helper.assertThrow(debtEngine.withdraw(id, accounts[2], { from: accounts[3] }));
 
         assert.equal(await rcn.balanceOf(accounts[3]), 0);
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
 
-        await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
+        await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
-        await debtEngine.withdrawal(id, accounts[2], { from: accounts[2] });
+        await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
@@ -2077,7 +2077,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await rcn.setBalance(debtEngine.address, 0);
 
         await rcn.setBalance(accounts[2], 0);
-        await Helper.assertThrow(debtEngine.withdrawal(id, accounts[2], { from: accounts[2] }));
+        await Helper.assertThrow(debtEngine.withdraw(id, accounts[2], { from: accounts[2] }));
 
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
 
@@ -2108,7 +2108,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await rcn.setBalance(debtEngine.address, 0);
 
         await rcn.setBalance(accounts[2], 0);
-        await Helper.assertThrow(debtEngine.withdrawalList([id, id2], accounts[2], { from: accounts[2] }));
+        await Helper.assertThrow(debtEngine.withdrawBatch([id, id2], accounts[2], { from: accounts[2] }));
 
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
 
@@ -2137,15 +2137,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         await rcn.setBalance(accounts[3], 0);
         await rcn.setBalance(accounts[2], 0);
-        await debtEngine.withdrawalList([id1, id2], accounts[3], { from: accounts[3] });
-        await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[3] });
+        await debtEngine.withdrawBatch([id1, id2], accounts[3], { from: accounts[3] });
+        await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[3] });
 
         assert.equal(await rcn.balanceOf(accounts[3]), 0);
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
 
-        await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[2] });
+        await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
-        await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[2] });
+        await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[2] });
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
@@ -2171,14 +2171,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         await rcn.setBalance(accounts[3], 0);
         await rcn.setBalance(accounts[2], 0);
-        await debtEngine.withdrawalList([id1, id2], accounts[3], { from: accounts[3] });
-        await debtEngine.withdrawalList([id1, id2], accounts[2], { from: accounts[3] });
+        await debtEngine.withdrawBatch([id1, id2], accounts[3], { from: accounts[3] });
+        await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[3] });
 
         assert.equal(await rcn.balanceOf(accounts[3]), 0);
         assert.equal(await rcn.balanceOf(accounts[2]), 0);
 
         await rcn.setBalance(accounts[4], 0);
-        await debtEngine.withdrawalList([id1, id2], accounts[4], { from: accounts[4] });
+        await debtEngine.withdrawBatch([id1, id2], accounts[4], { from: accounts[4] });
 
         assert.equal(await rcn.balanceOf(accounts[4]), 1500);
     });
@@ -2266,14 +2266,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await debtEngine.payBatch([id, id2], [1500, 1500], 0x0, 0x0, 0x0);
 
         await rcn.setBalance(accounts[2], 0);
-        await debtEngine.withdrawalList([id, id, id2, id, id, id, id], accounts[2], { from: accounts[2] });
+        await debtEngine.withdrawBatch([id, id, id2, id, id, id, id], accounts[2], { from: accounts[2] });
 
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
     it('Withdraw zero debts should have no effect', async function () {
         await rcn.setBalance(accounts[7], 0);
-        await debtEngine.withdrawalList([], accounts[7], { from: accounts[7] });
+        await debtEngine.withdrawBatch([], accounts[7], { from: accounts[7] });
         assert.equal(await rcn.balanceOf(accounts[7]), 0);
     });
 
