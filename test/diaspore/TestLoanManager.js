@@ -819,6 +819,56 @@ contract('Test LoanManager Diaspore', function (accounts) {
         (await rcn.balanceOf(lender)).should.be.bignumber.equal(totalCost);
     });
 
+    it('Try lend when cosigner is not a cosigner contract', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber(42342);
+        const amount = new BigNumber(44444);
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1600'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, amount);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id,
+                [],
+                accounts[8],        // Address as cosigner
+                new BigNumber('0'),
+                [],
+                { from: lender }
+            ),
+            ''
+        );
+
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+    });
+
     it('Try lend a loan with cosigner and requestCosign dont callback to the engine with Cosign', async function () {
         const borrower = accounts[2];
         const lender = accounts[3];
@@ -1279,6 +1329,56 @@ contract('Test LoanManager Diaspore', function (accounts) {
         (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
         (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
         (await rcn.balanceOf(lender)).should.be.bignumber.equal(totalCost);
+    });
+
+    it('Try settleLend when cosigner is not a cosigner contract', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('273263');
+        const amount = new BigNumber('32134');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSigSL = await web3.eth.sign(creator, id);
+        const borrowerSigSL = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.setBalance(borrower, new BigNumber('0'));
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                accounts[8],        // Address as cosigner
+                new BigNumber('0'),
+                [],
+                [],
+                creatorSigSL,
+                borrowerSigSL,
+                { from: lender }
+            ),
+            ''
+        );
+
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
     });
 
     it('Try settleLend a loan with cosigner and requestCosign dont callback to the engine with Cosign', async function () {
