@@ -603,7 +603,7 @@ contract DebtEngine is ERC721Base {
         }
     }
 
-    function withdrawal(bytes32 _id, address _to) external returns (uint256 amount) {
+    function withdraw(bytes32 _id, address _to) external returns (uint256 amount) {
         require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
         amount = debt.balance;
@@ -632,7 +632,7 @@ contract DebtEngine is ERC721Base {
         success = true;
     }
 
-    function withdrawalList(bytes32[] _ids, address _to) external returns (uint256 amount) {
+    function withdrawBatch(bytes32[] _ids, address _to) external returns (uint256 total) {
         bytes32 target;
         uint256 balance;
         for (uint256 i = 0; i < _ids.length; i++) {
@@ -640,7 +640,7 @@ contract DebtEngine is ERC721Base {
             if (_isAuthorized(msg.sender, uint256(target))) {
                 balance = debts[target].balance;
                 debts[target].balance = 0;
-                amount += balance;
+                total += balance;
                 emit Withdrawn({
                     _id: target,
                     _sender: msg.sender,
@@ -649,7 +649,7 @@ contract DebtEngine is ERC721Base {
                 });
             }
         }
-        require(token.transfer(_to, amount), "Error sending tokens");
+        require(token.transfer(_to, total), "Error sending tokens");
     }
 
     function getStatus(bytes32 _id) external view returns (uint256) {
