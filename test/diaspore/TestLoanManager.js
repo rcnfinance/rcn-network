@@ -1547,16 +1547,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
     });
 
-    it('Should cancel a request using settle cancel', async function () {
+    it('The creator should cancel a request using settleCancel', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
-        const lender = accounts[3];
         const salt = 2956;
         const amount = 9320;
         const expiration = (await Helper.getBlockTime()) + 3400;
         const loanData = await model.encodeData(amount, expiration);
 
-        let encodeData = await calcSettleId(
+        const encodeData = await calcSettleId(
             amount,
             borrower,
             creator,
@@ -1567,7 +1566,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             loanData
         );
         const settleData = encodeData[0];
-        const idCreator = encodeData[1];
+        const id = encodeData[1];
 
         await loanManager.requestLoan(
             amount,
@@ -1580,17 +1579,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             { from: creator }
         );
 
-        // try cancel a request without have the signature
-        await Helper.tryCatchRevert(
-            () => loanManager.settleCancel(
-                settleData,
-                loanData,
-                { from: lender }
-            ),
-            'Only borrower or creator can cancel a settle'
-        );
-
-        // creator cancel
         const settledCancel = await toEvent(
             loanManager.settleCancel(
                 settleData,
@@ -1599,41 +1587,100 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ),
             'SettledCancel'
         );
-        assert.equal(settledCancel._id, idCreator);
+        assert.equal(settledCancel._id, id);
         assert.equal(settledCancel._canceler, creator);
 
-        assert.equal(await loanManager.canceledSettles(idCreator), true);
+        assert.equal(await loanManager.canceledSettles(id), true);
+    });
 
-        // borrower cancel
-        encodeData = await calcSettleId(
+    it('The borrower should cancel a request using settleCancel', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const salt = 564465;
+        const amount = 9999;
+        const expiration = (await Helper.getBlockTime()) + 3400;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
             amount,
             borrower,
             creator,
             model.address,
             Helper.address0x,
-            salt + 1,
+            salt,
             expiration,
             loanData
         );
-        const settleDataBorrower = encodeData[0];
-        const idBorrower = encodeData[1];
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
 
         await loanManager.requestLoan(
             amount,
             model.address,
             Helper.address0x,
             borrower,
-            salt + 1,
+            salt,
             expiration,
             loanData,
             { from: creator }
         );
-        await loanManager.settleCancel(
-            settleDataBorrower,
-            loanData,
-            { from: borrower }
+
+        const settledCancel = await toEvent(
+            loanManager.settleCancel(
+                settleData,
+                loanData,
+                { from: borrower }
+            ),
+            'SettledCancel'
         );
-        assert.equal(await loanManager.canceledSettles(idBorrower), true);
+        assert.equal(settledCancel._id, id);
+        assert.equal(settledCancel._canceler, borrower);
+
+        assert.equal(await loanManager.canceledSettles(id), true);
+    });
+
+    it('Try cancel a request without have the signature', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const otherAcc = accounts[7];
+        const salt = 5345;
+        const amount = 9977699;
+        const expiration = (await Helper.getBlockTime()) + 3400;
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: creator }
+        );
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleCancel(
+                settleData,
+                loanData,
+                { from: otherAcc }
+            ),
+            'Only borrower or creator can cancel a settle'
+        );
     });
 
     it('Different loan managers should have different ids', async function () {
