@@ -92,7 +92,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         uint128 total = uint128(btotal);
         uint64 dueTime = uint64(bdue);
 
-        if(total == 0) return false;
+        if (total == 0) return false;
 
         _validate(dueTime);
         return true;
