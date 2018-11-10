@@ -8,13 +8,22 @@ import "./../../interfaces/Token.sol";
 contract TestCosigner is Cosigner, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
     bytes public data = buildData(keccak256("test_oracle"), dummyCost);
-    bytes public noCosignData = buildData(keccak256("return_true_no_cosign"), dummyCost);
-    bytes public badData = buildData(keccak256("bad_data"), dummyCost);
+    bytes public noCosignData = buildData(keccak256("return_true_no_cosign"), 0);
+    bytes public badData = buildData(keccak256("bad_data"), 0);
+
+    uint256 public customId;
+    uint256 public customCost;
+    bytes32 public customData = keccak256("custom_data");
 
     Token public token;
 
-    function TestCosigner(Token _token) public {
+    constructor(Token _token) public {
         token = _token;
+    }
+
+    function setCustomData(uint256 _customId, uint256 _customCost) external {
+        customId = _customId;
+        customCost = _customCost;
     }
 
     function getDummyCost() public view returns(uint256) {
@@ -37,10 +46,18 @@ contract TestCosigner is Cosigner, BytesUtils {
     }
 
     function requestCosign(Engine engine, uint256 index, bytes data, bytes) public returns (bool) {
+        if (readBytes32(data, 0) == keccak256("custom_data")) {
+            require(engine.cosign(customId, customCost));
+            customId = 0;
+            customCost = 0;
+            return true;
+        }
+
         if (readBytes32(data, 0) == keccak256("test_oracle")) {
             require(engine.cosign(index, uint256(readBytes32(data, 1))));
             return true;
         }
+
         if (readBytes32(data, 0) == keccak256("return_true_no_cosign")) {
             return true;
         }
