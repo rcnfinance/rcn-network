@@ -22,6 +22,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
     let model;
     let cosigner;
     let loanApprover;
+    const MAX_UINT256 = new BigNumber('2').pow(new BigNumber('256').sub(new BigNumber('1')));
 
     async function toEvent (promise, event) {
         return (await promise).logs.filter(x => x.event === event).map(x => x.args)[0];
@@ -875,6 +876,58 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: lender }
             ),
             'Cosigner 0x0 is not valid'
+        );
+
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+    });
+
+    it('Try lend a loan with cosigner cost very high', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber(546546);
+        const amount = new BigNumber(11);
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        await cosigner.setCustomData(id, MAX_UINT256);
+
+        const maxCostData = await cosigner.customData();
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id,
+                [],
+                cosigner.address,   // Cosigner
+                new BigNumber('1'), // Cosigner limit
+                maxCostData,        // Cosigner data
+                { from: lender }
+            ),
+            'Cosigner cost exceeded'
         );
 
         (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');

@@ -11,7 +11,7 @@ contract TestCosigner is Cosigner, BytesUtils {
     bytes public noCosignData = buildData(keccak256("return_true_no_cosign"), 0);
     bytes public badData = buildData(keccak256("bad_data"), 0);
 
-    uint256 public customId;
+    bytes32 public customId;
     uint256 public customCost;
     bytes32 public customData = keccak256("custom_data");
 
@@ -21,7 +21,7 @@ contract TestCosigner is Cosigner, BytesUtils {
         token = _token;
     }
 
-    function setCustomData(uint256 _customId, uint256 _customCost) external {
+    function setCustomData(bytes32 _customId, uint256 _customCost) external {
         customId = _customId;
         customCost = _customCost;
     }
@@ -47,8 +47,8 @@ contract TestCosigner is Cosigner, BytesUtils {
 
     function requestCosign(Engine engine, uint256 index, bytes data, bytes) public returns (bool) {
         if (readBytes32(data, 0) == keccak256("custom_data")) {
-            require(engine.cosign(customId, customCost));
-            customId = 0;
+            require(engine.cosign(uint256(customId), customCost));
+            customId = 0x0;
             customCost = 0;
             return true;
         }
