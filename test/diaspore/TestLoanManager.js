@@ -171,6 +171,18 @@ contract('Test LoanManager Diaspore', function (accounts) {
         cosigner = await TestCosigner.new(rcn.address);
     });
 
+    beforeEach('Reset all rcn balance', async function () {
+        for (let i = 0; i < accounts.length; i++) {
+            await rcn.setBalance(accounts[i], new BigNumber('0'));
+            await rcn.approve(loanManager.address, new BigNumber('0'), { from: accounts[i] });
+        }
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
+        await rcn.setBalance(loanManager.address, new BigNumber('0'));
+        await rcn.setBalance(debtEngine.address, new BigNumber('0'));
+
+        (await rcn.totalSupply()).should.be.bignumber.equal(new BigNumber('0'));
+    });
+
     it('Try instance a LoanManager instance with token == 0x0', async function () {
         const testDebtEngineWithToken0x0 = await TestDebtEngineWithToken0x0.new();
 
@@ -249,8 +261,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         (request.salt).should.be.bignumber.equal(salt);
         assert.equal(request.loanData, loanData);
         assert.equal(await loanManager.canceledSettles(id), false);
-        await rcn.setBalance(await loanManager.getStatus(id), new BigNumber('0'));
-        await rcn.setBalance(await loanManager.getDueTime(id), new BigNumber('0'));
+        (await loanManager.getStatus(id)).should.be.bignumber.equal(new BigNumber('0'));
+        (await loanManager.getDueTime(id)).should.be.bignumber.equal(new BigNumber('0'));
     });
 
     it('Try request loan with 0x0 as borrower', async function () {
@@ -403,8 +415,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         (request.salt).should.be.bignumber.equal(salt);
         assert.equal(request.loanData, loanData);
         assert.equal(await loanManager.canceledSettles(id), false);
-        await rcn.setBalance(await loanManager.getStatus(id), new BigNumber('0'));
-        await rcn.setBalance(await loanManager.getDueTime(id), new BigNumber('0'));
+        (await loanManager.getStatus(id)).should.be.bignumber.equal(new BigNumber('0'));
+        (await loanManager.getDueTime(id)).should.be.bignumber.equal(new BigNumber('0'));
     });
 
     it('Should approve a request using approveRequest', async function () {
@@ -540,6 +552,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(lent._lender, lender);
         lent._tokens.should.be.bignumber.equal(amount);
 
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal(new BigNumber('0'));
         (await rcn.balanceOf(lender)).should.be.bignumber.equal(new BigNumber('0'), 'The lender does not have to have tokens');
         (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount, 'The borrower should have ' + amount + ' tokens');
 
@@ -786,8 +799,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, totalCost, { from: lender });
         const data = await cosigner.data();
 
@@ -850,8 +861,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         await cosigner.setCustomData(new BigNumber('0'), new BigNumber('0'));
         const id0x0Data = await cosigner.customData();
@@ -904,8 +913,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         const badData = await cosigner.badData();
 
@@ -957,7 +964,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
 
         await Helper.tryCatchRevert(
@@ -1007,8 +1013,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         const noCosignData = await cosigner.noCosignData();
 
@@ -1062,8 +1066,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         const data = await cosigner.data();
 
@@ -1110,7 +1112,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSig = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
 
         const settledLend = await toEvent(
@@ -1181,7 +1182,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSig = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
 
         await Helper.tryCatchRevert(
@@ -1231,8 +1231,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSig = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.approve(loanManager.address, 0, { from: lender });
 
         await Helper.tryCatchRevert(
             () => loanManager.settleLend(
@@ -1281,7 +1279,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSig = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount.mul(2));
-        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount.mul(2), { from: lender });
 
         await loanManager.settleLend(
@@ -1344,8 +1341,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, totalCost, { from: lender });
         const data = await cosigner.data();
 
@@ -1405,8 +1400,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         await cosigner.setCustomData(new BigNumber('0'), new BigNumber('0'));
         const id0x0Data = await cosigner.customData();
@@ -1459,8 +1452,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         const badData = await cosigner.badData();
 
@@ -1512,7 +1503,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
 
         await Helper.tryCatchRevert(
@@ -1562,8 +1552,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, amount);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         const noCosignData = await cosigner.noCosignData();
 
@@ -1617,8 +1605,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const borrowerSigSL = await web3.eth.sign(borrower, id);
 
         await rcn.setBalance(lender, totalCost);
-        await rcn.setBalance(borrower, new BigNumber('0'));
-        await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.approve(loanManager.address, amount, { from: lender });
         const data = await cosigner.data();
 
