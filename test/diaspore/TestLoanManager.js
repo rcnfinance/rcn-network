@@ -1479,6 +1479,58 @@ contract('Test LoanManager Diaspore', function (accounts) {
         (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
     });
 
+    it('Try settleLend with cosigner cost very high', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('432354');
+        const amount = new BigNumber('66');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSigSL = await web3.eth.sign(creator, id);
+        const borrowerSigSL = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        await cosigner.setCustomData(id, MAX_UINT256);
+        const maxCostData = await cosigner.customData();
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                cosigner.address,   // Cosigner
+                new BigNumber('1'), // Max cosigner cost
+                maxCostData,        // Cosigner data
+                [],
+                creatorSigSL,
+                borrowerSigSL,
+                { from: lender }
+            ),
+            'Cosigner cost exceeded'
+        );
+
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+    });
+
     it('Try settleLend with cosigner and Cosign function return false', async function () {
         const creator = accounts[1];
         const borrower = accounts[2];
