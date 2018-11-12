@@ -949,6 +949,44 @@ contract('Test LoanManager Diaspore', function (accounts) {
         (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
     });
 
+    it('Try Cosign function the request with bad position', async function () {
+        const borrower = accounts[2];
+        const salt = new BigNumber(1998);
+        const amount = new BigNumber(90880);
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('100'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await Helper.tryCatchRevert(
+            () => loanManager.cosign(
+                id,
+                0
+            ),
+            'Request cosigned is invalid'
+        );
+    });
+
     it('Try lend a loan with cosigner cost very high', async function () {
         const borrower = accounts[2];
         const lender = accounts[3];
