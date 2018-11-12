@@ -25,7 +25,7 @@ contract LoanManager is BytesUtils {
     event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
     event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
     event Canceled(bytes32 indexed _id, address _canceler);
-    event ReadedOracle(bytes32 indexed _id, uint256 _amount, uint256 _decimals);
+    event ReadedOracle(address _oracle, uint256 _tokens, uint256 _equivalent);
 
     event ApprovedRejected(bytes32 indexed _id, bytes32 _response);
     event ApprovedError(bytes32 indexed _id, bytes32 _response);
@@ -712,6 +712,9 @@ contract LoanManager is BytesUtils {
     ) internal returns (uint256) {
         if (_oracle == address(0)) return _amount;
         (uint256 tokens, uint256 equivalent) = RateOracle(_oracle).readSample(_oracleData);
+
+        emit ReadedOracle(_oracle, tokens, equivalent);
+
         return tokens.mult(_amount) / equivalent;
     }
 
