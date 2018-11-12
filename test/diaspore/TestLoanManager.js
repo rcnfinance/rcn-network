@@ -3,7 +3,8 @@ const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require('./utils/test/TestToken.sol');
 const TestDebtEngineWithToken0x0 = artifacts.require('./utils/test/TestDebtEngineWithToken0x0.sol');
-const TestCosigner = artifacts.require('./examples/TestCosigner.sol');
+const TestCosigner = artifacts.require('./utils/test/TestCosigner.sol');
+const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
 const TestLoanApprover = artifacts.require('./diaspore/utils/test/TestLoanApprover.sol');
 
 const Helper = require('../Helper.js');
@@ -21,6 +22,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
     let loanManager;
     let model;
     let cosigner;
+    let oracle;
     let loanApprover;
     const MAX_UINT256 = new BigNumber('2').pow(new BigNumber('256').sub(new BigNumber('1')));
 
@@ -170,6 +172,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await model.setEngine(debtEngine.address);
         loanApprover = await TestLoanApprover.new();
         cosigner = await TestCosigner.new(rcn.address);
+        oracle = await TestRateOracle.new();
     });
 
     beforeEach('Reset all rcn balance', async function () {
@@ -767,6 +770,69 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
     });
 
+    it('Lend a loan with an oracle', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('213123');
+
+        // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
+        const tokens = new BigNumber('400023333566612312000000');
+        const equivalent = new BigNumber('82711175222132156792');
+        const oracleData = await oracle.encodeRate(tokens, equivalent);
+
+        const amountETH = new BigNumber('6545');
+        const amountRCN = amountETH.mul(tokens).div(equivalent);
+
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
+        const loanData = await model.encodeData(amountETH, expiration);
+
+        const id = await calcId(
+            amountETH,
+            borrower,
+            borrower,
+            model.address,
+            oracle.address,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amountETH,
+            model.address,
+            oracle.address,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, amountRCN);
+        await rcn.approve(loanManager.address, amountRCN, { from: lender });
+
+        await loanManager.lend(
+            id,
+            oracleData,
+            Helper.address0x,
+            new BigNumber('0'),
+            [],
+            { from: lender }
+        );
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal('0');
+
+        (await rcn.balanceOf(debtEngine.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(Math.floor(amountRCN));
+
+        const request = await getRequest(id);
+        assert.equal(request.oracle, oracle.address);
+        assert.equal(await loanManager.getCurrency(id), 0x0);
+        assert.equal(request.cosigner, Helper.address0x);
+        (request.salt).should.be.bignumber.equal(salt);
+    });
+
     it('Use cosigner in lend', async function () {
         const borrower = accounts[2];
         const lender = accounts[3];
@@ -1201,6 +1267,77 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal(request.model, model.address);
         assert.equal(request.creator, creator);
         assert.equal(request.oracle, 0x0);
+        assert.equal(request.borrower, borrower);
+        (request.salt).should.be.bignumber.equal(salt);
+
+        assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
+        assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
+    });
+
+    it('settleLend a loan with an oracle', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('1122');
+
+        // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
+        const tokens = new BigNumber('400023333566612312000000');
+        const equivalent = new BigNumber('82711175222132156792');
+        const oracleData = await oracle.encodeRate(tokens, equivalent);
+
+        const amountETH = new BigNumber('3320');
+        const amountRCN = amountETH.mul(tokens).div(equivalent);
+
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
+        const loanData = await model.encodeData(amountETH, expiration);
+
+        const encodeData = await calcSettleId(
+            amountETH,
+            borrower,
+            creator,
+            model.address,
+            oracle.address,
+            salt,
+            expiration,
+            loanData
+        );
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amountRCN);
+        await rcn.approve(loanManager.address, amountRCN, { from: lender });
+
+        await loanManager.settleLend(
+            settleData,
+            loanData,
+            Helper.address0x,
+            new BigNumber('0'),
+            [],
+            oracleData,
+            creatorSig,
+            borrowerSig,
+            { from: lender }
+        );
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(Math.floor(amountRCN));
+
+        const request = await getRequest(id);
+        assert.equal(request.open, false, 'The request should not be open');
+        assert.equal(request.approved, true, 'The request should be approved');
+        (request.position).should.be.bignumber.equal(new BigNumber('0'), 'The loan its not approved');
+        (request.expiration).should.be.bignumber.equal(expiration);
+        assert.equal(request.oracle, oracle.address);
+        assert.equal(await loanManager.getCurrency(id), 0x0);
+        (request.amount).should.be.bignumber.equal(Math.floor(amountETH));
+        assert.equal(request.cosigner, 0x0);
+        assert.equal(request.model, model.address);
+        assert.equal(request.creator, creator);
+        assert.equal(request.oracle, oracle.address);
         assert.equal(request.borrower, borrower);
         (request.salt).should.be.bignumber.equal(salt);
 
