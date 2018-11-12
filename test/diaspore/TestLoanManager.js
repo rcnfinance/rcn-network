@@ -2,7 +2,7 @@ const LoanManager = artifacts.require('./diaspore/LoanManager.sol');
 const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require('./utils/test/TestToken.sol');
-const TestDebtEngineWithToken0x0 = artifacts.require('./utils/test/TestDebtEngineWithToken0x0.sol');
+const TestDebtEngine = artifacts.require('./diaspore/utils/test/TestDebtEngine.sol');
 const TestCosigner = artifacts.require('./utils/test/TestCosigner.sol');
 const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
 const TestLoanApprover = artifacts.require('./diaspore/utils/test/TestLoanApprover.sol');
@@ -188,10 +188,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
     });
 
     it('Try instance a LoanManager instance with token == 0x0', async function () {
-        const testDebtEngineWithToken0x0 = await TestDebtEngineWithToken0x0.new();
+        const testDebtEngine = await TestDebtEngine.new(0x0);
 
         await Helper.tryCatchRevert(
-            () => LoanManager.new(testDebtEngineWithToken0x0.address),
+            () => LoanManager.new(testDebtEngine.address),
             'Error loading token'
         );
     });
@@ -289,6 +289,54 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator }
             ),
             'The request should have a borrower'
+        );
+    });
+
+    it('Request a loan should be fail if the model create return a diferent id', async function () {
+        const testDebtEngine = await TestDebtEngine.new(rcn.address);
+        const loanManager2 = await LoanManager.new(testDebtEngine.address);
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('23');
+        const amount = new BigNumber('30');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('900'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await loanManager2.calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager2.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager2.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager2.lend(
+                id,
+                [],
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                { from: lender }
+            ),
+            'Error creating the debt'
         );
     });
 
@@ -1310,6 +1358,54 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
         assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
+    });
+
+    it('SettleLend a loan should be fail if the model create return a diferent id', async function () {
+        const testDebtEngine = await TestDebtEngine.new(rcn.address);
+        const loanManager2 = await LoanManager.new(testDebtEngine.address);
+
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('2763');
+        const amount = new BigNumber('3320');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await loanManager2.encodeRequest(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            creator,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager2.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager2.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                creatorSig,
+                borrowerSig,
+                { from: lender }
+            ),
+            'Error creating debt registry'
+        );
     });
 
     it('settleLend a loan with an oracle', async function () {
