@@ -97,6 +97,12 @@ function searchEvent(tx, eventName) {
     return event[0];
 }
 
+async function eventNotEmitted(receipt, eventName) {
+    const logsCount = receipt.logs.length;
+    assert.equal(logsCount, 0, "Should have not emitted the event " + eventName);
+    return;
+}
+
 async function almostEqual(p1, p2, reason, margin = 3) {
   assert.isBelow(Math.abs(await p1 - await p2), margin, reason);
 }
@@ -104,5 +110,5 @@ async function almostEqual(p1, p2, reason, margin = 3) {
 module.exports = {
   address0x, arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
   toBytes32, increaseTime, searchEvent, getBlockTime,
-  toInterestRate, buyTokens, isRevertErrorMessage, almostEqual
+  toInterestRate, buyTokens, isRevertErrorMessage, almostEqual, eventNotEmitted
 };
