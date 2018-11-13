@@ -564,7 +564,7 @@ contract LoanManager is BytesUtils {
         if (borrower != creator) {
             if (creator.isContract()) {
                 require(
-                    LoanApprover(creator).settleApproveRequest(_requestData, _loanData, true, uint256(_id)) == expected,
+                    LoanApprover(creator).settleApproveRequest(_requestData, _loanData, false, uint256(_id)) == expected,
                     "Creator contract rejected the loan"
                 );
 
