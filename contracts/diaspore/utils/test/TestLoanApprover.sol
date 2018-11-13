@@ -55,10 +55,10 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
         bool _isBorrower,
         uint256 _id
     ) external returns (bytes32) {
-        (bytes32 btotal, bytes32 bdue) = decode(_loanData, 16, 8);
+        bytes32 btotal;
+        (btotal, ) = decode(_loanData, 16, 8);
         uint128 total = uint128(btotal);
-        uint64 dueTime = uint64(bdue);
-        if(total == 666)
+        if (total == 666)
             return 0x0;
         // bytes32 expected = uint256(_id) XOR keccak256("approve-loan-request");
         return bytes32(_id) ^ keccak256("approve-loan-request");
