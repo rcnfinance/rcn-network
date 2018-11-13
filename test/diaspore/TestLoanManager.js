@@ -2238,17 +2238,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const settleData = encodeData[0];
         const id = encodeData[1];
 
-        await loanManager.requestLoan(
-            amount,
-            model.address,
-            Helper.address0x,
-            borrower,
-            salt,
-            expiration,
-            loanData,
-            { from: creator }
-        );
-
         const settledCancel = await toEvent(
             loanManager.settleCancel(
                 settleData,
@@ -2285,17 +2274,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         const settleData = encodeData[0];
         const id = encodeData[1];
 
-        await loanManager.requestLoan(
-            amount,
-            model.address,
-            Helper.address0x,
-            borrower,
-            salt,
-            expiration,
-            loanData,
-            { from: creator }
-        );
-
         const settledCancel = await toEvent(
             loanManager.settleCancel(
                 settleData,
@@ -2331,17 +2309,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         );
 
         const settleData = encodeData[0];
-
-        await loanManager.requestLoan(
-            amount,
-            model.address,
-            Helper.address0x,
-            borrower,
-            salt,
-            expiration,
-            loanData,
-            { from: creator }
-        );
 
         await Helper.tryCatchRevert(
             () => loanManager.settleCancel(
