@@ -26,8 +26,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
     let loanApprover;
     const MAX_UINT256 = new BigNumber('2').pow(new BigNumber('256').sub(new BigNumber('1')));
 
-    async function toEvent (promise, event) {
-        return (await promise).logs.filter(x => x.event === event).map(x => x.args)[0];
+    async function toEvent (promise, ...events) {
+        const logs = (await promise).logs;
+        let eventObjs = events.map(event => logs.find(log => log.event === event));
+        if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
+            assert.fail('The event dont find');
+        }
+        eventObjs = eventObjs.map(x => x.args);
+        return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
     }
 
     async function getId (promise) {
@@ -183,6 +189,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await rcn.setBalance(cosigner.address, new BigNumber('0'));
         await rcn.setBalance(loanManager.address, new BigNumber('0'));
         await rcn.setBalance(debtEngine.address, new BigNumber('0'));
+        await rcn.setBalance(loanApprover.address, new BigNumber('0'));
 
         (await rcn.totalSupply()).should.be.bignumber.equal(new BigNumber('0'));
     });
@@ -1358,6 +1365,464 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
         assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
+    });
+
+    it('Should settleLend a loan using LoanApproverContract as creator', async function () {
+        const creator = loanApprover.address;
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('20');
+        const amount = new BigNumber('33622');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        const events = await toEvent(
+            loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                [],
+                borrowerSig,
+                { from: lender }
+            ),
+            'CreatorByCallback',
+            'BorrowerBySignature'
+        );
+
+        assert.equal(events[0]._id, id);
+        assert.equal(events[1]._id, id);
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(new BigNumber('0'));
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(creator)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount);
+    });
+
+    it('Try should settleLend a loan using LoanApproverContract as borrower and return wrong id', async function () {
+        const creator = accounts[1];
+        const borrower = loanApprover.address;
+        const lender = accounts[3];
+        const salt = new BigNumber('2011');
+        const amount = new BigNumber('666');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSig = await web3.eth.sign(creator, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                creatorSig,
+                [],
+                { from: lender }
+            ),
+            'Borrower contract rejected the loan'
+        );
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(creator)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(new BigNumber('0'));
+    });
+
+    it('Try should settleLend a loan using LoanApproverContract as creator and return wrong id', async function () {
+        const creator = loanApprover.address;
+        const borrower = accounts[1];
+        const lender = accounts[3];
+        const salt = new BigNumber('33');
+        const amount = new BigNumber('666');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                [],
+                borrowerSig,
+                { from: lender }
+            ),
+            'Creator contract rejected the loan'
+        );
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(creator)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(new BigNumber('0'));
+    });
+
+    it('Should settleLend a loan using LoanApproverContract as borrower', async function () {
+        const creator = accounts[1];
+        const borrower = loanApprover.address;
+        const lender = accounts[3];
+        const salt = new BigNumber('20');
+        const amount = new BigNumber('33622');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSig = await web3.eth.sign(creator, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        const events = await toEvent(
+            loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                creatorSig,
+                [],
+                { from: lender }
+            ),
+            'BorrowerByCallback',
+            'CreatorBySignature'
+        );
+
+        assert.equal(events[0]._id, id);
+        assert.equal(events[1]._id, id);
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(new BigNumber('0'));
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(creator)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount);
+    });
+
+    it('Should settleLend a loan using LoanApproverContract as creator and borrower', async function () {
+        const creator = loanApprover.address;
+        const borrower = loanApprover.address;
+        const lender = accounts[3];
+        const salt = new BigNumber('20');
+        const amount = new BigNumber('33622');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        const borrowerByCallback = await toEvent(
+            loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                [],
+                [],
+                { from: lender }
+            ),
+            'BorrowerByCallback'
+        );
+
+        assert.equal(borrowerByCallback._id, id);
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(new BigNumber('0'));
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal(amount);
+    });
+
+    it('Try settleLend a canceled settle by the borrower', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('2');
+        const amount = new BigNumber('33622');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        await loanManager.settleCancel(
+            settleData,
+            loanData,
+            { from: borrower }
+        );
+
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                creatorSig,
+                borrowerSig,
+                { from: lender }
+            ),
+            'Settle was canceled'
+        );
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+    });
+
+    it('Try settleLend a canceled settle by the creator', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('2');
+        const amount = new BigNumber('33622');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        await loanManager.settleCancel(
+            settleData,
+            loanData,
+            { from: creator }
+        );
+
+        const creatorSig = await web3.eth.sign(creator, id);
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                creatorSig,
+                borrowerSig,
+                { from: lender }
+            ),
+            'Settle was canceled'
+        );
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+    });
+
+    it('Try settleLend without borrower signature', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('20');
+        const amount = new BigNumber('33622');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const creatorSig = await web3.eth.sign(creator, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                creatorSig,
+                [],
+                { from: lender }
+            ),
+            'Invalid borrower signature'
+        );
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+    });
+
+    it('Try settleLend without creator signature', async function () {
+        const creator = accounts[1];
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber('20');
+        const amount = new BigNumber('33622');
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('7400'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const encodeData = await calcSettleId(
+            amount,
+            borrower,
+            creator,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        const settleData = encodeData[0];
+        const id = encodeData[1];
+
+        const borrowerSig = await web3.eth.sign(borrower, id);
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+
+        await Helper.tryCatchRevert(
+            () => loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                new BigNumber('0'),
+                [],
+                [],
+                [],
+                borrowerSig,
+                { from: lender }
+            ),
+            'Invalid creator signature'
+        );
+
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
+        (await rcn.balanceOf(loanManager.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
     });
 
     it('SettleLend a loan should be fail if the model create return a diferent id', async function () {
