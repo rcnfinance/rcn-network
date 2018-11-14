@@ -929,7 +929,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 [],
                 cosigner.address,   // Cosigner
-                new BigNumber('0'), // Cosigner limit
+                cosignerCost,       // Cosigner limit
                 data,               // Cosigner data
                 { from: lender }
             ),
@@ -1286,7 +1286,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 [],
                 cosigner.address,   // Cosigner
-                new BigNumber('0'), // Cosigner limit
+                10 ** 32,           // Cosigner limit
                 data,               // Cosigner data
                 { from: lender }
             ),
@@ -2138,7 +2138,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 settleData,
                 loanData,
                 cosigner.address,   // Cosigner
-                new BigNumber('0'), // Max cosigner cost
+                cosignerCost,       // Max cosigner cost
                 data,               // Cosigner data
                 [],
                 creatorSigSL,
@@ -2454,7 +2454,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 settleData,
                 loanData,
                 cosigner.address,   // Cosigner
-                new BigNumber('0'), // Max cosigner cost
+                10 ** 34,           // Max cosigner cost
                 data,               // Cosigner data
                 [],
                 creatorSigSL,
@@ -3183,5 +3183,57 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         // Should not add the entry to the directory
         (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
+    });
+
+    it('Cosigner should fail if charges when limit is set to 0', async function () {
+        const borrower = accounts[2];
+        const lender = accounts[3];
+        const salt = new BigNumber(19982229);
+        const amount = new BigNumber(90880);
+        const expiration = (new BigNumber((await Helper.getBlockTime()).toString())).plus(new BigNumber('1700'));
+        const loanData = await model.encodeData(amount, expiration);
+
+        const id = await calcId(
+            amount,
+            borrower,
+            borrower,
+            model.address,
+            Helper.address0x,
+            salt,
+            expiration,
+            loanData
+        );
+
+        await loanManager.requestLoan(
+            amount,
+            model.address,
+            Helper.address0x,
+            borrower,
+            salt,
+            expiration,
+            loanData,
+            { from: borrower }
+        );
+
+        await rcn.setBalance(lender, amount);
+        await rcn.approve(loanManager.address, amount, { from: lender });
+        await cosigner.setCustomData(id, new BigNumber('1'));
+        const id0x0Data = await cosigner.customData();
+
+        await Helper.tryCatchRevert(
+            () => loanManager.lend(
+                id,
+                [],
+                cosigner.address,   // Cosigner
+                new BigNumber('0'), // Cosigner limit
+                id0x0Data,          // Cosigner data
+                { from: lender }
+            ),
+            'Cosigner cost exceeded'
+        );
+
+        (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(borrower)).should.be.bignumber.equal('0');
+        (await rcn.balanceOf(lender)).should.be.bignumber.equal(amount);
     });
 });
