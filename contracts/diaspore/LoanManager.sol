@@ -376,7 +376,7 @@ contract LoanManager is BytesUtils {
     function cosign(uint256 _id, uint256 _cost) external returns (bool) {
         Request storage request = requests[bytes32(_id)];
         require(request.position == 0, "Request cosigned is invalid");
-        require(request.cosigner != address(0), "Cosigner not valid");
+        require(request.cosigner != address(0), "Cosigner 0x0 is not valid");
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
         request.cosigner = msg.sender;

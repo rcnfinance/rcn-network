@@ -55,7 +55,7 @@ async function assertThrow(promise) {
     return;
   }
   assert.fail('Expected throw not received');
-};
+}
 
 // the promiseFunction should be a function
 async function tryCatchRevert(promise, message) {
@@ -78,7 +78,7 @@ async function tryCatchRevert(promise, message) {
     return;
   }
   assert.fail('Expected throw not received');
-}
+};
 
 function toInterestRate(interest) {
   return Math.floor((10000000 / interest) * 360 * 86400);

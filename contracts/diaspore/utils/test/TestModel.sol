@@ -87,8 +87,15 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
 
     function validate(bytes data) external view returns (bool) {
         require(data.length == L_DATA, "Invalid data length");
-        _validate(uint64(read(data, 16, 8)));
-        return true; 
+
+        (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
+        uint128 total = uint128(btotal);
+        uint64 dueTime = uint64(bdue);
+
+        if (total == 0) return false;
+
+        _validate(dueTime);
+        return true;
     }
 
     function getStatus(bytes32 id) external view returns (uint256) {
@@ -176,7 +183,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
 
     function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 real) {
         _run(id);
-        
+
         Entry storage entry = registry[id];
 
         if (entry.errorFlag == ERROR_PAY) {

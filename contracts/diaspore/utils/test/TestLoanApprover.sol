@@ -2,8 +2,9 @@ pragma solidity ^0.4.24;
 
 import "./../../interfaces/LoanApprover.sol";
 import "./../../../utils/ERC165.sol";
+import "./../../../utils/BytesUtils.sol";
 
-contract TestLoanApprover is ERC165, LoanApprover {
+contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     enum ErrorBehavior {
         Revert,
         ReturnFalse,
@@ -54,6 +55,12 @@ contract TestLoanApprover is ERC165, LoanApprover {
         bool _isBorrower,
         uint256 _id
     ) external returns (bytes32) {
-
+        bytes32 btotal;
+        (btotal, ) = decode(_loanData, 16, 8);
+        uint128 total = uint128(btotal);
+        if (total == 666)
+            return 0x0;
+        // bytes32 expected = uint256(_id) XOR keccak256("approve-loan-request");
+        return bytes32(_id) ^ keccak256("approve-loan-request");
     }
 }
