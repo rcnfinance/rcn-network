@@ -463,7 +463,7 @@ contract LoanManager is BytesUtils {
 
         // Validate signatures
         require(requests[id].borrower == address(0), "Request already exist");
-        _validateSettleSignatures(id, _requestData, _loanData, _borrowerSig, _creatorSig);
+        _validateSettleSignatures(id, _requestData, _loanData, _creatorSig, _borrowerSig);
 
         // Transfer tokens to borrower
         uint256 tokens = _currencyToToken(_requestData, _oracleData);
@@ -535,8 +535,8 @@ contract LoanManager is BytesUtils {
         bytes32 _id,
         bytes _requestData,
         bytes _loanData,
-        bytes _borrowerSig,
-        bytes _creatorSig
+        bytes _creatorSig,
+        bytes _borrowerSig
     ) internal {
         require(!canceledSettles[_id], "Settle was canceled");
 
