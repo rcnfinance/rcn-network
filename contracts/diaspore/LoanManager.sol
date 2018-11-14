@@ -380,7 +380,7 @@ contract LoanManager is BytesUtils {
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
         request.cosigner = msg.sender;
-        require(request.salt >= _cost || request.salt == 0, "Cosigner cost exceeded");
+        require(request.salt >= _cost, "Cosigner cost exceeded");
         require(token.transferFrom(debtEngine.ownerOf(_id), msg.sender, _cost), "Error paying cosigner");
         emit Cosigned(bytes32(_id), msg.sender, _cost);
         return true;
