@@ -70,6 +70,7 @@ contract StandardToken {
 
 contract TestToken is StandardToken {
     event Mint(address indexed to, uint256 amount);
+    event Destroy(address indexed from, uint256 amount);
 
     uint256 public constant PRICE = 4000;
 
@@ -79,22 +80,43 @@ contract TestToken is StandardToken {
     uint8 public constant decimals = 18;
     string public version = "1.1";
 
-    event CreatedToken();
+    event CreatedToken(address _address);
+    event SetBalance(address _address, uint256 _balance);
 
-    function TestToken() public {
-        CreatedToken();
+    constructor() public {
+        emit CreatedToken(address(this));
     }
 
-    function () public payable {
+    function () external payable {
         buyTokens(msg.sender);
     }
 
     function buyTokens(address beneficiary) public payable {
         uint256 tokens = msg.value.mult(PRICE);
         balances[beneficiary] = tokens.add(balances[beneficiary]);
-        Transfer(0x0, beneficiary, tokens);
-        Mint(beneficiary, tokens);
+        emit Transfer(0x0, beneficiary, tokens);
+        emit Mint(beneficiary, tokens);
         totalSupply = totalSupply.add(tokens);
         msg.sender.transfer(msg.value);
+    }
+
+    function setBalance(address _address, uint256 _balance) external {
+        uint256 prevBalance = balances[_address];
+        emit SetBalance(_address, _balance);
+        if (_balance > prevBalance) {
+            // Mint tokens
+            uint256 toAdd = _balance.sub(prevBalance);
+            emit Transfer(0x0, _address, toAdd);
+            emit Mint(_address, toAdd);
+            totalSupply = totalSupply.add(toAdd);
+            balances[_address] = prevBalance.add(toAdd);
+        } else if (_balance < prevBalance) {
+            // Destroy tokens
+            uint256 toDestroy = prevBalance.sub(_balance);
+            emit Transfer(_address, 0x0, toDestroy);
+            emit Destroy(_address, toDestroy);
+            totalSupply = totalSupply.sub(toDestroy);
+            balances[_address] = prevBalance.sub(toDestroy);
+        }
     }
 }
