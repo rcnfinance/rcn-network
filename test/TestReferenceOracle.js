@@ -162,9 +162,9 @@ contract('ReferenceOracle', function (accounts) {
             id: '0x4254430000000000000000000000000000000000000000000000000000000000',
             rate: Helper.toBytes32(1),
             decimals: Helper.toBytes32(1),
-            timestamp: 1,
+            timestamp: 1000,
         };
-        await oracle.setExpirationTime(await Helper.getBlockTime());
+        await oracle.setExpirationTime(await Helper.getBlockTime() - 10);
         const vrs = await signGetRate(oracle, admin, BTCold);
         const data = Helper.arrayToBytesOfBytes32([BTCold.timestamp, BTCold.rate, BTCold.decimals, vrs[0], vrs[1], vrs[2]]);
         await oracle.invalidateCache(BTCold.id);
