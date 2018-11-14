@@ -367,7 +367,7 @@ contract DebtEngine is ERC721Base {
         bytes _oracleData
     ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
-        require(count == _amounts.length, "The loans and the amounts do not correspond.");
+        require(count == _amounts.length, "_ids and _amounts should have the same length");
 
         if (_oracle != address(0)) {
             (uint256 tokens, uint256 equivalent) = IOracle(_oracle).readSample(_oracleData);
@@ -402,7 +402,7 @@ contract DebtEngine is ERC721Base {
         bytes _oracleData
     ) public returns (uint256[], uint256[]) {
         uint256 count = _ids.length;
-        require(count == _tokenAmounts.length, "The loans and the amounts do not correspond.");
+        require(count == _tokenAmounts.length, "_ids and _amounts should have the same length");
 
         if (_oracle != address(0)) {
             (uint256 tokens, uint256 equivalent) = IOracle(_oracle).readSample(_oracleData);
