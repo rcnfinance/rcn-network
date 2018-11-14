@@ -697,6 +697,110 @@ contract('Installments model', function (accounts) {
         assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 922155);
         assert.equal(await model.getStatus(id), 1, 'Loan should be ongoing');
     });
+
+    it('It should calculate the interest like the test doc test 4 - alt run 3', async function () {
+        const id = Helper.toBytes32(1913);
+        const data = await model.encodeData(
+            99963,
+            Helper.toInterestRate(35 * 1.5),
+            12,
+            30 * 86400,
+            1
+        );
+
+        await model.create(id, data);
+
+        // Pay the next 4 months in advance
+        await model.addPaid(id, 99963 * 4);
+
+        await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() + 5 * 30 * 86400);
+        assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), 99963);
+
+        assert.equal(await model.getPaid(id), 99963 * 4, 'Paid should be the amount of 3 installments');
+
+        // Lets stop the payments
+        // Advance 4 months and take a look
+        await Helper.increaseTime((4 + 4) * 30 * 86400);
+
+        await ping();
+        await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 3 * 30 * 86400);
+        assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 426091);
+
+        // Advance the last 4 months
+        await Helper.increaseTime(1 * 30 * 86400);
+        await ping();
+        await model.fixClock(id, (await Helper.getBlockTime()) - 15 * 86400);
+        await Helper.increaseTime(3 * 30 * 86400);
+        await ping();
+
+        await Helper.almostEqual(await model.getDueTime(id), await Helper.getBlockTime() - 7 * 30 * 86400);
+        assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 922154);
+        assert.equal(await model.getStatus(id), 1, 'Loan should be ongoing');
+    });
+
+    it('fixclock should fail if called ahead of current time', async function () {
+        const id = Helper.toBytes32(1914);
+        const data = await model.encodeData(
+            99963,
+            Helper.toInterestRate(35 * 1.5),
+            12,
+            30 * 86400,
+            1
+        );
+
+        await model.create(id, data);
+
+        // Pay the next 4 months in advance
+        await model.addPaid(id, 99963 * 4);
+
+        await Helper.tryCatchRevert(
+            model.fixClock(id, await Helper.getBlockTime() + 360 * 86400),
+            'Forbidden advance clock into the future'
+        );
+    });
+
+    it('fixclock should fail if called before lend clock', async function () {
+        const id = Helper.toBytes32(1915);
+        const data = await model.encodeData(
+            99963,
+            Helper.toInterestRate(35 * 1.5),
+            12,
+            30 * 86400,
+            1
+        );
+
+        await model.create(id, data);
+
+        // Pay the next 4 months in advance
+        await model.addPaid(id, 99963 * 4);
+
+        await Helper.tryCatchRevert(
+            model.fixClock(id, await Helper.getBlockTime() - 10),
+            'Clock can\'t go negative'
+        );
+    });
+
+    it('fixclock should fail if called before current clock', async function () {
+        const id = Helper.toBytes32(1919);
+        const data = await model.encodeData(
+            99963,
+            Helper.toInterestRate(35 * 1.5),
+            12,
+            30 * 86400,
+            1
+        );
+
+        await model.create(id, data);
+
+        await Helper.increaseTime(30 * 86400);
+        await model.addPaid(id, 99963 * 4);
+
+        await Helper.tryCatchRevert(
+            model.fixClock(id, await Helper.getBlockTime() - 10),
+            'Clock is ahead of target'
+        );
+    });
+
     it('Should ignored periods of time under the time unit', async function () {
         const id = Helper.toBytes32(913);
         const data = await model.encodeData(
