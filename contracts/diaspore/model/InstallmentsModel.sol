@@ -185,15 +185,14 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     }
 
     function fixClock(bytes32 id, uint64 target) external returns (bool) {
-        if (target <= now) {
-            Config storage config = configs[id];
-            State storage state = states[id];
-            uint64 lentTime = config.lentTime;
-            require(lentTime >= target, "Clock can't go negative");
-            uint64 targetClock = config.lentTime - target;
-            require(targetClock > state.clock, "Clock is ahead of target");
-            return _advanceClock(id, targetClock);
-        }
+        require(target <= now, "Forbidden advance clock into the future");
+        Config storage config = configs[id];
+        State storage state = states[id];
+        uint64 lentTime = config.lentTime;
+        require(lentTime < target, "Clock can't go negative");
+        uint64 targetClock = target - lentTime;
+        require(targetClock > state.clock, "Clock is ahead of target");
+        return _advanceClock(id, targetClock);
     }
 
     function isOperator(address _target) external view returns (bool) {
