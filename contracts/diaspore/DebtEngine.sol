@@ -1,7 +1,6 @@
 pragma solidity ^0.4.24;
 
 import "./../interfaces/Token.sol";
-import "./../interfaces/Cosigner.sol";
 import "./interfaces/Model.sol";
 import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
