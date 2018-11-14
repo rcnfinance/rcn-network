@@ -1,3 +1,5 @@
+const address0x = "0x0000000000000000000000000000000000000000";
+
 function arrayToBytesOfBytes32(array) {
   let bytes = "0x";
   for(let i = 0; i < array.length; i++){
@@ -27,6 +29,17 @@ async function increaseTime(delta) {
   await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 0});
 }
 
+function isRevertErrorMessage( error ) {
+  if( error.message.search('invalid opcode') >= 0 ) return true;
+  if( error.message.search('revert') >= 0 ) return true;
+  if( error.message.search('out of gas') >= 0 ) return true;
+  return false;
+}
+
+async function getBlockTime() {
+  return (await web3.eth.getBlock("pending")).timestamp;
+}
+
 async function assertThrow(promise) {
   try {
     await promise;
@@ -42,16 +55,21 @@ async function assertThrow(promise) {
     return;
   }
   assert.fail('Expected throw not received');
-};
+}
+
 // the promiseFunction should be a function
-async function tryCatchRevert(promiseFunction, message) {
+async function tryCatchRevert(promise, message) {
   let headMsg = 'revert ';
   if(message == "") {
     headMsg = headMsg.slice(0, headMsg.length -1);
     console.warn("    \033[93m\033[2m⬐\033[0m \033[1;30m\033[2mWarning: There is an empty revert/require message");
   }
   try {
-    await promiseFunction();
+    if (promise instanceof Function) {
+      await promise();
+    } else {
+      await promise;
+    }
   } catch (error) {
     assert(
       error.message.search(headMsg + message) >= 0 || process.env.SOLIDITY_COVERAGE,
@@ -63,7 +81,7 @@ async function tryCatchRevert(promiseFunction, message) {
 };
 
 function toInterestRate(interest) {
-  return (10000000 / interest) * 360 * 86400;
+  return Math.floor((10000000 / interest) * 360 * 86400);
 }
 
 async function buyTokens(token, amount, account) {
@@ -79,8 +97,18 @@ function searchEvent(tx, eventName) {
     return event[0];
 }
 
+async function eventNotEmitted(receipt, eventName) {
+    const logsCount = receipt.logs.length;
+    assert.equal(logsCount, 0, "Should have not emitted the event " + eventName);
+    return;
+}
+
+async function almostEqual(p1, p2, reason, margin = 3) {
+  assert.isBelow(Math.abs(await p1 - await p2), margin, reason);
+}
+
 module.exports = {
-  arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
-  toBytes32, increaseTime, searchEvent,
-  toInterestRate, buyTokens
+  address0x, arrayToBytesOfBytes32, assertThrow, tryCatchRevert,
+  toBytes32, increaseTime, searchEvent, getBlockTime,
+  toInterestRate, buyTokens, isRevertErrorMessage, almostEqual, eventNotEmitted
 };
