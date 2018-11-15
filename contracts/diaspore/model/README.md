@@ -133,7 +133,7 @@ is no difference with respect to the original schedule.
 The following chart shows the evolution of the debt balance after the
 expiration of each installment:
 
-![1_plot.png](images/1_plot.png)
+![1_plot.png](/images/1_plot.png)
 
 <br />
 
@@ -200,7 +200,7 @@ This is how the payments are imputed. The original schedule has changed.
 The following chart shows the evolution of the debt balance after the
 expiration of each installment:
 
-![2_plot.png](images/2_plot.png)
+![2_plot.png](/images/2_plot.png)
 
 <br />
 Loan status to date 1/20/2019.
@@ -246,7 +246,7 @@ were recalculated up to '04/20/2019'.
 The following chart shows the evolution of the debt balance even after
 the expiration of the contract:
 
-![3_plot.png](images/3_plot.png)
+![3_plot.png](/images/3_plot.png)
 
 <br />
 Loan status to date 4/20/2019.
@@ -299,7 +299,7 @@ Payment Flow:
 The following chart shows the evolution of the debt balance even after
 the expiration of the contract:
 
-![4_plot.png](images/4_plot.png)
+![4_plot.png](/images/4_plot.png)
 
 <br />
 
@@ -369,7 +369,7 @@ depending on the amount and the date of payment.
 
 The following chart shows the evolution of the debt balance:
 
-![5_plot.png](images/5_plot.png)
+![5_plot.png](/images/5_plot.png)
 
 <br />
 
@@ -434,7 +434,7 @@ depending on the amount and the date of payment.
 
 The following chart shows the evolution of the debt balance:
 
-![6_plot.png](images/6_plot.png)
+![6_plot.png](/images/6_plot.png)
 
 <br />
 
@@ -500,7 +500,7 @@ Payment Flow:
 
 Evolution of the debt balance:
 
-![7_plot.png](images/7_plot.png)
+![7_plot.png](/images/7_plot.png)
 
 <br />
 
