@@ -1,6 +1,6 @@
 pragma solidity ^0.4.19;
 
-import "../basalt/interfaces/Engine.sol";
+import "./Engine.sol";
 
 /**
     @dev Defines the interface of a standard RCN cosigner.

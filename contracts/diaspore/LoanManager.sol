@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 import "./DebtEngine.sol";
 import "./interfaces/LoanApprover.sol";
 import "./interfaces/RateOracle.sol";
-import "./../interfaces/Cosigner.sol";
+import "./interfaces/Cosigner.sol";
 import "./../utils/ImplementsInterface.sol";
 import "./../utils/IsContract.sol";
 import "./../utils/SafeMath.sol";
@@ -334,7 +334,7 @@ contract LoanManager is BytesUtils {
             request.salt = _cosignerLimit; // Risky ?
             require(
                 Cosigner(_cosigner).requestCosign(
-                    Engine(address(this)),
+                    address(this),
                     uint256(_id),
                     _cosignerData,
                     _oracleData
@@ -510,7 +510,7 @@ contract LoanManager is BytesUtils {
         // Call the cosigner
         if (_cosigner != address(0)) {
             request.cosigner = address(uint256(_cosigner) + 2);
-            require(Cosigner(_cosigner).requestCosign(Engine(address(this)), uint256(id), _cosignerData, _oracleData), "Cosign method returned false");
+            require(Cosigner(_cosigner).requestCosign(address(this), uint256(id), _cosignerData, _oracleData), "Cosign method returned false");
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
             request.salt = uint256(read(_requestData, O_SALT, L_SALT));
         }
@@ -704,7 +704,6 @@ contract LoanManager is BytesUtils {
 
         return ecrecover(_hash, v, r, s);
     }
-
 
     function _currencyToToken(
         address _oracle,
