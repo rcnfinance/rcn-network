@@ -66,6 +66,7 @@ contract LoanManager is BytesUtils {
     function getExpirationRequest(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].expiration; }
     function getApproved(uint256 _id) external view returns (bool) { return requests[bytes32(_id)].approved; }
     function getDueTime(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getDueTime(bytes32(_id)); }
+    function getClosingObligation(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getClosingObligation(bytes32(_id)); }
     function getLoanData(uint256 _id) external view returns (bytes) { return requests[bytes32(_id)].loanData; }
 
     function isApproved(uint256 _id) external view returns (bool) {
