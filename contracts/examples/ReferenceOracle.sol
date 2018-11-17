@@ -1,8 +1,6 @@
 pragma solidity ^0.4.24;
 
 import "./../utils/SimpleDelegable.sol";
-import "./../interfaces/Token.sol";
-import "./../utils/TokenLockable.sol";
 import "./../utils/BytesUtils.sol";
 import "./../interfaces/Oracle.sol";
 
