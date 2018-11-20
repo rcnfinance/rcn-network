@@ -108,10 +108,9 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
     function isDefaulted(
         ILoanManager _loanManager,
         uint256 _index
-    ) public view returns (bool) {
-        Liability storage liability = liabilities[_loanManager][_index];
-        uint256 status = _loanManager.getStatus(_index);
-        return status != STATUS_PAID && (uint256(liability.requiredArrears)).add(_loanManager.getDueTime(_index)) <= now;
+    ) external view returns (bool) {
+        return _loanManager.getStatus(_index) != STATUS_PAID &&
+            ((uint256(liabilities[_loanManager][_index].requiredArrears)).add(_loanManager.getDueTime(_index)) <= now);
     }
 
     function url() external view returns (string) {
@@ -230,17 +229,22 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
         bytes _oracleData
     ) external returns (bool) {
         Liability storage liability = liabilities[_loanManager][_index];
+        ILoanManager loanManager = ILoanManager(_loanManager);
 
         require(liability.coverage != 0, "The liability not exists");
-        require(msg.sender == ILoanManager(_loanManager).ownerOf(_index), "The msg.sender should be the owner of the loan");
+        require(msg.sender == loanManager.ownerOf(_index), "The msg.sender should be the owner of the loan");
 
-        require(isDefaulted(ILoanManager(_loanManager), _index), "The liability is not defaulted");
+        require(
+            loanManager.getStatus(_index) != STATUS_PAID &&
+                ((uint256(liability.requiredArrears)).add(loanManager.getDueTime(_index)) <= now),
+            "The liability is not defaulted"
+        );
 
-        ILoanManager(_loanManager).safeTransferFrom(msg.sender, address(this), _index);
+        loanManager.safeTransferFrom(msg.sender, address(this), _index);
 
         uint256 claimAmount = _currencyToToken(
-            ILoanManager(_loanManager).getOracle(_index),
-            (uint256(liability.coverage)).mult(ILoanManager(_loanManager).getClosingObligation(_index)) / 10000,
+            loanManager.getOracle(_index),
+            (uint256(liability.coverage)).mult(loanManager.getClosingObligation(_index)) / 10000,
             _oracleData
         );
 
