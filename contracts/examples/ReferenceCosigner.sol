@@ -9,6 +9,7 @@ import "./../utils/BytesUtils.sol";
 import "./../utils/SafeMath.sol";
 import "./../utils/SimpleDelegable.sol";
 
+
 contract ILoanManager {
     function debtEngine() external view returns (address);
     function getStatus(uint256 _id) external view returns (uint256);
@@ -120,6 +121,8 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
     */
     function setUrl(string _url) external onlyOwner returns (bool) {
         infoUrl = _url;
+        emit SetUrl(_url);
+
         return true;
     }
 
@@ -197,6 +200,14 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
 
         require(ILoanManager(_loanManager).cosign(_index, currentCost), "Fail loanManager cosign");
 
+        emit Cosign(
+            _loanManager,
+            bytes32(_index),
+            signer,
+            _data,
+            ""
+        );
+
         return true;
     }
 
@@ -220,18 +231,23 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
         require(msg.sender == ILoanManager(_loanManager).ownerOf(_index), "The msg.sender should be the owner of the loan");
 
         require(isDefaulted(ILoanManager(_loanManager), _index), "The liability is not defaulted");
+
         ILoanManager(_loanManager).safeTransferFrom(msg.sender, address(this), _index);
 
-        require(
-            rcn.transfer(
-                msg.sender,
-                _currencyToToken(
-                    ILoanManager(_loanManager).getOracle(_index),
-                    (uint256(liability.coverage)).mult(ILoanManager(_loanManager).getClosingObligation(_index)) / 10000,
-                    _oracleData
-                )
-            ),
-            "Error paying the cosigner"
+        uint256 claimAmount = _currencyToToken(
+            ILoanManager(_loanManager).getOracle(_index),
+            (uint256(liability.coverage)).mult(ILoanManager(_loanManager).getClosingObligation(_index)) / 10000,
+            _oracleData
+        );
+
+        require(rcn.transfer(msg.sender, claimAmount), "Error paying the cosigner");
+
+        emit Claim(
+            _loanManager,
+            bytes32(_index),
+            msg.sender,
+            claimAmount,
+            _oracleData
         );
 
         delete liability.coverage;

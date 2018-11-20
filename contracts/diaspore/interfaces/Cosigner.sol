@@ -17,6 +17,26 @@ pragma solidity ^0.4.19;
 contract Cosigner {
     uint256 public constant VERSION = 3;
 
+    event SetUrl(
+        string _url
+    );
+
+    event Cosign(
+        address _loanManager,
+        bytes32 indexed _index,
+        address _signer,
+        bytes _data,
+        bytes _oracleData
+    );
+
+    event Claim(
+        address _loanManager,
+        bytes32 indexed _index,
+        address _sender,
+        uint256 _claimAmount,
+        bytes _oracleData
+    );
+
     /**
         @return the url of the endpoint that exposes the insurance offers.
     */
