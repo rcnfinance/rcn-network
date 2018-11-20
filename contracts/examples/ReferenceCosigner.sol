@@ -227,7 +227,7 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
                 msg.sender,
                 _currencyToToken(
                     ILoanManager(_loanManager).getOracle(_index),
-                    (uint256(liability.coverage)).mult(ILoanManager(_loanManager).getClosingObligation(_index)) / 100,
+                    (uint256(liability.coverage)).mult(ILoanManager(_loanManager).getClosingObligation(_index)) / 10000,
                     _oracleData
                 )
             ),
