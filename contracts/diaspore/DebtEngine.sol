@@ -117,7 +117,7 @@ contract DebtEngine is ERC721Base {
             abi.encodePacked(
                 uint8(1),
                 address(this),
-                _owner,
+                msg.sender,
                 nonce
             )
         );
