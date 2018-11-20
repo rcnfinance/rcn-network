@@ -94,6 +94,10 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
     // loanManager to loan index to liability
     mapping(address => mapping(uint256 => Liability)) public liabilities;
 
+    constructor(Token _rcn) public {
+        rcn = _rcn;
+    }
+
     /**
         @dev Defines a custom logic that determines if a loan is defaulted or not.
 
