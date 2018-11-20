@@ -1,9 +1,9 @@
 pragma solidity ^0.4.15;
 
-import "./../../interfaces/Cosigner.sol";
-import "./../../utils/BytesUtils.sol";
-import "./../../basalt/interfaces/Engine.sol";
-import "./../../interfaces/Token.sol";
+import "../interfaces/Cosigner.sol";
+import "../interfaces/Engine.sol";
+import "../../utils/BytesUtils.sol";
+import "../../interfaces/Token.sol";
 
 contract TestCosigner is Cosigner, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
