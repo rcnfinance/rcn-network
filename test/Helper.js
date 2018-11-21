@@ -91,6 +91,16 @@ module.exports.buyTokens = async (token, amount, account) => {
     assert.equal(newAmount.toNumber() - prevAmount.toNumber(), amount, 'Should have minted tokens');
 };
 
+module.exports.toEvent = async (promise, ...events) => {
+    const logs = (await promise).logs;
+    let eventObjs = events.map(event => logs.find(log => log.event === event));
+    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
+        assert.fail('The event dont find');
+    }
+    eventObjs = eventObjs.map(x => x.args);
+    return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
+}
+
 module.exports.searchEvent = (tx, eventName) => {
     const event = tx.logs.filter(x => x.event === eventName).map(x => x.args);
     assert.equal(event.length, 1, 'Should have only one ' + eventName);
