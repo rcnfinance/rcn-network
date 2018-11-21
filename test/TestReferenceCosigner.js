@@ -41,8 +41,12 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
 
             assert.equal(await cosigner.url(), '');
 
-            await cosigner.setUrl(url);
+            const SetUrl = await Helper.toEvent(
+                cosigner.setUrl(url),
+                'SetUrl'
+            );
 
+            assert.equal(SetUrl._url, url);
             assert.equal(await cosigner.url(), url);
         });
     });
