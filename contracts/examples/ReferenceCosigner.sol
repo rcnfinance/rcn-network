@@ -32,11 +32,8 @@ contract IDebtEngine {
 contract Helper is BytesUtils {
     uint256 public constant STATUS_PAID = 2;
 
-    uint256 public constant L_COSIGNER_DATA =
-        16 + // cost
-        2  + // coverage
-        8  + // required arrears
-        8;   // expiration
+    // cost + coverage + required arrears + expiration
+    uint256 public constant L_COSIGNER_DATA = 16 + 2 + 8 + 8;
 
     uint256 constant internal O_V = L_COSIGNER_DATA;
     uint256 constant internal L_V = 1;
@@ -67,7 +64,13 @@ contract Helper is BytesUtils {
         bytes _data
     ) internal pure returns (uint128, uint16, uint64, uint64) {
         require(_data.length == L_DATA, "Invalid data length");
-        (bytes32 cost, bytes32 coverage, bytes32 requiredArrears, bytes32 expiration) = decode(_data, 16, 2, 8, 8);
+        (bytes32 cost, bytes32 coverage, bytes32 requiredArrears, bytes32 expiration) = decode(
+            _data,
+            16,
+            2,
+            8,
+            8
+        );
 
         return (uint128(cost), uint16(coverage), uint64(requiredArrears), uint64(expiration));
     }
@@ -107,6 +110,7 @@ contract Helper is BytesUtils {
         );
     }
 }
+
 
 contract Events {
     event ReadedOracle(
@@ -212,7 +216,8 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
         require(coverage != 0, "The coverage should not be 0");
 
         address signer = ecrecover(
-            keccak256("\x19Ethereum Signed Message:\n32",
+            keccak256(
+                "\x19Ethereum Signed Message:\n32",
                 keccak256(
                     abi.encodePacked(
                         address(this),
