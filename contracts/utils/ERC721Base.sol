@@ -1,11 +1,11 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./SafeMath.sol";
 import "./ERC165.sol";
 import "./IsContract.sol";
 
 interface URIProvider {
-    function tokenURI(uint256 _tokenId) external view returns (string);
+    function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
 
 contract ERC721Base is ERC165 {
@@ -30,8 +30,8 @@ contract ERC721Base is ERC165 {
     bytes4 private constant ERC_721_ENUMERATION_INTERFACE = 0x780e9d63;
 
     constructor(
-        string name,
-        string symbol
+        string memory name,
+        string memory symbol
     ) public {
         _name = name;
         _symbol = symbol;
@@ -57,12 +57,12 @@ contract ERC721Base is ERC165 {
     URIProvider private _uriProvider;
 
     // @notice A descriptive name for a collection of NFTs in this contract
-    function name() external view returns (string) {
+    function name() external view returns (string memory) {
         return _name;
     }
 
     // @notice An abbreviated name for NFTs in this contract
-    function symbol() external view returns (string) {
+    function symbol() external view returns (string memory) {
         return _symbol;
     }
 
@@ -72,7 +72,7 @@ contract ERC721Base is ERC165 {
     *  3986. The URI may point to a JSON file that conforms to the "ERC721
     *  Metadata JSON Schema".
     */
-    function tokenURI(uint256 _tokenId) external view returns (string) {
+    function tokenURI(uint256 _tokenId) external view returns (string memory) {
         require(_holderOf[_tokenId] != 0, "Asset does not exist");
         URIProvider provider = _uriProvider;
         return provider == address(0) ? "" : provider.tokenURI(_tokenId);
@@ -94,11 +94,11 @@ contract ERC721Base is ERC165 {
 
     uint256[] private _allTokens;
 
-    function allTokens() external view returns (uint256[]) {
+    function allTokens() external view returns (uint256[] memory) {
         return _allTokens;
     }
 
-    function assetsOf(address _owner) external view returns (uint256[]) {
+    function assetsOf(address _owner) external view returns (uint256[] memory) {
         return _assetsOf[_owner];
     }
 
@@ -357,7 +357,7 @@ contract ERC721Base is ERC165 {
      * @param _assetId uint256 ID of the asset to be transferred
      * @param _userData bytes arbitrary user information to attach to this transfer
      */
-    function safeTransferFrom(address _from, address _to, uint256 _assetId, bytes _userData) external {
+    function safeTransferFrom(address _from, address _to, uint256 _assetId, bytes memory _userData) public {
         return _doTransferFrom(_from, _to, _assetId, _userData, true);
     }
 
@@ -381,7 +381,7 @@ contract ERC721Base is ERC165 {
         address _from,
         address _to,
         uint256 _assetId,
-        bytes _userData,
+        bytes memory _userData,
         bool _doCheck
     )
         internal
@@ -439,7 +439,7 @@ contract ERC721Base is ERC165 {
 
     function _noThrowCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
         assembly {
             let x := mload(0x40)
