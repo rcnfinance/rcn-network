@@ -4,12 +4,12 @@ contract Ownable {
     address public owner;
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == owner, "The owner should be the sender");
         _;
     }
 
     function Ownable() public {
-        owner = msg.sender; 
+        owner = msg.sender;
     }
 
     /**
@@ -18,8 +18,8 @@ contract Ownable {
         @param _to Address of the new owner
     */
     function transferTo(address _to) public onlyOwner returns (bool) {
-        require(_to != address(0));
+        require(_to != address(0), "Only the owner can transfer the ownership");
         owner = _to;
         return true;
-    } 
-} 
+    }
+}
