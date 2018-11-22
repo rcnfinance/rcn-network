@@ -285,7 +285,7 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
 
         uint256 claimAmount = _currencyToToken(
             loanManager.getOracle(_index),
-            (uint256(liability.coverage)).mult(loanManager.getClosingObligation(_index)) / 10000,
+            uint256(liability.coverage).mult(loanManager.getClosingObligation(_index)) / 10000,
             _oracleData
         );
 
