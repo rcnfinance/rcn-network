@@ -201,7 +201,7 @@ contract LoanManager is BytesUtils {
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
-            if (_borrower.isContract() && _borrower.implements(0x76ba6009)) {
+            if (_borrower.isContract() && _borrower.hasImplements(0x76ba6009)) {
                 approved = _requestContractApprove(id, _borrower);
                 requests[id].approved = approved;
             }
@@ -262,7 +262,7 @@ contract LoanManager is BytesUtils {
         address borrower = request.borrower;
 
         if (!request.approved) {
-            if (borrower.isContract() && borrower.implements(0x76ba6009)) {
+            if (borrower.isContract() && borrower.hasImplements(0x76ba6009)) {
                 approved = _requestContractApprove(_id, borrower);
             } else {
                 if (borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _signature)) {
