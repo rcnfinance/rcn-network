@@ -172,7 +172,7 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
             uint64 expiration,
         ) = _decodeCosignerData(_data);
 
-        require(expiration < now, "The data of requestCosign its expired");
+        require(expiration >= now, "The data of requestCosign its expired");
         require(coverage != 0, "The coverage should not be 0");
 
         address signer = ecrecover(
