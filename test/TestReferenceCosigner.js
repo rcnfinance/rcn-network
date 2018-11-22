@@ -6,7 +6,7 @@ const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const TestToken = artifacts.require('./utils/test/TestToken.sol');
 const TestReferenceCosigner = artifacts.require('./utils/test/TestReferenceCosigner.sol');
 
-const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
+// const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
 
 const Helper = require('./Helper.js');
 const Web3Utils = require('web3-utils');
@@ -37,7 +37,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
     let model;
     let cosigner;
     let testCosigner;
-    let oracle;
+    // let oracle;
 
     async function toDataRequestCosign (id, cost, coverage, requiredArrears, expiration, signer) {
         const hashDataSignature = await cosigner.hashDataSignature(
@@ -63,7 +63,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         loanManager = await LoanManager.new(debtEngine.address, { from: owner });
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
-        oracle = await TestRateOracle.new({ from: owner });
+        // oracle = await TestRateOracle.new({ from: owner });
         testCosigner = await TestReferenceCosigner.new(rcn.address, { from: owner });
         cosigner = await ReferenceCosigner.new(rcn.address, { from: owner });
 
@@ -239,17 +239,15 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
             await cosigner.addDelegate(signer, { from: owner });
 
-            const Cosigned = await Helper.toEvent(
-                loanManager.lend(
-                    id,
-                    [],
-                    cosigner.address,
-                    costCosign,
-                    data,
-                    { from: lender }
-                ),
-                'Cosigned'
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
             );
+            // TODO finish test
         });
     });
 
