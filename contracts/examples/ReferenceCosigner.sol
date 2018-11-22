@@ -71,6 +71,41 @@ contract Helper is BytesUtils {
 
         return (uint128(cost), uint16(coverage), uint64(requiredArrears), uint64(expiration));
     }
+
+    function encodeData(
+        uint128 _cost,
+        uint16 _coverage,
+        uint64 _requiredArrears,
+        uint64 _expiration
+    ) external view returns (bytes) {
+        return abi.encodePacked(
+            _cost,
+            _coverage,
+            _requiredArrears,
+            _expiration
+        );
+    }
+
+    function hashDataSignature(
+        ILoanManager _loanManager,
+        uint256 _index,
+        uint128 _cost,
+        uint16 _coverage,
+        uint64 _requiredArrears,
+        uint64 _expiration
+    ) external view returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                address(this),
+                _loanManager,
+                _index,
+                _cost,
+                _coverage,
+                _requiredArrears,
+                _expiration
+            )
+        );
+    }
 }
 
 contract Events {
@@ -80,6 +115,7 @@ contract Events {
         uint256 _equivalent
     );
 }
+
 
 contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
     using SafeMath for uint256;
