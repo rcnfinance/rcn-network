@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./../interfaces/Token.sol";
 import "./interfaces/Model.sol";
@@ -6,7 +6,7 @@ import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
 
 interface IOracle {
-    function readSample(bytes _data) external returns (uint256 _tokens, uint256 _equivalent);
+    function readSample(bytes memory _data) public returns (uint256 _tokens, uint256 _equivalent);
 }
 
 contract DebtEngine is ERC721Base {
@@ -360,11 +360,11 @@ contract DebtEngine is ERC721Base {
 
     function payBatch(
         bytes32[] _ids,
-        uint256[] _amounts,
+        uint256[] memory _amounts,
         address _origin,
         address _oracle,
-        bytes _oracleData
-    ) public returns (uint256[], uint256[]) {
+        bytes memory _oracleData
+    ) public returns (uint256[] memory, uint256[] memory) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "_ids and _amounts should have the same length");
 
@@ -394,12 +394,12 @@ contract DebtEngine is ERC721Base {
     }
 
     function payTokenBatch(
-        bytes32[] _ids,
-        uint256[] _tokenAmounts,
+        bytes32[] memory _ids,
+        uint256[] memory _tokenAmounts,
         address _origin,
         address _oracle,
-        bytes _oracleData
-    ) public returns (uint256[], uint256[]) {
+        bytes memory _oracleData
+    ) public returns (uint256[] memory, uint256[] memory) {
         uint256 count = _ids.length;
         require(count == _tokenAmounts.length, "_ids and _amounts should have the same length");
 
@@ -669,7 +669,7 @@ contract DebtEngine is ERC721Base {
 
     function _safeGasStaticCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal view returns (uint256 success, bytes32 result) {
         uint256 _gas = (block.gaslimit * 80) / 100;
         _gas = gasleft() < _gas ? gasleft() : _gas;
@@ -690,7 +690,7 @@ contract DebtEngine is ERC721Base {
 
     function _safeGasCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
         uint256 _gas = (block.gaslimit * 80) / 100;
         _gas = gasleft() < _gas ? gasleft() : _gas;
