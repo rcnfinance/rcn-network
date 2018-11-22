@@ -18,11 +18,11 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     uint256 private activeLoans = 0;
     mapping(address => uint256) private lendersBalance;
 
-    function name() public view returns (string _name) {
+    function name() public view returns (string memory _name) {
         _name = "RCN - Nano loan engine - Basalt 233";
     }
 
-    function symbol() public view returns (string _symbol) {
+    function symbol() public view returns (string memory _symbol) {
         _symbol = "RCN-NLE-233";
     }
 
@@ -57,7 +57,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return ownerTokens List of all the loans of the _owner
     */
-    function tokensOfOwner(address _owner) external view returns(uint256[] ownerTokens) {
+    function tokensOfOwner(address _owner) external view returns(uint256[] memory ownerTokens) {
         uint256 tokenCount = balanceOf(_owner);
 
         if (tokenCount == 0) {
@@ -97,7 +97,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return The string with the metadata
     */
-    function tokenMetadata(uint256 index) public view returns (string) {
+    function tokenMetadata(uint256 index) public view returns (string memory) {
         return loans[index].metadata;
     }
 
@@ -198,7 +198,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         uint256 _duesIn,
         uint256 _cancelableAt,
         uint256 _expirationRequest,
-        string _metadata
+        string memory _metadata
     ) public returns (uint256) {
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
@@ -287,7 +287,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     */
     function buildIdentifier(
         Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
-        uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string metadata
+        uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string memory metadata
     ) public view returns (bytes32) {
         return keccak256(
             this, oracle, borrower, creator, currency, amount, interestRate,
@@ -372,7 +372,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return true if the lend was done successfully
     */
-    function lend(uint index, bytes oracleData, Cosigner cosigner, bytes cosignerData) public returns (bool) {
+    function lend(uint index, bytes memory oracleData, Cosigner cosigner, bytes memory cosignerData) public returns (bool) {
         Loan storage loan = loans[index];
 
         require(loan.status == Status.initial);
@@ -705,7 +705,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return true if the payment was executed successfully
     */
-    function pay(uint index, uint256 _amount, address _from, bytes oracleData) public returns (bool) {
+    function pay(uint index, uint256 _amount, address _from, bytes memory oracleData) public returns (bool) {
         Loan storage loan = loans[index];
 
         require(loan.status == Status.lent);
@@ -742,7 +742,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return The result of the convertion
     */
-    function convertRate(Oracle oracle, bytes32 currency, bytes data, uint256 amount) public returns (uint256) {
+    function convertRate(Oracle oracle, bytes32 currency, bytes memory data, uint256 amount) public returns (uint256) {
         if (oracle == address(0)) {
             return amount;
         } else {
