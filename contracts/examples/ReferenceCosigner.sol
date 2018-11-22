@@ -212,19 +212,19 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
         require(coverage != 0, "The coverage should not be 0");
 
         address signer = ecrecover(
-            keccak256(
-                "\x19Ethereum Signed Message:\n32",
+            keccak256("\x19Ethereum Signed Message:\n32",
                 keccak256(
-                    address(this),
-                    currentCost,
-                    _loanManager,
-                    _index,
-                    coverage,
-                    requiredArrears,
-                    expiration
+                    abi.encodePacked(
+                        address(this),
+                        _loanManager,
+                        _index,
+                        currentCost,
+                        coverage,
+                        requiredArrears,
+                        expiration
+                    )
                 )
             ),
-
             uint8(read(_data, O_V, L_V)),
             read(_data, O_R, L_R),
             read(_data, O_S, L_S)
