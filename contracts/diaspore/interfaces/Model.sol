@@ -126,7 +126,7 @@ contract Model is IERC165 {
 
         @return True if the data can be used to create a new registry
     */
-    function validate(bytes data) external view returns (bool isValid);
+    function validate(bytes memory data) public view returns (bool isValid);
 
     // ///
     // Getters
@@ -267,7 +267,7 @@ contract Model is IERC165 {
 
         @return success True if the registry was created
     */
-    function create(bytes32 id, bytes data) external returns (bool success);
+    function create(bytes32 id, bytes memory data) public returns (bool success);
 
     /**
         If the registry is fully paid on the call and the amount parameter exceeds the required
