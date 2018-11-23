@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.0;
 
 /* taking ideas from FirstBlood token */
 contract RpSafeMath {

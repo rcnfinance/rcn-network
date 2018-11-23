@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./../interfaces/Token.sol";
 import "./interfaces/Model.sol";
@@ -6,7 +6,7 @@ import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
 
 interface IOracle {
-    function readSample(bytes _data) external returns (uint256 _tokens, uint256 _equivalent);
+    function readSample(bytes memory _data) public returns (uint256 _tokens, uint256 _equivalent);
 }
 
 contract DebtEngine is ERC721Base {
@@ -110,8 +110,8 @@ contract DebtEngine is ERC721Base {
         Model _model,
         address _owner,
         address _oracle,
-        bytes _data
-    ) external returns (bytes32 id) {
+        bytes memory _data
+    ) public returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
         id = keccak256(
             abi.encodePacked(
@@ -145,8 +145,8 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         uint256 _salt,
-        bytes _data
-    ) external returns (bytes32 id) {
+        bytes memory _data
+    ) public returns (bytes32 id) {
         id = keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -182,8 +182,8 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         uint256 _salt,
-        bytes _data
-    ) external returns (bytes32 id) {
+        bytes memory _data
+    ) public returns (bytes32 id) {
         id = keccak256(
             abi.encodePacked(
                 uint8(3),
@@ -230,8 +230,8 @@ contract DebtEngine is ERC721Base {
         address _model,
         address _oracle,
         uint256 _salt,
-        bytes _data
-    ) external view returns (bytes32) {
+        bytes memory _data
+    ) public view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -263,8 +263,8 @@ contract DebtEngine is ERC721Base {
         bytes32 _id,
         uint256 _amount,
         address _origin,
-        bytes _oracleData
-    ) external returns (uint256 paid, uint256 paidToken) {
+        bytes memory _oracleData
+    ) public returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
 
         // Paid only required amount
@@ -305,8 +305,8 @@ contract DebtEngine is ERC721Base {
         bytes32 id,
         uint256 amount,
         address origin,
-        bytes oracleData
-    ) external returns (uint256 paid, uint256 paidToken) {
+        bytes memory oracleData
+    ) public returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
 
         // Read storage
@@ -359,17 +359,19 @@ contract DebtEngine is ERC721Base {
     }
 
     function payBatch(
-        bytes32[] _ids,
-        uint256[] _amounts,
+        bytes32[] memory _ids,
+        uint256[] memory _amounts,
         address _origin,
         address _oracle,
-        bytes _oracleData
-    ) public returns (uint256[], uint256[]) {
+        bytes memory _oracleData
+    ) public returns (uint256[] memory, uint256[] memory) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "_ids and _amounts should have the same length");
 
+        uint256 tokens;
+        uint256 equivalent;
         if (_oracle != address(0)) {
-            (uint256 tokens, uint256 equivalent) = IOracle(_oracle).readSample(_oracleData);
+            (tokens, equivalent) = IOracle(_oracle).readSample(_oracleData);
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
@@ -394,17 +396,19 @@ contract DebtEngine is ERC721Base {
     }
 
     function payTokenBatch(
-        bytes32[] _ids,
-        uint256[] _tokenAmounts,
+        bytes32[] memory _ids,
+        uint256[] memory _tokenAmounts,
         address _origin,
         address _oracle,
-        bytes _oracleData
-    ) public returns (uint256[], uint256[]) {
+        bytes memory _oracleData
+    ) public returns (uint256[] memory, uint256[] memory) {
         uint256 count = _ids.length;
         require(count == _tokenAmounts.length, "_ids and _amounts should have the same length");
 
+        uint256 tokens;
+        uint256 equivalent;
         if (_oracle != address(0)) {
-            (uint256 tokens, uint256 equivalent) = IOracle(_oracle).readSample(_oracleData);
+            (tokens, equivalent) = IOracle(_oracle).readSample(_oracleData);
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
@@ -631,7 +635,7 @@ contract DebtEngine is ERC721Base {
         success = true;
     }
 
-    function withdrawBatch(bytes32[] _ids, address _to) external returns (uint256 total) {
+    function withdrawBatch(bytes32[] memory _ids, address _to) public returns (uint256 total) {
         bytes32 target;
         uint256 balance;
         for (uint256 i = 0; i < _ids.length; i++) {
@@ -669,7 +673,7 @@ contract DebtEngine is ERC721Base {
 
     function _safeGasStaticCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal view returns (uint256 success, bytes32 result) {
         uint256 _gas = (block.gaslimit * 80) / 100;
         _gas = gasleft() < _gas ? gasleft() : _gas;
@@ -690,7 +694,7 @@ contract DebtEngine is ERC721Base {
 
     function _safeGasCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
         uint256 _gas = (block.gaslimit * 80) / 100;
         _gas = gasleft() < _gas ? gasleft() : _gas;
