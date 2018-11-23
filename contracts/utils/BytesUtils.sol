@@ -1,13 +1,13 @@
 pragma solidity ^0.5.0;
 
 contract BytesUtils {
-    function readBytes32(bytes data, uint256 index) internal pure returns (bytes32 o) {
+    function readBytes32(bytes memory data, uint256 index) internal pure returns (bytes32 o) {
         require(data.length / 32 > index, "Reading bytes out of bounds");
         assembly {
             o := mload(add(data, add(32, mul(32, index))))
         }
     }
-    function read(bytes data, uint256 offset, uint256 length) internal pure returns (bytes32 o) {
+    function read(bytes memory data, uint256 offset, uint256 length) internal pure returns (bytes32 o) {
         require(data.length >= offset + length, "Reading bytes out of bounds");
         assembly {
             o := mload(add(data, add(32, offset)))
@@ -17,7 +17,7 @@ contract BytesUtils {
     }
 
     function decode(
-        bytes _data,
+        bytes memory _data,
         uint256 _la
     ) internal pure returns (bytes32 _a) {
         require(_data.length >= _la, "Reading bytes out of bounds");
@@ -29,7 +29,7 @@ contract BytesUtils {
     }
 
     function decode(
-        bytes _data,
+        bytes memory _data,
         uint256 _la,
         uint256 _lb
     ) internal pure returns (bytes32 _a, bytes32 _b) {
@@ -49,7 +49,7 @@ contract BytesUtils {
     }
 
     function decode(
-        bytes _data,
+        bytes memory _data,
         uint256 _la,
         uint256 _lb,
         uint256 _lc
@@ -74,7 +74,7 @@ contract BytesUtils {
     }
 
     function decode(
-        bytes _data,
+        bytes memory _data,
         uint256 _la,
         uint256 _lb,
         uint256 _lc,
@@ -104,7 +104,7 @@ contract BytesUtils {
     }
 
     function decode(
-        bytes _data,
+        bytes memory _data,
         uint256 _la,
         uint256 _lb,
         uint256 _lc,
@@ -139,7 +139,7 @@ contract BytesUtils {
     }
 
     function decode(
-        bytes _data,
+        bytes memory _data,
         uint256 _la,
         uint256 _lb,
         uint256 _lc,
