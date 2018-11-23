@@ -49,7 +49,7 @@ contract LoanManager is BytesUtils {
         directory.length++;
     }
 
-    function getDirectory() external view returns (bytes32[]) { return directory; }
+    function getDirectory() external view returns (bytes32[] memory) { return directory; }
 
     function getDirectoryLength() external view returns (uint256) { return directory.length; }
 
@@ -66,7 +66,7 @@ contract LoanManager is BytesUtils {
     function getExpirationRequest(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].expiration; }
     function getApproved(uint256 _id) external view returns (bool) { return requests[bytes32(_id)].approved; }
     function getDueTime(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getDueTime(bytes32(_id)); }
-    function getLoanData(uint256 _id) external view returns (bytes) { return requests[bytes32(_id)].loanData; }
+    function getLoanData(uint256 _id) external view returns (bytes memory) { return requests[bytes32(_id)].loanData; }
 
     function isApproved(uint256 _id) external view returns (bool) {
         return requests[bytes32(_id)].approved;
@@ -104,8 +104,8 @@ contract LoanManager is BytesUtils {
         address _oracle,
         uint256 _salt,
         uint64 _expiration,
-        bytes _data
-    ) external view returns (bytes32) {
+        bytes memory _data
+    ) public view returns (bytes32) {
         return debtEngine.buildId2(
             address(this),
             _model,
@@ -143,7 +143,7 @@ contract LoanManager is BytesUtils {
         return _internalSalt(request);
     }
 
-    function _internalSalt(Request _request) internal view returns (uint256) {
+    function _internalSalt(Request storage _request) internal view returns (uint256) {
         return _buildInternalSalt(
             _request.amount,
             _request.borrower,
@@ -160,8 +160,8 @@ contract LoanManager is BytesUtils {
         address _borrower,
         uint256 _salt,
         uint64 _expiration,
-        bytes _loanData
-    ) external returns (bytes32 id) {
+        bytes memory _loanData
+    ) public returns (bytes32 id) {
         require(_borrower != address(0), "The request should have a borrower");
         require(Model(_model).validate(_loanData), "The loan data is not valid");
 
@@ -256,8 +256,8 @@ contract LoanManager is BytesUtils {
 
     function registerApproveRequest(
         bytes32 _id,
-        bytes _signature
-    ) external returns (bool approved) {
+        bytes memory _signature
+    ) public returns (bool approved) {
         Request storage request = requests[_id];
         address borrower = request.borrower;
 
@@ -284,10 +284,10 @@ contract LoanManager is BytesUtils {
 
     function lend(
         bytes32 _id,
-        bytes _oracleData,
+        bytes memory _oracleData,
         address _cosigner,
         uint256 _cosignerLimit,
-        bytes _cosignerData
+        bytes memory _cosignerData
     ) public returns (bool) {
         Request storage request = requests[_id];
         require(request.open, "Request is no longer open");
@@ -416,8 +416,8 @@ contract LoanManager is BytesUtils {
         uint256 _salt,
         uint64 _expiration,
         address _creator,
-        bytes _loanData
-    ) external view returns (bytes requestData, bytes32 id) {
+        bytes memory _loanData
+    ) public view returns (bytes memory requestData, bytes32 id) {
         requestData = abi.encodePacked(
             _amount,
             _model,
@@ -446,14 +446,14 @@ contract LoanManager is BytesUtils {
     }
 
     function settleLend(
-        bytes _requestData,
-        bytes _loanData,
+        bytes memory _requestData,
+        bytes memory _loanData,
         address _cosigner,
         uint256 _maxCosignerCost,
-        bytes _cosignerData,
-        bytes _oracleData,
-        bytes _creatorSig,
-        bytes _borrowerSig
+        bytes memory _cosignerData,
+        bytes memory _oracleData,
+        bytes memory _creatorSig,
+        bytes memory _borrowerSig
     ) public returns (bytes32 id) {
         // Validate request
         require(uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION)) > now, "Loan request is expired");
@@ -517,9 +517,9 @@ contract LoanManager is BytesUtils {
     }
 
     function settleCancel(
-        bytes _requestData,
-        bytes _loanData
-    ) external returns (bool) {
+        bytes memory _requestData,
+        bytes memory _loanData
+    ) public returns (bool) {
         (bytes32 id, ) = _buildSettleId(_requestData, _loanData);
         require(
             msg.sender == address(read(_requestData, O_BORROWER, L_BORROWER)) ||
@@ -534,10 +534,10 @@ contract LoanManager is BytesUtils {
 
     function _validateSettleSignatures(
         bytes32 _id,
-        bytes _requestData,
-        bytes _loanData,
-        bytes _creatorSig,
-        bytes _borrowerSig
+        bytes memory _requestData,
+        bytes memory _loanData,
+        bytes memory _creatorSig,
+        bytes memory _borrowerSig
     ) internal {
         require(!canceledSettles[_id], "Settle was canceled");
 
@@ -582,8 +582,8 @@ contract LoanManager is BytesUtils {
     }
 
     function _currencyToToken(
-        bytes _requestData,
-        bytes _oracleData
+        bytes memory _requestData,
+        bytes memory _oracleData
     ) internal returns (uint256) {
         return _currencyToToken(
             address(read(_requestData, O_ORACLE, L_ORACLE)),
@@ -593,8 +593,8 @@ contract LoanManager is BytesUtils {
     }
 
     function _createDebt(
-        bytes _requestData,
-        bytes _loanData,
+        bytes memory _requestData,
+        bytes memory _loanData,
         uint256 _internalSalt
     ) internal returns (bytes32) {
         return debtEngine.create2(
@@ -607,8 +607,8 @@ contract LoanManager is BytesUtils {
     }
 
     function _buildSettleId(
-        bytes _requestData,
-        bytes _loanData
+        bytes memory _requestData,
+        bytes memory _loanData
     ) internal view returns (bytes32 id, uint256 internalSalt) {
         (
             uint128 amount,
@@ -658,7 +658,7 @@ contract LoanManager is BytesUtils {
     }
 
     function _decodeSettle(
-        bytes _data
+        bytes memory _data
     ) internal pure returns (
         uint128 amount,
         address model,
@@ -687,7 +687,7 @@ contract LoanManager is BytesUtils {
         creator = address(read(_data, O_CREATOR, L_CREATOR));
     }
 
-    function ecrecovery(bytes32 _hash, bytes _sig) internal pure returns (address) {
+    function ecrecovery(bytes32 _hash, bytes memory _sig) internal pure returns (address) {
         bytes32 r;
         bytes32 s;
         uint8 v;
@@ -709,7 +709,7 @@ contract LoanManager is BytesUtils {
     function _currencyToToken(
         address _oracle,
         uint256 _amount,
-        bytes _oracleData
+        bytes memory _oracleData
     ) internal returns (uint256) {
         if (_oracle == address(0)) return _amount;
         (uint256 tokens, uint256 equivalent) = RateOracle(_oracle).readSample(_oracleData);
@@ -721,7 +721,7 @@ contract LoanManager is BytesUtils {
 
     function _safeCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
         assembly {
             let x := mload(0x40)
