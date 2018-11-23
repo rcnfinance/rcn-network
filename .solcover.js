@@ -5,6 +5,7 @@ module.exports = {
     skipFiles: [ // TODO: Remove skip BytesUtils when solidity-coverage gets patched
         'utils/BytesUtils.sol',
         'diaspore/utils/test',
+        'basalt/test',
         'utils/test'
     ]
 }
