@@ -92,7 +92,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
         require(configs[id].cuota == 0, "Entry already exist");
-        
+
         (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _decodeData(data);
         _validate(cuota, interestRate, installments, duration, timeUnit);
 
@@ -127,8 +127,8 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
             uint256 interest = state.interest;
 
             // Payment aux
-            require(available < U_128_OVERFLOW, "Amount overflow");
             uint256 available = amount;
+            require(available < U_128_OVERFLOW, "Amount overflow");
 
             // Aux variables
             uint256 unpaidInterest;
@@ -217,9 +217,9 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         // Can't be before creation
         if (timestamp < config.lentTime) {
             return (0, true);
-        } 
+        }
 
-        // Static storage loads        
+        // Static storage loads
         uint256 currentClock = timestamp - config.lentTime;
 
         uint256 base = _baseDebt(
@@ -249,7 +249,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
             defined = prevInterest == interest;
         }
-        
+
         uint256 debt = base + interest;
         uint256 paid = state.paid;
         return (debt > paid ? debt - paid : 0, defined);
@@ -427,7 +427,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         // Aux variables
         uint256 delta;
         bool installmentCompleted;
-        
+
         do {
             // Delta to next installment and absolute delta (no exceeding 1 installment)
             (delta, installmentCompleted) = _calcDelta({
