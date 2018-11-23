@@ -110,8 +110,8 @@ contract DebtEngine is ERC721Base {
         Model _model,
         address _owner,
         address _oracle,
-        bytes _data
-    ) external returns (bytes32 id) {
+        bytes memory _data
+    ) public returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
         id = keccak256(
             abi.encodePacked(
@@ -145,8 +145,8 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         uint256 _salt,
-        bytes _data
-    ) external returns (bytes32 id) {
+        bytes memory _data
+    ) public returns (bytes32 id) {
         id = keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -182,8 +182,8 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         uint256 _salt,
-        bytes _data
-    ) external returns (bytes32 id) {
+        bytes memory _data
+    ) public returns (bytes32 id) {
         id = keccak256(
             abi.encodePacked(
                 uint8(3),
@@ -230,8 +230,8 @@ contract DebtEngine is ERC721Base {
         address _model,
         address _oracle,
         uint256 _salt,
-        bytes _data
-    ) external view returns (bytes32) {
+        bytes memory _data
+    ) public view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -263,8 +263,8 @@ contract DebtEngine is ERC721Base {
         bytes32 _id,
         uint256 _amount,
         address _origin,
-        bytes _oracleData
-    ) external returns (uint256 paid, uint256 paidToken) {
+        bytes memory _oracleData
+    ) public returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
 
         // Paid only required amount
@@ -305,8 +305,8 @@ contract DebtEngine is ERC721Base {
         bytes32 id,
         uint256 amount,
         address origin,
-        bytes oracleData
-    ) external returns (uint256 paid, uint256 paidToken) {
+        bytes memory oracleData
+    ) public returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
 
         // Read storage
@@ -359,7 +359,7 @@ contract DebtEngine is ERC721Base {
     }
 
     function payBatch(
-        bytes32[] _ids,
+        bytes32[] memory _ids,
         uint256[] memory _amounts,
         address _origin,
         address _oracle,
@@ -631,7 +631,7 @@ contract DebtEngine is ERC721Base {
         success = true;
     }
 
-    function withdrawBatch(bytes32[] _ids, address _to) external returns (uint256 total) {
+    function withdrawBatch(bytes32[] memory _ids, address _to) public returns (uint256 total) {
         bytes32 target;
         uint256 balance;
         for (uint256 i = 0; i < _ids.length; i++) {
