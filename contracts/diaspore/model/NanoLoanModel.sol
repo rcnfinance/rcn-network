@@ -281,14 +281,14 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         Config storage config = configs[id];
         State storage state = states[id];
 
+        uint256 newInterest = state.interest;
+
+        uint256 realDelta;
+        uint256 calculatedInterest;
+
+        uint256 newTimestamp;
+        uint256 pending;
         if (state.interestTimestamp < timestamp) {
-            uint256 newInterest = state.interest;
-
-            uint256 realDelta;
-            uint256 calculatedInterest;
-
-            uint256 newTimestamp;
-            uint256 pending;
             uint256 endNonPunitory = min(timestamp, config.dueTime);
             if (state.interestTimestamp < endNonPunitory) {
                 if (state.paid < config.amount)
@@ -299,10 +299,12 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
                 newTimestamp = state.interestTimestamp.add(realDelta);
             }
 
+            uint256 startPunitory;
+            uint256 newPunitoryInterest;
             if (config.dueTime < timestamp) {
-                uint256 startPunitory = max(config.dueTime, state.interestTimestamp);
+                startPunitory = max(config.dueTime, state.interestTimestamp);
                 uint256 debt = config.amount.add(newInterest);
-                uint256 newPunitoryInterest = state.punitoryInterest;
+                newPunitoryInterest = state.punitoryInterest;
                 pending = min(debt, debt.add(newPunitoryInterest).sub(state.paid));
 
                 (realDelta, calculatedInterest) = _calculateInterest(timestamp - startPunitory, config.interestRatePunitory, pending);// cant underflow, check in the previus if
