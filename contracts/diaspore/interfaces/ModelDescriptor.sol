@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 contract ModelDescriptor {
     bytes4 internal constant MODEL_DESCRIPTOR_INTERFACE = 0x02735375;

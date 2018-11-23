@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.0;
 
 contract BytesUtils {
     function readBytes32(bytes data, uint256 index) internal pure returns (bytes32 o) {
