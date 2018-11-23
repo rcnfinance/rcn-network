@@ -368,8 +368,10 @@ contract DebtEngine is ERC721Base {
         uint256 count = _ids.length;
         require(count == _amounts.length, "_ids and _amounts should have the same length");
 
+        uint256 tokens;
+        uint256 equivalent;
         if (_oracle != address(0)) {
-            (uint256 tokens, uint256 equivalent) = IOracle(_oracle).readSample(_oracleData);
+            (tokens, equivalent) = IOracle(_oracle).readSample(_oracleData);
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
@@ -403,8 +405,10 @@ contract DebtEngine is ERC721Base {
         uint256 count = _ids.length;
         require(count == _tokenAmounts.length, "_ids and _amounts should have the same length");
 
+        uint256 tokens;
+        uint256 equivalent;
         if (_oracle != address(0)) {
-            (uint256 tokens, uint256 equivalent) = IOracle(_oracle).readSample(_oracleData);
+            (tokens, equivalent) = IOracle(_oracle).readSample(_oracleData);
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
