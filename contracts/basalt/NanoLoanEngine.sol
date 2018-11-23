@@ -123,7 +123,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     event PartialPayment(uint _index, address _sender, address _from, uint256 _amount);
     event TotalPayment(uint _index);
 
-    function NanoLoanEngine(Token _rcn) public {
+    constructor (Token _rcn) public {
         owner = msg.sender;
         rcn = _rcn;
         // The loan 0 is a Invalid loan
