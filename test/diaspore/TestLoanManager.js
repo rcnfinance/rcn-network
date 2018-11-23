@@ -3,8 +3,8 @@ const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 const TestToken = artifacts.require('./utils/test/TestToken.sol');
 const TestDebtEngine = artifacts.require('./diaspore/utils/test/TestDebtEngine.sol');
-const TestCosigner = artifacts.require('./utils/test/TestCosigner.sol');
-const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
+const TestCosignerDiaspore = artifacts.require('./diaspore/utils/test/TestCosignerDiaspore.sol');
+const TestRateOracle = artifacts.require('./diaspore/utils/test/TestRateOracle.sol');
 const TestLoanApprover = artifacts.require('./diaspore/utils/test/TestLoanApprover.sol');
 
 const Helper = require('../Helper.js');
@@ -177,7 +177,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         model = await TestModel.new();
         await model.setEngine(debtEngine.address);
         loanApprover = await TestLoanApprover.new();
-        cosigner = await TestCosigner.new(rcn.address);
+        cosigner = await TestCosignerDiaspore.new(rcn.address);
         oracle = await TestRateOracle.new();
     });
 

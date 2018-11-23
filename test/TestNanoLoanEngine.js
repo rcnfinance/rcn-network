@@ -1,7 +1,7 @@
 const TestToken = artifacts.require('./utils/TestToken.sol');
 const NanoLoanEngine = artifacts.require('./basalt/NanoLoanEngine.sol');
 const TestOracle = artifacts.require('./examples/TestOracle.sol');
-const TestCosigner = artifacts.require('./examples/TestCosigner.sol');
+const TestCosignerBasalt = artifacts.require('./basalt/test/TestCosignerBasalt.sol');
 
 const Helper = require('./Helper.js');
 
@@ -21,7 +21,7 @@ contract('NanoLoanEngine', function (accounts) {
         rcn = await TestToken.new();
         engine = await NanoLoanEngine.new(rcn.address, { from: accounts[0] });
         oracle = await TestOracle.new();
-        cosigner = await TestCosigner.new(rcn.address);
+        cosigner = await TestCosignerBasalt.new(rcn.address);
     });
 
     async function createLoan (engine, oracle, borrower, currency, amount, interestRate, interestRatePunitory, duration,

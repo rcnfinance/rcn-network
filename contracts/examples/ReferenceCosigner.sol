@@ -1,6 +1,7 @@
 pragma solidity ^0.4.19;
 
 import "./../interfaces/Token.sol";
+import "./../diaspore/interfaces/ILoanManager.sol";
 import "./../diaspore/interfaces/Cosigner.sol";
 import "./../diaspore/interfaces/RateOracle.sol";
 import "./../diaspore/interfaces/Model.sol";
@@ -8,19 +9,6 @@ import "./../diaspore/interfaces/Model.sol";
 import "./../utils/BytesUtils.sol";
 import "./../utils/SafeMath.sol";
 import "./../utils/SimpleDelegable.sol";
-
-
-contract ILoanManager {
-    function debtEngine() external view returns (address);
-    function getStatus(uint256 _id) external view returns (uint256);
-    function getDueTime(uint256 _id) external view returns (uint256);
-    function ownerOf(uint256 _id) external view returns (address);
-    function getOracle(uint256 _id) external view returns (address);
-    function getClosingObligation(uint256 _id) external view returns (uint256);
-
-    function cosign(uint256 _id, uint256 _cost) external returns (bool);
-    function safeTransferFrom(address _from, address _to, uint256 _assetId) external;
-}
 
 
 contract IDebtEngine {

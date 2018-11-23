@@ -4,7 +4,7 @@ import "../interfaces/Oracle.sol";
 import "../interfaces/Token.sol";
 import "../utils/Ownable.sol";
 import "../utils/TokenLockable.sol";
-import "./interfaces/Cosigner.sol";
+import "./interfaces/CosignerBasalt.sol";
 import "./interfaces/Engine.sol";
 import "./interfaces/ERC721.sol";
 
@@ -372,7 +372,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return true if the lend was done successfully
     */
-    function lend(uint index, bytes oracleData, Cosigner cosigner, bytes cosignerData) public returns (bool) {
+    function lend(uint index, bytes oracleData, CosignerBasalt cosigner, bytes cosignerData) public returns (bool) {
         Loan storage loan = loans[index];
 
         require(loan.status == Status.initial);
