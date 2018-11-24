@@ -29,7 +29,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
         uint256 decimals;
     }
 
-    function url() public view returns (string) {
+    function url() public view returns (string memory) {
         return infoUrl;
     }
 
@@ -50,7 +50,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
 
         @param _url New url
     */
-    function setUrl(string _url) public onlyOwner returns (bool) {
+    function setUrl(string memory _url) public onlyOwner returns (bool) {
         infoUrl = _url;
         return true;
     }
@@ -81,7 +81,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
     }
 
     /**
-        @dev Retrieves the convertion rate of a given currency, the information of the rate is carried over the 
+        @dev Retrieves the convertion rate of a given currency, the information of the rate is carried over the
         data field. If there is a newer rate on the cache, that rate is delivered and the data field is ignored.
 
         If the data contains a more recent rate than the cache, the cache is updated.
@@ -91,7 +91,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
 
         @return the rate and decimals of the currency convertion
     */
-    function getRate(bytes32 currency, bytes data) public returns (uint256, uint256) {
+    function getRate(bytes32 currency, bytes memory data) public returns (uint256, uint256) {
         if (fallback != address(0)) {
             emit DelegatedCall(msg.sender, fallback);
             return fallback.getRate(currency, data);
@@ -109,7 +109,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
             uint8 v = uint8(readBytes32(data, INDEX_V));
             bytes32 r = readBytes32(data, INDEX_R);
             bytes32 s = readBytes32(data, INDEX_S);
-            
+
             bytes32 _hash = keccak256(this, currency, rate, decimals, timestamp);
             address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _hash),v,r,s);
 
@@ -121,4 +121,4 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
             return (rate, decimals);
         }
     }
-}   
+}

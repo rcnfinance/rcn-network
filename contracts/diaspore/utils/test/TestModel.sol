@@ -35,7 +35,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
     function encodeData(
         uint128 _total,
         uint64 _dueTime
-    ) external pure returns (bytes) {
+    ) external pure returns (bytes memory) {
         return abi.encodePacked(_total, _dueTime);
     }
 
@@ -85,7 +85,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         return operator == owner;
     }
 
-    function validate(bytes data) external view returns (bool) {
+    function validate(bytes memory data) public view returns (bool) {
         require(data.length == L_DATA, "Invalid data length");
 
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
@@ -153,7 +153,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         return entry.total - entry.paid;
     }
 
-    function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
+    function create(bytes32 id, bytes memory data) public onlyEngine returns (bool) {
         require(data.length == L_DATA, "Invalid data length");
 
         if (errorFlag == ERROR_CREATE) return false;

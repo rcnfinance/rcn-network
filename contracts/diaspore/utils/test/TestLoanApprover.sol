@@ -50,11 +50,11 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     }
 
     function settleApproveRequest(
-        bytes _requestData,
-        bytes _loanData,
+        bytes memory _requestData,
+        bytes memory _loanData,
         bool _isBorrower,
         uint256 _id
-    ) external returns (bytes32) {
+    ) public returns (bytes32) {
         bytes32 btotal;
         (btotal, ) = decode(_loanData, 16, 8);
         uint128 total = uint128(btotal);

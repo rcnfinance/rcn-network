@@ -16,11 +16,11 @@ contract TestOracle is Oracle, BytesUtils {
 
     string private _purl = "";
 
-    function setUrl(string _url) external {
+    function setUrl(string memory _url) public {
         _purl = _url;
     }
 
-    function buildData(bytes32 d) internal pure returns (bytes o) {
+    function buildData(bytes32 d) internal pure returns (bytes memory o) {
         assembly {
             let size := 32
             o := mload(0x40)
@@ -30,11 +30,11 @@ contract TestOracle is Oracle, BytesUtils {
         }
     }
 
-    function url() public view returns (string) {
+    function url() public view returns (string memory) {
         return _purl;
     }
 
-    function getRate(bytes32, bytes data) public returns (uint256 rate, uint256 decimals) {
+    function getRate(bytes32, bytes memory data) public returns (uint256 rate, uint256 decimals) {
         bytes32 sentData = readBytes32(data, 0);
 
         if (sentData == dummyData1) {
