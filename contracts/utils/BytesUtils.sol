@@ -7,6 +7,7 @@ contract BytesUtils {
             o := mload(add(data, add(32, mul(32, index))))
         }
     }
+
     function read(bytes memory data, uint256 offset, uint256 length) internal pure returns (bytes32 o) {
         require(data.length >= offset + length, "Reading bytes out of bounds");
         assembly {
@@ -184,4 +185,22 @@ contract BytesUtils {
         }
         require(_data.length >= o, "Reading bytes out of bounds");
     }
+
+    // Copies 'self' into a new 'bytes memory'.
+    // Returns the newly created 'bytes memory'
+    // The returned bytes will be of length '32'.
+    function toBytes(uint self) internal pure returns (bytes memory bts) {
+        bts = toBytes(bytes32(self), 32);
+    }
+    
+    // Copies 'self' into a new 'bytes memory'.
+    // Returns the newly created 'bytes memory'
+    // The returned bytes will be of length '32'.
+    function toBytes(bytes32 self) internal pure returns (bytes memory bts) {
+        bts = new bytes(32);
+        assembly {
+            mstore(add(bts, /*BYTES_HEADER_SIZE*/32), self)
+        }
+    }
+    
 }

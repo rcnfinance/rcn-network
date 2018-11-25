@@ -2,14 +2,13 @@ pragma solidity ^0.5.0;
 
 import "./../interfaces/Token.sol";
 import "./interfaces/Model.sol";
+import "./interfaces/RateOracle.sol";
 import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
+import "./../utils/BytesUtils.sol";
 
-interface IOracle {
-    function readSample(bytes memory _data) public returns (uint256 _tokens, uint256 _equivalent);
-}
 
-contract DebtEngine is ERC721Base {
+contract DebtEngine is ERC721Base, BytesUtils {
     using IsContract for address;
 
     event Created(
@@ -271,8 +270,8 @@ contract DebtEngine is ERC721Base {
         paid = _safePay(_id, debt.model, _amount);
         require(paid <= _amount, "Paid can't be more than requested");
 
-        IOracle oracle = IOracle(debt.oracle);
-        if (oracle != address(0)) {
+        RateOracle oracle = RateOracle(debt.oracle);
+        if (address(oracle) != address(0)) {
             // Convert
             (uint256 tokens, uint256 equivalent) = oracle.readSample(_oracleData);
             emit ReadedOracle(_id, tokens, equivalent);
@@ -310,14 +309,14 @@ contract DebtEngine is ERC721Base {
         Debt storage debt = debts[id];
 
         // Read storage
-        IOracle oracle = IOracle(debt.oracle);
+        RateOracle oracle = RateOracle(debt.oracle);
 
         uint256 equivalent;
         uint256 tokens;
         uint256 available;
 
         // Get available <currency> amount
-        if (oracle != address(0)) {
+        if (address(oracle) != address(0)) {
             (tokens, equivalent) = oracle.readSample(oracleData);
             emit ReadedOracle(id, tokens, equivalent);
             available = _fromToken(amount, tokens, equivalent);
@@ -330,7 +329,7 @@ contract DebtEngine is ERC721Base {
         require(paid <= available, "Paid can't exceed available");
 
         // Convert back to required pull amount
-        if (oracle != address(0)) {
+        if (address(oracle) != address(0)) {
             paidToken = _toToken(paid, tokens, equivalent);
             require(paidToken <= amount, "Paid can't exceed requested");
         } else {
@@ -371,7 +370,7 @@ contract DebtEngine is ERC721Base {
         uint256 tokens;
         uint256 equivalent;
         if (_oracle != address(0)) {
-            (tokens, equivalent) = IOracle(_oracle).readSample(_oracleData);
+            (tokens, equivalent) = RateOracle(_oracle).readSample(_oracleData);
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
@@ -408,7 +407,7 @@ contract DebtEngine is ERC721Base {
         uint256 tokens;
         uint256 equivalent;
         if (_oracle != address(0)) {
-            (tokens, equivalent) = IOracle(_oracle).readSample(_oracleData);
+            (tokens, equivalent) = RateOracle(_oracle).readSample(_oracleData);
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
@@ -489,7 +488,7 @@ contract DebtEngine is ERC721Base {
         uint256 _available
     ) internal returns (uint256) {
         (uint256 success, bytes32 paid) = _safeGasCall(
-            _model,
+            address(_model),
             abi.encodeWithSelector(
                 _model.addPaid.selector,
                 _id,
@@ -570,7 +569,7 @@ contract DebtEngine is ERC721Base {
         Debt storage debt = debts[_id];
 
         (uint256 success, bytes32 result) = _safeGasCall(
-            debt.model,
+            address(debt.model),
             abi.encodeWithSelector(
                 debt.model.run.selector,
                 _id
@@ -591,8 +590,8 @@ contract DebtEngine is ERC721Base {
 
                 delete debt.error;
             }
-
-            return result == bytes32(1);
+            
+            return toBytes(result) == toBytes(1);
         } else {
             emit Error({
                 _id: _id,
@@ -661,7 +660,7 @@ contract DebtEngine is ERC721Base {
             return 4;
         } else {
             (uint256 success, bytes32 result) = _safeGasStaticCall(
-                debt.model,
+                address(debt.model),
                 abi.encodeWithSelector(
                     debt.model.getStatus.selector,
                     _id
