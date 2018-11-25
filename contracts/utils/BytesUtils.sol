@@ -202,5 +202,19 @@ contract BytesUtils {
             mstore(add(bts, /*BYTES_HEADER_SIZE*/32), self)
         }
     }
+
+    // Copies 'len' bytes from 'self' into a new 'bytes memory', starting at index '0'.
+    // Returns the newly created 'bytes memory'
+    // The returned bytes will be of length 'len'.
+    function toBytes(bytes32 self, uint8 len) internal pure returns (bytes memory bts) {
+        require(len <= 32);
+        bts = new bytes(len);
+        // Even though the bytes will allocate a full word, we don't want
+        // any potential garbage bytes in there.
+        uint data = uint(self) & ~uint(0) << (32 - len)*8;
+        assembly {
+            mstore(add(bts, /*BYTES_HEADER_SIZE*/32), data)
+        }
+    }
     
 }
