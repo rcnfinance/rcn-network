@@ -5,11 +5,12 @@ import "./interfaces/Model.sol";
 import "./interfaces/RateOracle.sol";
 import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
-import "./../utils/BytesUtils.sol";
+import {Bytes} from "./../utils/BytesUtils.sol";
 
 
-contract DebtEngine is ERC721Base, BytesUtils {
+contract DebtEngine is ERC721Base {
     using IsContract for address;
+    using Bytes for *;
 
     event Created(
         bytes32 indexed _id,
@@ -591,7 +592,7 @@ contract DebtEngine is ERC721Base, BytesUtils {
                 delete debt.error;
             }
             
-            return toBytes(result) == toBytes(1);
+            return result.toBytes().equals(1.toBytes());
         } else {
             emit Error({
                 _id: _id,
