@@ -74,80 +74,6 @@ library Bytes {
         bts = toBytes(bytes32(self), uint8(bitsize / 8));
     }
 
-    // Computes the index of the highest byte set in 'self'.
-    // Returns the index.
-    // Requires that 'self != 0'
-    // Uses big endian ordering (the most significant byte has index '0').
-    function highestByteSet(bytes32 self) internal pure returns (uint8 highest) {
-        highest = 31 - lowestByteSet(uint(self));
-    }
-
-    // Computes the index of the lowest byte set in 'self'.
-    // Returns the index.
-    // Requires that 'self != 0'
-    // Uses big endian ordering (the most significant byte has index '0').
-    function lowestByteSet(bytes32 self) internal pure returns (uint8 lowest) {
-        lowest = 31 - highestByteSet(uint(self));
-    }
-
-    // Computes the index of the highest byte set in 'self'.
-    // Returns the index.
-    // Requires that 'self != 0'
-    // Uses little endian ordering (the least significant byte has index '0').
-    function highestByteSet(uint self) internal pure returns (uint8 highest) {
-        require(self != 0);
-        uint ret;
-        if (self & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000 != 0) {
-            ret += 16;
-            self >>= 128;
-        }
-        if (self & 0xffffffffffffffff0000000000000000 != 0) {
-            ret += 8;
-            self >>= 64;
-        }
-        if (self & 0xffffffff00000000 != 0) {
-            ret += 4;
-            self >>= 32;
-        }
-        if (self & 0xffff0000 != 0) {
-            ret += 2;
-            self >>= 16;
-        }
-        if (self & 0xff00 != 0) {
-            ret += 1;
-        }
-        highest = uint8(ret);
-    }
-
-    // Computes the index of the lowest byte set in 'self'.
-    // Returns the index.
-    // Requires that 'self != 0'
-    // Uses little endian ordering (the least significant byte has index '0').
-    function lowestByteSet(uint self) internal pure returns (uint8 lowest) {
-        require(self != 0);
-        uint ret;
-        if (self & 0xffffffffffffffffffffffffffffffff == 0) {
-            ret += 16;
-            self >>= 128;
-        }
-        if (self & 0xffffffffffffffff == 0) {
-            ret += 8;
-            self >>= 64;
-        }
-        if (self & 0xffffffff == 0) {
-            ret += 4;
-            self >>= 32;
-        }
-        if (self & 0xffff == 0) {
-            ret += 2;
-            self >>= 16;
-        }
-        if (self & 0xff == 0) {
-            ret += 1;
-        }
-        lowest = uint8(ret);
-    }
-
 }
 
 contract BytesUtils {
@@ -334,37 +260,6 @@ contract BytesUtils {
             o := sub(o, s)
         }
         require(_data.length >= o, "Reading bytes out of bounds");
-    }
-
-    // Copies 'self' into a new 'bytes memory'.
-    // Returns the newly created 'bytes memory'
-    // The returned bytes will be of length '32'.
-    function toBytes(uint self) internal pure returns (bytes memory bts) {
-        bts = toBytes(bytes32(self), 32);
-    }
-    
-    // Copies 'self' into a new 'bytes memory'.
-    // Returns the newly created 'bytes memory'
-    // The returned bytes will be of length '32'.
-    function toBytes(bytes32 self) internal pure returns (bytes memory bts) {
-        bts = new bytes(32);
-        assembly {
-            mstore(add(bts, /*BYTES_HEADER_SIZE*/32), self)
-        }
-    }
-
-    // Copies 'len' bytes from 'self' into a new 'bytes memory', starting at index '0'.
-    // Returns the newly created 'bytes memory'
-    // The returned bytes will be of length 'len'.
-    function toBytes(bytes32 self, uint8 len) internal pure returns (bytes memory bts) {
-        require(len <= 32);
-        bts = new bytes(len);
-        // Even though the bytes will allocate a full word, we don't want
-        // any potential garbage bytes in there.
-        uint data = uint(self) & ~uint(0) << (32 - len)*8;
-        assembly {
-            mstore(add(bts, /*BYTES_HEADER_SIZE*/32), data)
-        }
     }
     
 }
