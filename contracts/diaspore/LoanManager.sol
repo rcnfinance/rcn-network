@@ -59,7 +59,7 @@ contract LoanManager is BytesUtils {
     function getCosigner(uint256 _id) external view returns (address) { return requests[bytes32(_id)].cosigner; }
     function getCurrency(uint256 _id) external view returns (bytes32) {
         address oracle = requests[bytes32(_id)].oracle;
-        return oracle == 0x0 ? bytes32(0x0) : RateOracle(oracle).currency();
+        return oracle == address(0) ? bytes32(address(0)) : RateOracle(oracle).currency();
     }
     function getAmount(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].amount; }
 

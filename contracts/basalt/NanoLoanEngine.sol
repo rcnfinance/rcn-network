@@ -202,7 +202,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     ) public returns (uint256) {
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
-        require(_oracleContract != address(0) || _currency == 0x0);
+        require(_oracleContract != address(0) || _currency == address(0));
         require(_borrower != address(0));
         require(_amount != 0);
         require(_interestRatePunitory != 0);
@@ -213,9 +213,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             Status.initial,
             _oracleContract,
             _borrower,
-            0x0,
+            address(0),
             msg.sender,
-            0x0,
+            address(0),
             _amount,
             0,
             0,
@@ -228,7 +228,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             _currency,
             _cancelableAt,
             0,
-            0x0,
+            address(0),
             _expirationRequest,
             _metadata
         );
@@ -385,7 +385,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         loan.status = Status.lent;
 
         // ERC721, create new loan and transfer it to the lender
-        Transfer(0x0, loan.lender, index);
+        Transfer(address(0), loan.lender, index);
         activeLoans += 1;
         lendersBalance[loan.lender] += 1;
 
@@ -452,7 +452,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         if (loan.status != Status.initial) {
             lendersBalance[loan.lender] -= 1;
             activeLoans -= 1;
-            Transfer(loan.lender, 0x0, index);
+            Transfer(loan.lender, address(0), index);
         }
 
         loan.status = Status.destroyed;
@@ -722,7 +722,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             // ERC721, remove loan from circulation
             lendersBalance[loan.lender] -= 1;
             activeLoans -= 1;
-            emit Transfer(loan.lender, 0x0, index);
+            emit Transfer(loan.lender, address(0), index);
         }
 
         uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, toPay);
