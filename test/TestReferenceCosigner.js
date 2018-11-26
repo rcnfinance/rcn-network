@@ -127,6 +127,38 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             assert.equal(data.slice(-64), s);
         });
 
+        it('Try decode a cosign data with invalid length', async () => {
+            const cost = bn('1000');
+            const coverage = bn('6000');
+            const requiredArrears = bn(await Helper.getBlockTime());
+            const expiration = bn(await Helper.getBlockTime());
+            const id = bn('51651');
+
+            const data = await toDataRequestCosign(
+                loanManager,
+                id,
+                cost,
+                coverage,
+                requiredArrears,
+                expiration,
+                signer
+            );
+
+            await Helper.tryCatchRevert(
+                () => testCosigner.decodeCosignerData(
+                    data + '00'
+                ),
+                'Invalid data length'
+            );
+
+            await Helper.tryCatchRevert(
+                () => testCosigner.decodeCosignerData(
+                    data.slice(0, 4)
+                ),
+                'Invalid data length'
+            );
+        });
+
         it('Should encode data', async () => {
             const maxData = await cosigner.encodeData(
                 maxUint('128'),
