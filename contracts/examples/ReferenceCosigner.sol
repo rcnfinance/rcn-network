@@ -171,7 +171,7 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
         bytes _data,
         bytes
     ) external view returns (uint256) {
-        ( uint128 currentCost,,,, ) = _decodeCosignerData(_data);
+        ( uint128 currentCost,,, ) = _decodeCosignerData(_data);
         return currentCost;
     }
 
@@ -197,7 +197,7 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
             uint128 currentCost,
             uint16 coverage,
             uint64 requiredArrears,
-            uint64 expiration,
+            uint64 expiration
         ) = _decodeCosignerData(_data);
 
         require(expiration >= now, "The data of requestCosign its expired");
