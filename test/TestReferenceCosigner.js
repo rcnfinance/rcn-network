@@ -5,6 +5,7 @@ const LoanManager = artifacts.require('./diaspore/LoanManager.sol');
 const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const TestToken = artifacts.require('./utils/test/TestToken.sol');
 const TestReferenceCosigner = artifacts.require('./utils/test/TestReferenceCosigner.sol');
+const TestLoanManagerForReferenceCosigner = artifacts.require('./utils/test/TestLoanManagerForReferenceCosigner.sol');
 
 // const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
 
@@ -36,6 +37,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
     let model;
     let cosigner;
     let testCosigner;
+    let testLoanManager;
     // let oracle;
     let cosignerEvents;
 
@@ -74,6 +76,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         rcn = await TestToken.new({ from: owner });
         debtEngine = await DebtEngine.new(rcn.address, { from: owner });
         loanManager = await LoanManager.new(debtEngine.address, { from: owner });
+        testLoanManager = await TestLoanManagerForReferenceCosigner.new({ from: owner });
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
         // oracle = await TestRateOracle.new({ from: owner });
@@ -311,6 +314,177 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             liability[0].should.be.bignumber.equal(coverage);
             liability[1].should.be.bignumber.equal(requiredArrears);
         });
+
+        it('Try requestCosign with different _loanManager parameter and msg.sender', async () => {
+            const borrower = accounts[1];
+            const amount = bn('66666');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const loanData = await model.encodeData(amount, expirationLoan);
+
+            const id = (await Helper.toEvent(
+                    loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    loanData,
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6000');
+            const requiredArrears = (bn((await Helper.getBlockTime()).toString())).plus(bn('500'));
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await Helper.tryCatchRevert(
+                () => cosigner.requestCosign(
+                    accounts[5],
+                    id,
+                    data,
+                    '',
+                    { from: accounts[4] }
+                ),
+                'The msg.sender should be the loanManager'
+            );
+        });
+
+        it('Try cosign two times the same loan', async () => {
+            const id = bn('98489498');
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                testLoanManager,
+                id,
+                bn('0'),
+                bn('6000'),
+                (bn((await Helper.getBlockTime()).toString())).plus(bn('500')),
+                (bn((await Helper.getBlockTime()).toString())).plus(bn('1000')),
+                signer
+            );
+
+            await testLoanManager.requestCosign(
+                id,
+                cosigner.address,
+                data
+            );
+
+            await Helper.tryCatchRevert(
+                () => testLoanManager.requestCosign(
+                    id,
+                    cosigner.address,
+                    data
+                ),
+                'The liability exist'
+            );
+        });
+
+        it('Try cosign an expired data', async () => {
+            const id = bn('545454');
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                testLoanManager,
+                id,
+                bn('0'),
+                bn('6000'),
+                (bn((await Helper.getBlockTime()).toString())).sub(bn('500')),
+                bn('0'),
+                signer
+            );
+
+            await Helper.tryCatchRevert(
+                () => testLoanManager.requestCosign(
+                    id,
+                    cosigner.address,
+                    data
+                ),
+                'The data of requestCosign its expired'
+            );
+        });
+
+        it('Try cosign a loan with coverage equal 0', async () => {
+            const id = bn('3341');
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                testLoanManager,
+                id,
+                bn('0'),
+                bn('0'),
+                (bn((await Helper.getBlockTime()).toString())).plus(bn('500')),
+                (bn((await Helper.getBlockTime()).toString())).plus(bn('1000')),
+                signer
+            );
+
+            await Helper.tryCatchRevert(
+                () => testLoanManager.requestCosign(
+                    id,
+                    cosigner.address,
+                    data
+                ),
+                'The coverage should not be 0'
+            );
+        });
+
+        it('Try cosign a loan without being a delegate', async () => {
+            const id = bn('23139498');
+
+            const data = await toDataRequestCosign(
+                testLoanManager,
+                id,
+                bn('0'),
+                bn('5561'),
+                (bn((await Helper.getBlockTime()).toString())).plus(bn('500')),
+                (bn((await Helper.getBlockTime()).toString())).plus(bn('1000')),
+                accounts[2]
+            );
+
+            await Helper.tryCatchRevert(
+                () => testLoanManager.requestCosign(
+                    id,
+                    cosigner.address,
+                    data
+                ),
+                'The signer its not a delegate'
+            );
+        });
+
+        it('Try request cosign and the cosign function return false', async () => {
+            const id = bn('382137');
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                testLoanManager,
+                id,
+                bn('1'),
+                bn('5561'),
+                (bn((await Helper.getBlockTime()).toString())).plus(bn('500')),
+                (bn((await Helper.getBlockTime()).toString())).plus(bn('1000')),
+                signer
+            );
+
+            await Helper.tryCatchRevert(
+                () => testLoanManager.requestCosign(
+                    id,
+                    cosigner.address,
+                    data
+                ),
+                'Fail loanManager cosign'
+            );
         });
     });
 
