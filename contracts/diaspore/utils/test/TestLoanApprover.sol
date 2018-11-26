@@ -42,7 +42,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
             } else if (errorBehavior == ErrorBehavior.WrongReturn) {
                 return _futureDebt;
             } else {
-                return;
+                return 0x0;
             }
         }
 

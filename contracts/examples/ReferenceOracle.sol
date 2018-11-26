@@ -92,8 +92,8 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
         @return the rate and decimals of the currency convertion
     */
     function getRate(bytes32 currency, bytes memory data) public returns (uint256, uint256) {
-        if (fallback != address(0)) {
-            emit DelegatedCall(msg.sender, fallback);
+        if (address(fallback) != address(0)) {
+            emit DelegatedCall(msg.sender, address(fallback));
             return fallback.getRate(currency, data);
         }
 

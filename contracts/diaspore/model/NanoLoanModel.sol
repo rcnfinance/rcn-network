@@ -21,7 +21,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     using SafeMath for uint256;
     using SafeMath for uint128;
     using SafeMath for uint64;
-    
+
     address public engine;
     address private altDescriptor;
 
@@ -72,7 +72,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     }
 
     function descriptor() external view returns (address) {
-        return altDescriptor == address(0) ? this : altDescriptor;
+        return altDescriptor == address(0) ? address(this) : address(altDescriptor);
     }
 
     function setEngine(address _engine) external onlyOwner returns (bool) {
@@ -394,8 +394,13 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         require(_data.length == L_DATA, "Invalid data length");
         (bytes32 amount, bytes32 interestRate, bytes32 interestRatePunitory,
             bytes32 duesIn, bytes32 cancelableAt) = decode(_data, 16, 32, 32, 8, 8);
-        return (uint128(amount), uint256(interestRate), uint256(interestRatePunitory),
-            uint64(duesIn), uint64(cancelableAt));
+        return (
+            uint128(amount), 
+            uint256(interestRate), 
+            uint256(interestRatePunitory),
+            uint64(duesIn), 
+            uint64(cancelableAt)
+        );
     }
 
     // implements modelDescriptor interface

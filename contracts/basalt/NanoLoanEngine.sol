@@ -7,8 +7,11 @@ import "../utils/TokenLockable.sol";
 import "../interfaces/Cosigner.sol";
 import "./interfaces/Engine.sol";
 import "./interfaces/ERC721.sol";
+import "../utils/BytesUtils.sol";
 
 contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
+    using Bytes for *;
+
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal RCN_DECIMALS = 18;
 
@@ -110,7 +113,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @return The metadata hashed with keccak256
     */
     function tokenMetadataHash(uint256 index) public view returns (bytes32) {
-        return keccak256(loans[index].metadata);
+        return keccak256(bytes(loans[index].metadata));
     }
 
     Token public rcn;
@@ -202,20 +205,20 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     ) public returns (uint256) {
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
-        require(_oracleContract != address(0) || _currency == 0x0);
+        require(address(_oracleContract) != address(0) || _currency.toBytes().toAddress() == address(0)); //TODO: (jpgonzalezra) TESTEAR
         require(_borrower != address(0));
         require(_amount != 0);
         require(_interestRatePunitory != 0);
         require(_interestRate != 0);
         require(_expirationRequest > block.timestamp);
 
-        var loan = Loan(
+        Loan memory loan = Loan(
             Status.initial,
             _oracleContract,
             _borrower,
-            0x0,
+            address(0),
             msg.sender,
-            0x0,
+            address(0),
             _amount,
             0,
             0,
@@ -228,7 +231,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             _currency,
             _cancelableAt,
             0,
-            0x0,
+            address(0),
             _expirationRequest,
             _metadata
         );
@@ -289,9 +292,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
         uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string memory metadata
     ) public view returns (bytes32) {
-        return keccak256(
+        return keccak256(abi.encodePacked(
             this, oracle, borrower, creator, currency, amount, interestRate,
-            interestRatePunitory, duesIn, cancelableAt, expirationRequest, metadata
+            interestRatePunitory, duesIn, cancelableAt, expirationRequest, metadata)
         );
     }
 
@@ -351,7 +354,9 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         uint256 index = identifierToIndex[identifier];
         require(index != 0);
         Loan storage loan = loans[index];
-        require(loan.borrower == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", identifier), v, r, s));
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 preHash = keccak256(abi.encodePacked(prefix, identifier));
+        require(loan.borrower == ecrecover(preHash, v, r, s));
         loan.approbations[loan.borrower] = true;
         emit ApprovedBy(index, loan.borrower);
         return true;
@@ -385,7 +390,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         loan.status = Status.lent;
 
         // ERC721, create new loan and transfer it to the lender
-        Transfer(0x0, loan.lender, index);
+        emit Transfer(address(0), loan.lender, index);
         activeLoans += 1;
         lendersBalance[loan.lender] += 1;
 
@@ -397,7 +402,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, loan.amount);
         require(rcn.transferFrom(msg.sender, loan.borrower, transferValue));
 
-        if (cosigner != address(0)) {
+        if (address(cosigner) != address(0)) {
             // The cosigner it's temporary set to the next address (cosigner + 2), it's expected that the cosigner will
             // call the method "cosign" to accept the conditions; that method also sets the cosigner to the right
             // address. If that does not happen, the transaction fails.
@@ -406,7 +411,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             require(loan.cosigner == address(cosigner));
         }
 
-        emit Lent(index, loan.lender, cosigner);
+        emit Lent(index, loan.lender, address(cosigner));
 
         return true;
     }
@@ -452,7 +457,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         if (loan.status != Status.initial) {
             lendersBalance[loan.lender] -= 1;
             activeLoans -= 1;
-            Transfer(loan.lender, 0x0, index);
+            emit Transfer(loan.lender, address(0), index);
         }
 
         loan.status = Status.destroyed;
@@ -546,7 +551,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         Loan storage loan = loans[index];
         require(msg.sender == loan.lender);
         loan.approvedTransfer = to;
-        Approval(msg.sender, to, index);
+        emit Approval(msg.sender, to, index);
         return true;
     }
 
@@ -558,7 +563,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     */
     function setApprovalForAll(address _operator, bool _approved) public returns (bool) {
         operators[msg.sender][_operator] = _approved;
-        ApprovalForAll(msg.sender, _operator, _approved);
+        emit ApprovalForAll(msg.sender, _operator, _approved);
         return true;
     }
 
@@ -722,14 +727,14 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             // ERC721, remove loan from circulation
             lendersBalance[loan.lender] -= 1;
             activeLoans -= 1;
-            emit Transfer(loan.lender, 0x0, index);
+            emit Transfer(loan.lender, address(0), index);
         }
 
         uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, toPay);
         require(transferValue > 0 || toPay < _amount);
 
-        lockTokens(rcn, transferValue);
-        require(rcn.transferFrom(msg.sender, this, transferValue));
+        lockTokens(address(rcn), transferValue);
+        require(rcn.transferFrom(msg.sender, address(this), transferValue));
         loan.lenderBalance = safeAdd(transferValue, loan.lenderBalance);
 
         return true;
@@ -743,7 +748,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         @return The result of the convertion
     */
     function convertRate(Oracle oracle, bytes32 currency, bytes memory data, uint256 amount) public returns (uint256) {
-        if (oracle == address(0)) {
+        if (address(oracle) == address(0)) {
             return amount;
         } else {
             uint256 rate;
@@ -778,7 +783,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(msg.sender == loan.lender);
         loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
         require(rcn.transfer(to, amount));
-        unlockTokens(rcn, amount);
+        unlockTokens(address(rcn), amount);
         return true;
     }
 
@@ -806,7 +811,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         }
 
         require(rcn.transfer(to, totalWithdraw));
-        unlockTokens(rcn, totalWithdraw);
+        unlockTokens(address(rcn), totalWithdraw);
 
         return totalWithdraw;
     }

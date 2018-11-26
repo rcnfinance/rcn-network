@@ -36,6 +36,6 @@ contract TestDebtEngine {
         uint256 _salt,
         bytes memory _data
     ) public returns (bytes32) {
-        return 0x0;
+        return address(0);
     }
 }
