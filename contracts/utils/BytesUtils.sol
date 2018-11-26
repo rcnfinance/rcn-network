@@ -74,6 +74,20 @@ library Bytes {
         bts = toBytes(bytes32(self), uint8(bitsize / 8));
     }
 
+    // Copies 'self' into a new 'bytes32'.
+    // Returns the newly created 'bytes32'
+    // The returned bytes32.
+    function toBytes32(bytes memory _bytes) internal pure returns (bytes32) {
+        require(_bytes.length >= 32);
+        bytes32 tempBytes32;
+
+        assembly {
+            tempBytes32 := mload(add(add(_bytes, 0x20), 0))
+        }
+
+        return tempBytes32;
+    }
+
 }
 
 contract BytesUtils {

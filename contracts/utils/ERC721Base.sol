@@ -73,13 +73,13 @@ contract ERC721Base is ERC165 {
     *  Metadata JSON Schema".
     */
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
-        require(_holderOf[_tokenId] != 0, "Asset does not exist");
+        require(_holderOf[_tokenId] != address(0), "Asset does not exist");
         URIProvider provider = _uriProvider;
-        return provider == address(0) ? "" : provider.tokenURI(_tokenId);
+        return address(provider) == address(0) ? "" : provider.tokenURI(_tokenId);
     }
 
     function _setURIProvider(URIProvider _provider) internal returns (bool) {
-        emit SetURIProvider(_provider);
+        emit SetURIProvider(address(_provider));
         _uriProvider = _provider;
         return true;
     }
@@ -214,7 +214,7 @@ contract ERC721Base is ERC165 {
         return _isAuthorized(_operator, _assetId);
     }
     function _isAuthorized(address _operator, uint256 _assetId) internal view returns (bool) {
-        require(_operator != 0, "0x0 is an invalid operator");
+        require(_operator != address(0), "0x0 is an invalid operator");
         address owner = _ownerOf(_assetId);
         if (_operator == owner) {
             return true;
@@ -294,9 +294,9 @@ contract ERC721Base is ERC165 {
     }
 
     function _clearApproval(address _holder, uint256 _assetId) internal {
-        if (_approval[_assetId] != 0) {
-            _approval[_assetId] = 0;
-            emit Approval(_holder, 0, _assetId);
+        if (_approval[_assetId] != address(0)) {
+            _approval[_assetId] = address(0);
+            emit Approval(_holder, address(0), _assetId);
         }
     }
 
@@ -305,11 +305,11 @@ contract ERC721Base is ERC165 {
     //
 
     function _generate(uint256 _assetId, address _beneficiary) internal {
-        require(_holderOf[_assetId] == 0, "Asset already exists");
+        require(_holderOf[_assetId] == address(0), "Asset already exists");
 
         _addAssetTo(_beneficiary, _assetId);
 
-        emit Transfer(0x0, _beneficiary, _assetId);
+        emit Transfer(address(0), _beneficiary, _assetId);
     }
 
     //
