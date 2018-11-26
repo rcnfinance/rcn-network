@@ -21,6 +21,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     using SafeMath for uint256;
     using SafeMath for uint128;
     using SafeMath for uint64;
+    
     address public engine;
     address private altDescriptor;
 
@@ -67,7 +68,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
 
     function modelId() external view returns (bytes32) {
         // NanoLoanModel 1.0
-        return 0x4e616e6f4c6f616e4d6f64656c20312e300000000000000000000000000000;
+        return hex"4e616e6f4c6f616e4d6f64656c20312e30";
     }
 
     function descriptor() external view returns (address) {

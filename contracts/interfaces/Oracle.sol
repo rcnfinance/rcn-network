@@ -39,7 +39,7 @@ contract Oracle is Ownable {
     */
     function addCurrency(string memory ticker) public onlyOwner returns (bool) {
         bytes32 currency = encodeCurrency(ticker);
-        NewSymbol(currency);
+        emit NewSymbol(currency);
         supported[currency] = true;
         currencies.push(currency);
         return true;

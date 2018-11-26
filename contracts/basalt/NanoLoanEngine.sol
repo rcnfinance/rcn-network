@@ -234,7 +234,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         );
 
         uint index = loans.push(loan) - 1;
-        CreatedLoan(index, _borrower, msg.sender);
+        emit CreatedLoan(index, _borrower, msg.sender);
 
         bytes32 identifier = getIdentifier(index);
         require(identifierToIndex[identifier] == 0);
@@ -321,7 +321,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         Loan storage loan = loans[index];
         require(loan.status == Status.initial);
         loan.approbations[msg.sender] = true;
-        ApprovedBy(index, msg.sender);
+        emit ApprovedBy(index, msg.sender);
         return true;
     }
 
@@ -353,7 +353,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         Loan storage loan = loans[index];
         require(loan.borrower == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", identifier), v, r, s));
         loan.approbations[loan.borrower] = true;
-        ApprovedBy(index, loan.borrower);
+        emit ApprovedBy(index, loan.borrower);
         return true;
     }
 
@@ -406,7 +406,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             require(loan.cosigner == address(cosigner));
         }
 
-        Lent(index, loan.lender, cosigner);
+        emit Lent(index, loan.lender, cosigner);
 
         return true;
     }
@@ -446,7 +446,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         Loan storage loan = loans[index];
         require(loan.status != Status.destroyed);
         require(msg.sender == loan.lender || (msg.sender == loan.borrower && loan.status == Status.initial));
-        DestroyedBy(index, msg.sender);
+        emit DestroyedBy(index, msg.sender);
 
         // ERC721, remove loan from circulation
         if (loan.status != Status.initial) {
@@ -492,7 +492,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         // ERC721, transfer loan to another address
         lendersBalance[loan.lender] -= 1;
         lendersBalance[to] += 1;
-        Transfer(loan.lender, to, index);
+        emit Transfer(loan.lender, to, index);
 
         loan.lender = to;
         loan.approvedTransfer = address(0);
@@ -711,18 +711,18 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         require(loan.status == Status.lent);
         addInterest(index);
         uint256 toPay = min(getPendingAmount(index), _amount);
-        PartialPayment(index, msg.sender, _from, toPay);
+        emit PartialPayment(index, msg.sender, _from, toPay);
 
         loan.paid = safeAdd(loan.paid, toPay);
 
         if (getRawPendingAmount(index) == 0) {
-            TotalPayment(index);
+            emit TotalPayment(index);
             loan.status = Status.paid;
 
             // ERC721, remove loan from circulation
             lendersBalance[loan.lender] -= 1;
             activeLoans -= 1;
-            Transfer(loan.lender, 0x0, index);
+            emit Transfer(loan.lender, 0x0, index);
         }
 
         uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, toPay);

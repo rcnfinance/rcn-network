@@ -1,5 +1,95 @@
 pragma solidity ^0.5.0;
 
+import {Memory} from "./MemoryUtils.sol";
+
+library Bytes {
+
+    uint internal constant BYTES_HEADER_SIZE = 32;
+
+    // Checks if two `bytes memory` variables are equal. This is done using hashing,
+    // which is much more gas efficient then comparing each byte individually.
+    // Equality means that:
+    //  - 'self.length == other.length'
+    //  - For 'n' in '[0, self.length)', 'self[n] == other[n]'
+    function equals(bytes memory self, bytes memory other) internal pure returns (bool equal) {
+        if (self.length != other.length) {
+            return false;
+        }
+        uint addr;
+        uint addr2;
+        assembly {
+            addr := add(self, /*BYTES_HEADER_SIZE*/32)
+            addr2 := add(other, /*BYTES_HEADER_SIZE*/32)
+        }
+        equal = Memory.equals(addr, addr2, self.length);
+    }
+    
+    // Copies 'self' into a new 'bytes memory'.
+    // Returns the newly created 'bytes memory'
+    // The returned bytes will be of length '32'.
+    function toBytes(bytes32 self) internal pure returns (bytes memory bts) {
+        bts = new bytes(32);
+        assembly {
+            mstore(add(bts, /*BYTES_HEADER_SIZE*/32), self)
+        }
+    }
+
+    // Copies 'len' bytes from 'self' into a new 'bytes memory', starting at index '0'.
+    // Returns the newly created 'bytes memory'
+    // The returned bytes will be of length 'len'.
+    function toBytes(bytes32 self, uint8 len) internal pure returns (bytes memory bts) {
+        require(len <= 32);
+        bts = new bytes(len);
+        // Even though the bytes will allocate a full word, we don't want
+        // any potential garbage bytes in there.
+        uint data = uint(self) & ~uint(0) << (32 - len)*8;
+        assembly {
+            mstore(add(bts, /*BYTES_HEADER_SIZE*/32), data)
+        }
+    }
+
+    // Copies 'self' into a new 'bytes memory'.
+    // Returns the newly created 'bytes memory'
+    // The returned bytes will be of length '20'.
+    function toBytes(address self) internal pure returns (bytes memory bts) {
+        bts = toBytes(bytes32(uint(self) << 96), 20);
+    }
+
+    // Copies 'self' into a new 'bytes memory'.
+    // Returns the newly created 'bytes memory'
+    // The returned bytes will be of length '32'.
+    function toBytes(uint self) internal pure returns (bytes memory bts) {
+        bts = toBytes(bytes32(self), 32);
+    }
+
+    // Copies 'self' into a new 'bytes memory'.
+    // Returns the newly created 'bytes memory'
+    // Requires that:
+    //  - '8 <= bitsize <= 256'
+    //  - 'bitsize % 8 == 0'
+    // The returned bytes will be of length 'bitsize / 8'.
+    function toBytes(uint self, uint16 bitsize) internal pure returns (bytes memory bts) {
+        require(8 <= bitsize && bitsize <= 256 && bitsize % 8 == 0);
+        self <<= 256 - bitsize;
+        bts = toBytes(bytes32(self), uint8(bitsize / 8));
+    }
+
+    // Copies 'self' into a new 'bytes32'.
+    // Returns the newly created 'bytes32'
+    // The returned bytes32.
+    function toBytes32(bytes memory _bytes) internal pure returns (bytes32) {
+        require(_bytes.length >= 32);
+        bytes32 tempBytes32;
+
+        assembly {
+            tempBytes32 := mload(add(add(_bytes, 0x20), 0))
+        }
+
+        return tempBytes32;
+    }
+
+}
+
 contract BytesUtils {
     function readBytes32(bytes memory data, uint256 index) internal pure returns (bytes32 o) {
         require(data.length / 32 > index, "Reading bytes out of bounds");
@@ -7,6 +97,7 @@ contract BytesUtils {
             o := mload(add(data, add(32, mul(32, index))))
         }
     }
+
     function read(bytes memory data, uint256 offset, uint256 length) internal pure returns (bytes32 o) {
         require(data.length >= offset + length, "Reading bytes out of bounds");
         assembly {
@@ -184,4 +275,5 @@ contract BytesUtils {
         }
         require(_data.length >= o, "Reading bytes out of bounds");
     }
+    
 }
