@@ -274,6 +274,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const requiredArrears = (bn((await Helper.getBlockTime()).toString())).plus(bn('500'));
             const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
 
+            await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
                 loanManager,
                 id,
@@ -286,9 +287,8 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
 
             await rcn.setBalance(lender, amount.plus(costCosign));
             await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
-            await cosigner.addDelegate(signer, { from: owner });
 
-            await loanManager.lend(
+            const tx = await loanManager.lend(
                 id,
                 [],
                 cosigner.address,
@@ -296,7 +296,21 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
                 data,
                 { from: lender }
             );
-            // TODO finish test
+            const eventTopic = cosignerEvents.find(x => x.name === 'Cosign').topic;
+            const event = tx.receipt.logs.find(x => x.topics.some(y => y === eventTopic));
+
+            assert.equal(event.topics[1], id);
+
+            assert.equal(
+                event.data.slice(2, 130),
+                Helper.toBytes32(loanManager.address).slice(2) +
+                Helper.toBytes32(signer).slice(2)
+            );
+            const liability = await cosigner.liabilities(loanManager.address, id);
+
+            liability[0].should.be.bignumber.equal(coverage);
+            liability[1].should.be.bignumber.equal(requiredArrears);
+        });
         });
     });
 
