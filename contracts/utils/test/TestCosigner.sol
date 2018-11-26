@@ -48,7 +48,7 @@ contract TestCosigner is Cosigner, BytesUtils {
     function requestCosign(Engine engine, uint256 index, bytes memory data, bytes memory) public returns (bool) {
         if (readBytes32(data, 0) == keccak256("custom_data")) {
             require(engine.cosign(uint256(customId), customCost));
-            customId = address(0);
+            customId = 0x0;
             customCost = 0;
             return true;
         }

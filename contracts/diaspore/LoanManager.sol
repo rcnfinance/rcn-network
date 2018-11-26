@@ -45,7 +45,7 @@ contract LoanManager is BytesUtils {
     constructor(DebtEngine _debtEngine) public {
         debtEngine = _debtEngine;
         token = debtEngine.token();
-        require(token != address(0), "Error loading token");
+        require(address(token) != address(0), "Error loading token");
         directory.length++;
     }
 

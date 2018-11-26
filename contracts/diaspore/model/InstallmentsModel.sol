@@ -65,7 +65,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     function descriptor() external view returns (address) {
         address _descriptor = altDescriptor;
-        return _descriptor == address(0) ? this : _descriptor;
+        return _descriptor == address(0) ? address(this) : _descriptor;
     }
 
     function setEngine(address _engine) external onlyOwner returns (bool) {

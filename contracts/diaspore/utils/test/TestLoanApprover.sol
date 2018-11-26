@@ -42,7 +42,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
             } else if (errorBehavior == ErrorBehavior.WrongReturn) {
                 return _futureDebt;
             } else {
-                return;
+                return 0x0;
             }
         }
 
@@ -59,7 +59,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
         (btotal, ) = decode(_loanData, 16, 8);
         uint128 total = uint128(btotal);
         if (total == 666)
-            return address(0);
+            return 0x0;
         // bytes32 expected = uint256(_id) XOR keccak256("approve-loan-request");
         return bytes32(_id) ^ keccak256("approve-loan-request");
     }
