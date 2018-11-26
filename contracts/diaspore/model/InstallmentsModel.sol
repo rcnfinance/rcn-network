@@ -60,7 +60,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     function modelId() external view returns (bytes32) {
         // InstallmentsModel A 0.0.2
-        return 0x496e7374616c6c6d656e74734d6f64656c204120302e302e3200000000000000;
+        return hex"496e7374616c6c6d656e74734d6f64656c204120302e302e32";
     }
 
     function descriptor() external view returns (address) {
