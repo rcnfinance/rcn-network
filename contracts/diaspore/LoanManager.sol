@@ -13,6 +13,7 @@ contract LoanManager is BytesUtils {
     using ImplementsInterface for address;
     using IsContract for address;
     using SafeMath for uint256;
+    using Bytes for *;
 
     DebtEngine public debtEngine;
     Token public token;
@@ -58,8 +59,8 @@ contract LoanManager is BytesUtils {
     function getOracle(uint256 _id) external view returns (address) { return requests[bytes32(_id)].oracle; }
     function getCosigner(uint256 _id) external view returns (address) { return requests[bytes32(_id)].cosigner; }
     function getCurrency(uint256 _id) external view returns (bytes32) {
-        address oracle = requests[bytes32(_id)].oracle;
-        return oracle == address(0) ? bytes32(address(0)) : RateOracle(oracle).currency();
+        address oracle = requests[_id.toBytes32()].oracle;
+        return oracle == address(0) ? bytes32(0x0) : RateOracle(oracle).currency();
     }
     function getAmount(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].amount; }
 
