@@ -322,7 +322,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const loanData = await model.encodeData(amount, expirationLoan);
 
             const id = (await Helper.toEvent(
-                    loanManager.requestLoan(
+                loanManager.requestLoan(
                     amount,
                     model.address,
                     Helper.address0x,
