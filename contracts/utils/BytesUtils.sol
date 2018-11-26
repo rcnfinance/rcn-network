@@ -88,6 +88,7 @@ library Bytes {
         return tempBytes32;
     }
 
+    //TODO: (jpgonzalezra) make test
     function toAddress(bytes memory _bytes) internal pure returns (address) {
         uint result = 0;
         for (uint i = 0; i < _bytes.length; i++) {
