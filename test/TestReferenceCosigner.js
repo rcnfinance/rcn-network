@@ -10,7 +10,6 @@ const TestReferenceCosigner = artifacts.require('./utils/test/TestReferenceCosig
 
 const Helper = require('./Helper.js');
 const Web3Utils = require('web3-utils');
-
 const BigNumber = web3.BigNumber;
 
 require('chai')
@@ -38,11 +37,25 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
     let cosigner;
     let testCosigner;
     // let oracle;
+    let cosignerEvents;
 
-    async function toDataRequestCosign (id, cost, coverage, requiredArrears, expiration, signer) {
+    function getAllEvents (contract) {
+        function toEvent (crudeEvent) {
+            return {
+                name: crudeEvent.name,
+                inputs: crudeEvent.inputs,
+                topic: Web3Utils.soliditySha3(crudeEvent.name + '(' + crudeEvent.inputs.map(x => x.type) + ')'),
+            };
+        }
+
+        const crudeEvents = contract.abi.filter(x => x.type === 'event');
+        return crudeEvents.map(x => toEvent(x));
+    }
+
+    async function toDataRequestCosign (loanManagerContract, id, cost, coverage, requiredArrears, expiration, signer) {
         const hashDataSignature = await cosigner.hashDataSignature(
-            loanManager.address,
-            bn(Web3Utils.hexToNumberString(id).toString()),
+            loanManagerContract.address,
+            id,
             cost,
             coverage,
             requiredArrears,
@@ -66,6 +79,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         // oracle = await TestRateOracle.new({ from: owner });
         testCosigner = await TestReferenceCosigner.new(rcn.address, { from: owner });
         cosigner = await ReferenceCosigner.new(rcn.address, { from: owner });
+        cosignerEvents = getAllEvents(cosigner);
 
         assert.equal(await cosigner.rcn(), rcn.address);
     });
@@ -87,6 +101,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const id = bn('51651');
 
             const data = await toDataRequestCosign(
+                loanManager,
                 id,
                 cost,
                 coverage,
@@ -178,6 +193,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const id = bn('898');
 
             const data = await toDataRequestCosign(
+                loanManager,
                 id,
                 cost,
                 coverage,
@@ -227,6 +243,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
 
             const data = await toDataRequestCosign(
+                loanManager,
                 id,
                 costCosign,
                 coverage,
