@@ -648,7 +648,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             assert.equal(await cosigner.isDefaulted(loanManager.address, id), false);
         });
 
-        it('The liability should not be defaulted (status paid)', async () => {
+        it('The liability should not be defaulted (liability non-expired and status paid)', async () => {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('98875');
@@ -712,7 +712,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             assert.equal(await cosigner.isDefaulted(loanManager.address, id), false);
         });
 
-        it('The liability should not be defaulted (liability expired)', async () => {
+        it('The liability should not be defaulted (liability expired and status paid)', async () => {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('98875');
@@ -778,7 +778,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             assert.equal(await cosigner.isDefaulted(loanManager.address, id), false);
         });
 
-        it('The liability should be defaulted (status paid and liability expired)', async () => {
+        it('The liability should be defaulted (liability expired and status non-paid)', async () => {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('98875');
