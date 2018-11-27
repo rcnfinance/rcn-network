@@ -955,6 +955,297 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal(prevCosignerBal.sub(calcClaimAmount));
             (await rcn.balanceOf(lender)).should.be.bignumber.equal(prevLenderBal.plus(calcClaimAmount));
         });
+
+        it('Try claim a non-existent liability', async () => {
+            await Helper.tryCatchRevert(
+                () => cosigner.claim(
+                    loanManager.address,
+                    bn('25131651'),
+                    '',
+                    { from: accounts[2] }
+                ),
+                'The liability not exists'
+            );
+        });
+
+        it('Try claim a liability with borrower as msg.sender', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('626232');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await Helper.increaseTime(3000);
+
+            await rcn.setBalance(cosigner.address, amount);
+            await debtEngine.approve(cosigner.address, id, { from: lender });
+
+            await Helper.tryCatchRevert(
+                () => cosigner.claim(
+                    loanManager.address,
+                    id,
+                    '',
+                    { from: borrower }
+                ),
+                'The msg.sender should be the owner of the loan'
+            );
+        });
+
+        it('Try claim a liability and cosigner contract dont have token balance', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('626232');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await Helper.increaseTime(3000);
+
+            await debtEngine.approve(cosigner.address, id, { from: lender });
+
+            await Helper.tryCatchRevert(
+                () => cosigner.claim(
+                    loanManager.address,
+                    id,
+                    '',
+                    { from: lender }
+                ),
+                'Error paying the cosigner'
+            );
+        });
+
+        it('Try claim a non-defaulted liability (liability non-expired and status paid)', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('626232');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await rcn.setBalance(cosigner.address, amount);
+            await debtEngine.approve(cosigner.address, id, { from: lender });
+
+            await rcn.setBalance(borrower, amount.plus(amount));
+            await rcn.approve(debtEngine.address, amount.plus(amount), { from: borrower });
+
+            await debtEngine.pay(
+                id,
+                amount.plus(amount),
+                borrower,
+                [],
+                { from: borrower }
+            );
+
+            await Helper.tryCatchRevert(
+                () => cosigner.claim(
+                    loanManager.address,
+                    id,
+                    '',
+                    { from: lender }
+                ),
+                'The liability is not defaulted'
+            );
+        });
+
+        it('Try claim a non-defaulted liability (liability expired and status paid)', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('626232');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await Helper.increaseTime(3000);
+
+            await rcn.setBalance(cosigner.address, amount);
+            await debtEngine.approve(cosigner.address, id, { from: lender });
+
+            await rcn.setBalance(borrower, amount.plus(amount));
+            await rcn.approve(debtEngine.address, amount.plus(amount), { from: borrower });
+
+            await debtEngine.pay(
+                id,
+                amount.plus(amount),
+                borrower,
+                [],
+                { from: borrower }
+            );
+
+            await Helper.tryCatchRevert(
+                () => cosigner.claim(
+                    loanManager.address,
+                    id,
+                    '',
+                    { from: lender }
+                ),
+                'The liability is not defaulted'
+            );
+        });
     });
 
     describe('function withdrawFromLoan', async () => {
