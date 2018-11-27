@@ -403,9 +403,9 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events, IERC721
         @param _to Destination address
         @param _amount Amount to send
 
-        @return true if the withdrawal was done successfully
+        @return true if the withdrawPartial was done successfully
     */
-    function withdrawal(
+    function withdrawPartial(
         Token _token,
         address _to,
         uint256 _amount
