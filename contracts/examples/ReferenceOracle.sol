@@ -5,6 +5,8 @@ import "./../utils/BytesUtils.sol";
 import "./../interfaces/Oracle.sol";
 
 contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
+    using Bytes for bytes32;
+
     event DelegatedCall(address requester, address to);
     event CacheHit(address requester, bytes32 currency, uint256 requestTimestamp, uint256 deliverTimestamp, uint256 rate, uint256 decimals);
     event DeliveredRate(address requester, bytes32 currency, address signer, uint256 requestTimestamp, uint256 rate, uint256 decimals);
@@ -106,12 +108,15 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
             require(!isExpired(timestamp), "The rate provided is expired");
             uint256 rate = uint256(readBytes32(data, INDEX_RATE));
             uint256 decimals = uint256(readBytes32(data, INDEX_DECIMALS));
-            uint8 v = uint8(readBytes32(data, INDEX_V));
-            bytes32 r = readBytes32(data, INDEX_R);
-            bytes32 s = readBytes32(data, INDEX_S);
 
-            bytes32 _hash = keccak256(this, currency, rate, decimals, timestamp);
-            address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _hash),v,r,s);
+            bytes32 _hash = keccak256(abi.encodePacked(this, currency, rate, decimals, timestamp));
+            bytes32 preHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));
+            address signer = ecrecover(
+                preHash,
+                /*v*/readBytes32(data, INDEX_V).toUint8(),
+                /*r*/readBytes32(data, INDEX_R),
+                /*s*/readBytes32(data, INDEX_S)
+            );
 
             require(isDelegate(signer), "Signature is not valid");
 

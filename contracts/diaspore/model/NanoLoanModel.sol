@@ -21,6 +21,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     using SafeMath for uint256;
     using SafeMath for uint128;
     using SafeMath for uint64;
+    using Bytes for *;
 
     address public engine;
     address private altDescriptor;
@@ -113,6 +114,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
             uint64 duesIn, uint64 cancelableAt
         ) = _decodeData(data);
         _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
+        
         return true;
     }
 
@@ -129,7 +131,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         uint256 _interestRatePunitory,
         uint64 _duesIn,
         uint64 _cancelableAt
-    ) internal {
+    ) internal view {
         require(_cancelableAt <= _duesIn, "The cancelableAt should be less or equal than duesIn");
         require(_interestRate > 1000, "Interest rate too high");
         require(_interestRatePunitory > 1000, "Punitory interest rate too high");
@@ -395,11 +397,11 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         (bytes32 amount, bytes32 interestRate, bytes32 interestRatePunitory,
             bytes32 duesIn, bytes32 cancelableAt) = decode(_data, 16, 32, 32, 8, 8);
         return (
-            uint128(amount), 
-            uint256(interestRate), 
-            uint256(interestRatePunitory),
-            uint64(duesIn), 
-            uint64(cancelableAt)
+            amount.toUint128(), 
+            interestRate.toUint(), 
+            interestRatePunitory.toUint(),
+            duesIn.toUint64(), 
+            cancelableAt.toUint64()
         );
     }
 

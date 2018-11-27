@@ -91,7 +91,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         require(data.length == L_DATA, "Invalid data length");
 
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
-        uint64 dueTime = uint64(bdue);
+        uint64 dueTime = bdue.toUint64();
 
         if (btotal.toBytes().equals(uint(0).toBytes())) return false;
 
@@ -109,7 +109,8 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
             while (aux / aux != 2) aux++;
             return aux;
         } else if (entry.errorFlag == ERROR_WRITE_STORAGE_STATUS) {
-            entry.lastPing = uint64(now);
+            //entry.lastPing = uint64(now);
+            return uint64(now);
         }
 
         return entry.paid < entry.total ? STATUS_ONGOING : STATUS_PAID;
@@ -160,8 +161,8 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         if (errorFlag == ERROR_CREATE) return false;
 
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
-        uint128 total = uint128(btotal);
-        uint64 dueTime = uint64(bdue);
+        uint128 total = btotal.toUint128();
+        uint64 dueTime = bdue.toUint64();
 
         _validate(dueTime);
 
