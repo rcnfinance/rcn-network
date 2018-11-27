@@ -166,7 +166,7 @@ contract LoanManager is BytesUtils {
         require(_borrower != address(0), "The request should have a borrower");
         require(Model(_model).validate(_loanData), "The loan data is not valid");
 
-        uint256 internalSalt = _buildInternalSalt(_amount, _borrower, msg.sender, _salt, _expiration);
+        uint256 innerSalt = _buildInternalSalt(_amount, _borrower, msg.sender, _salt, _expiration);
         id = keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -174,7 +174,7 @@ contract LoanManager is BytesUtils {
                 address(this),
                 _model,
                 _oracle,
-                internalSalt,
+                innerSalt,
                 _loanData
             )
         );
@@ -198,7 +198,7 @@ contract LoanManager is BytesUtils {
             expiration: _expiration
         });
 
-        emit Requested(id, internalSalt);
+        emit Requested(id, innerSalt);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
@@ -429,7 +429,7 @@ contract LoanManager is BytesUtils {
             _creator
         );
 
-        uint256 internalSalt = _buildInternalSalt(
+        uint256 innerSalt = _buildInternalSalt(
             _amount,
             _borrower,
             _creator,
@@ -441,7 +441,7 @@ contract LoanManager is BytesUtils {
             address(this),
             _model,
             _oracle,
-            internalSalt,
+            innerSalt,
             _loanData
         );
     }
@@ -596,13 +596,13 @@ contract LoanManager is BytesUtils {
     function _createDebt(
         bytes memory _requestData,
         bytes memory _loanData,
-        uint256 _internalSalt
+        uint256 _innerSalt
     ) internal returns (bytes32) {
         return debtEngine.create2(
             Model(address(read(_requestData, O_MODEL, L_MODEL))),
             msg.sender,
             address(read(_requestData, O_ORACLE, L_ORACLE)),
-            _internalSalt,
+            _innerSalt,
             _loanData
         );
     }
@@ -610,7 +610,7 @@ contract LoanManager is BytesUtils {
     function _buildSettleId(
         bytes memory _requestData,
         bytes memory _loanData
-    ) internal view returns (bytes32 id, uint256 internalSalt) {
+    ) internal view returns (bytes32 id, uint256 innerSalt) {
         (
             uint128 amount,
             address model,
@@ -621,7 +621,7 @@ contract LoanManager is BytesUtils {
             address creator
         ) = _decodeSettle(_requestData);
 
-        internalSalt = _buildInternalSalt(
+        innerSalt = _buildInternalSalt(
             amount,
             borrower,
             creator,
@@ -633,7 +633,7 @@ contract LoanManager is BytesUtils {
             address(this),
             model,
             oracle,
-            internalSalt,
+            innerSalt,
             _loanData
         );
     }
