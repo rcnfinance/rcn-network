@@ -11,9 +11,21 @@ import "./../utils/SafeMath.sol";
 import "./../utils/SimpleDelegable.sol";
 
 
+interface IERC721Receiver {
+    function onERC721Received(
+        address _operator,
+        address _from,
+        uint256 _tokenId,
+        bytes   _userData
+    ) external returns (bytes4);
+}
+
+
 contract IDebtEngine {
     function withdraw(bytes32 _id, address _to) external returns (uint256 amount);
     function withdrawPartial(bytes32 _id, address _to, uint256 _amount) external returns (bool success);
+    function approve(address _operator, uint256 _assetId) external;
+    function safeTransferFrom(address _from, address _to, uint256 _assetId) external;
 }
 
 
@@ -106,10 +118,17 @@ contract Events {
         uint256 _tokens,
         uint256 _equivalent
     );
+
+    event Received(
+        address _operator,
+        address _from,
+        uint256 _id,
+        bytes _data
+    );
 }
 
 
-contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
+contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events, IERC721Receiver {
     using SafeMath for uint256;
 
     string private infoUrl;
@@ -269,7 +288,7 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
             "The liability is not defaulted"
         );
 
-        loanManager.safeTransferFrom(msg.sender, address(this), _index);
+        IDebtEngine(loanManager.debtEngine()).safeTransferFrom(msg.sender, address(this), _index);
 
         uint256 claimAmount = _currencyToToken(
             loanManager.getOracle(_index),
@@ -359,7 +378,10 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
         require(_to != address(0), "Invalid _to address");
         require(liabilities[_loanManager][_index].coverage == 0, "The liability is not claimed");
 
-        _loanManager.safeTransferFrom(address(this), _to, _index);
+        IDebtEngine(_loanManager.debtEngine()).safeTransferFrom(address(this), _to, _index);
+
+        return true;
+    }
 
         return true;
     }
@@ -382,5 +404,21 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events {
         require(_token.transfer(_to, _amount), "Error transfer tokens in withdrawal");
 
         return true;
+    }
+
+    function onERC721Received(
+        address _operator,
+        address _from,
+        uint256 _tokenId,
+        bytes   _userData
+    ) external returns (bytes4) {
+        emit Received(
+            _operator,
+            _from,
+            _tokenId,
+            _userData
+        );
+
+        return bytes4(0x150b7a02);
     }
 }
