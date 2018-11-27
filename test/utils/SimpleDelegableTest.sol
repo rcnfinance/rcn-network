@@ -4,18 +4,20 @@ import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/SimpleDelegable.sol";
+import "../../contracts/utils/BytesUtils.sol";
 
 contract SimpleDelegableMock is SimpleDelegable {
+    using Bytes for *;
     function ping() external onlyDelegate returns (bytes32) {
-        return bytes32(2);
+        return 2.toBytes32();
     }
 }
 
 contract AccountMock {
     function send(
         address _to,
-        bytes _data
-    ) external returns (bytes32) {
+        bytes memory _data
+    ) public returns (bytes32) {
         (uint256 success, bytes32 result) = _safeCall(_to, _data);
         require(success == 1, "Tx reverted");
         return result;
@@ -23,7 +25,7 @@ contract AccountMock {
 
     function _safeCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
         assembly {
             let x := mload(0x40)
@@ -43,16 +45,18 @@ contract AccountMock {
 }
 
 contract SimpleDelegableTest {
+    using Bytes for *;
+
     function testCallAsDelegate() external {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
-        delegable.addDelegate(this);
-        Assert.equal(delegable.ping(), bytes32(2), "Call should success");
+        delegable.addDelegate(address(this));
+        Assert.equal(delegable.ping(), 2.toBytes32(), "Call should success");
     }
 
     function testFailNonDelegate() external {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
         (uint256 success, bytes32 result) = _safeCall(
-            delegable,
+            address(delegable),
             abi.encodeWithSelector(delegable.ping.selector)
         );
         Assert.equal(success, uint256(0), "Call should fail");
@@ -62,81 +66,81 @@ contract SimpleDelegableTest {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
         AccountMock account1 = new AccountMock();
         AccountMock account2 = new AccountMock();
-        delegable.addDelegate(account1);
-        delegable.addDelegate(account2);
-        Assert.equal(delegable.isDelegate(account1), true, "account1 be delegate");
-        Assert.equal(delegable.isDelegate(account2), true, "account2 be delegate");
+        delegable.addDelegate(address(account1));
+        delegable.addDelegate(address(account2));
+        Assert.equal(delegable.isDelegate(address(account1)), true, "account1 be delegate");
+        Assert.equal(delegable.isDelegate(address(account2)), true, "account2 be delegate");
     }
 
     function testRemoveDelegate() external {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
         AccountMock account1 = new AccountMock();
         AccountMock account2 = new AccountMock();
-        delegable.addDelegate(account1);
-        delegable.addDelegate(account2);
-        delegable.removeDelegate(account2);
-        Assert.equal(delegable.isDelegate(account1), true, "account1 be delegate");
-        Assert.equal(delegable.isDelegate(account2), false, "account2 be delegate");
+        delegable.addDelegate(address(account1));
+        delegable.addDelegate(address(account2));
+        delegable.removeDelegate(address(account2));
+        Assert.equal(delegable.isDelegate(address(account1)), true, "account1 be delegate");
+        Assert.equal(delegable.isDelegate(address(account2)), false, "account2 be delegate");
     }
 
     function testOnlyOwnerShouldAddDelegate() external {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
         AccountMock account1 = new AccountMock();
         AccountMock account2 = new AccountMock();
-        delegable.transferTo(account2);
+        delegable.transferTo(address(account2));
         assertRevert(
-            delegable,
+            address(delegable),
             abi.encodeWithSelector(
                 delegable.addDelegate.selector,
-                this
+                address(this)
             )
         );
         assertRevert(
-            delegable,
+            address(delegable),
             abi.encodeWithSelector(
                 delegable.addDelegate.selector,
                 account2
             )
         );
         assertRevert(
-            delegable,
+            address(delegable),
             abi.encodeWithSelector(
                 delegable.addDelegate.selector,
                 account1
             )
         );
-        Assert.equal(delegable.isDelegate(this), false, "");
-        Assert.equal(delegable.isDelegate(account1), false, "");
-        Assert.equal(delegable.isDelegate(account2), false, "");
+        Assert.equal(delegable.isDelegate(address(this)), false, "");
+        Assert.equal(delegable.isDelegate(address(account1)), false, "");
+        Assert.equal(delegable.isDelegate(address(account2)), false, "");
     }
 
     function testOnlyOwnerShouldRemoveDelegate() external {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
         AccountMock account1 = new AccountMock();
         AccountMock account2 = new AccountMock();
-        delegable.addDelegate(account1);
-        delegable.transferTo(account2);
+        delegable.addDelegate(address(account1));
+        delegable.transferTo(address(account2));
         assertRevert(
-            delegable,
+            address(delegable),
             abi.encodeWithSelector(
                 delegable.removeDelegate.selector,
                 account2
             )
         );
         assertRevert(
-            delegable,
+            address(delegable),
             abi.encodeWithSelector(
                 delegable.removeDelegate.selector,
                 account1
             )
         );
-        Assert.equal(delegable.isDelegate(account1), true, "");
-        Assert.equal(delegable.isDelegate(account2), false, "");
+        Assert.equal(delegable.isDelegate(address(account1)), true, "");
+        Assert.equal(delegable.isDelegate(address(account2)), false, "");
     }
 
     function assertRevert(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal {
         (uint256 success,) = _safeCall(_contract, _data);
         Assert.equal(success, 0, "Should revert");
@@ -144,7 +148,7 @@ contract SimpleDelegableTest {
 
     function _safeCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
         assembly {
             let x := mload(0x40)

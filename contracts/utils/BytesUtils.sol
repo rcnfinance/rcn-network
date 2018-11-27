@@ -74,6 +74,29 @@ library Bytes {
         bts = toBytes(bytes32(self), uint8(bitsize / 8));
     }
 
+    // TODO: (jpgonzalezra) add test
+    // Copies 'self' into a new 'bytes32'.
+    // Returns the newly created 'bytes32'
+    // The returned bytes32.
+    function toBytes32(bytes memory _bytes) internal pure returns (bytes32) {
+        require(_bytes.length >= 32);
+        bytes32 tempBytes32;
+         assembly {
+            tempBytes32 := mload(add(add(_bytes, 0x20), 0))
+        }
+         return tempBytes32;
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toBytes32(uint _uint) internal pure returns (bytes32) {
+        return toBytes32(toBytes(_uint));
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toBytes32(address _address) internal pure returns (bytes32) {
+        return toBytes32(toBytes(_address));
+    }
+
     // TODO: (jpgonzalezra) add test / add doc
     function toUint(bytes32 input) public pure returns (uint ret) {
         require(input != 0x0);

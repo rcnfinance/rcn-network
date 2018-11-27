@@ -29,7 +29,7 @@ contract SafeMathTest {
 
     function testCatchAddOverflow() external {
         (uint256 success, bytes32 result) = _safeCall(
-            safeMath,
+            address(safeMath),
             abi.encodeWithSelector(
                 safeMath.add.selector,
                 uint256(2) ** uint256(255),
@@ -41,7 +41,7 @@ contract SafeMathTest {
     }
     function testCatchSubUnderflow() external {
         (uint256 success, bytes32 result) = _safeCall(
-            safeMath,
+            address(safeMath),
             abi.encodeWithSelector(
                 safeMath.sub.selector,
                 uint256(2),
@@ -54,7 +54,7 @@ contract SafeMathTest {
 
     function testCatchMultOverflow() external {
         (uint256 success, bytes32 result) = _safeCall(
-            safeMath,
+            address(safeMath),
             abi.encodeWithSelector(
                 safeMath.mult.selector,
                 uint256(2) ** uint256(255),
@@ -67,7 +67,7 @@ contract SafeMathTest {
 
     function _safeCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
         assembly {
             let x := mload(0x40)
