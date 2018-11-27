@@ -91,7 +91,17 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         for (let i = 0; i < accounts.length; i++) {
             await cosigner.removeDelegate(accounts[i], { from: owner });
             await testCosigner.removeDelegate(accounts[i], { from: owner });
+            await rcn.setBalance(accounts[i], new BigNumber('0'));
+            await rcn.approve(loanManager.address, new BigNumber('0'), { from: accounts[i] });
+            await rcn.approve(testLoanManager.address, new BigNumber('0'), { from: accounts[i] });
+            await rcn.approve(debtEngine.address, new BigNumber('0'), { from: accounts[i] });
+            await rcn.approve(cosigner.address, new BigNumber('0'), { from: accounts[i] });
         }
+        await rcn.setBalance(cosigner.address, new BigNumber('0'));
+        await rcn.setBalance(loanManager.address, new BigNumber('0'));
+        await rcn.setBalance(debtEngine.address, new BigNumber('0'));
+
+        (await rcn.totalSupply()).should.be.bignumber.equal(new BigNumber('0'));
     });
 
     describe('Helper contract', async () => {
