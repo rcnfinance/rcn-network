@@ -88,23 +88,30 @@ library Bytes {
         return tempBytes32;
     }
 
-    //TODO: (jpgonzalezra) make test
-    function toAddress(bytes memory _bytes) internal pure returns (address) {
-        uint result = 0;
-        for (uint i = 0; i < _bytes.length; i++) {
-            uint c = uint(_bytes[i]);
-            if (c >= 48 && c <= 57) {
-                result = result * 16 + (c - 48);
-            }
-            if(c >= 65 && c<= 90) {
-                result = result * 16 + (c - 55);
-            }
-            if(c >= 97 && c<= 122) {
-                result = result * 16 + (c - 87);
-            }
+    // TODO: (jpgonzalezra) add test / add doc
+    function toUint(bytes32 input) public pure returns (uint ret) {
+        require(input != 0x0);
+
+        uint digit;
+        for (uint i = 0; i < 32; i++) {
+            digit = uint((uint(input) / (2 ** (8 * (31 - i)))) & 0xff);
+            if (digit == 0) break;
+            else if (digit < 48 || digit > 57) revert();
+            ret *= 10;
+            ret += (digit - 48);
+        }
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toAddress(bytes source) internal pure returns(address) {
+        uint result;
+        uint mul = 1;
+        for(uint i = 20; i > 0; i--) {
+        result += uint8(source[i-1])*mul;
+            mul = mul*256;
         }
         return address(result);
-    }
+  }
 
 }
 

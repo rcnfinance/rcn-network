@@ -59,7 +59,7 @@ contract LoanManager is BytesUtils {
     function getOracle(uint256 _id) external view returns (address) { return requests[bytes32(_id)].oracle; }
     function getCosigner(uint256 _id) external view returns (address) { return requests[bytes32(_id)].cosigner; }
     function getCurrency(uint256 _id) external view returns (bytes32) {
-        address oracle = requests[_id.toBytes32()].oracle;
+        address oracle = requests[bytes32(_id)].oracle;
         return oracle == address(0) ? bytes32(0x0) : RateOracle(oracle).currency();
     }
     function getAmount(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].amount; }
@@ -457,7 +457,7 @@ contract LoanManager is BytesUtils {
         bytes memory _borrowerSig
     ) public returns (bytes32 id) {
         // Validate request
-        require(uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION)) > now, "Loan request is expired");
+        require(read(_requestData, O_EXPIRATION, L_EXPIRATION).toUint() > now, "Loan request is expired");
 
         // Get id
         uint256 interSalt;
@@ -495,15 +495,15 @@ contract LoanManager is BytesUtils {
             open: false,
             approved: true,
             cosigner: _cosigner,
-            amount: uint128(read(_requestData, O_AMOUNT, L_AMOUNT)),
-            model: address(read(_requestData, O_MODEL, L_MODEL)),
-            creator: address(read(_requestData, O_CREATOR, L_CREATOR)),
-            oracle: address(read(_requestData, O_ORACLE, L_ORACLE)),
-            borrower: address(read(_requestData, O_BORROWER, L_BORROWER)),
-            salt: _cosigner != address(0) ? _maxCosignerCost : uint256(read(_requestData, O_SALT, L_SALT)),
+            amount: read(_requestData, O_AMOUNT, L_AMOUNT).toUint(),
+            model: read(_requestData, O_MODEL, L_MODEL).toBytes().toAddress(),
+            creator: read(_requestData, O_CREATOR, L_CREATOR).toBytes().toAddress(),
+            oracle: read(_requestData, O_ORACLE, L_ORACLE).toBytes().toAddress(),
+            borrower: read(_requestData, O_BORROWER, L_BORROWER).toBytes().toAddress(),
+            salt: _cosigner != address(0) ? _maxCosignerCost : read(_requestData, O_SALT, L_SALT).toUint(),
             loanData: _loanData,
             position: 0,
-            expiration: uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION))
+            expiration: read(_requestData, O_EXPIRATION, L_EXPIRATION).toUint()
         });
 
         Request storage request = requests[id];
