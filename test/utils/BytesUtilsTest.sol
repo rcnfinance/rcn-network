@@ -5,36 +5,61 @@ import "truffle/DeployedAddresses.sol";
 import "../../contracts/utils/BytesUtils.sol";
 
 interface BytesUtilsInterface {
-    function pReadBytes32(bytes data, uint256 index) external;
+    function pReadBytes32(bytes memory data, uint256 index) public;
 }
 
 contract TestBytesUtils is BytesUtils {
-    function pReadBytes32(bytes data, uint256 index) public returns (bytes32) {
+    function pReadBytes32(
+        bytes memory data, 
+        uint256 index
+    ) public returns (bytes32) {
         return readBytes32(data, index);
     }
 
-    function pRead(bytes data, uint256 offset, uint256 length) public returns (bytes32) {
+    function pRead(
+        bytes memory data, 
+        uint256 offset, 
+        uint256 length
+    ) public returns (bytes32) {
         return read(data, offset, length);
     }
 
-    function pDecode(bytes data, uint256 a) public returns (bytes32) {
+    function pDecode(
+        bytes memory data, 
+        uint256 a
+    ) public returns (bytes32) {
         return decode(data, a);
     }
 
-    function pDecode(bytes data, uint256 a, uint256 b) public returns (bytes32,bytes32) {
+    function pDecode(
+        bytes memory data, 
+        uint256 a, 
+        uint256 b
+    ) public returns (bytes32, bytes32) {
         return decode(data, a, b);
     }
 
-    function pDecode(bytes data, uint256 a, uint256 c, uint256 b) public returns (bytes32,bytes32,bytes32) {
+    function pDecode(
+        bytes memory data, 
+        uint256 a, 
+        uint256 c, 
+        uint256 b
+    ) public returns (bytes32, bytes32, bytes32) {
         return decode(data, a, c, b);
     }
 
-    function pDecode(bytes data, uint256 a, uint256 b, uint256 c, uint256 d) public returns (bytes32,bytes32,bytes32,bytes32) {
+    function pDecode(
+        bytes memory data, 
+        uint256 a, 
+        uint256 b, 
+        uint256 c, 
+        uint256 d
+    ) public returns (bytes32,bytes32,bytes32,bytes32) {
         return decode(data, a, b, c, d);
     }
 
     function pDecode(
-        bytes data,
+        bytes memory data,
         uint256 a,
         uint256 b,
         uint256 c,
@@ -51,7 +76,7 @@ contract TestBytesUtils is BytesUtils {
     }
 
     function pDecode(
-        bytes data,
+        bytes memory data,
         uint256 a,
         uint256 b,
         uint256 c,
@@ -75,7 +100,7 @@ contract ThrowProxy {
     address public target;
     bytes data;
 
-    function ThrowProxy(address _target) public {
+    constructor(address _target) public {
         target = _target;
     }
 
@@ -96,7 +121,7 @@ contract BytesUtilsTest {
         bytesUtils = new TestBytesUtils();
     }
 
-    function buildData(bytes32 a, bytes32 b, bytes32 c, bytes32 d) internal returns (bytes o) {
+    function buildData(bytes32 a, bytes32 b, bytes32 c, bytes32 d) internal returns (bytes memory o) {
         assembly {
             let size := 128
             o := mload(0x40)
@@ -109,7 +134,7 @@ contract BytesUtilsTest {
         }
     }
 
-    function buildData(bytes32 a, bytes32 b, bytes4 c) internal returns (bytes o) {
+    function buildData(bytes32 a, bytes32 b, bytes4 c) internal returns (bytes memory o) {
         assembly {
             let size := 68
             o := mload(0x40)
