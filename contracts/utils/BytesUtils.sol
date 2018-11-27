@@ -88,20 +88,52 @@ library Bytes {
         return tempBytes32;
     }
 
-    //TODO: (jpgonzalezra) make test
-    function toAddress(bytes memory _bytes) internal pure returns (address) {
-        uint result = 0;
-        for (uint i = 0; i < _bytes.length; i++) {
-            uint c = uint(_bytes[i]);
-            if (c >= 48 && c <= 57) {
-                result = result * 16 + (c - 48);
-            }
-            if(c >= 65 && c<= 90) {
-                result = result * 16 + (c - 55);
-            }
-            if(c >= 97 && c<= 122) {
-                result = result * 16 + (c - 87);
-            }
+    // TODO: (jpgonzalezra) add test / add doc
+    function toUint(bytes32 input) public pure returns (uint ret) {
+        require(input != 0x0);
+
+        uint digit;
+        for (uint i = 0; i < 32; i++) {
+            digit = uint((uint(input) / (2 ** (8 * (31 - i)))) & 0xff);
+            if (digit == 0) break;
+            else if (digit < 48 || digit > 57) revert();
+            ret *= 10;
+            ret += (digit - 48);
+        }
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toUint24(bytes32 input) internal pure returns (uint24 ret) {
+        return uint24(toUint(input));
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toUint32(bytes32 input) internal pure returns (uint32 ret) { 
+        return uint32(toUint(input));
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toUint40(bytes32 input) internal pure returns (uint40 ret) { 
+        return uint40(toUint(input));
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toUint64(bytes32 input) internal pure returns (uint64 ret) {
+        return uint64(toUint(input));
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toUint128(bytes32 input) internal pure returns (uint128 ret) {
+        return uint128(toUint(input));
+    }
+
+    // TODO: (jpgonzalezra) add test / add doc
+    function toAddress(bytes memory source) internal pure returns(address) {
+        uint result;
+        uint mul = 1;
+        for(uint i = 20; i > 0; i--) {
+        result += uint8(source[i-1])*mul;
+            mul = mul*256;
         }
         return address(result);
     }
@@ -109,6 +141,7 @@ library Bytes {
 }
 
 contract BytesUtils {
+
     function readBytes32(bytes memory data, uint256 index) internal pure returns (bytes32 o) {
         require(data.length / 32 > index, "Reading bytes out of bounds");
         assembly {
