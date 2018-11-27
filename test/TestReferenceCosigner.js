@@ -951,6 +951,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             liability[0].should.be.bignumber.equal(bn('0'));
             liability[1].should.be.bignumber.equal(requiredArrears);
 
+            assert.equal(await debtEngine.ownerOf(id), cosigner.address);
             (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal(prevCosignerBal.sub(calcClaimAmount));
             (await rcn.balanceOf(lender)).should.be.bignumber.equal(prevLenderBal.plus(calcClaimAmount));
         });
