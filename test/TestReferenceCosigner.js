@@ -7,7 +7,7 @@ const TestToken = artifacts.require('./utils/test/TestToken.sol');
 const TestReferenceCosigner = artifacts.require('./utils/test/TestReferenceCosigner.sol');
 const TestLoanManagerForReferenceCosigner = artifacts.require('./utils/test/TestLoanManagerForReferenceCosigner.sol');
 
-// const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
+const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
 
 const Helper = require('./Helper.js');
 const Web3Utils = require('web3-utils');
@@ -38,7 +38,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
     let cosigner;
     let testCosigner;
     let testLoanManager;
-    // let oracle;
+    let oracle;
     let cosignerEvents;
 
     function getAllEvents (contract) {
@@ -54,8 +54,8 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         return crudeEvents.map(x => toEvent(x));
     }
 
-    async function toDataRequestCosign (loanManagerContract, id, cost, coverage, requiredArrears, expiration, signer) {
-        const hashDataSignature = await cosigner.hashDataSignature(
+    async function toDataRequestCosign (cosignerContract, loanManagerContract, id, cost, coverage, requiredArrears, expiration, signer) {
+        const hashDataSignature = await cosignerContract.hashDataSignature(
             loanManagerContract.address,
             id,
             cost,
@@ -69,7 +69,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         const s = signature.slice(64, 128);
         const v = Web3Utils.toHex(web3.toDecimal(signature.slice(128, 130)) + 27).slice(2);
 
-        return (await cosigner.encodeData(cost, coverage, requiredArrears, expiration)) + v + r + s;
+        return (await cosignerContract.encodeData(cost, coverage, requiredArrears, expiration)) + v + r + s;
     };
 
     before('Create contracts', async function () {
@@ -79,7 +79,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         testLoanManager = await TestLoanManagerForReferenceCosigner.new({ from: owner });
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
-        // oracle = await TestRateOracle.new({ from: owner });
+        oracle = await TestRateOracle.new({ from: owner });
         testCosigner = await TestReferenceCosigner.new(rcn.address, { from: owner });
         cosigner = await ReferenceCosigner.new(rcn.address, { from: owner });
         cosignerEvents = getAllEvents(cosigner);
@@ -90,6 +90,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
     beforeEach('Clean', async function () {
         for (let i = 0; i < accounts.length; i++) {
             await cosigner.removeDelegate(accounts[i], { from: owner });
+            await testCosigner.removeDelegate(accounts[i], { from: owner });
         }
     });
 
@@ -99,11 +100,12 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         it('Should encode and decode data and signature', async () => {
             const cost = bn('1000');
             const coverage = bn('6000');
-            const requiredArrears = bn(await Helper.getBlockTime());
+            const requiredArrears = bn('666');
             const expiration = bn(await Helper.getBlockTime());
             const id = bn('51651');
 
             const data = await toDataRequestCosign(
+                cosigner,
                 loanManager,
                 id,
                 cost,
@@ -133,11 +135,12 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         it('Try decode a cosign data with invalid length', async () => {
             const cost = bn('1000');
             const coverage = bn('6000');
-            const requiredArrears = bn(await Helper.getBlockTime());
+            const requiredArrears = bn('5652');
             const expiration = bn(await Helper.getBlockTime());
             const id = bn('51651');
 
             const data = await toDataRequestCosign(
+                cosigner,
                 loanManager,
                 id,
                 cost,
@@ -223,11 +226,12 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         it('Consult cost of data', async () => {
             const cost = bn('1222');
             const coverage = bn('6000');
-            const requiredArrears = bn(await Helper.getBlockTime());
+            const requiredArrears = bn('512');
             const expiration = bn(await Helper.getBlockTime());
             const id = bn('898');
 
             const data = await toDataRequestCosign(
+                cosigner,
                 loanManager,
                 id,
                 cost,
@@ -256,7 +260,6 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const lender = accounts[2];
             const amount = bn('1031230');
             const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
-            const loanData = await model.encodeData(amount, expirationLoan);
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -266,7 +269,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
                     borrower,
                     bn('1'),
                     expirationLoan,
-                    loanData,
+                    await model.encodeData(amount, expirationLoan),
                     { from: borrower }
                 ),
                 'Requested'
@@ -274,11 +277,12 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
 
             const costCosign = bn('1222');
             const coverage = bn('6000');
-            const requiredArrears = (bn((await Helper.getBlockTime()).toString())).plus(bn('500'));
+            const requiredArrears = ('524');
             const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
+                cosigner,
                 loanManager,
                 id,
                 costCosign,
@@ -319,7 +323,6 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const amount = bn('66666');
             const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
-            const loanData = await model.encodeData(amount, expirationLoan);
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -329,7 +332,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
                     borrower,
                     bn('1'),
                     expirationLoan,
-                    loanData,
+                    await model.encodeData(amount, expirationLoan),
                     { from: borrower }
                 ),
                 'Requested'
@@ -337,11 +340,12 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
 
             const costCosign = bn('1222');
             const coverage = bn('6000');
-            const requiredArrears = (bn((await Helper.getBlockTime()).toString())).plus(bn('500'));
+            const requiredArrears = bn('500');
             const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
+                cosigner,
                 loanManager,
                 id,
                 costCosign,
@@ -368,6 +372,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
+                cosigner,
                 testLoanManager,
                 id,
                 bn('0'),
@@ -394,70 +399,159 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         });
 
         it('Try cosign an expired data', async () => {
-            const id = bn('545454');
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('66451');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6000');
+            const requiredArrears = bn('662');
+            const expirationCosign = bn('0');
+
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
-                testLoanManager,
+                cosigner,
+                loanManager,
                 id,
-                bn('0'),
-                bn('6000'),
-                (bn((await Helper.getBlockTime()).toString())).sub(bn('500')),
-                bn('0'),
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
                 signer
             );
 
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
             await Helper.tryCatchRevert(
-                () => testLoanManager.requestCosign(
+                () => loanManager.lend(
                     id,
+                    [],
                     cosigner.address,
-                    data
+                    costCosign,
+                    data,
+                    { from: lender }
                 ),
                 'The data of requestCosign its expired'
             );
         });
 
         it('Try cosign a loan with coverage equal 0', async () => {
-            const id = bn('3341');
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('66451');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('662'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('0');
+            const requiredArrears = bn('666');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
-                testLoanManager,
+                cosigner,
+                loanManager,
                 id,
-                bn('0'),
-                bn('0'),
-                (bn((await Helper.getBlockTime()).toString())).plus(bn('500')),
-                (bn((await Helper.getBlockTime()).toString())).plus(bn('1000')),
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
                 signer
             );
 
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
             await Helper.tryCatchRevert(
-                () => testLoanManager.requestCosign(
+                () => loanManager.lend(
                     id,
+                    [],
                     cosigner.address,
-                    data
+                    costCosign,
+                    data,
+                    { from: lender }
                 ),
                 'The coverage should not be 0'
             );
         });
 
         it('Try cosign a loan without being a delegate', async () => {
-            const id = bn('23139498');
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('698452');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
 
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6552');
+            const requiredArrears = bn('6632');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const noSigner = accounts[2];
             const data = await toDataRequestCosign(
-                testLoanManager,
+                cosigner,
+                loanManager,
                 id,
-                bn('0'),
-                bn('5561'),
-                (bn((await Helper.getBlockTime()).toString())).plus(bn('500')),
-                (bn((await Helper.getBlockTime()).toString())).plus(bn('1000')),
-                accounts[2]
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                noSigner
             );
 
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
             await Helper.tryCatchRevert(
-                () => testLoanManager.requestCosign(
+                () => loanManager.lend(
                     id,
+                    [],
                     cosigner.address,
-                    data
+                    costCosign,
+                    data,
+                    { from: lender }
                 ),
                 'The signer its not a delegate'
             );
@@ -468,6 +562,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
+                cosigner,
                 testLoanManager,
                 id,
                 bn('1'),
@@ -489,14 +584,365 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
     });
 
     describe('function isDefaulted', async () => {
-        it('', async () => {
+        const signer = accounts[7];
 
+        it('The liability should not be defaulted', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('98875');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            assert.equal(await cosigner.isDefaulted(loanManager.address, id), false);
+        });
+
+        it('The liability should not be defaulted (status paid)', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('98875');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('223'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await rcn.setBalance(borrower, amount.plus(amount));
+            await rcn.approve(debtEngine.address, amount.plus(amount), { from: borrower });
+
+            await debtEngine.pay(
+                id,
+                amount.plus(amount),
+                borrower,
+                [],
+                { from: borrower }
+            );
+            (await model.getStatus(id)).should.be.bignumber.equal(bn('2'));
+
+            assert.equal(await cosigner.isDefaulted(loanManager.address, id), false);
+        });
+
+        it('The liability should not be defaulted (liability expired)', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('98875');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('33');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await rcn.setBalance(borrower, amount.plus(amount));
+            await rcn.approve(debtEngine.address, amount.plus(amount), { from: borrower });
+
+            await debtEngine.pay(
+                id,
+                amount.plus(amount),
+                borrower,
+                [],
+                { from: borrower }
+            );
+            (await model.getStatus(id)).should.be.bignumber.equal(bn('2'));
+
+            await Helper.increaseTime(3000);
+
+            assert.equal(await cosigner.isDefaulted(loanManager.address, id), false);
+        });
+
+        it('The liability should be defaulted (status paid and liability expired)', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('98875');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await Helper.increaseTime(3000);
+
+            assert.equal(await cosigner.isDefaulted(loanManager.address, id), true);
+        });
+    });
+
+    describe('function _currencyToToken', async () => {
+        it('Use RCN Token as currency', async () => {
+            const amount = bn('516516');
+            const tokens = await testCosigner.currencyToToken(
+                Helper.address0x,
+                amount,
+                []
+            );
+
+            tokens.should.be.bignumber.equal(amount);
+        });
+
+        it('Use ARS as currency', async () => {
+            const ars = bn('5516512');
+            const amount = bn('4');
+            const equivalent = bn('8');
+            const oracleData = await oracle.encodeRate(amount, equivalent);
+            const constTokens = ars.mul(amount).div(equivalent);
+
+            const rcnTokens = await testCosigner.currencyToToken(
+                oracle.address,
+                ars,
+                oracleData
+            );
+
+            rcnTokens.should.be.bignumber.equal(constTokens);
         });
     });
 
     describe('function claim', async () => {
-        it('', async () => {
+        const signer = accounts[7];
 
+        it('Should claim a liability', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('626232');
+            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await Helper.increaseTime(3000);
+
+            await rcn.setBalance(cosigner.address, amount);
+            await debtEngine.approve(cosigner.address, id, { from: lender });
+
+            const prevCosignerBal = await rcn.balanceOf(cosigner.address);
+            const prevLenderBal = await rcn.balanceOf(lender);
+
+            const events = await Helper.toEvent(
+                cosigner.claim(
+                    loanManager.address,
+                    id,
+                    '',
+                    { from: lender }
+                ),
+                'Claim',
+                'Received'
+            );
+            const calcClaimAmount = coverage.mul(await loanManager.getClosingObligation(id)).dividedToIntegerBy(bn('10000'));
+
+            const Claim = events[0];
+            assert.equal(Claim._loanManager, loanManager.address);
+            assert.equal(Claim._index, id);
+            assert.equal(Claim._sender, lender);
+            Claim._claimAmount.should.be.bignumber.equal(calcClaimAmount);
+            assert.equal(Claim._oracleData, '0x');
+
+            const Received = events[1];
+            assert.equal(Received._operator, cosigner.address);
+            assert.equal(Received._from, lender);
+            Received._id.should.be.bignumber.equal(id);
+            assert.equal(Received._data, '0x');
+
+            const liability = await cosigner.liabilities(loanManager.address, id);
+            liability[0].should.be.bignumber.equal(bn('0'));
+            liability[1].should.be.bignumber.equal(requiredArrears);
+
+            (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal(prevCosignerBal.sub(calcClaimAmount));
+            (await rcn.balanceOf(lender)).should.be.bignumber.equal(prevLenderBal.plus(calcClaimAmount));
         });
     });
 
