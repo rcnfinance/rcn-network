@@ -383,6 +383,16 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events, IERC721
         return true;
     }
 
+    function approveLoan(
+        ILoanManager _loanManager,
+        uint256 _index,
+        address _to
+    ) external onlyOwner returns (bool) {
+        require(_to != address(0), "Invalid _to address");
+        require(liabilities[_loanManager][_index].coverage == 0, "The liability is not claimed");
+
+        IDebtEngine(_loanManager.debtEngine()).approve(_to, _index);
+
         return true;
     }
 
