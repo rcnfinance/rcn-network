@@ -108,14 +108,15 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
             require(!isExpired(timestamp), "The rate provided is expired");
             uint256 rate = uint256(readBytes32(data, INDEX_RATE));
             uint256 decimals = uint256(readBytes32(data, INDEX_DECIMALS));
-            uint8 v = readBytes32(data, INDEX_V).toUint8();
-            bytes32 r = readBytes32(data, INDEX_R);
-            bytes32 s = readBytes32(data, INDEX_S);
 
             bytes32 _hash = keccak256(abi.encodePacked(this, currency, rate, decimals, timestamp));
-            bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-            bytes32 preHash = keccak256(abi.encodePacked(prefix, _hash));
-            address signer = ecrecover(preHash,v,r,s);
+            bytes32 preHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));
+            address signer = ecrecover(
+                preHash,
+                /*v*/readBytes32(data, INDEX_V).toUint8(),
+                /*r*/readBytes32(data, INDEX_R),
+                /*s*/readBytes32(data, INDEX_S)
+            );
 
             require(isDelegate(signer), "Signature is not valid");
 
