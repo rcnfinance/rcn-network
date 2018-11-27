@@ -205,7 +205,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     ) public returns (uint256) {
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
-        require(address(_oracleContract) != address(0) || address(_currency.toBytes()) == address(0)); //TODO: (jpgonzalezra) TESTEAR
+        require(address(_oracleContract) != address(0) || _currency.toBytes().toAddress() == address(0)); //TODO: (jpgonzalezra) TESTEAR
         require(_borrower != address(0));
         require(_amount != 0);
         require(_interestRatePunitory != 0);
@@ -406,7 +406,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
             // The cosigner it's temporary set to the next address (cosigner + 2), it's expected that the cosigner will
             // call the method "cosign" to accept the conditions; that method also sets the cosigner to the right
             // address. If that does not happen, the transaction fails.
-            loan.cosigner = address(uint256(cosigner) + 2);
+            loan.cosigner = address(uint256(address(cosigner)) + 2);
             require(cosigner.requestCosign(this, index, cosignerData, oracleData));
             require(loan.cosigner == address(cosigner));
         }

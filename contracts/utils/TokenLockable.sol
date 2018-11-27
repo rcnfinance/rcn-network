@@ -29,7 +29,7 @@ contract TokenLockable is RpSafeMath, Ownable {
         @param amount Amount to withdraw 
     */
     function withdrawTokens(Token token, address to, uint256 amount) public onlyOwner returns (bool) {
-        require(safeSubtract(token.balanceOf(this), lockedTokens[token]) >= amount);
+        require(safeSubtract(token.balanceOf(address(this)), lockedTokens[address(token)]) >= amount);
         require(to != address(0));
         return token.transfer(to, amount);
     }
