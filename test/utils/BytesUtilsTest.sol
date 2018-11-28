@@ -112,7 +112,8 @@ contract ThrowProxy {
     }
 
     function execute() public returns (bool) {
-        return target.call(data);
+        (bool success,) = target.call(data);
+        return success;
     }
 }
 
