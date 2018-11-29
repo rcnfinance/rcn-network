@@ -10,7 +10,7 @@ const TestLoanApprover = artifacts.require('./diaspore/utils/test/TestLoanApprov
 const Helper = require('../Helper.js');
 const Web3Utils = require('web3-utils');
 
-const BigNumber = web3.BigNumber;
+const BigNumber = web3.utils.BN;
 
 require('chai')
     .use(require('chai-bignumber')(BigNumber))
