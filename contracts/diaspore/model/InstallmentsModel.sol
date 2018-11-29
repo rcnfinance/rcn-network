@@ -7,7 +7,6 @@ import "./../../utils/BytesUtils.sol";
 import "./../../utils/ERC165.sol";
 
 contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor {
-    using Bytes for *;
 
     mapping(bytes4 => bool) private _supportedInterface;
 
@@ -530,6 +529,6 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
             bytes32 duration,
             bytes32 timeUnit
         ) = decode(_data, 16, 32, 3, 5, 4);
-        return (uint128(cuota.toUint()), interestRate.toUint(), uint24(installments.toUint()), uint40(duration.toUint()), uint32(timeUnit.toUint()));
+        return (uint128(uint256(cuota)), uint256(interestRate), uint24(uint256(installments)), uint40(uint256(duration)), uint32(uint256(timeUnit)));
     }
 }

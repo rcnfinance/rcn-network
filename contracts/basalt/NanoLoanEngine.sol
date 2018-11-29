@@ -10,7 +10,6 @@ import "./interfaces/ERC721.sol";
 import "../utils/BytesUtils.sol";
 
 contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
-    using Bytes for *;
 
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal RCN_DECIMALS = 18;
@@ -205,7 +204,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     ) public returns (uint256) {
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
-        require(address(_oracleContract) != address(0) || _currency.toAddress() == address(0)); //TODO: (jpgonzalezra) TESTEAR
+        require(address(_oracleContract) != address(0) || address(uint256(_currency)) == address(0)); //TODO: (jpgonzalezra) TESTEAR
         require(_borrower != address(0));
         require(_amount != 0);
         require(_interestRatePunitory != 0);

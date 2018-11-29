@@ -27,9 +27,12 @@ contract('NanoLoanEngine', function (accounts) {
     async function createLoan (engine, oracle, borrower, currency, amount, interestRate, interestRatePunitory, duration,
         cancelableAt, expireTime, from, metadata) {
         const prevLoans = (await engine.getTotalLoans()).toNumber();
+
         await engine.createLoan(oracle, borrower, currency, amount, interestRate, interestRatePunitory,
             duration, cancelableAt, expireTime, metadata, { from: from });
+
         const newLoans = (await engine.getTotalLoans()).toNumber();
+
         assert.equal(prevLoans, newLoans - 1, 'No more than 1 loan should be created in parallel, during tests');
         return newLoans - 1;
     }
@@ -42,19 +45,20 @@ contract('NanoLoanEngine', function (accounts) {
 
     it('It should fail creating two identical loans', async () => {
         // create a new loan
-        const loanId1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId1 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.utils.toWei("2"), Helper.toInterestRate(27), Helper.toInterestRate(40),
             86400, 0, 10 * 10 ** 20, accounts[0], '');
         assert.equal(loanId1, 1);
 
         // create one a little bit different
-        const loanId2 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId2 = await createLoan(engine, 0x0, accounts[1], 0x0, web3.utils.toWei("2"), Helper.toInterestRate(27), Helper.toInterestRate(40),
             86400, 0, 10 * 10 ** 20, accounts[0], ':)');
         assert.equal(loanId2, 2);
 
         // create a new identical
-        await Helper.tryCatchRevert(() => createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei(2), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        await Helper.tryCatchRevert(() => createLoan(engine, 0x0, accounts[1], 0x0, web3.toWei("2"), Helper.toInterestRate(27), Helper.toInterestRate(40),
             86400, 0, 10 * 10 ** 20, accounts[0], ''), '');
     });
+
 
     it('Should allow reference loans with their identifier', async () => {
         const sampleCurrency = 0x4d414e4100000000000000000000000000000000000000000000000000000000;

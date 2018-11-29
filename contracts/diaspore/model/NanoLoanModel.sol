@@ -21,7 +21,6 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     using SafeMath for uint256;
     using SafeMath for uint128;
     using SafeMath for uint64;
-    using Bytes for *;
 
     address public engine;
     address private altDescriptor;
@@ -397,11 +396,11 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         (bytes32 amount, bytes32 interestRate, bytes32 interestRatePunitory,
             bytes32 duesIn, bytes32 cancelableAt) = decode(_data, 16, 32, 32, 8, 8);
         return (
-            uint128(amount.toUint()),
-            interestRate.toUint(),
-            interestRatePunitory.toUint(),
-            uint64(duesIn.toUint()),
-            uint64(cancelableAt.toUint())
+            uint128(uint256(amount)),
+            uint256(interestRate),
+            uint256(interestRatePunitory),
+            uint64(uint256(duesIn)),
+            uint64(uint256(cancelableAt))
         );
     }
 
