@@ -113,7 +113,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
             bytes32 preHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));
             address signer = ecrecover(
                 preHash,
-                /*v*/readBytes32(data, INDEX_V).toUint8(),
+                /*v*/uint8(readBytes32(data, INDEX_V).toUint()),
                 /*r*/readBytes32(data, INDEX_R),
                 /*s*/readBytes32(data, INDEX_S)
             );

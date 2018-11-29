@@ -495,7 +495,7 @@ contract LoanManager is BytesUtils {
             open: false,
             approved: true,
             cosigner: _cosigner,
-            amount: read(_requestData, O_AMOUNT, L_AMOUNT).toUint128(),
+            amount: uint128(read(_requestData, O_AMOUNT, L_AMOUNT).toUint()),
             model: read(_requestData, O_MODEL, L_MODEL).toAddress(),
             creator: read(_requestData, O_CREATOR, L_CREATOR).toAddress(),
             oracle: read(_requestData, O_ORACLE, L_ORACLE).toAddress(),
@@ -503,7 +503,7 @@ contract LoanManager is BytesUtils {
             salt: _cosigner != address(0) ? _maxCosignerCost : read(_requestData, O_SALT, L_SALT).toUint(),
             loanData: _loanData,
             position: 0,
-            expiration: read(_requestData, O_EXPIRATION, L_EXPIRATION).toUint64()
+            expiration: uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION).toUint())
         });
 
         Request storage request = requests[id];
@@ -678,12 +678,12 @@ contract LoanManager is BytesUtils {
             bytes32 _expiration
         ) = decode(_data, L_AMOUNT, L_MODEL, L_ORACLE, L_BORROWER, L_SALT, L_EXPIRATION);
 
-        amount = _amount.toUint128();
+        amount = uint128(_amount.toUint());
         model = _model.toAddress();
         oracle = _oracle.toAddress();
         borrower = _borrower.toAddress();
         salt = _salt.toUint();
-        expiration = _expiration.toUint64();
+        expiration = uint64(_expiration.toUint());
         creator = read(_data, O_CREATOR, L_CREATOR).toAddress();
     }
 

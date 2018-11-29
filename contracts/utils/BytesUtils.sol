@@ -6,6 +6,8 @@ library Bytes {
 
     uint internal constant BYTES_HEADER_SIZE = 32;
 
+    /* to Bytes */
+
     // Checks if two `bytes memory` variables are equal. This is done using hashing,
     // which is much more gas efficient then comparing each byte individually.
     // Equality means that:
@@ -74,12 +76,13 @@ library Bytes {
         bts = toBytes(bytes32(self), uint8(bitsize / 8));
     }
 
-    // TODO: (jpgonzalezra) add test
+    /* to Bytes32 */
+
     // Copies 'self' into a new 'bytes32'.
     // Returns the newly created 'bytes32'
     // The returned bytes32.
     function toBytes32(bytes memory _bytes) internal pure returns (bytes32) {
-        require(_bytes.length >= 32);
+        require(_bytes.length == 32);
         bytes32 tempBytes32;
          assembly {
             tempBytes32 := mload(add(add(_bytes, 0x20), 0))
@@ -87,16 +90,25 @@ library Bytes {
          return tempBytes32;
     }
 
-    // TODO: (jpgonzalezra) add test / add doc
-    function toBytes32(uint _uint) internal pure returns (bytes32) {
-        return toBytes32(toBytes(_uint));
+    function toBytes32(uint self, uint16 bitsize) internal pure returns (bytes32) {
+        return toBytes32(toBytes(self, bitsize));
     }
 
-    // TODO: (jpgonzalezra) add test / add doc
+    // Copies 'self' (address) into a new 'bytes memory'.
+    // Returns the convertion to bytes32
+    // The returned bytes32
     function toBytes32(address _address) internal pure returns (bytes32) {
         return toBytes32(toBytes(_address));
     }
 
+    // Copies 'self' (uint) into a new 'bytes memory'.
+    // Returns the convertion to bytes32 created
+    // The returned bytes32
+    function toBytes32(uint _uint) internal pure returns (bytes32) {
+        return toBytes32(toBytes(_uint));
+    }
+
+    /* to Uint */
     // TODO: (jpgonzalezra) add test / add doc
     function toUint(bytes32 input) public pure returns (uint ret) {
         require(input != 0x0);
@@ -112,36 +124,6 @@ library Bytes {
     }
 
     // TODO: (jpgonzalezra) add test / add doc
-    function toUint8(bytes32 input) internal pure returns (uint8 ret) {
-        return uint8(toUint(input));
-    }
-
-    // TODO: (jpgonzalezra) add test / add doc
-    function toUint24(bytes32 input) internal pure returns (uint24 ret) {
-        return uint24(toUint(input));
-    }
-
-    // TODO: (jpgonzalezra) add test / add doc
-    function toUint32(bytes32 input) internal pure returns (uint32 ret) {
-        return uint32(toUint(input));
-    }
-
-    // TODO: (jpgonzalezra) add test / add doc
-    function toUint40(bytes32 input) internal pure returns (uint40 ret) {
-        return uint40(toUint(input));
-    }
-
-    // TODO: (jpgonzalezra) add test / add doc
-    function toUint64(bytes32 input) internal pure returns (uint64 ret) {
-        return uint64(toUint(input));
-    }
-
-    // TODO: (jpgonzalezra) add test / add doc
-    function toUint128(bytes32 input) internal pure returns (uint128 ret) {
-        return uint128(toUint(input));
-    }
-
-    // TODO: (jpgonzalezra) add test / add doc
     function toAddress(bytes32 _source) internal pure returns(address) {
         bytes memory source = toBytes(_source);
         uint result;
@@ -153,6 +135,7 @@ library Bytes {
         return address(result);
     }
 
+    // TODO: (jpgonzalezra) add test / add doc
     function toBytes32(string memory source) internal pure returns (bytes32 result) {
         assembly {
             result := mload(add(source, 32))

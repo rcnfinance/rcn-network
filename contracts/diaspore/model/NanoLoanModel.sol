@@ -114,7 +114,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
             uint64 duesIn, uint64 cancelableAt
         ) = _decodeData(data);
         _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
-        
+
         return true;
     }
 
@@ -397,11 +397,11 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         (bytes32 amount, bytes32 interestRate, bytes32 interestRatePunitory,
             bytes32 duesIn, bytes32 cancelableAt) = decode(_data, 16, 32, 32, 8, 8);
         return (
-            amount.toUint128(), 
-            interestRate.toUint(), 
+            uint128(amount.toUint()),
+            interestRate.toUint(),
             interestRatePunitory.toUint(),
-            duesIn.toUint64(), 
-            cancelableAt.toUint64()
+            uint64(duesIn.toUint()),
+            uint64(cancelableAt.toUint())
         );
     }
 

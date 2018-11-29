@@ -49,17 +49,10 @@ contract BytesLibraryTest {
         Assert.isFalse(bts1.equals(bts2) && bts2.equals(bts1), "This bytes are commutative");
     }
 
-    function testBytesBytes32ToBytesLowOrder() external {
-        bytes memory bts = hex"112233".toBytes();
-        bytes memory btsExpctd = hex"0000000000000000000000000000000000000000000000000000000000112233";
-        Assert.isTrue(bts.equals(btsExpctd), "fail testBytesBytes32ToBytesLowOrder");
-    }
-
     function testBytesBytes32ToBytesZero() external {
         bytes memory bts = B32_ZERO.toBytes();
         bytes memory btsExp = new bytes(32);
         Assert.isTrue(bts.equals(btsExp), "fail testBytesBytes32ToBytesZero");
-
     }
 
     function testBytesAddressToBytes() external {
@@ -81,7 +74,67 @@ contract BytesLibraryTest {
         Assert.isTrue(bts.equals(btsExpctd), "fail testBytesUintToBytesWithBitsizeZero");
     }
 
-    /*
+    function testUintToytes32Zero() external {
+        bytes32 bts = uint(0).toBytes32();
+        bytes32 btsExpected = bytes32(0x0);
+        Assert.equal(bts, btsExpected, "fail testBytes32BytesToZero");
+    }
+
+    function testUintToBytes32Success() external {
+        bytes32 bts = uint(100).toBytes32();
+        Assert.equal(bts, 0x0000000000000000000000000000000000000000000000000000000000000064, "fail testUintToBytes32Success");
+    }
+
+    function testUint8ToBytes32Success() external {
+        bytes32 bts = uint8(8).toBytes32();
+        Assert.equal(bts, 0x0000000000000000000000000000000000000000000000000000000000000008, "fail testUint8ToBytes32Success");
+    }
+
+    function testUint24ToBytes32Success() external {
+        bytes32 bts = uint24(24).toBytes32();
+        Assert.equal(bts, 0x0000000000000000000000000000000000000000000000000000000000000018, "fail testUint24ToBytes32Success");
+    }
+
+    function testUint32ToBytes32Success() external {
+        bytes32 bts = uint32(32).toBytes32();
+        Assert.equal(bts, 0x0000000000000000000000000000000000000000000000000000000000000020, "fail testUint32ToBytes32Success");
+    }
+
+    function testUint64ToBytes32Success() external {
+        bytes32 bts = uint64(64).toBytes32();
+        Assert.equal(bts, 0x0000000000000000000000000000000000000000000000000000000000000040, "fail testUint64ToBytes32Success");
+    }
+
+    function testUint128ToBytes32Success() external {
+        bytes32 bts = uint128(128).toBytes32();
+        Assert.equal(bts, 0x0000000000000000000000000000000000000000000000000000000000000080, "fail testUint128ToBytes32Success");
+    }
+
+    function testBytesUintToBytesWithBitsize() external {
+        bytes memory bts = 0x12345678.toBytes(32);
+        bytes memory btsExpctd = hex"12345678";
+        Assert.isTrue(bts.equals(btsExpctd), "fail testBytesUintToBytesWithBitsize");
+    }
+
+    /* Missing cases
+    function testBytes32ToUint8Success() external {
+        uint8 bts = uint8(8);
+        uint8 btsExpected = 0x0000000000000000000000000000000000000000000000000000000000000008.toUint8();
+        Assert.isTrue(bts == btsExpected, "fail testBytes32ToUint8Success");
+    }
+
+    function testBytesBytes32ToBytesLowOrder() external {
+        bytes memory bts = bytes32(0x112233).toBytes();
+        bytes memory btsExpctd = hex"0000000000000000000000000000000000000000000000000000000000112233";
+        Assert.isTrue(bts.equals(btsExpctd), "fail testBytesBytes32ToBytesLowOrder");
+    }
+
+    function testBytesBytes32ToBytesLowOrder() external {
+        bytes memory bts = bytes32(0x112233).toBytes();
+        bytes memory btsExpctd = hex"0000000000000000000000000000000000000000000000000000000000112233";
+        Assert.isTrue(bts.equals(btsExpctd), "fail testBytesBytes32ToBytesLowOrder");
+    }
+
     function testBytesBytes32ToBytesHighOrder() external {
         bytes memory bts = bytes32("abc").toBytes();
         bytes memory btsExpctd = hex"6162630000000000000000000000000000000000000000000000000000000000";
@@ -93,45 +146,5 @@ contract BytesLibraryTest {
         string memory str = "ab";
         Assert.isTrue(bts.equals(bytes(str)), "fail testBytesBytes32ToBytesWithLenHighOrder");
     }
-
-    function testBytesBytes32ToBytesWithLenLowOrder() external {
-        var bts = bytes32(0x112233).toBytes(31);
-        bytes memory btsExpctd = hex"00000000000000000000000000000000000000000000000000000000001122";
-        assert(bts.equals(btsExpctd));
-    }
-
-    function testBytesUintToBytesWithBitsize() external {
-        uint n = 0x12345678;
-        var bts = n.toBytes(32);
-        bytes memory btsExpctd = hex"12345678";
-        assert(bts.equals(btsExpctd));
-    }
-
-    function testBytesUintToBytesWithBitsizeThrowsBitsizeLow() external {
-        uint(0).toBytes(0);
-    }
-
-    function testBytesUintToBytesWithBitsizeThrowsBitsizeHigh() external {
-        uint(0).toBytes(264);
-    }
-
-    function testBytesUintToBytesWithBitsizeThrowsBitsizeNotMultipleOf8() external {
-        uint(0).toBytes(15);
-    }
-
-    function testBytesBooleanToBytes() external {
-        bytes memory btsTrue = hex"01";
-        bytes memory btsFalse = hex"00";
-        assert(true.toBytes().equals(btsTrue));
-        assert(false.toBytes().equals(btsFalse));
-    }*/
-
-    /* Test for bytes32 */
-
-
-    /* Test for uint */
-
-
-
-
+    */
 }

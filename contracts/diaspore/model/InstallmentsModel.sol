@@ -530,6 +530,6 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
             bytes32 duration,
             bytes32 timeUnit
         ) = decode(_data, 16, 32, 3, 5, 4);
-        return (cuota.toUint128(), interestRate.toUint(), installments.toUint24(), duration.toUint40(), timeUnit.toUint32());
+        return (uint128(cuota.toUint()), interestRate.toUint(), uint24(installments.toUint()), uint40(duration.toUint()), uint32(timeUnit.toUint()));
     }
 }
