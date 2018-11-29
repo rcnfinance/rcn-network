@@ -91,7 +91,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         require(data.length == L_DATA, "Invalid data length");
 
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
-        uint64 dueTime = bdue.toUint64();
+        uint64 dueTime = uint64(bdue.toUint());
 
         if (btotal.toBytes().equals(uint(0).toBytes())) return false;
 
@@ -161,8 +161,8 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         if (errorFlag == ERROR_CREATE) return false;
 
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
-        uint128 total = btotal.toUint128();
-        uint64 dueTime = bdue.toUint64();
+        uint128 total = uint128(btotal.toUint());
+        uint64 dueTime = uint64(bdue.toUint());
 
         _validate(dueTime);
 

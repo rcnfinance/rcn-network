@@ -59,7 +59,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     ) public returns (bytes32) {
         bytes32 btotal;
         (btotal, ) = decode(_loanData, 16, 8);
-        uint128 total = btotal.toUint128();
+        uint128 total = uint128(btotal.toUint());
         if (total == 666)
             return 0x0;
         // bytes32 expected = uint256(_id) XOR keccak256("approve-loan-request");
