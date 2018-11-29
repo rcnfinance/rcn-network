@@ -60,7 +60,7 @@ contract StandardToken {
         } else {
             allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
         }
-        Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 
