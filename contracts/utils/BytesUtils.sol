@@ -23,7 +23,7 @@ library Bytes {
         }
         equal = Memory.equals(addr, addr2, self.length);
     }
-    
+
     // Copies 'self' into a new 'bytes memory'.
     // Returns the newly created 'bytes memory'
     // The returned bytes will be of length '32'.
@@ -122,12 +122,12 @@ library Bytes {
     }
 
     // TODO: (jpgonzalezra) add test / add doc
-    function toUint32(bytes32 input) internal pure returns (uint32 ret) { 
+    function toUint32(bytes32 input) internal pure returns (uint32 ret) {
         return uint32(toUint(input));
     }
 
     // TODO: (jpgonzalezra) add test / add doc
-    function toUint40(bytes32 input) internal pure returns (uint40 ret) { 
+    function toUint40(bytes32 input) internal pure returns (uint40 ret) {
         return uint40(toUint(input));
     }
 
@@ -153,7 +153,7 @@ library Bytes {
         return address(result);
     }
 
-    function stringToBytes32(string memory source) internal pure returns (bytes32 result) {
+    function toBytes32(string memory source) internal pure returns (bytes32 result) {
         assembly {
             result := mload(add(source, 32))
         }
@@ -347,5 +347,5 @@ contract BytesUtils {
         }
         require(_data.length >= o, "Reading bytes out of bounds");
     }
-    
+
 }

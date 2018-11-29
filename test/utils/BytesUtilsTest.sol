@@ -9,51 +9,51 @@ contract BytesUtilsInterface {
 }
 
 contract TestBytesUtils is BytesUtils {
-    
+
     function pReadBytes32(
-        bytes memory data, 
+        bytes memory data,
         uint256 index
     ) public returns (bytes32) {
         return readBytes32(data, index);
     }
 
     function pRead(
-        bytes memory data, 
-        uint256 offset, 
+        bytes memory data,
+        uint256 offset,
         uint256 length
     ) public returns (bytes32) {
         return read(data, offset, length);
     }
 
     function pDecode(
-        bytes memory data, 
+        bytes memory data,
         uint256 a
     ) public returns (bytes32) {
         return decode(data, a);
     }
 
     function pDecode(
-        bytes memory data, 
-        uint256 a, 
+        bytes memory data,
+        uint256 a,
         uint256 b
     ) public returns (bytes32, bytes32) {
         return decode(data, a, b);
     }
 
     function pDecode(
-        bytes memory data, 
-        uint256 a, 
-        uint256 c, 
+        bytes memory data,
+        uint256 a,
+        uint256 c,
         uint256 b
     ) public returns (bytes32, bytes32, bytes32) {
         return decode(data, a, c, b);
     }
 
     function pDecode(
-        bytes memory data, 
-        uint256 a, 
-        uint256 b, 
-        uint256 c, 
+        bytes memory data,
+        uint256 a,
+        uint256 b,
+        uint256 c,
         uint256 d
     ) public returns (bytes32,bytes32,bytes32,bytes32) {
         return decode(data, a, b, c, d);
@@ -121,7 +121,7 @@ contract BytesUtilsTest {
 
     using Bytes for *;
     TestBytesUtils bytesUtils;
-    
+
     function beforeAll() external {
         bytesUtils = new TestBytesUtils();
     }
@@ -153,20 +153,20 @@ contract BytesUtilsTest {
 
     function testReadBytes() external {
         bytes memory testData = buildData(
-            123.toBytes32(), 
-            address(this).toBytes32(), 
-            keccak256("test"), 
-            0x789.toBytes32()
+            123.toBytes32(),
+            address(this).toBytes32(),
+            keccak256("test"),
+            hex"0x789".toBytes32()
         );
         Assert.equal(bytesUtils.pReadBytes32(testData, 0), 123.toBytes32(), "Read index 0, uint256");
         Assert.equal(bytesUtils.pReadBytes32(testData, 1), address(this).toBytes32(), "Read index 1, address");
         Assert.equal(bytesUtils.pReadBytes32(testData, 2), keccak256("test"), "Read index 2, bytes32");
-        Assert.equal(bytesUtils.pReadBytes32(testData, 3), 0x789.toBytes32(), "Read index 3, bytes32");
+        Assert.equal(bytesUtils.pReadBytes32(testData, 3), hex"0x789".toBytes32(), "Read index 3, bytes32");
     }
 
     function testReadNonBytesMemory() external {
         ThrowProxy throwProxy = new ThrowProxy(address(bytesUtils));
-        bytes memory testData = buildData(123.toBytes32(), address(this).toBytes32(), keccak256("test"), 0x789.toBytes32());
+        bytes memory testData = buildData(123.toBytes32(), address(this).toBytes32(), keccak256("test"), hex"0x789".toBytes32());
 
         // Test read index 4 (invalid)
         BytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 4);
@@ -191,11 +191,11 @@ contract BytesUtilsTest {
     }
 
     function testReadOffset() external {
-        bytes memory testData = buildData(123.toBytes32(), address(this).toBytes32(), keccak256("test"), 0x789.toBytes32());
+        bytes memory testData = buildData(123.toBytes32(), address(this).toBytes32(), keccak256("test"), hex"0x789".toBytes32());
         Assert.equal(bytesUtils.pRead(testData, 0, 32), 123.toBytes32(), "Read index 0, uint256");
         Assert.equal(bytesUtils.pRead(testData, 32, 32), address(this).toBytes32(), "Read index 1, address");
         Assert.equal(bytesUtils.pRead(testData, 64, 32), keccak256("test"), "Read index 2, bytes32");
-        Assert.equal(bytesUtils.pRead(testData, 96, 32), 0x789.toBytes32(), "Read index 3, bytes32");
+        Assert.equal(bytesUtils.pRead(testData, 96, 32), hex"0x789".toBytes32(), "Read index 3, bytes32");
     }
 
     function testReadOffsetPacked() external {
@@ -250,5 +250,5 @@ contract BytesUtilsTest {
         Assert.equal(uint256(e), uint256(0) - 1, "Decode 6 items");
         Assert.equal(uint256(f), now, "Decode 6 items");
     }
-    
+
 }
