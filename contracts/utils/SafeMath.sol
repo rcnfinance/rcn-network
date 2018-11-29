@@ -9,8 +9,7 @@ library SafeMath {
 
     function sub(uint256 x, uint256 y) internal pure returns (uint256) {
         require(x >= y, "Sub underflow");
-        uint256 z = x - y;
-        return z;
+        return x - y;
     }
 
     function mult(uint256 x, uint256 y) internal pure returns (uint256) {
