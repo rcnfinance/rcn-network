@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 library SafeMath {
     function add(uint256 x, uint256 y) internal pure returns (uint256) {
         uint256 z = x + y;
-        require((z >= x) && (z >= y), "Add overflow");
+        require(z >= x, "Add overflow");
         return z;
     }
 
