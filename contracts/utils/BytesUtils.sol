@@ -153,6 +153,12 @@ library Bytes {
         return address(result);
     }
 
+    function stringToBytes32(string memory source) internal pure returns (bytes32 result) {
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
 }
 
 contract BytesUtils {
