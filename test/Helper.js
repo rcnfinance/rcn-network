@@ -1,3 +1,4 @@
+
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 
 module.exports.arrayToBytesOfBytes32 = (array) => {
@@ -88,7 +89,7 @@ module.exports.buyTokens = async (token, amount, account) => {
     const prevAmount = await token.balanceOf(account);
     await token.buyTokens(account, { from: account, value: amount / 4000 });
     const newAmount = await token.balanceOf(account);
-    assert.equal(newAmount.toNumber() - prevAmount.toNumber(), amount, 'Should have minted tokens');
+    assert.equal(newAmount - prevAmount, amount, 'Should have minted tokens');
 };
 
 module.exports.searchEvent = (tx, eventName) => {
