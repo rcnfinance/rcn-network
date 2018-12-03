@@ -13,7 +13,6 @@ contract LoanManager is BytesUtils {
     using ImplementsInterface for address;
     using IsContract for address;
     using SafeMath for uint256;
-    using Bytes for *;
 
     DebtEngine public debtEngine;
     Token public token;
@@ -457,7 +456,7 @@ contract LoanManager is BytesUtils {
         bytes memory _borrowerSig
     ) public returns (bytes32 id) {
         // Validate request
-        require(read(_requestData, O_EXPIRATION, L_EXPIRATION).toUint() > now, "Loan request is expired");
+        require(uint256(read(_requestData, O_EXPIRATION, L_EXPIRATION)) > now, "Loan request is expired");
 
         // Get id
         uint256 innerSalt;
@@ -472,7 +471,7 @@ contract LoanManager is BytesUtils {
         require(
             token.transferFrom(
                 msg.sender,
-                read(_requestData, O_BORROWER, L_BORROWER).toAddress(),
+                address(uint256(read(_requestData, O_BORROWER, L_BORROWER))),
                 tokens
             ),
             "Error sending tokens to borrower"
@@ -495,15 +494,15 @@ contract LoanManager is BytesUtils {
             open: false,
             approved: true,
             cosigner: _cosigner,
-            amount: uint128(read(_requestData, O_AMOUNT, L_AMOUNT).toUint()),
-            model: read(_requestData, O_MODEL, L_MODEL).toAddress(),
-            creator: read(_requestData, O_CREATOR, L_CREATOR).toAddress(),
-            oracle: read(_requestData, O_ORACLE, L_ORACLE).toAddress(),
-            borrower: read(_requestData, O_BORROWER, L_BORROWER).toAddress(),
-            salt: _cosigner != address(0) ? _maxCosignerCost : read(_requestData, O_SALT, L_SALT).toUint(),
+            amount: uint128(uint256(read(_requestData, O_AMOUNT, L_AMOUNT))),
+            model: address(uint256(read(_requestData, O_MODEL, L_MODEL))),
+            creator: address(uint256(read(_requestData, O_CREATOR, L_CREATOR))),
+            oracle: address(uint256(read(_requestData, O_ORACLE, L_ORACLE))),
+            borrower: address(uint256(read(_requestData, O_BORROWER, L_BORROWER))),
+            salt: _cosigner != address(0) ? _maxCosignerCost : uint256(read(_requestData, O_SALT, L_SALT)),
             loanData: _loanData,
             position: 0,
-            expiration: uint64(read(_requestData, O_EXPIRATION, L_EXPIRATION).toUint())
+            expiration: uint64(uint256(read(_requestData, O_EXPIRATION, L_EXPIRATION)))
         });
 
         Request storage request = requests[id];
@@ -523,8 +522,8 @@ contract LoanManager is BytesUtils {
     ) public returns (bool) {
         (bytes32 id, ) = _buildSettleId(_requestData, _loanData);
         require(
-            msg.sender == read(_requestData, O_BORROWER, L_BORROWER).toAddress() ||
-            msg.sender == read(_requestData, O_CREATOR, L_CREATOR).toAddress(),
+            msg.sender == address(uint256(read(_requestData, O_BORROWER, L_BORROWER))) ||
+            msg.sender == address(uint256(read(_requestData, O_CREATOR, L_CREATOR))),
             "Only borrower or creator can cancel a settle"
         );
         canceledSettles[id] = true;
@@ -544,8 +543,8 @@ contract LoanManager is BytesUtils {
 
         // bytes32 expected = uint256(_id) XOR keccak256("approve-loan-request");
         bytes32 expected = _id ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
-        address borrower = read(_requestData, O_BORROWER, L_BORROWER).toAddress();
-        address creator = read(_requestData, O_CREATOR, L_CREATOR).toAddress();
+        address borrower = address(uint256(read(_requestData, O_BORROWER, L_BORROWER)));
+        address creator = address(uint256(read(_requestData, O_CREATOR, L_CREATOR)));
 
         if (borrower.isContract()) {
             require(
@@ -587,8 +586,8 @@ contract LoanManager is BytesUtils {
         bytes memory _oracleData
     ) internal returns (uint256) {
         return _currencyToToken(
-            read(_requestData, O_ORACLE, L_ORACLE).toAddress(),
-            read(_requestData, O_AMOUNT, L_AMOUNT).toUint(),
+            address(uint256(read(_requestData, O_ORACLE, L_ORACLE))),
+            uint256(read(_requestData, O_AMOUNT, L_AMOUNT)),
             _oracleData
         );
     }
@@ -599,9 +598,9 @@ contract LoanManager is BytesUtils {
         uint256 _innerSalt
     ) internal returns (bytes32) {
         return debtEngine.create2(
-            Model(read(_requestData, O_MODEL, L_MODEL).toAddress()),
+            Model(address(uint256(read(_requestData, O_MODEL, L_MODEL)))),
             msg.sender,
-            read(_requestData, O_ORACLE, L_ORACLE).toAddress(),
+            address(uint256(read(_requestData, O_ORACLE, L_ORACLE))),
             _innerSalt,
             _loanData
         );
@@ -678,13 +677,13 @@ contract LoanManager is BytesUtils {
             bytes32 _expiration
         ) = decode(_data, L_AMOUNT, L_MODEL, L_ORACLE, L_BORROWER, L_SALT, L_EXPIRATION);
 
-        amount = uint128(_amount.toUint());
-        model = _model.toAddress();
-        oracle = _oracle.toAddress();
-        borrower = _borrower.toAddress();
-        salt = _salt.toUint();
-        expiration = uint64(_expiration.toUint());
-        creator = read(_data, O_CREATOR, L_CREATOR).toAddress();
+        amount = uint128(uint256(_amount));
+        model = address(uint256(_model));
+        oracle = address(uint256(_oracle));
+        borrower = address(uint256(_borrower));
+        salt = uint256(_salt);
+        expiration = uint64(uint256(_expiration));
+        creator = address(uint256(read(_data, O_CREATOR, L_CREATOR)));
     }
 
     function ecrecovery(bytes32 _hash, bytes memory _sig) internal pure returns (address) {

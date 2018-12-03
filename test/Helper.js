@@ -1,3 +1,4 @@
+
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 
 module.exports.arrayToBytesOfBytes32 = (array) => {
@@ -25,8 +26,29 @@ module.exports.toBytes32 = (source) => {
     return '0x' + source;
 };
 
-module.exports.increaseTime = async (delta) => {
-    await web3.currentProvider.send({ jsonrpc: '2.0', method: 'evm_increaseTime', params: [delta], id: 0 });
+module.exports.increaseTime = function increaseTime(duration) {
+    const id = Date.now();
+
+    return new Promise((resolve, reject) => {
+        web3.currentProvider.send({
+            jsonrpc: "2.0",
+            method: "evm_increaseTime",
+            params: [duration],
+            id: id
+        },
+        err1 => {
+            if (err1) return reject(err1);
+
+            web3.currentProvider.send({
+                jsonrpc: "2.0",
+                method: "evm_mine",
+                id: id + 1
+            },
+            (err2, res) => {
+                return err2 ? reject(err2) : resolve(res);
+            });
+        });
+    });
 };
 
 module.exports.isRevertErrorMessage = (error) => {
@@ -88,7 +110,7 @@ module.exports.buyTokens = async (token, amount, account) => {
     const prevAmount = await token.balanceOf(account);
     await token.buyTokens(account, { from: account, value: amount / 4000 });
     const newAmount = await token.balanceOf(account);
-    assert.equal(newAmount.toNumber() - prevAmount.toNumber(), amount, 'Should have minted tokens');
+    assert.equal(newAmount - prevAmount, amount, 'Should have minted tokens');
 };
 
 module.exports.searchEvent = (tx, eventName) => {

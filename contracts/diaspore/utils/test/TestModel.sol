@@ -6,7 +6,6 @@ import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/ERC165.sol";
 
 contract TestModel is ERC165, BytesUtils, Ownable, Model {
-    using Bytes for *;
 
     uint256 public constant L_DATA = 16 + 8;
 
@@ -91,9 +90,9 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         require(data.length == L_DATA, "Invalid data length");
 
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
-        uint64 dueTime = uint64(bdue.toUint());
+        uint64 dueTime = uint64(uint256(bdue));
 
-        if (btotal.toBytes().equals(uint(0).toBytes())) return false;
+        if (btotal == bytes32(uint256(0))) return false;
 
         _validate(dueTime);
         return true;
@@ -161,8 +160,8 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         if (errorFlag == ERROR_CREATE) return false;
 
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
-        uint128 total = uint128(btotal.toUint());
-        uint64 dueTime = uint64(bdue.toUint());
+        uint128 total = uint128(uint256(btotal));
+        uint64 dueTime = uint64(uint256(bdue));
 
         _validate(dueTime);
 

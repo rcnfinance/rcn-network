@@ -7,9 +7,8 @@ import "../../contracts/utils/SimpleDelegable.sol";
 import "../../contracts/utils/BytesUtils.sol";
 
 contract SimpleDelegableMock is SimpleDelegable {
-    using Bytes for *;
     function ping() external onlyDelegate returns (bytes32) {
-        return 2.toBytes32();
+        return bytes32(uint256(2));
     }
 }
 
@@ -45,12 +44,11 @@ contract AccountMock {
 }
 
 contract SimpleDelegableTest {
-    using Bytes for *;
 
     function testCallAsDelegate() external {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
         delegable.addDelegate(address(this));
-        Assert.equal(delegable.ping(), 2.toBytes32(), "Call should success");
+        Assert.equal(delegable.ping(), bytes32(uint256(2)), "Call should success");
     }
 
     function testFailNonDelegate() external {

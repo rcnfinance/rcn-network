@@ -5,7 +5,6 @@ import "./../utils/BytesUtils.sol";
 import "./../interfaces/Oracle.sol";
 
 contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
-    using Bytes for bytes32;
 
     event DelegatedCall(address requester, address to);
     event CacheHit(address requester, bytes32 currency, uint256 requestTimestamp, uint256 deliverTimestamp, uint256 rate, uint256 decimals);
@@ -113,7 +112,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
             bytes32 preHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));
             address signer = ecrecover(
                 preHash,
-                /*v*/uint8(readBytes32(data, INDEX_V).toUint()),
+                /*v*/uint8(uint256(readBytes32(data, INDEX_V))),
                 /*r*/readBytes32(data, INDEX_R),
                 /*s*/readBytes32(data, INDEX_S)
             );
