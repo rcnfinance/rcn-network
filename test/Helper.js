@@ -59,7 +59,7 @@ module.exports.isRevertErrorMessage = (error) => {
 };
 
 module.exports.getBlockTime = async () => {
-    return (await web3.eth.getBlock('pending')).timestamp;
+    return (await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp;
 };
 
 module.exports.assertThrow = async (promise) => {
