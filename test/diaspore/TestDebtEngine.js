@@ -1445,8 +1445,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await testModel.encodeData(web3.utils.toWei('900000'), (await Helper.getBlockTime()) + 2000)
         ));
 
-        // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
-        const data = await testOracle.encodeRate(400023333566612312000000, 82711175222132156792);
+        //0.82711175222132156792 ETH = 4000.23333566612312 RCN
+        const data = await testOracle.encodeRate(web3.utils.toWei('0.8', 'ether'), 400000);
 
         await rcn.setBalance(accounts[0], 4836388);
         await rcn.approve(debtEngine.address, 4836388);
@@ -1613,7 +1613,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await debtEngine.payTokenBatch([id3], [web3.utils.toWei('1')], Helper.address0x, testOracle.address, data);
 
         const paid1 = await testModel.getPaid(id1);
-        paid1.should.be.bignumber.equal(await testModel.getPaid(id3).toString());
+        assert.equal(paid1.toNumber(), await testModel.getPaid(id3).toNumber());
 
         await debtEngine.pay(id2, paid1, Helper.address0x, data);
         await debtEngine.payBatch([id4], [paid1], Helper.address0x, testOracle.address, data);
@@ -1935,7 +1935,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         assert.equal(await rcn.balanceOf(accounts[2]), 3000);
     });
 
-    it('Pay token shoud not overflow the debt balance', async function () {
+    it('Pay token should not overflow the debt balance', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[2],
@@ -1955,7 +1955,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         await rcn.setBalance(accounts[0], 2 ** 130);
         await rcn.approve(debtEngine.address, 2 ** 130);
-
         await Helper.assertThrow(debtEngine.payToken(id, 2 ** 129, Helper.address0x, Helper.address0x));
 
         const ndebt = await debtEngine.debts(id);
@@ -2360,6 +2359,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             switch (event.args._id) {
             case id1:
                 const args = event.args;
+                console.log(args);
                 assert.equal(args._requested._count, 2000);
                 assert.equal(args._requestedTokens._tokens, 0);
                 assert.equal(args._paid._equivalent, 2000);

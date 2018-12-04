@@ -43,7 +43,7 @@ contract('NanoLoanModel', function (accounts) {
         //assert.equal((await model.getObligation(id, 0)).toString(), [0, true], 'should be 0, false');
     });
 
-    /*
+
     it('Test validate function', async function () {
         async function tryValidate (changeIndexs, values, message) {
             let params = JSON.parse(JSON.stringify(defaultParams));
@@ -67,7 +67,7 @@ contract('NanoLoanModel', function (accounts) {
         // data with Max value dues in to try make overflow
         const bytesWithMaxDuesIn = '0x000000000000000000000000000027100000000000000000000000000000000000000000000000000000096dfcf50000000000000000000000000000000000000000000000000000000004b6fe7a8000ffffffffffffffff000000000013c680';
         await Helper.tryCatchRevert(() => model.validate(bytesWithMaxDuesIn), 'duesIn should be not 0 or overflow now plus duesIn');
-    });*/
+    });
 
     it('Test create function', async function () {
         const id = Helper.toBytes32(idCounter++);

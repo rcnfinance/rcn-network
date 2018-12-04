@@ -76,7 +76,7 @@ contract('Installments model', function (accounts) {
     it('Test pay single installment', async function () {
         const id = Helper.toBytes32(2);
         const data = await model.encodeData(
-            web3.toWei(110),
+            web3.utils.toWei('110'),
             Helper.toInterestRate(20),
             1,
             360 * 86400,
@@ -87,13 +87,13 @@ contract('Installments model', function (accounts) {
 
         assert.equal((await model.getObligation(id, await Helper.getBlockTime()))[0].toNumber(), 0, 'First obligation should be 0');
         assert.equal((await model.getDueTime(id)).toNumber(), await Helper.getBlockTime() + 360 * 86400, 'Next due time should be in 1 installments');
-        assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), web3.toWei(110), 'Obligation on due time should be 110');
+        assert.equal((await model.getObligation(id, await model.getDueTime(id)))[0].toNumber(), web3.utils.toWei('110'), 'Obligation on due time should be 110');
         assert.equal((await model.getObligation(id, await model.getDueTime(id) - 1))[0].toNumber(), 0, 'Obligation before due time should be 0');
 
-        await model.addPaid(id, web3.toWei(110));
+        await model.addPaid(id, web3.utils.toWei('110'));
 
         assert.equal(await model.getStatus(id), 2, 'Status should be paid');
-        assert.equal(await model.getPaid(id), web3.toWei(110), 'Paid should be cuota * installments');
+        assert.equal(await model.getPaid(id).toNumber(), web3.utils.toWei('110'), 'Paid should be cuota * installments');
     });
 
     it('It should handle a loan with more than a installment', async function () {
@@ -847,7 +847,7 @@ contract('Installments model', function (accounts) {
             1
         );
 
-        const descriptor = ModelDescriptor.at(await model.descriptor());
+        let descriptor = await model.descriptor()
 
         assert.equal((await descriptor.simFirstObligation(data))[0], 99963);
         assert.equal((await descriptor.simFirstObligation(data))[1], 30 * 86400);

@@ -61,7 +61,6 @@ contract('NanoLoanEngine', function (accounts) {
             86400, 0, expirationTime, accounts[0], ''), '');
     });
 
-
     it('Should allow reference loans with their identifier', async () => {
         const sampleCurrency = '0x4d414e4100000000000000000000000000000000000000000000000000000000';
         const sampleOracle = accounts[2];
@@ -118,7 +117,6 @@ contract('NanoLoanEngine', function (accounts) {
     it('Should register an approve', async () => {
         const loanIdIdentifier = await engine.buildIdentifier(address0, accounts[3], accounts[4], address0, web3.utils.toWei("4"),
             Helper.toInterestRate(17), Helper.toInterestRate(46), 86405, 2, 1922279928, 'Test');
-
         const loanId = await createLoan(engine, address0, accounts[3], address0, web3.utils.toWei("4"), Helper.toInterestRate(17), Helper.toInterestRate(46),
             86405, 2, 1922279928, accounts[4], 'Test');
 
@@ -128,7 +126,7 @@ contract('NanoLoanEngine', function (accounts) {
 
         const r = `0x${approveSignature.slice(0, 64)}`;
         const s = `0x${approveSignature.slice(64, 128)}`;
-        const v = web3.toDecimal(approveSignature.slice(128, 130)) + 27;
+        const v = web3.utils.toDecimal(approveSignature.slice(128, 130)) + 27;
 
         await engine.registerApprove(loanIdIdentifier, v, r, s);
         assert.isTrue(await engine.isApproved(loanId));
@@ -147,7 +145,7 @@ contract('NanoLoanEngine', function (accounts) {
 
         const r = `0x${approveSignature.slice(0, 64)}`;
         const s = `0x${approveSignature.slice(64, 128)}`;
-        const v = web3.toDecimal(approveSignature.slice(128, 130)) + 27;
+        const v = web3.utils.toDecimal(approveSignature.slice(128, 130)) + 27;
 
         await Helper.tryCatchRevert(() => engine.registerApprove(loanIdIdentifier, v, r, s), '');
         assert.isFalse(await engine.isApproved(loanId));
@@ -225,13 +223,12 @@ contract('NanoLoanEngine', function (accounts) {
         // pay the total of the loan
         await Helper.buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
         await rcn.approve(engine.address, web3.utils.toWei('5000'), { from: accounts[1] });
-        await engine.pay(loanId, web3.utils.toWei("1"), accounts[1], dummyData, { from: accounts[1] });
+        await engine.pay(loanId, web3.utils.toWei('1'), accounts[1], dummyData, { from: accounts[1] });
 
         // check the status of the loan, should be paid
         status = await engine.getStatus(loanId);
         assert.equal(status, 2, 'Status should be paid');
     });
-
 
     it('Should handle a loan with an oracle if RCN is more expensive than ETH', async () => {
         const ethCurrency = '0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861';
@@ -390,8 +387,8 @@ contract('NanoLoanEngine', function (accounts) {
         await rcn.transfer(engine.address, web3.utils.toWei("1"), { from: accounts[4] });
 
         // lender trying to withdraw more of his balance should fail
-        await Helper.tryCatchRevert(() => engine.withdrawal(loanId, web3.utils.toWei('2.5'), accounts[2], { from: accounts[2] }), '');
-        let lenderBalance = await rcn.balanceOf(accounts[2]);
+        await Helper.tryCatchRevert(() => engine.withdrawal(loanId, accounts[2], web3.utils.toWei('2.5'), { from: accounts[2] }), '');
+        let lenderBalance = await rcn.balanceOf(accounts[2]) ;
         assert.equal(lenderBalance, 0, 'Lender should have no balance');
 
         // test the emergency withdraw function
@@ -739,7 +736,7 @@ contract('NanoLoanEngine', function (accounts) {
     });
 
     it('Should revert destroy invalid identifier', async function () {
-        await Helper.assertThrow(engine.destroyIdentifier(0x123));
+        await Helper.assertThrow(engine.destroyIdentifier('0x123'));
     });
 
     it('Test E2 28% Anual interest, 91 days', eTest(10000, 11108571428571, 7405714285714, 7862400, 30, 10233, 31, 10474, 91, 11469));
