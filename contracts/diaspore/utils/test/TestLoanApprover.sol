@@ -5,6 +5,7 @@ import "./../../../utils/ERC165.sol";
 import "./../../../utils/BytesUtils.sol";
 
 contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
+    event SetExpectedApprove(bytes32 _expected);
 
     enum ErrorBehavior {
         Revert,
@@ -25,6 +26,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     function setExpectedApprove(
         bytes32 _expected
     ) external {
+        emit SetExpectedApprove(_expected);
         expectedApprove = _expected;
     }
 
@@ -37,7 +39,11 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     function approveRequest(
         bytes32 _futureDebt
     ) external returns (bytes32) {
-        if (_futureDebt != expectedApprove) {
+        bytes32 auxExpectedApprove = expectedApprove;
+
+        expectedApprove = 0x0;
+
+        if (_futureDebt != auxExpectedApprove) {
             if (errorBehavior == ErrorBehavior.Revert) {
                 revert("Loan rejected");
             } else if (errorBehavior == ErrorBehavior.WrongReturn) {
