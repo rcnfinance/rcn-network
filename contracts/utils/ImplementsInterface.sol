@@ -37,7 +37,7 @@ library ImplementsInterface {
                                 30000,         // 30k gas
                                 _contract,     // To addr
                                 x,             // Inputs are stored at location x
-                                0x20,          // Inputs are 32 bytes long
+                                0x24,          // Inputs are 32 bytes long
                                 x,             // Store output over input (saves space)
                                 0x20)          // Outputs are 32 bytes long
 
