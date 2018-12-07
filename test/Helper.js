@@ -1,6 +1,7 @@
 
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
-module.exports.addressCurrency0x = '0x0000000000000000000000000000000000000000000000000000000000000000';
+module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
 module.exports.arrayToBytesOfBytes32 = (array) => {
     let bytes = '0x';
     for (let i = 0; i < array.length; i++) {
