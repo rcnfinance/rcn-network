@@ -120,6 +120,17 @@ module.exports.searchEvent = (tx, eventName) => {
     return event[0];
 };
 
+module.exports.toEvents = async (promise, ...events) => {
+    const logs = (await promise).logs;
+    let eventObjs = events.map(event => logs.find(log => log.event === event));
+    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
+        console.warn('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
+        assert.fail();
+    }
+    eventObjs = eventObjs.map(x => x.args);
+    return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
+};
+
 module.exports.eventNotEmitted = async (receipt, eventName) => {
     const logsCount = receipt.logs.length;
     assert.equal(logsCount, 0, 'Should have not emitted the event ' + eventName);

@@ -26,17 +26,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
     let oracle;
     let loanApprover;
 
-    async function toEvent (promise, ...events) {
-        const logs = (await promise).logs;
-        let eventObjs = events.map(event => logs.find(log => log.event === event));
-        if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
-            console.warn('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
-            assert.fail();
-        }
-        eventObjs = eventObjs.map(x => x.args);
-        return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
-    }
-
     async function getId (promise) {
         const receipt = await promise;
         const event = receipt.logs.find(l => l.event === 'Requested');
@@ -266,7 +255,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData
             );
 
-            const requested = await toEvent(
+            const requested = await Helper.toEvents(
                 loanManager.requestLoan(
                     amount,           // Amount
                     model.address,    // Model
@@ -419,7 +408,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     id,
                     [],
                     Helper.address0x,
-                    bn('0'),
+                    '0',
                     [],
                     { from: lender }
                 ),
@@ -502,7 +491,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData
             );
 
-            const requested = await toEvent(
+            const requested = await Helper.toEvents(
                 loanManager.requestLoan(
                     amount,            // Amount
                     model.address,     // Model
@@ -590,7 +579,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             );
 
-            const approved = await toEvent(
+            const approved = await Helper.toEvents(
                 loanManager.approveRequest(
                     id, { from: borrower }
                 ),
@@ -671,7 +660,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // Sign loan id
             const signature = await web3.eth.sign(id, borrower);
 
-            const events = await toEvent(
+            const events = await Helper.toEvents(
                 loanManager.registerApproveRequest(
                     id,
                     signature,
@@ -762,7 +751,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // Sign loan id
             const signature = await web3.eth.sign(id, borrower);
 
-            const Approved = await toEvent(
+            const Approved = await Helper.toEvents(
                 loanManager.registerApproveRequest(
                     id,
                     signature,
@@ -967,7 +956,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const dlength = await loanManager.getDirectoryLength();
 
             await loanApprover.setExpectedApprove(id);
-            const Approved = await toEvent(
+            const Approved = await Helper.toEvents(
                 loanManager.registerApproveRequest(
                     id,
                     [],
@@ -1066,7 +1055,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
             const prevDirLength = await loanManager.getDirectoryLength();
 
-            const lent = await toEvent(
+            const lent = await Helper.toEvents(
                 loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
@@ -1445,7 +1434,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, totalCost, { from: lender });
             const data = await cosigner.data();
 
-            const cosigned = await toEvent(
+            const cosigned = await Helper.toEvents(
                 loanManager.lend(
                     id,
                     [],
@@ -1851,7 +1840,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator }
             );
 
-            const canceled = await toEvent(
+            const canceled = await Helper.toEvents(
                 loanManager.cancel(
                     id,
                     { from: creator }
@@ -1909,7 +1898,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const dlength = await loanManager.getDirectoryLength();
 
-            const canceled = await toEvent(
+            const canceled = await Helper.toEvents(
                 loanManager.cancel(
                     id,
                     { from: borrower }
@@ -2060,7 +2049,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const settledLend = await toEvent(
+            const settledLend = await Helper.toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
@@ -2129,7 +2118,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const events = await toEvent(
+            const events = await Helper.toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
@@ -2280,7 +2269,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const events = await toEvent(
+            const events = await Helper.toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
@@ -2331,7 +2320,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const borrowerByCallback = await toEvent(
+            const borrowerByCallback = await Helper.toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
@@ -2866,7 +2855,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, totalCost, { from: lender });
             const data = await cosigner.data();
 
-            const cosigned = await toEvent(
+            const cosigned = await Helper.toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
@@ -3227,7 +3216,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const settledCancel = await toEvent(
+            const settledCancel = await Helper.toEvents(
                 loanManager.settleCancel(
                     settleData,
                     loanData,
@@ -3263,7 +3252,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const settledCancel = await toEvent(
+            const settledCancel = await Helper.toEvents(
                 loanManager.settleCancel(
                     settleData,
                     loanData,
