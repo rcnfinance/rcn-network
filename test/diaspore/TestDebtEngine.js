@@ -97,7 +97,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         assert.notEqual(id1, id2);
     });
-/*
+
     describe('Function create', function () {
         it('Should create a debt using create', async function () {
             const owner = accounts[1];
@@ -971,7 +971,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(await testModel.getPaid(id), 150);
         });
     });
-*/
+
     describe('Function payToken', function () {
         it('Should create and pay a debt using payToken', async function () {
             const owner = accounts[1];
