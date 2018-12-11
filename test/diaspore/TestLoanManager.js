@@ -184,13 +184,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         assert.equal((await rcn.totalSupply()).toString(), '0');
     });
 
-    it('Try instance a LoanManager instance with token == 0x0', async function () {
-        const testDebtEngine = await TestDebtEngine.new(Helper.address0x);
+    describe('Constructor', function () {
+        it('Try instance a LoanManager instance with token == 0x0', async function () {
+            const testDebtEngine = await TestDebtEngine.new(Helper.address0x);
 
-        await Helper.tryCatchRevert(
-            () => LoanManager.new(testDebtEngine.address),
-            'Error loading token'
-        );
+            await Helper.tryCatchRevert(
+                () => LoanManager.new(testDebtEngine.address),
+                'Error loading token'
+            );
+        });
     });
 
     describe('Function internalSalt', function () {
