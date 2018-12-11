@@ -1,11 +1,26 @@
 pragma solidity ^0.5.0;
 
-import "./../../interfaces/Model.sol";
 import "./../../../utils/Ownable.sol";
 import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/ERC165.sol";
 
-contract TestModel is ERC165, BytesUtils, Ownable, Model {
+
+contract TestModel is ERC165, BytesUtils, Ownable {
+    // This things should be heredit by the model interface but i need a getStatus not view
+    bytes4 internal constant MODEL_INTERFACE = 0xaf498c35;
+
+    uint256 public constant STATUS_ONGOING = 1;
+    uint256 public constant STATUS_PAID = 2;
+    uint256 public constant STATUS_ERROR = 4;
+    event Created(bytes32 indexed _id);
+    event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+    event ChangedObligation(bytes32 indexed _id, uint256 _timestamp, uint256 _debt);
+    event ChangedFrequency(bytes32 indexed _id, uint256 _timestamp, uint256 _frequency);
+    event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+    event ChangedFinalTime(bytes32 indexed _id, uint256 _timestamp, uint64 _dueTime);
+    event AddedDebt(bytes32 indexed _id, uint256 _amount);
+    event AddedPaid(bytes32 indexed _id, uint256 _paid);
+
 
     uint256 public constant L_DATA = 16 + 8;
 
@@ -98,7 +113,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
         return true;
     }
 
-    function getStatus(bytes32 id) external view returns (uint256) {
+    function getStatus(bytes32 id) external returns (uint256) {
         Entry storage entry = registry[id];
 
         if (entry.errorFlag == ERROR_STATUS) {
@@ -108,7 +123,7 @@ contract TestModel is ERC165, BytesUtils, Ownable, Model {
             while (aux / aux != 2) aux++;
             return aux;
         } else if (entry.errorFlag == ERROR_WRITE_STORAGE_STATUS) {
-            //entry.lastPing = uint64(now);
+            entry.lastPing = uint64(now);
             return uint64(now);
         }
 
