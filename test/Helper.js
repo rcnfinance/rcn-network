@@ -107,10 +107,9 @@ module.exports.tryCatchRevert = async (promise, message) => {
 };
 
 module.exports.toInterestRate = (interest) => {
-    const BN = web3.utils.BN;
-    const secondsInYear = new BN('360').mul(new BN('86400'));
-    const rawInterest = new BN('10000000').div(new BN(interest.toString()));
-    return rawInterest.mul(secondsInYear);
+    const secondsInYear = 360 * 86400;
+    const rawInterest = Math.floor(10000000 / interest);
+    return rawInterest * secondsInYear;
 };
 
 module.exports.buyTokens = async (token, amount, account) => {
@@ -151,5 +150,9 @@ module.exports.eventNotEmitted = async (receipt, eventName) => {
 };
 
 module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
-    assert.isBelow(Math.abs(await p1 - await p2), margin, reason);
+    assert.isBelow(
+        Math.abs((await p1).toNumber() - (await p2)),
+        margin,
+        reason
+    );
 };
