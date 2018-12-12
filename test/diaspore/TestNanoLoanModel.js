@@ -44,7 +44,7 @@ contract('NanoLoanModel', function (accounts) {
             defaultParams.cancelableAt
         );
     });
-/*
+
     it('Test get obligations functions', async function () {
         const id = Helper.toBytes32(idCounter++);
         // if the loan its no create the obligation should be 0
@@ -54,7 +54,7 @@ contract('NanoLoanModel', function (accounts) {
         assert.equal(obligation.amount, '0', 'should be 0');
         assert.equal(obligation.defined, true, 'should be false');
     });
-*/
+
     it('Test validate function', async function () {
         let data;
         // Try validate:
