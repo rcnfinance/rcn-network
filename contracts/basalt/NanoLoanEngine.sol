@@ -291,9 +291,21 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
         Oracle oracle, address borrower, address creator, bytes32 currency, uint256 amount, uint256 interestRate,
         uint256 interestRatePunitory, uint256 duesIn, uint256 cancelableAt, uint256 expirationRequest, string memory metadata
     ) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(
-            this, oracle, borrower, creator, currency, amount, interestRate,
-            interestRatePunitory, duesIn, cancelableAt, expirationRequest, metadata)
+        return keccak256(
+            abi.encodePacked(
+                this,
+                oracle,
+                borrower,
+                creator,
+                currency,
+                amount,
+                interestRate,
+                interestRatePunitory,
+                duesIn,
+                cancelableAt,
+                expirationRequest,
+                metadata
+            )
         );
     }
 

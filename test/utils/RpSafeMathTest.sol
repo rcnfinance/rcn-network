@@ -5,6 +5,7 @@ import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/RpSafeMath.sol";
 
+
 contract RpSafeMathMock is RpSafeMath {
     function add(uint256 a, uint256 b) external returns (uint256 c) {
         c = safeAdd(a, b);
@@ -13,7 +14,7 @@ contract RpSafeMathMock is RpSafeMath {
     function sub(uint256 a, uint256 b) external returns (uint256 c) {
         c = safeSubtract(a, b);
     }
-    
+
     function mult(uint256 a, uint256 b) external returns (uint256 c) {
         c = safeMult(a, b);
     }
@@ -26,6 +27,7 @@ contract RpSafeMathMock is RpSafeMath {
         c = max(a, b);
     }
 }
+
 
 contract RpSafeMathTest {
     RpSafeMathMock safeMath;
@@ -46,6 +48,7 @@ contract RpSafeMathTest {
 
         Assert.equal(success, 0, "Call should fail");
     }
+
     function testCatchSubUnderflow() external {
         (uint256 success, bytes32 result) = _safeCall(
             address(safeMath),

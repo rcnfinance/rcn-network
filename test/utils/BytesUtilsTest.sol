@@ -4,9 +4,11 @@ import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 import "../../contracts/utils/BytesUtils.sol";
 
+
 contract BytesUtilsInterface {
     function pReadBytes32(bytes memory data, uint256 index) public;
 }
+
 
 contract TestBytesUtils is BytesUtils {
     function pReadBytes32(bytes memory data, uint256 index) public returns (bytes32) {

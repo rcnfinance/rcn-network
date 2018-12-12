@@ -1,5 +1,6 @@
 pragma solidity ^0.5.0;
 
+
 contract IERC721Receiver {
     function onERC721Received(
         address _operator,
@@ -9,6 +10,7 @@ contract IERC721Receiver {
     ) public returns (bytes4);
 }
 
+
 contract IERC721ReceiverLegacy {
     function onERC721Received(
         address _from,
@@ -16,6 +18,7 @@ contract IERC721ReceiverLegacy {
         bytes memory _userData
     ) public returns (bytes4);
 }
+
 
 contract TestERC721ReceiverMultiple is IERC721Receiver, IERC721ReceiverLegacy {
     address public lastOperator;

@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./../SafeMath.sol";
 
+
 /*  ERC 20 token */
 contract StandardToken {
     using SafeMath for uint256;
@@ -67,6 +68,7 @@ contract StandardToken {
     mapping (address => uint256) balances;
     mapping (address => mapping (address => uint256)) allowed;
 }
+
 
 contract TestToken is StandardToken {
     event Mint(address indexed to, uint256 amount);

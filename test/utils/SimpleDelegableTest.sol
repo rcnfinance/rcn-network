@@ -6,11 +6,13 @@ import "truffle/DeployedAddresses.sol";
 import "../../contracts/utils/SimpleDelegable.sol";
 import "../../contracts/utils/BytesUtils.sol";
 
+
 contract SimpleDelegableMock is SimpleDelegable {
     function ping() external onlyDelegate returns (bytes32) {
         return bytes32(uint256(2));
     }
 }
+
 
 contract AccountMock {
     function send(
@@ -42,6 +44,7 @@ contract AccountMock {
         }
     }
 }
+
 
 contract SimpleDelegableTest {
 
