@@ -107,14 +107,17 @@ module.exports.tryCatchRevert = async (promise, message) => {
 };
 
 module.exports.toInterestRate = (interest) => {
-    return Math.floor((10000000 / interest) * 360 * 86400);
+    const BN = web3.utils.BN;
+    const secondsInYear = new BN('360').mul(new BN('86400'));
+    const rawInterest = new BN('10000000').div(new BN(interest.toString()));
+    return rawInterest.mul(secondsInYear);
 };
 
 module.exports.buyTokens = async (token, amount, account) => {
     const prevAmount = await token.balanceOf(account);
     await token.buyTokens(account, { from: account, value: amount / 4000 });
     const newAmount = await token.balanceOf(account);
-    assert.equal(newAmount - prevAmount, amount, 'Should have minted tokens');
+    assert.equal(newAmount.sub(prevAmount), amount.toString(), 'Should have minted tokens');
 };
 
 module.exports.searchEvent = (tx, eventName) => {
