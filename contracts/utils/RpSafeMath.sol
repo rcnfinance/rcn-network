@@ -1,5 +1,6 @@
 pragma solidity ^0.5.0;
 
+
 /* taking ideas from FirstBlood token */
 contract RpSafeMath {
     function safeAdd(uint256 x, uint256 y) internal pure returns(uint256) {
@@ -21,18 +22,18 @@ contract RpSafeMath {
     }
 
     function min(uint256 a, uint256 b) internal pure returns(uint256) {
-        if (a < b) { 
+        if (a < b) {
             return a;
-        } else { 
-            return b; 
+        } else {
+            return b;
         }
     }
 
     function max(uint256 a, uint256 b) internal pure returns(uint256) {
-        if (a > b) { 
+        if (a > b) {
             return a;
-        } else { 
-            return b; 
+        } else {
+            return b;
         }
     }
 }

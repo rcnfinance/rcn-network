@@ -1,5 +1,6 @@
 pragma solidity ^0.5.0;
 
+
 library ImplementsInterface {
     bytes4 constant InvalidID = 0xffffffff;
     bytes4 constant ERC165ID = 0x01ffc9a7;

@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./Ownable.sol";
 
+
 contract SimpleDelegable is Ownable {
     mapping(address => bool) delegates;
 

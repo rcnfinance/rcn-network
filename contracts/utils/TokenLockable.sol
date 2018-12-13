@@ -4,6 +4,7 @@ import "./RpSafeMath.sol";
 import "./Ownable.sol";
 import "./../interfaces/Token.sol";
 
+
 contract TokenLockable is RpSafeMath, Ownable {
     mapping(address => uint256) public lockedTokens;
 
@@ -26,7 +27,7 @@ contract TokenLockable is RpSafeMath, Ownable {
 
         @param token Token to withdraw
         @param to Destination of the tokens
-        @param amount Amount to withdraw 
+        @param amount Amount to withdraw
     */
     function withdrawTokens(Token token, address to, uint256 amount) public onlyOwner returns (bool) {
         require(safeSubtract(token.balanceOf(address(this)), lockedTokens[address(token)]) >= amount);

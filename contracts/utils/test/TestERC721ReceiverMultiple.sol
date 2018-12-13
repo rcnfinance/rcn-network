@@ -7,7 +7,8 @@ contract IERC721Receiver {
         address _from,
         uint256 _tokenId,
         bytes memory _userData
-    ) public returns (bytes4);
+    )
+        public returns (bytes4);
 }
 
 
@@ -16,7 +17,8 @@ contract IERC721ReceiverLegacy {
         address _from,
         uint256 _tokenId,
         bytes memory _userData
-    ) public returns (bytes4);
+    )
+        public returns (bytes4);
 }
 
 
@@ -35,7 +37,12 @@ contract TestERC721ReceiverMultiple is IERC721Receiver, IERC721ReceiverLegacy {
         uint256 _tokenId,
         bytes memory _userData
     ) public returns (bytes4) {
-        emit Received(_operator, _from, _tokenId, _userData);
+        emit Received(
+            _operator,
+            _from,
+            _tokenId,
+            _userData
+        );
         lastOperator = _operator;
         lastFrom = _from;
         lastTokenId = _tokenId;

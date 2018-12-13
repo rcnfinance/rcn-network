@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./../../interfaces/IERC165.sol";
 
+
 /**
     The abstract contract Model defines the whole lifecycle of a debt on the DebtEngine.
 

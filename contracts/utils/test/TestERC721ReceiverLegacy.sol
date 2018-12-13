@@ -1,12 +1,15 @@
 pragma solidity ^0.5.0;
 
+
 contract IERC721ReceiverLegacy {
     function onERC721Received(
         address _from,
         uint256 _tokenId,
         bytes memory _userData
-    ) public returns (bytes4);
+    )
+        public returns (bytes4);
 }
+
 
 contract TestERC721ReceiverLegacy is IERC721ReceiverLegacy {
     address public lastFrom;

@@ -4,6 +4,7 @@ import "./../../interfaces/LoanApprover.sol";
 import "./../../../utils/ERC165.sol";
 import "./../../../utils/BytesUtils.sol";
 
+
 contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     event SetExpectedApprove(bytes32 _expected);
 

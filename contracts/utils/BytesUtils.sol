@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-contract BytesUtils {
 
+contract BytesUtils {
     function readBytes32(bytes memory data, uint256 index) internal pure returns (bytes32 o) {
         require(data.length / 32 > index, "Reading bytes out of bounds");
         assembly {

@@ -6,6 +6,7 @@ import "./interfaces/RateOracle.sol";
 import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
 
+
 contract DebtEngine is ERC721Base {
     using IsContract for address;
 

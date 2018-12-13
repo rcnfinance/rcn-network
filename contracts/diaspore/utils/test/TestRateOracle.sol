@@ -4,6 +4,7 @@ import "./../../interfaces/RateOracle.sol";
 import "./../../../utils/ERC165.sol";
 import "./../../../utils/BytesUtils.sol";
 
+
 contract TestRateOracle is BytesUtils, ERC165, RateOracle {
     uint256 public constant VERSION = 5;
     bytes4 internal constant RATE_ORACLE_INTERFACE = 0xa265d8e0;

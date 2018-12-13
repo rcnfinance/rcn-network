@@ -4,6 +4,7 @@ import "./../interfaces/RateOracle.sol";
 import "./../../utils/ERC165.sol";
 import "./../../interfaces/Oracle.sol";
 
+
 contract OracleAdapter is RateOracle, ERC165 {
     Oracle public legacyOracle;
 

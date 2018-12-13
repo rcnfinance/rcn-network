@@ -9,6 +9,7 @@ import "./../utils/IsContract.sol";
 import "./../utils/SafeMath.sol";
 import "./../utils/BytesUtils.sol";
 
+
 contract LoanManager is BytesUtils {
     using ImplementsInterface for address;
     using IsContract for address;

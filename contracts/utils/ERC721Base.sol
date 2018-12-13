@@ -4,9 +4,11 @@ import "./SafeMath.sol";
 import "./ERC165.sol";
 import "./IsContract.sol";
 
+
 interface URIProvider {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
+
 
 contract ERC721Base is ERC165 {
     using SafeMath for uint256;
