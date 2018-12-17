@@ -65,7 +65,7 @@ contract Poach is ERC721Base, Events {
     function create(
         Token token,
         uint256 amount
-    ) public payable returns (uint256 id) {
+    ) external payable returns (uint256 id) {
         if (msg.value == 0)
             require(token.transferFrom(msg.sender, this, amount));
         else
@@ -90,7 +90,7 @@ contract Poach is ERC721Base, Events {
     function deposit(
         uint256 id,
         uint256 amount
-    ) public payable alive(id) returns (bool) {
+    ) external payable alive(id) returns (bool) {
         Pair storage pair = poaches[id];
 
         if (msg.value == 0)
@@ -111,7 +111,7 @@ contract Poach is ERC721Base, Events {
 
         @return true If the operation was executed
     */
-    function destroy(uint256 id) public onlyAuthorized(id) alive(id) returns (bool) {
+    function destroy(uint256 id) external onlyAuthorized(id) alive(id) returns (bool) {
         Pair storage pair = poaches[id];
 
         if (address(pair.token) != ETH)
