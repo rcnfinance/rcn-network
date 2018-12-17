@@ -1,13 +1,12 @@
 pragma solidity ^0.4.24;
 
+import "./../../../interfaces/IERC721Base.sol";
+
 import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/Ownable.sol";
 import "./../../../utils/ERC721Base.sol";
 
 
-interface ERC721 {
-    function transferFrom(address from, address to, uint256 id) external;
-    function ownerOf(uint256 id) external view returns (address);
 contract Events {
     event Created(
         address owner,
@@ -78,14 +77,14 @@ contract Bundle is ERC721Base, Events, BytesUtils {
         @notice Deposit a non fungible token on a package
 
         @param _packageId Index of package in packages array
-        @param token Token address (ERC721)
+        @param token Token address (IERC721Base)
         @param tokenId Token identifier
 
         @return true If the operation was executed
     */
     function deposit(
         uint256 _packageId,
-        ERC721 token,
+        IERC721Base token,
         uint256 tokenId
     ) external returns (bool) {
         uint256 packageId = _packageId == 0 ? create() : _packageId;
@@ -99,14 +98,14 @@ contract Bundle is ERC721Base, Events, BytesUtils {
         @dev The length of tokens and ids should be equal
 
         @param _packageId Index of package in packages array
-        @param tokens Token addresses (ERC721) array
+        @param tokens Token addresses (IERC721Base) array
         @param ids Token identifiers array
 
         @return true If the operation was executed
     */
     function depositBatch(
         uint256 _packageId,
-        ERC721[] tokens,
+        IERC721Base[] tokens,
         uint256[] ids
     ) external returns (bool) {
         uint256 packageId = _packageId == 0 ? create() : _packageId;
@@ -124,7 +123,7 @@ contract Bundle is ERC721Base, Events, BytesUtils {
         @notice Withdraw a non fungible token from a packag
 
         @param packageId Index of package in packages array
-        @param token Token address (ERC721)
+        @param token Token address (IERC721Base)
         @param tokenId Token identifier
         @param to address beneficiary
 
@@ -132,10 +131,10 @@ contract Bundle is ERC721Base, Events, BytesUtils {
     */
     function withdraw(
         uint256 packageId,
-        ERC721 token,
+        IERC721Base token,
         uint256 tokenId,
         address to
-    ) public canWithdraw(packageId) returns (bool) {
+    ) external canWithdraw(packageId) returns (bool) {
         return _withdraw(packageId, token, tokenId, to);
     }
 
@@ -145,7 +144,7 @@ contract Bundle is ERC721Base, Events, BytesUtils {
         @dev The length of tokens and ids should be equal
 
         @param packageId Index of package in packages array
-        @param tokens Token addresses (ERC721) array
+        @param tokens Token addresses (IERC721Base) array
         @param ids Token identifiers array
         @param to address beneficiary
 
@@ -153,7 +152,7 @@ contract Bundle is ERC721Base, Events, BytesUtils {
     */
     function withdrawBatch(
         uint256 packageId,
-        ERC721[] tokens,
+        IERC721Base[] tokens,
         uint256[] ids,
         address to
     ) external canWithdraw(packageId) returns (bool) {
@@ -180,7 +179,7 @@ contract Bundle is ERC721Base, Events, BytesUtils {
         uint256 i = package.ids.length - 1;
 
         for (; i != MAX_UINT256; i--) {
-            require(_withdraw(packageId, ERC721(package.tokens[i]), package.ids[i], to));
+            require(_withdraw(packageId, IERC721Base(package.tokens[i]), package.ids[i], to));
         }
 
         return true;
@@ -192,11 +191,11 @@ contract Bundle is ERC721Base, Events, BytesUtils {
 
     function _deposit(
         uint256 packageId,
-        ERC721 token,
+        IERC721Base token,
         uint256 tokenId
     ) internal returns (bool) {
         token.transferFrom(msg.sender, address(this), tokenId);
-        require(token.ownerOf(tokenId) == address(this), "ERC721 transfer failed");
+        require(token.ownerOf(tokenId) == address(this), "ERC721Base transfer failed");
 
         Package storage package = packages[packageId];
         _add(package, token, tokenId);
@@ -208,7 +207,7 @@ contract Bundle is ERC721Base, Events, BytesUtils {
 
     function _withdraw(
         uint256 packageId,
-        ERC721 token,
+        IERC721Base token,
         uint256 tokenId,
         address to
     ) internal returns (bool) {
@@ -217,14 +216,14 @@ contract Bundle is ERC721Base, Events, BytesUtils {
         emit Withdraw(msg.sender, packageId, token, tokenId);
 
         token.transferFrom(this, to, tokenId);
-        require(token.ownerOf(tokenId) == to, "ERC721 transfer failed");
+        require(token.ownerOf(tokenId) == to, "ERC721Base transfer failed");
 
         return true;
     }
 
     function _add(
         Package storage package,
-        ERC721 token,
+        IERC721Base token,
         uint256 id
     ) internal {
         uint256 position = package.order[token][id];
@@ -237,7 +236,7 @@ contract Bundle is ERC721Base, Events, BytesUtils {
 
     function _remove(
         Package storage package,
-        ERC721 token,
+        IERC721Base token,
         uint256 id
     ) internal {
         uint256 delPosition = package.order[token][id];
