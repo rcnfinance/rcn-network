@@ -5,7 +5,7 @@ import "./../../../interfaces/Token.sol";
 
 import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/Ownable.sol";
-
+import "./../../../utils/SafeMath.sol";
 import "./../../../utils/ERC721Base.sol";
 
 
