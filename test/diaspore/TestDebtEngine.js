@@ -99,14 +99,28 @@ contract('Test DebtEngine Diaspore', function (accounts) {
     });
 
     it('Should create a debt using create', async function () {
-        await debtEngine.create(
-            testModel.address,
-            accounts[1],
-            0x0,
-            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
+        const owner = accounts[1];
+        const creator = accounts[2];
+        const nonce = await debtEngine.nonces(creator);
+        const calcId = await debtEngine.buildId(creator, nonce);
+        const data = await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000);
+
+        const Created = Helper.searchEvent(
+            await debtEngine.create(
+                testModel.address,
+                owner,
+                Helper.address0x,
+                data,
+                { from: creator }
+            ),
+            'Created'
         );
 
-        assert.equal(await debtEngine.balanceOf(accounts[1]), 1, 'Account 1 should have a new asset');
+        assert.equal(Created._id, calcId);
+        (Created._id).should.be.bignumber.equal(calcId);
+        assert.equal(Created._data, data);
+
+        assert.equal(await debtEngine.balanceOf(owner), 1, 'Account 1 should have a new asset');
     });
 
     it('Should create 2 debts using create2', async function () {
