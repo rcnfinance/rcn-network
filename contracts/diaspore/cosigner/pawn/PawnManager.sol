@@ -9,6 +9,32 @@ import "./../../../utils/Ownable.sol";
 import "./../../../utils/ERC721Base.sol";
 
 
+contract Events {
+    event NewPawn(
+        address borrower,
+        uint256 loanId,
+        uint256 packageId,
+        uint256 pawnId
+    );
+
+    event RequestedPawn(
+        uint256 pawnId,
+        address borrower,
+        address engine,
+        uint256 loanId,
+        uint256 packageId
+    );
+
+    event StartedPawn(uint256 pawnId );
+
+    event CanceledPawn(address from, address to, uint256 pawnId);
+
+    event PaidPawn(address from, uint256 pawnId);
+
+    event DefaultedPawn(uint256 pawnId);
+}
+
+
 /**
     @notice The contract is used to handle all the lifetime of a pawn. The borrower can
 
@@ -17,7 +43,7 @@ import "./../../../utils/ERC721Base.sol";
 
     When the loan is resolved (paid, pardoned or defaulted), the pawn with his tokens can be recovered.
 */
-contract PawnManager is Cosigner, ERC721Base, BytesUtils, Ownable {
+contract PawnManager is Cosigner, ERC721Base, Events, BytesUtils, Ownable {
     using SafeMath for uint256;
 
     address constant internal ETH = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
@@ -25,12 +51,6 @@ contract PawnManager is Cosigner, ERC721Base, BytesUtils, Ownable {
     IBundle public bundle;
     IPoach public poach;
 
-    event NewPawn(address borrower, uint256 loanId, uint256 packageId, uint256 pawnId);
-    event RequestedPawn(uint256 pawnId, address borrower, address engine, uint256 loanId, uint256 packageId);
-    event StartedPawn(uint256 pawnId);
-    event CanceledPawn(address from, address to, uint256 pawnId);
-    event PaidPawn(address from, uint256 pawnId);
-    event DefaultedPawn(uint256 pawnId);
     // Relates packageIds to pawnIds
     mapping(uint256 => uint256) public pawnByPackageId;
     // Relates engine address to loanId to pawnIds

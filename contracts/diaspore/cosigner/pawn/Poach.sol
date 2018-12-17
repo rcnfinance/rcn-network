@@ -1,12 +1,33 @@
 pragma solidity ^0.4.24;
 
-
 import "./../../../interfaces/Token.sol";
 
 import "./../../../utils/ERC721Base.sol";
 
 
-contract Poach is ERC721Base {
+contract Events {
+    event Created(
+        address owner,
+        uint256 pairId,
+        address erc20,
+        uint256 amount
+    );
+
+    event Deposit(
+        address sender,
+        uint256 pairId,
+        uint256 amount
+    );
+
+    event Destroy(
+        address retriever,
+        uint256 pairId,
+        uint256 amount
+    );
+}
+
+
+contract Poach is ERC721Base, Events {
     using SafeMath for uint256;
 
     address constant internal ETH = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
@@ -18,10 +39,6 @@ contract Poach is ERC721Base {
     }
 
     Pair[] public poaches;
-
-    event Created(address owner, uint256 pairId, address erc20, uint256 amount);
-    event Deposit(address sender, uint256 pairId, uint256 amount);
-    event Destroy(address retriever, uint256 pairId, uint256 amount);
 
     constructor() public {
         poaches.length++;

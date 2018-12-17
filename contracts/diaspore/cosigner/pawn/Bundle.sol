@@ -2,24 +2,38 @@ pragma solidity ^0.4.24;
 
 import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/Ownable.sol";
-
 import "./../../../utils/ERC721Base.sol";
 
 
 interface ERC721 {
     function transferFrom(address from, address to, uint256 id) external;
     function ownerOf(uint256 id) external view returns (address);
+contract Events {
+    event Created(
+        address owner,
+        uint256 id
+    );
+
+    event Deposit(
+        address sender,
+        uint256 bundle,
+        address token,
+        uint256 id
+    );
+
+    event Withdraw(
+        address retriever,
+        uint256 bundle,
+        address token,
+        uint256 id
+    );
 }
 
 
-contract Bundle is ERC721Base, BytesUtils {
+contract Bundle is ERC721Base, Events, BytesUtils {
     uint256 private constant MAX_UINT256 = uint256(0) - uint256(1);
 
     Package[] private packages;
-
-    event Created(address owner, uint256 id);
-    event Deposit(address sender, uint256 bundle, address token, uint256 id);
-    event Withdraw(address retriever, uint256 bundle, address token, uint256 id);
 
     struct Package {
         address[] tokens;
