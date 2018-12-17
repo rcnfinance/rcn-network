@@ -2,9 +2,11 @@ pragma solidity ^0.4.19;
 
 import "./../interfaces/Token.sol";
 import "./../diaspore/interfaces/ILoanManager.sol";
+import "./../diaspore/interfaces/IDebtEngine.sol";
 import "./../diaspore/interfaces/Cosigner.sol";
 import "./../diaspore/interfaces/RateOracle.sol";
 import "./../diaspore/interfaces/Model.sol";
+
 
 import "./../utils/BytesUtils.sol";
 import "./../utils/SafeMath.sol";
@@ -18,14 +20,6 @@ interface IERC721Receiver {
         uint256 _tokenId,
         bytes   _userData
     ) external returns (bytes4);
-}
-
-
-contract IDebtEngine {
-    function withdraw(bytes32 _id, address _to) external returns (uint256 amount);
-    function withdrawPartial(bytes32 _id, address _to, uint256 _amount) external returns (bool success);
-    function approve(address _operator, uint256 _assetId) external;
-    function safeTransferFrom(address _from, address _to, uint256 _assetId) external;
 }
 
 

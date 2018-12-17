@@ -3,12 +3,15 @@ pragma solidity ^0.4.24;
 import "./SafeMath.sol";
 import "./ERC165.sol";
 import "./IsContract.sol";
+import "./../interfaces/IERC721Base.sol";
+
 
 interface URIProvider {
     function tokenURI(uint256 _tokenId) external view returns (string);
 }
 
-contract ERC721Base is ERC165 {
+
+contract ERC721Base is IERC721Base, ERC165 {
     using SafeMath for uint256;
     using IsContract for address;
 
