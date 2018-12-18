@@ -50,19 +50,19 @@ contract Poach is ERC721Base, Events {
         @param _token Token address (ERC20)
         @param _amount Token amount
 
-        @return id Index of pair in the poaches array
+        @return _id Index of pair in the poaches array
     */
     function create(
         address _token,
         uint256 _amount
-    ) external payable returns (uint256 id) {
+    ) external payable returns (uint256 _id) {
         _deposit(_token, _amount);
 
-        id = poaches.push(Pair(token, amount, true)) - 1;
+        _id = poaches.push(Pair(token, amount, true)) - 1;
 
-        _generate(id, msg.sender);
+        _generate(_id, msg.sender);
 
-        emit Created(id, msg.sender, token, _amount);
+        emit Created(_id, msg.sender, token, _amount);
     }
 
     /**
@@ -102,9 +102,9 @@ contract Poach is ERC721Base, Events {
     function destroy(
         uint256 _id,
         address _to
-    ) external onlyAuthorized(id) returns (bool) {
+    ) external onlyAuthorized(_id) returns (bool) {
         require(_to != 0x0, "_to should not be 0x0");
-        Pair storage pair = poaches[id];
+        Pair storage pair = poaches[_id];
         uint256 amount = pair.amount;
         require(amount != 0, "The pair not exists");
 
@@ -115,7 +115,7 @@ contract Poach is ERC721Base, Events {
 
         delete (pair.amount);
 
-        emit Destroy(id, msg.sender, _to, amount);
+        emit Destroy(_id, msg.sender, _to, amount);
 
         return true;
     }
