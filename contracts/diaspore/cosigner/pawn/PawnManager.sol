@@ -40,7 +40,7 @@ contract Events {
 
 
 /**
-    @notice The contract is used to handle all the lifetime of a pawn. The borrower can
+    @notice The contract is used to handle all the lifetime of a pawn.
 
     Implements the Cosigner interface of RCN, and when is tied to a loan it creates a new ERC721Base
       to handle the ownership of the pawn.
