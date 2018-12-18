@@ -86,7 +86,7 @@ contract('ERC721 Base', function (accounts) {
         await token.generate(assetId, accounts[0]);
         await token.approve(accounts[1], assetId);
 
-        assert.equal(await token.getApprovedAddress(assetId), accounts[1]);
+        assert.equal(await token.getApproved(assetId), accounts[1]);
         assert.equal(await token.isApprovedForAll(accounts[1], accounts[0]), false);
     });
 
