@@ -197,10 +197,10 @@ contract ERC721Base is ERC165 {
      * @param _assetId the asset to be queried for
      * @return bool true if the asset has been approved by the holder
      */
-    function getApprovedAddress(uint256 _assetId) external view returns (address) {
-        return _getApprovedAddress(_assetId);
+    function getApproved(uint256 _assetId) external view returns (address) {
+        return _getApproved(_assetId);
     }
-    function _getApprovedAddress(uint256 _assetId) internal view returns (address) {
+    function _getApproved(uint256 _assetId) internal view returns (address) {
         return _approval[_assetId];
     }
 
@@ -219,7 +219,7 @@ contract ERC721Base is ERC165 {
         if (_operator == owner) {
             return true;
         }
-        return _isApprovedForAll(_operator, owner) || _getApprovedAddress(_assetId) == _operator;
+        return _isApprovedForAll(_operator, owner) || _getApproved(_assetId) == _operator;
     }
 
     //
@@ -246,7 +246,7 @@ contract ERC721Base is ERC165 {
     function approve(address _operator, uint256 _assetId) external {
         address holder = _ownerOf(_assetId);
         require(msg.sender == holder || _isApprovedForAll(msg.sender, holder), "msg.sender can't approve");
-        if (_getApprovedAddress(_assetId) != _operator) {
+        if (_getApproved(_assetId) != _operator) {
             _approval[_assetId] = _operator;
             emit Approval(holder, _operator, _assetId);
         }
