@@ -15,25 +15,25 @@ import "./../../../utils/ERC721Base.sol";
 
 contract Events {
     event NewPawn(
-        address borrower,
+        uint256 pawnId,
         uint256 loanId,
-        uint256 packageId,
-        uint256 pawnId
+        address borrower,
+        uint256 packageId
     );
 
     event RequestedPawn(
         uint256 pawnId,
+        uint256 loanId,
         address borrower,
         address engine,
-        uint256 loanId,
         uint256 packageId
     );
 
     event StartedPawn(uint256 pawnId );
 
-    event CanceledPawn(address from, address to, uint256 pawnId);
+    event CanceledPawn(uint256 pawnId, address from, address to);
 
-    event PaidPawn(address from, uint256 pawnId);
+    event PaidPawn(uint256 pawnId, address from);
 
     event DefaultedPawn(uint256 pawnId);
 }
@@ -174,7 +174,12 @@ contract PawnManager is Cosigner, ERC721Base, Events, BytesUtils, Ownable {
 
         (pawnId, packageId) = requestPawnId(nanoLoanEngine, loanId, _tokens, _amounts, _ERC721s, _ids);
 
-        emit NewPawn(msg.sender, loanId, packageId, pawnId);
+        emit NewPawn(
+            pawnId,
+            loanId,
+            msg.sender,
+            packageId
+        );
     }
 
     /**
@@ -253,10 +258,10 @@ contract PawnManager is Cosigner, ERC721Base, Events, BytesUtils, Ownable {
         loanToLiability[engine][loanId] = pawnId;
 
         emit RequestedPawn({
-            pawnId:    pawnId,
-            borrower:  borrower,
-            engine:    engine,
-            loanId:    loanId,
+            pawnId: pawnId,
+            loanId: loanId,
+            borrower: borrower,
+            engine: engine,
             packageId: packageId
         });
     }
@@ -332,7 +337,7 @@ contract PawnManager is Cosigner, ERC721Base, Events, BytesUtils, Ownable {
 
         _transferAsset(pawn.packageId, _to, _asBundle);
 
-        emit CanceledPawn(msg.sender, _to, _pawnId);
+        emit CanceledPawn(_pawnId, msg.sender, _to);
         return true;
     }
 
@@ -470,7 +475,7 @@ contract PawnManager is Cosigner, ERC721Base, Events, BytesUtils, Ownable {
 
             _transferAsset(pawn.packageId, msg.sender, _asBundle);
 
-            emit PaidPawn(msg.sender, pawnId);
+            emit PaidPawn(pawnId, msg.sender);
         } else {
             if (isDefaulted(pawn.engine, _loanId)) {
                 // The pawn is defaulted
