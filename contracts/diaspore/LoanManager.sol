@@ -257,26 +257,35 @@ contract LoanManager is BytesUtils {
     function registerApproveRequest(
         bytes32 _id,
         bytes _signature
-    ) external returns (bool approved) {
+    ) external returns (bool) {
         Request storage request = requests[_id];
         address borrower = request.borrower;
 
         if (!request.approved) {
             if (borrower.isContract() && borrower.implements(0x76ba6009)) {
                 require(_requestContractApprove(_id, borrower), "The borrower contract dont approve the request");
-            } else {
-                if (borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _signature)) {
-                    emit ApprovedBySignature(_id);
-                    approved = true;
-                }
-            }
-        }
+                // Check request.approved again, protect against reentrancy
+                if (!request.approved) {
+                    request.position = uint64(directory.push(_id) - 1);
+                    request.approved = true;
+                    
+                    emit Approved(_id);
 
-        // Check request.approved again, protect against reentrancy
-        if (approved && !request.approved) {
-            request.position = uint64(directory.push(_id) - 1);
-            request.approved = true;
-            emit Approved(_id);
+                    return true;
+                }
+            } else {
+                require(
+                    borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _signature),
+                    "Wrong borrower signature"
+                );
+
+                request.position = uint64(directory.push(_id) - 1);
+                request.approved = true;
+
+                emit ApprovedBySignature(_id);
+
+                return true;
+            }
         }
     }
 
