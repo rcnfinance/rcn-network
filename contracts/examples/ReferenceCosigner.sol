@@ -130,6 +130,7 @@ contract Events {
 
 contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events, IERC721Receiver {
     using SafeMath for uint256;
+    using SafeMath for uint64;
 
     string private infoUrl;
     Token public rcn;
@@ -157,7 +158,7 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events, IERC721
         uint256 _index
     ) external view returns (bool) {
         return _loanManager.getStatus(_index) != STATUS_PAID &&
-            ((uint256(liabilities[_loanManager][_index].requiredArrears)).add(_loanManager.getDueTime(_index)) <= now);
+            liabilities[_loanManager][_index].requiredArrears.add(_loanManager.getDueTime(_index)) <= now;
     }
 
     function url() external view returns (string) {
@@ -284,7 +285,7 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events, IERC721
 
         require(
             loanManager.getStatus(_index) != STATUS_PAID &&
-                ((uint256(liability.requiredArrears)).add(loanManager.getDueTime(_index)) <= now),
+                liability.requiredArrears.add(loanManager.getDueTime(_index)) <= now,
             "The liability is not defaulted"
         );
 
