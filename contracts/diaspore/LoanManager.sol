@@ -263,7 +263,7 @@ contract LoanManager is BytesUtils {
 
         if (!request.approved) {
             if (borrower.isContract() && borrower.implements(0x76ba6009)) {
-                approved = _requestContractApprove(_id, borrower);
+                require(_requestContractApprove(_id, borrower), "The borrower contract dont approve the request");
             } else {
                 if (borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _signature)) {
                     emit ApprovedBySignature(_id);
