@@ -676,10 +676,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // Sign loan id
             const signature = await web3.eth.sign(borrower, id);
 
-            const receipt = await loanManager.registerApproveRequest(id, signature, { from: accounts[2] });
+            const receipt = await loanManager.registerApproveRequest(id, signature, { from: accounts[6] });
             assert.equal(await loanManager.isApproved(id), true);
 
-            const event = receipt.logs.find(l => l.event === 'Approved');
+            const event = receipt.logs.find(l => l.event === 'ApprovedBySignature');
             assert.equal(event.args._id, id);
 
             // Should add the entry to the directory
@@ -687,7 +687,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             (await loanManager.directory(dlength)).should.be.bignumber.equal(id);
         });
 
-        it('Should ignore approve with wrong borrower signature', async function () {
+        it('Try approve with wrong borrower signature', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const salt = bn('5');
@@ -707,19 +707,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             ));
 
-            const dlength = await loanManager.getDirectoryLength();
-
             // Sign loan id
             const signature = await web3.eth.sign(borrower, Helper.toBytes32(accounts[3]));
 
-            const receipt = await loanManager.registerApproveRequest(id, signature, { from: accounts[2] });
+            await Helper.tryCatchRevert(
+                () => loanManager.registerApproveRequest(
+                    id,
+                    signature,
+                    { from: accounts[3] }
+                ),
+                'Wrong borrower signature'
+            );
+
             assert.equal(await loanManager.isApproved(id), false);
-
-            const event = receipt.logs.find(l => l.event === 'Approved');
-            assert.notOk(event);
-
-            // Should not add the entry to the directory
-            (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
         });
 
         it('Should ignore a second approve using registerApprove', async function () {
@@ -747,16 +747,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // Sign loan id
             const signature = await web3.eth.sign(borrower, id);
 
-            const receipt = await loanManager.registerApproveRequest(id, signature, { from: accounts[2] });
+            const receipt = await loanManager.registerApproveRequest(id, signature, { from: accounts[3] });
             assert.equal(await loanManager.isApproved(id), true);
 
-            const event = receipt.logs.find(l => l.event === 'Approved');
+            const event = receipt.logs.find(l => l.event === 'ApprovedBySignature');
             assert.equal(event.args._id, id);
 
-            const receipt2 = await loanManager.registerApproveRequest(id, signature, { from: accounts[2] });
+            const receipt2 = await loanManager.registerApproveRequest(id, signature, { from: accounts[3] });
             assert.equal(await loanManager.isApproved(id), true);
 
-            const event2 = receipt2.logs.find(l => l.event === 'Approved');
+            const event2 = receipt2.logs.find(l => l.event === 'ApprovedBySignature');
             assert.notOk(event2);
 
             // Should add the entry to the directory once
@@ -789,7 +789,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // Set expected id
             await loanApprover.setExpectedApprove(id);
 
-            const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+            const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[3] });
             assert.equal(await loanManager.isApproved(id), true);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
@@ -800,7 +800,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             (await loanManager.directory(dlength)).should.be.bignumber.equal(id);
         });
 
-        it('Should ignore approve if borrower callback reverts', async function () {
+        it('Try approve and borrower callback reverts', async function () {
             const creator = accounts[1];
             const borrower = loanApprover.address;
             const salt = bn('5');
@@ -824,17 +824,20 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await loanApprover.setErrorBehavior(0);
 
-            const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+            await Helper.tryCatchRevert(
+                () => loanManager.registerApproveRequest(
+                    id,
+                    Helper.address0x,
+                    { from: accounts[3] }
+                ),
+                'The borrower contract dont approve the request'
+            );
+
             assert.equal(await loanManager.isApproved(id), false);
-
-            const event = receipt.logs.find(l => l.event === 'Approved');
-            assert.notOk(event);
-
-            // Should not add the entry to the directory
             (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
         });
 
-        it('Should ignore approve if borrower callback returns false', async function () {
+        it('Try approve and borrower callback returns false', async function () {
             const creator = accounts[1];
             const borrower = loanApprover.address;
             const salt = bn('6');
@@ -858,17 +861,21 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await loanApprover.setErrorBehavior(1);
 
-            const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+            await Helper.tryCatchRevert(
+                () => loanManager.registerApproveRequest(
+                    id,
+                    Helper.address0x,
+                    { from: accounts[3] }
+                ),
+                'The borrower contract dont approve the request'
+            );
+
             assert.equal(await loanManager.isApproved(id), false);
-
-            const event = receipt.logs.find(l => l.event === 'Approved');
-            assert.notOk(event);
-
             // Should not add the entry to the directory
             (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
         });
 
-        it('Should ignore approve if borrower callback returns wrong value', async function () {
+        it('Try approve and borrower callback returns wrong value', async function () {
             const creator = accounts[1];
             const borrower = loanApprover.address;
             const salt = bn('7');
@@ -892,12 +899,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await loanApprover.setErrorBehavior(2);
 
-            const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+            await Helper.tryCatchRevert(
+                () => loanManager.registerApproveRequest(
+                    id,
+                    Helper.address0x,
+                    { from: accounts[3] }
+                ),
+                'The borrower contract dont approve the request'
+            );
+
             assert.equal(await loanManager.isApproved(id), false);
-
-            const event = receipt.logs.find(l => l.event === 'Approved');
-            assert.notOk(event);
-
             // Should not add the entry to the directory
             (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
         });
@@ -926,13 +937,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await loanApprover.setExpectedApprove(id);
 
-            const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+            const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[3] });
             assert.equal(await loanManager.isApproved(id), true);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.equal(event.args._id, id);
 
-            const receipt2 = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+            const receipt2 = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[3] });
             assert.equal(await loanManager.isApproved(id), true);
 
             const event2 = receipt2.logs.find(l => l.event === 'Approved');
@@ -943,7 +954,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             (await loanManager.directory(dlength)).should.be.bignumber.equal(id);
         });
 
-        it('Should not call callback if the borrower contract does not implements loan approver', async function () {
+        it('Try approve and the borrower contract does not implements loan approver', async function () {
             const creator = accounts[1];
             const borrower = debtEngine.address;
             const salt = bn('7');
@@ -965,12 +976,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const dlength = await loanManager.getDirectoryLength();
 
-            const receipt = await loanManager.registerApproveRequest(id, 0x0, { from: accounts[2] });
+            await Helper.tryCatchRevert(
+                () => loanManager.registerApproveRequest(
+                    id,
+                    Helper.address0x,
+                    { from: accounts[3] }
+                ),
+                'Wrong borrower signature'
+            );
+
             assert.equal(await loanManager.isApproved(id), false);
-
-            const event = receipt.logs.find(l => l.event === 'Approved');
-            assert.notOk(event);
-
             // Should not add the entry to the directory
             (await loanManager.getDirectoryLength()).should.be.bignumber.equal(dlength);
         });
