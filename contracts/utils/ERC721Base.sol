@@ -4,19 +4,25 @@ import "./SafeMath.sol";
 import "./ERC165.sol";
 import "./IsContract.sol";
 
+
 interface URIProvider {
     function tokenURI(uint256 _tokenId) external view returns (string);
 }
+
 
 contract ERC721Base is ERC165 {
     using SafeMath for uint256;
     using IsContract for address;
 
     mapping(uint256 => address) private _holderOf;
+
+    // Owner to array of assetId
     mapping(address => uint256[]) private _assetsOf;
+    // AssetId to index on array in _assetsOf mapping
+    mapping(uint256 => uint256) private _indexOfAsset;
+
     mapping(address => mapping(address => bool)) private _operators;
     mapping(uint256 => address) private _approval;
-    mapping(uint256 => uint256) private _indexOfAsset;
 
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
     bytes4 private constant ERC721_RECEIVED_LEGACY = 0xf0b9e5ba;
