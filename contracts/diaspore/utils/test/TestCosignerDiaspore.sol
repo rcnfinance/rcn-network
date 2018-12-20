@@ -1,3 +1,4 @@
+/* solium-disable */
 pragma solidity ^0.4.15;
 
 import "../../interfaces/Cosigner.sol";
@@ -5,7 +6,6 @@ import "../../interfaces/ILoanManager.sol";
 
 import "../../../utils/BytesUtils.sol";
 import "../../../interfaces/Token.sol";
-
 
 contract TestCosignerDiaspore is Cosigner, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
