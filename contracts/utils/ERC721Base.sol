@@ -284,6 +284,7 @@ contract ERC721Base is ERC165 {
             uint256 lastAssetId = _assetsOf[_from][lastAssetIndex];
             // Insert the last asset into the position previously occupied by the asset to be removed
             _assetsOf[_from][assetIndex] = lastAssetId;
+            _indexOfAsset[lastAssetId] = assetIndex;
         }
 
         // Resize the array
