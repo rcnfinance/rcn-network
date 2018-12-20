@@ -275,4 +275,50 @@ contract('ERC721 Base', function (accounts) {
 
         assert.equal(uri, 'https://ripioCreditNetwork/debtId');
     });
+
+    it('Should generate a new NFTs and tansfer randomly', async function () {
+        const assetIds = [];
+        const totalAssets = 25;
+
+        for (let i = 0; i < totalAssets; i++) {
+            assetIds.push(600 + i);
+            await token.generate(assetIds[i], accounts[i % 10]);
+        }
+
+        for (let i = totalAssets - 1; i >= 0; i--) {
+            const owner = await token.ownerOf(assetIds[i]);
+            const randomAcc = Math.floor(Math.random() * 10);
+
+            await token.transferFrom(
+                owner,
+                accounts[randomAcc],
+                assetIds[i],
+                { from: owner }
+            );
+        }
+
+        for (let i = 0; i < totalAssets; i++) {
+            const owner = await token.ownerOf(assetIds[i]);
+            const randomAcc = Math.floor(Math.random() * 10);
+
+            await token.transferFrom(
+                owner,
+                accounts[randomAcc],
+                assetIds[i],
+                { from: owner }
+            );
+        }
+
+        for (let i = totalAssets - 1; i >= 0; i--) {
+            const owner = await token.ownerOf(assetIds[i]);
+            const randomAcc = Math.floor(Math.random() * 10);
+
+            await token.transferFrom(
+                owner,
+                accounts[randomAcc],
+                assetIds[i],
+                { from: owner }
+            );
+        }
+    });
 });
