@@ -281,7 +281,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('1031230');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -300,7 +300,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6000');
             const requiredArrears = ('524');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -344,7 +344,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         it('Try requestCosign with different _loanManager parameter and msg.sender', async () => {
             const borrower = accounts[1];
             const amount = bn('66666');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -363,7 +363,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6000');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -399,8 +399,8 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
                 id,
                 bn('0'),
                 bn('6000'),
-                (bn((await Helper.getBlockTime()).toString())).plus(bn('500')),
-                (bn((await Helper.getBlockTime()).toString())).plus(bn('1000')),
+                await Helper.getBlockTime() + 500,
+                await Helper.getBlockTime() + 1000,
                 signer
             );
 
@@ -424,7 +424,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('66451');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -477,7 +477,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('66451');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -496,7 +496,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('0');
             const requiredArrears = bn('666');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -530,7 +530,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('698452');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -549,7 +549,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6552');
             const requiredArrears = bn('6632');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             const noSigner = accounts[2];
             const data = await toDataRequestCosign(
@@ -589,8 +589,8 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
                 id,
                 bn('1'),
                 bn('5561'),
-                (bn((await Helper.getBlockTime()).toString())).plus(bn('500')),
-                (bn((await Helper.getBlockTime()).toString())).plus(bn('1000')),
+                await Helper.getBlockTime() + 500,
+                await Helper.getBlockTime() + 1000,
                 signer
             );
 
@@ -612,7 +612,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('98875');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -631,7 +631,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -664,7 +664,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('98875');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -683,7 +683,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -728,7 +728,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('98875');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -747,7 +747,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('33');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -794,7 +794,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('98875');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -813,7 +813,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -881,7 +881,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -900,7 +900,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -984,7 +984,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1003,7 +1003,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1049,7 +1049,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1068,7 +1068,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1113,7 +1113,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1132,7 +1132,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1187,7 +1187,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1206,7 +1206,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1268,7 +1268,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const lender = accounts[2];
             const receiver = accounts[3];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1287,7 +1287,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1368,7 +1368,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1387,7 +1387,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1456,7 +1456,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const lender = accounts[2];
             const receiver = accounts[3];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1475,7 +1475,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1557,7 +1557,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1576,7 +1576,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1648,7 +1648,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const lender = accounts[2];
             const receiver = accounts[3];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1667,7 +1667,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1733,7 +1733,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1752,7 +1752,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
@@ -1823,7 +1823,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const borrower = accounts[1];
             const lender = accounts[2];
             const amount = bn('626232');
-            const expirationLoan = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationLoan = await Helper.getBlockTime() + 1000;
 
             const id = (await Helper.toEvent(
                 loanManager.requestLoan(
@@ -1842,7 +1842,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             const costCosign = bn('1222');
             const coverage = bn('6562');
             const requiredArrears = bn('500');
-            const expirationCosign = (bn((await Helper.getBlockTime()).toString())).plus(bn('1000'));
+            const expirationCosign = await Helper.getBlockTime() + 1000;
 
             await cosigner.addDelegate(signer, { from: owner });
             const data = await toDataRequestCosign(
