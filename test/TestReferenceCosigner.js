@@ -1512,6 +1512,118 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         });
     });
 
+    describe('function withdrawBatch', async () => {
+        const borrower = accounts[1];
+        const lender = accounts[2];
+        const receiver = accounts[3];
+        const signer = accounts[7];
+        const amount = bn('626232');
+        // For cosign
+        const costCosign = bn('1222');
+        const coverage = bn('6562');
+        const requiredArrears = bn('20');
+        const totalLoans = 5;
+
+        it('Should withdraw all founds of a batch of loans', async () => {
+            const ids = [];
+            const expirationCosign = await Helper.getBlockTime() + 20;
+            const expirationLoan = await Helper.getBlockTime() + 20;
+
+            await rcn.setBalance(lender, amount.plus(costCosign).mul(totalLoans));
+            await cosigner.addDelegate(signer, { from: owner });
+            // set balance to the lender
+            await rcn.approve(loanManager.address, amount.plus(costCosign).mul(totalLoans), { from: lender });
+            // Create loans
+            for (let i = 0; i < totalLoans; i++) {
+                const id = (await Helper.toEvent(
+                    loanManager.requestLoan(
+                        amount,
+                        model.address,
+                        Helper.address0x,
+                        borrower,
+                        i,
+                        expirationLoan,
+                        await model.encodeData(amount, expirationLoan),
+                        { from: borrower }
+                    ),
+                    'Requested'
+                ))._id;
+
+                ids.push(id);
+                const data = await toDataRequestCosign(
+                    cosigner,
+                    loanManager,
+                    id,
+                    costCosign,
+                    coverage,
+                    requiredArrears,
+                    expirationCosign,
+                    signer
+                );
+
+                await loanManager.lend(
+                    id,
+                    [],
+                    cosigner.address,
+                    costCosign,
+                    data,
+                    { from: lender }
+                );
+            }
+            // Claim loans
+            await Helper.increaseTime(60);
+            await rcn.setBalance(cosigner.address, amount.mul(totalLoans));
+            for (let i = 0; i < totalLoans; i++) {
+                await debtEngine.approve(cosigner.address, ids[i], { from: lender });
+                await cosigner.claim(
+                    loanManager.address,
+                    ids[i],
+                    '',
+                    { from: lender }
+                );
+            }
+            // Pay loans
+            await rcn.setBalance(borrower, amount.mul(totalLoans));
+            await rcn.approve(debtEngine.address, amount.mul(totalLoans), { from: borrower });
+            let totalWithdraw = 0;
+            for (let i = 0; i < totalLoans; i++) {
+                totalWithdraw += i;
+                await debtEngine.pay(
+                    ids[i],
+                    i,
+                    borrower,
+                    [],
+                    { from: borrower }
+                );
+            }
+
+            const prevCosignerBal = await rcn.balanceOf(cosigner.address);
+            const prevReceiverBal = await rcn.balanceOf(receiver);
+
+            await cosigner.withdrawBatchLoans(
+                loanManager.address,
+                ids,
+                receiver,
+                { from: owner }
+            );
+
+            (await rcn.balanceOf(cosigner.address)).should.be.bignumber.equal(prevCosignerBal);
+            (await rcn.balanceOf(receiver)).should.be.bignumber.equal(prevReceiverBal.plus(bn(totalWithdraw)));
+        });
+
+        it('Try withdraw all founds of a loan to address 0x0', async () => {
+            await Helper.tryCatchRevert(
+                () => cosigner.withdrawBatchLoans(
+                    loanManager.address,
+                    [],
+                    Helper.address0x,
+                    { from: owner }
+                ),
+                'Invalid _to address'
+            );
+        });
+    });
+
     describe('function withdrawPartialFromLoan', async () => {
         const signer = accounts[7];
 

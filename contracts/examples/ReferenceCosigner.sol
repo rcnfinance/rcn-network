@@ -338,6 +338,24 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events, IERC721
     }
 
     /**
+        @dev Withdraws all funds from a batch of loans
+
+        @param _indexes Array of Indexes of the loan
+        @param _to Destination of the withdrawed tokens
+
+        @return the amount of withdraw
+    */
+    function withdrawBatchLoans(
+        ILoanManager _loanManager,
+        bytes32[] _indexes,
+        address _to
+    ) external onlyOwner returns (uint256) {
+        require(_to != address(0), "Invalid _to address");
+
+        return IDebtEngine(_loanManager.debtEngine()).withdrawBatch(_indexes, _to);
+    }
+
+    /**
         @dev Withdraws partial funds from a loan
 
         @param _index Index of the loan
