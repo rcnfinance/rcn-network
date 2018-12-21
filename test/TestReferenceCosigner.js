@@ -1611,7 +1611,7 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             (await rcn.balanceOf(receiver)).should.be.bignumber.equal(prevReceiverBal.plus(bn(totalWithdraw)));
         });
 
-        it('Try withdraw all founds of a loan to address 0x0', async () => {
+        it('Try withdraw all founds of a batch of loans to address 0x0', async () => {
             await Helper.tryCatchRevert(
                 () => cosigner.withdrawBatchLoans(
                     loanManager.address,
