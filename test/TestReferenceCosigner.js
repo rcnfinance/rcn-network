@@ -1109,6 +1109,70 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
             );
         });
 
+        it('Try claim a liability and cosigner contract dont have token balance', async () => {
+            const borrower = accounts[1];
+            const lender = accounts[2];
+            const amount = bn('626232');
+            const expirationLoan = await Helper.getBlockTime() + 1000;
+
+            const id = (await Helper.toEvent(
+                loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    bn('1'),
+                    expirationLoan,
+                    await model.encodeData(amount, expirationLoan),
+                    { from: borrower }
+                ),
+                'Requested'
+            ))._id;
+
+            const costCosign = bn('1222');
+            const coverage = bn('6562');
+            const requiredArrears = bn('500');
+            const expirationCosign = await Helper.getBlockTime() + 1000;
+
+            await cosigner.addDelegate(signer, { from: owner });
+            const data = await toDataRequestCosign(
+                cosigner,
+                loanManager,
+                id,
+                costCosign,
+                coverage,
+                requiredArrears,
+                expirationCosign,
+                signer
+            );
+
+            await rcn.setBalance(lender, amount.plus(costCosign));
+            await rcn.approve(loanManager.address, amount.plus(costCosign), { from: lender });
+
+            await loanManager.lend(
+                id,
+                [],
+                cosigner.address,
+                costCosign,
+                data,
+                { from: lender }
+            );
+
+            await Helper.increaseTime(3000);
+
+            await rcn.setBalance(cosigner.address, amount);
+
+            await Helper.tryCatchRevert(
+                () => cosigner.claim(
+                    loanManager.address,
+                    id,
+                    '',
+                    { from: lender }
+                ),
+                'msg.sender Not authorized'
+            );
+        });
+
         it('Try claim a non-defaulted liability (liability non-expired and status paid)', async () => {
             const borrower = accounts[1];
             const lender = accounts[2];
