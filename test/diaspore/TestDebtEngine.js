@@ -99,14 +99,28 @@ contract('Test DebtEngine Diaspore', function (accounts) {
     });
 
     it('Should create a debt using create', async function () {
-        await debtEngine.create(
-            testModel.address,
-            accounts[1],
-            0x0,
-            await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000)
+        const owner = accounts[1];
+        const creator = accounts[2];
+        const nonce = await debtEngine.nonces(creator);
+        const calcId = await debtEngine.buildId(creator, nonce);
+        const data = await testModel.encodeData(1000, (await Helper.getBlockTime()) + 1000);
+
+        const Created = Helper.searchEvent(
+            await debtEngine.create(
+                testModel.address,
+                owner,
+                Helper.address0x,
+                data,
+                { from: creator }
+            ),
+            'Created'
         );
 
-        assert.equal(await debtEngine.balanceOf(accounts[1]), 1, 'Account 1 should have a new asset');
+        assert.equal(Created._id, calcId);
+        (Created._id).should.be.bignumber.equal(calcId);
+        assert.equal(Created._data, data);
+
+        assert.equal(await debtEngine.balanceOf(owner), 1, 'Account 1 should have a new asset');
     });
 
     it('Should create 2 debts using create2', async function () {
@@ -304,6 +318,73 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await rcn.setBalance(accounts[6], 0);
         await debtEngine.withdraw(id, accounts[6], { from: accounts[6] });
         assert.equal(await rcn.balanceOf(accounts[6]), 3000);
+    });
+
+    it('Try withdrawBatch funds to 0x0 address', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 10000);
+
+        await rcn.approve(debtEngine.address, 10000);
+        await debtEngine.pay(id, 4000, accounts[3], []);
+
+        await Helper.tryCatchRevert(
+            () => debtEngine.withdrawBatch(
+                [id],
+                Helper.address0x
+            ),
+            '_to should not be 0x0'
+        );
+    });
+
+    it('Try withdraw funds to 0x0 address', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 10000);
+
+        await rcn.approve(debtEngine.address, 10000);
+        await debtEngine.pay(id, 4000, accounts[3], []);
+
+        await Helper.tryCatchRevert(
+            () => debtEngine.withdraw(
+                id,
+                Helper.address0x
+            ),
+            '_to should not be 0x0'
+        );
+    });
+
+    it('Try withdrawPartial funds to 0x0 address', async function () {
+        const id = await getId(debtEngine.create(
+            testModel.address,
+            accounts[0],
+            0x0,
+            await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+        ));
+
+        await rcn.setBalance(accounts[0], 10000);
+
+        await rcn.approve(debtEngine.address, 10000);
+        await debtEngine.pay(id, 4000, accounts[3], []);
+
+        await Helper.tryCatchRevert(
+            () => debtEngine.withdrawPartial(
+                id,
+                Helper.address0x,
+                '1'
+            ),
+            '_to should not be 0x0'
+        );
     });
 
     it('Should withdraw funds from multiple debts', async function () {

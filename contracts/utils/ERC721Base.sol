@@ -4,19 +4,25 @@ import "./SafeMath.sol";
 import "./ERC165.sol";
 import "./IsContract.sol";
 
+
 interface URIProvider {
     function tokenURI(uint256 _tokenId) external view returns (string);
 }
+
 
 contract ERC721Base is ERC165 {
     using SafeMath for uint256;
     using IsContract for address;
 
     mapping(uint256 => address) private _holderOf;
+
+    // Owner to array of assetId
     mapping(address => uint256[]) private _assetsOf;
+    // AssetId to index on array in _assetsOf mapping
+    mapping(uint256 => uint256) private _indexOfAsset;
+
     mapping(address => mapping(address => bool)) private _operators;
     mapping(uint256 => address) private _approval;
-    mapping(uint256 => uint256) private _indexOfAsset;
 
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
     bytes4 private constant ERC721_RECEIVED_LEGACY = 0xf0b9e5ba;
@@ -197,10 +203,10 @@ contract ERC721Base is ERC165 {
      * @param _assetId the asset to be queried for
      * @return bool true if the asset has been approved by the holder
      */
-    function getApprovedAddress(uint256 _assetId) external view returns (address) {
-        return _getApprovedAddress(_assetId);
+    function getApproved(uint256 _assetId) external view returns (address) {
+        return _getApproved(_assetId);
     }
-    function _getApprovedAddress(uint256 _assetId) internal view returns (address) {
+    function _getApproved(uint256 _assetId) internal view returns (address) {
         return _approval[_assetId];
     }
 
@@ -219,7 +225,7 @@ contract ERC721Base is ERC165 {
         if (_operator == owner) {
             return true;
         }
-        return _isApprovedForAll(_operator, owner) || _getApprovedAddress(_assetId) == _operator;
+        return _isApprovedForAll(_operator, owner) || _getApproved(_assetId) == _operator;
     }
 
     //
@@ -246,7 +252,7 @@ contract ERC721Base is ERC165 {
     function approve(address _operator, uint256 _assetId) external {
         address holder = _ownerOf(_assetId);
         require(msg.sender == holder || _isApprovedForAll(msg.sender, holder), "msg.sender can't approve");
-        if (_getApprovedAddress(_assetId) != _operator) {
+        if (_getApproved(_assetId) != _operator) {
             _approval[_assetId] = _operator;
             emit Approval(holder, _operator, _assetId);
         }
@@ -278,6 +284,7 @@ contract ERC721Base is ERC165 {
             uint256 lastAssetId = _assetsOf[_from][lastAssetIndex];
             // Insert the last asset into the position previously occupied by the asset to be removed
             _assetsOf[_from][assetIndex] = lastAssetId;
+            _indexOfAsset[lastAssetId] = assetIndex;
         }
 
         // Resize the array
