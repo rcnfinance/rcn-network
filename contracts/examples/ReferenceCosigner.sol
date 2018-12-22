@@ -7,7 +7,6 @@ import "./../diaspore/interfaces/Cosigner.sol";
 import "./../diaspore/interfaces/RateOracle.sol";
 import "./../diaspore/interfaces/Model.sol";
 
-
 import "./../utils/BytesUtils.sol";
 import "./../utils/SafeMath.sol";
 import "./../utils/SimpleDelegable.sol";
@@ -118,6 +117,11 @@ contract Events {
         address _from,
         uint256 _id,
         bytes _data
+    );
+
+    event FailTransfer(
+        address _loanManager,
+        uint256 _id
     );
 }
 
@@ -393,6 +397,33 @@ contract ReferenceCosigner is SimpleDelegable, Cosigner, Helper, Events, IERC721
         IDebtEngine(_loanManager.debtEngine()).safeTransferFrom(address(this), _to, _index);
 
         return true;
+    }
+
+    /**
+        @dev Transfers a batch of loans to a new owner
+
+        @param _indexes Array of Indexes of the loan
+        @param _to New owner of the loan
+
+        @return true if the loan was transfered
+    */
+    function batchTransferLoan(
+        ILoanManager _loanManager,
+        uint256[] _indexes,
+        address _to
+    ) external onlyOwner returns (bool allSuccess) {
+        uint256 target;
+        for (uint256 i = 0; i < _indexes.length; i++) {
+            target = _indexes[i];
+            if (liabilities[_loanManager][target].coverage == 0 && liabilities[_loanManager][target].requiredArrears != 0) {
+                IDebtEngine(_loanManager.debtEngine()).safeTransferFrom(address(this), _to, target);
+            } else {
+                emit FailTransfer(_loanManager, target);
+                allSuccess = true;
+            }
+        }
+
+        return !allSuccess;
     }
 
     /**

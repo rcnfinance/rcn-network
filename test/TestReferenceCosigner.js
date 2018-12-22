@@ -2061,6 +2061,182 @@ contract('Test ReferenceCosigner Diaspore', function (accounts) {
         });
     });
 
+    describe('function batchTransferLoan', async () => {
+        const borrower = accounts[1];
+        const lender = accounts[2];
+        const receiver = accounts[3];
+        const signer = accounts[7];
+        const amount = bn('626232');
+        // For cosign
+        const costCosign = bn('1222');
+        const coverage = bn('6562');
+        const requiredArrears = bn('20');
+        const totalLoans = 5;
+
+        it('Should transfers all batch of loans to a new owner', async () => {
+            const ids = [];
+            const expirationCosign = await Helper.getBlockTime() + 20;
+            const expirationLoan = await Helper.getBlockTime() + 20;
+
+            await rcn.setBalance(lender, amount.plus(costCosign).mul(totalLoans));
+            await cosigner.addDelegate(signer, { from: owner });
+            // set balance to the lender
+            await rcn.approve(loanManager.address, amount.plus(costCosign).mul(totalLoans), { from: lender });
+            // Create loans
+            for (let i = 0; i < totalLoans; i++) {
+                const id = (await Helper.toEvent(
+                    loanManager.requestLoan(
+                        amount,
+                        model.address,
+                        Helper.address0x,
+                        borrower,
+                        i,
+                        expirationLoan,
+                        await model.encodeData(amount, expirationLoan),
+                        { from: borrower }
+                    ),
+                    'Requested'
+                ))._id;
+
+                ids.push(id);
+                const data = await toDataRequestCosign(
+                    cosigner,
+                    loanManager,
+                    id,
+                    costCosign,
+                    coverage,
+                    requiredArrears,
+                    expirationCosign,
+                    signer
+                );
+
+                await loanManager.lend(
+                    id,
+                    [],
+                    cosigner.address,
+                    costCosign,
+                    data,
+                    { from: lender }
+                );
+            }
+            // Claim loans
+            await Helper.increaseTime(60);
+            await rcn.setBalance(cosigner.address, amount.mul(totalLoans));
+            for (let i = 0; i < totalLoans; i++) {
+                await debtEngine.approve(cosigner.address, ids[i], { from: lender });
+                await cosigner.claim(
+                    loanManager.address,
+                    ids[i],
+                    '',
+                    { from: lender }
+                );
+            }
+
+            await cosigner.batchTransferLoan(
+                loanManager.address,
+                ids,
+                receiver,
+                { from: owner }
+            );
+
+            for (let i = 0; i < totalLoans; i++) {
+                assert.equal(await debtEngine.ownerOf(ids[i]), receiver);
+            }
+        });
+
+        it('Transfers a batch of loans and some not exists or not claimed', async () => {
+            const ids = [];
+            const expirationCosign = await Helper.getBlockTime() + 20;
+            const expirationLoan = await Helper.getBlockTime() + 20;
+
+            await rcn.setBalance(lender, amount.plus(costCosign).mul(totalLoans));
+            await cosigner.addDelegate(signer, { from: owner });
+            // set balance to the lender
+            await rcn.approve(loanManager.address, amount.plus(costCosign).mul(totalLoans), { from: lender });
+            // Create loans
+            for (let i = 0; i < totalLoans; i++) {
+                const id = (await Helper.toEvent(
+                    loanManager.requestLoan(
+                        amount,
+                        model.address,
+                        Helper.address0x,
+                        borrower,
+                        i,
+                        expirationLoan,
+                        await model.encodeData(amount, expirationLoan),
+                        { from: borrower }
+                    ),
+                    'Requested'
+                ))._id;
+
+                ids.push(id);
+                const data = await toDataRequestCosign(
+                    cosigner,
+                    loanManager,
+                    id,
+                    costCosign,
+                    coverage,
+                    requiredArrears,
+                    expirationCosign,
+                    signer
+                );
+
+                await loanManager.lend(
+                    id,
+                    [],
+                    cosigner.address,
+                    costCosign,
+                    data,
+                    { from: lender }
+                );
+            }
+            // Claim loans
+            await Helper.increaseTime(60);
+            await rcn.setBalance(cosigner.address, amount.mul(totalLoans));
+            const totalLoansTransfer = totalLoans - 2;
+            for (let i = 0; i < totalLoansTransfer; i++) {
+                await debtEngine.approve(cosigner.address, ids[i], { from: lender });
+                await cosigner.claim(
+                    loanManager.address,
+                    ids[i],
+                    '',
+                    { from: lender }
+                );
+            }
+
+            ids.push(1, 2, 3);
+
+            await cosigner.batchTransferLoan(
+                loanManager.address,
+                ids,
+                receiver,
+                { from: owner }
+            );
+
+            for (let i = 0; i < totalLoansTransfer; i++) {
+                assert.equal(await debtEngine.ownerOf(ids[i]), receiver);
+            }
+
+            for (let i = totalLoansTransfer; i < totalLoans; i++) {
+                assert.equal(await debtEngine.ownerOf(ids[i]), lender);
+            }
+        });
+
+        it('Try transfers a batch of loans and the liability non-exists', async () => {
+            const id = bn('56565161619498');
+
+            await Helper.tryCatchRevert(
+                () => cosigner.transferLoan(
+                    loanManager.address,
+                    id,
+                    accounts[3],
+                    { from: owner }
+                ),
+                'msg.sender Not authorized'
+            );
+        });
+    });
+
     describe('function withdrawPartial', async () => {
         it('Should withdraw partial funds from the contract', async () => {
             const tokenSender = accounts[2];
