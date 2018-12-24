@@ -279,8 +279,6 @@ contract LoanManager is BytesUtils {
             request.approved = true;
             emit Approved(_id);
         }
-
-        return true;
     }
 
     function lend(
