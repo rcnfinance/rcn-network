@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 
-contract ERC721 {
+interface ERC721 {
     // ERC20 compatible functions
     function name() public view returns (string memory _name);
     function symbol() public view returns (string memory _symbol);
