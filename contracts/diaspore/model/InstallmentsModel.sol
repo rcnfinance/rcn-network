@@ -6,6 +6,7 @@ import "./../../utils/Ownable.sol";
 import "./../../utils/BytesUtils.sol";
 import "./../../utils/ERC165.sol";
 
+
 contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor {
 
     mapping(bytes4 => bool) private _supportedInterface;
@@ -408,7 +409,6 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 paid = state.paid;
         return debt > paid ? debt - paid : 0;
     }
-
 
     function _runAdvanceClock(
         uint256 _clock,

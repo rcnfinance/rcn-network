@@ -102,14 +102,29 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
         RateCache memory rateCache = cache[currency];
         if (rateCache.timestamp >= timestamp && !isExpired(rateCache.timestamp)) {
-            emit CacheHit(msg.sender, currency, timestamp, rateCache.timestamp, rateCache.rate, rateCache.decimals);
+            emit CacheHit(
+                msg.sender,
+                currency,
+                timestamp,
+                rateCache.timestamp,
+                rateCache.rate,
+                rateCache.decimals
+            );
             return (rateCache.rate, rateCache.decimals);
         } else {
             require(!isExpired(timestamp), "The rate provided is expired");
             uint256 rate = uint256(readBytes32(data, INDEX_RATE));
             uint256 decimals = uint256(readBytes32(data, INDEX_DECIMALS));
 
-            bytes32 _hash = keccak256(abi.encodePacked(this, currency, rate, decimals, timestamp));
+            bytes32 _hash = keccak256(
+                abi.encodePacked(
+                    this,
+                    currency,
+                    rate,
+                    decimals,
+                    timestamp
+                    )
+                );
             bytes32 preHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));
             address signer = ecrecover(
                 preHash,
@@ -122,7 +137,14 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
 
             cache[currency] = RateCache(timestamp, rate, decimals);
 
-            emit DeliveredRate(msg.sender, currency, signer, timestamp, rate, decimals);
+            emit DeliveredRate(
+                msg.sender,
+                currency,
+                signer,
+                timestamp,
+                rate,
+                decimals
+            );
             return (rate, decimals);
         }
     }

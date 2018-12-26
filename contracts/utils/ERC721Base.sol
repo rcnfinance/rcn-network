@@ -156,6 +156,7 @@ contract ERC721Base is ERC165 {
     function ownerOf(uint256 _assetId) external view returns (address) {
         return _ownerOf(_assetId);
     }
+
     function _ownerOf(uint256 _assetId) internal view returns (address) {
         return _holderOf[_assetId];
     }
@@ -171,6 +172,7 @@ contract ERC721Base is ERC165 {
     function balanceOf(address _owner) external view returns (uint256) {
         return _balanceOf(_owner);
     }
+
     function _balanceOf(address _owner) internal view returns (uint256) {
         return _assetsOf[_owner].length;
     }
@@ -191,6 +193,7 @@ contract ERC721Base is ERC165 {
     ) external view returns (bool) {
         return _isApprovedForAll(_operator, _assetHolder);
     }
+
     function _isApprovedForAll(
         address _operator,
         address _assetHolder
@@ -206,6 +209,7 @@ contract ERC721Base is ERC165 {
     function getApproved(uint256 _assetId) external view returns (address) {
         return _getApproved(_assetId);
     }
+
     function _getApproved(uint256 _assetId) internal view returns (address) {
         return _approval[_assetId];
     }
@@ -219,6 +223,7 @@ contract ERC721Base is ERC165 {
     function isAuthorized(address _operator, uint256 _assetId) external view returns (bool) {
         return _isAuthorized(_operator, _assetId);
     }
+
     function _isAuthorized(address _operator, uint256 _assetId) internal view returns (bool) {
         require(_operator != address(0), "0x0 is an invalid operator");
         address owner = _ownerOf(_assetId);
@@ -351,7 +356,13 @@ contract ERC721Base is ERC165 {
      * @param _assetId uint256 ID of the asset to be transferred
      */
     function safeTransferFrom(address _from, address _to, uint256 _assetId) external {
-        return _doTransferFrom(_from, _to, _assetId, "", true);
+        return _doTransferFrom(
+            _from,
+            _to,
+            _assetId,
+            "",
+            true
+        );
     }
 
     /**
@@ -364,8 +375,19 @@ contract ERC721Base is ERC165 {
      * @param _assetId uint256 ID of the asset to be transferred
      * @param _userData bytes arbitrary user information to attach to this transfer
      */
-    function safeTransferFrom(address _from, address _to, uint256 _assetId, bytes memory _userData) public {
-        return _doTransferFrom(_from, _to, _assetId, _userData, true);
+    function safeTransferFrom(
+        address _from,
+        address _to,
+        uint256 _assetId,
+        bytes memory _userData
+    ) public {
+        return _doTransferFrom(
+            _from,
+            _to,
+            _assetId,
+            _userData,
+            true
+        );
     }
 
     /**
@@ -378,7 +400,13 @@ contract ERC721Base is ERC165 {
      * @param _assetId uint256 ID of the asset to be transferred
      */
     function transferFrom(address _from, address _to, uint256 _assetId) external {
-        return _doTransferFrom(_from, _to, _assetId, "", false);
+        return _doTransferFrom(
+            _from,
+            _to,
+            _assetId,
+            "",
+            false
+        );
     }
 
     /**

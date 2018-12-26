@@ -7,6 +7,7 @@ import "./../../utils/SafeMath.sol";
 import "./../../utils/BytesUtils.sol";
 import "./../../utils/ERC165.sol";
 
+
 contract MinMax {
     function min(uint256 a, uint256 b) internal pure returns(uint256) {
         return (a < b) ? a : b;
@@ -16,6 +17,7 @@ contract MinMax {
         return (a > b) ? a : b;
     }
 }
+
 
 contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
     using SafeMath for uint256;
@@ -94,7 +96,13 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         uint64  _dueTime,
         uint64  _cancelableAt
     ) external pure returns (bytes memory) {
-        return abi.encodePacked(_amount, _interestRate, _interestRatePunitory, _dueTime, _cancelableAt);
+        return abi.encodePacked(
+            _amount,
+            _interestRate,
+            _interestRatePunitory,
+            _dueTime,
+            _cancelableAt
+        );
     }
 
     function isOperator(address _target) external view returns (bool) {
@@ -112,7 +120,14 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
             uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
             uint64 duesIn, uint64 cancelableAt
         ) = _decodeData(data);
-        _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
+
+        _validate(
+            amount,
+            interestRate,
+            interestRatePunitory,
+            duesIn,
+            cancelableAt
+        );
 
         return true;
     }
@@ -217,7 +232,14 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
 
         (uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
             uint64 duesIn, uint64 cancelableAt) = _decodeData(data);
-        _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
+
+        _validate(
+            amount,
+            interestRate,
+            interestRatePunitory,
+            duesIn,
+            cancelableAt
+        );
 
         configs[id] = Config({
             amount: amount,
@@ -345,7 +367,11 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         @return realDelta The real timeDelta applied
         @return interest The interest gained in the realDelta time
     */
-    function _calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) internal pure returns (uint256 realDelta, uint256 interest) {
+    function _calculateInterest(
+        uint256 timeDelta,
+        uint256 interestRate,
+        uint256 amount
+    ) internal pure returns (uint256 realDelta, uint256 interest) {
         if (amount == 0) {
             realDelta = timeDelta;
         } else {

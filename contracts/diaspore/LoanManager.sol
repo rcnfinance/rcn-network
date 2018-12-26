@@ -62,6 +62,7 @@ contract LoanManager is BytesUtils {
         address oracle = requests[bytes32(_id)].oracle;
         return oracle == address(0) ? bytes32(0x0) : RateOracle(oracle).currency();
     }
+
     function getAmount(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].amount; }
 
     function getExpirationRequest(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].expiration; }
@@ -702,7 +703,6 @@ contract LoanManager is BytesUtils {
 
         return ecrecover(_hash, v, r, s);
     }
-
 
     function _currencyToToken(
         address _oracle,
