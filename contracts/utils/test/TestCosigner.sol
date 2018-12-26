@@ -1,3 +1,4 @@
+/* solium-disable */
 pragma solidity ^0.5.0;
 
 import "./../../interfaces/Cosigner.sol";
