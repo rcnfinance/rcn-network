@@ -2,24 +2,24 @@
 pragma solidity ^0.5.0;
 
 
-contract IERC721Receiver {
+interface IERC721Receiver {
     function onERC721Received(
         address _operator,
         address _from,
         uint256 _tokenId,
-        bytes memory _userData
+        bytes calldata _userData
     )
-        public returns (bytes4);
+        external returns (bytes4);
 }
 
 
-contract IERC721ReceiverLegacy {
+interface IERC721ReceiverLegacy {
     function onERC721Received(
         address _from,
         uint256 _tokenId,
-        bytes memory _userData
+        bytes calldata _userData
     )
-        public returns (bytes4);
+        external returns (bytes4);
 }
 
 
@@ -36,8 +36,8 @@ contract TestERC721ReceiverMultiple is IERC721Receiver, IERC721ReceiverLegacy {
         address _operator,
         address _from,
         uint256 _tokenId,
-        bytes memory _userData
-    ) public returns (bytes4) {
+        bytes calldata _userData
+    ) external returns (bytes4) {
         emit Received(
             _operator,
             _from,
@@ -55,8 +55,8 @@ contract TestERC721ReceiverMultiple is IERC721Receiver, IERC721ReceiverLegacy {
     function onERC721Received(
         address _from,
         uint256 _tokenId,
-        bytes memory _userData
-    ) public returns (bytes4) {
+        bytes calldata _userData
+    ) external returns (bytes4) {
         lastFrom = _from;
         lastTokenId = _tokenId;
         lastData = _userData;

@@ -379,8 +379,8 @@ contract ERC721Base is ERC165 {
         address _from,
         address _to,
         uint256 _assetId,
-        bytes memory _userData
-    ) public {
+        bytes calldata _userData
+    ) external {
         return _doTransferFrom(
             _from,
             _to,

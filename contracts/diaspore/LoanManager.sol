@@ -107,8 +107,8 @@ contract LoanManager is BytesUtils {
         address _oracle,
         uint256 _salt,
         uint64 _expiration,
-        bytes memory _data
-    ) public view returns (bytes32) {
+        bytes calldata _data
+    ) external view returns (bytes32) {
         return debtEngine.buildId2(
             address(this),
             _model,
@@ -146,7 +146,7 @@ contract LoanManager is BytesUtils {
         return _internalSalt(request);
     }
 
-    function _internalSalt(Request storage _request) internal view returns (uint256) {
+    function _internalSalt(Request memory _request) internal view returns (uint256) {
         return _buildInternalSalt(
             _request.amount,
             _request.borrower,
@@ -163,8 +163,8 @@ contract LoanManager is BytesUtils {
         address _borrower,
         uint256 _salt,
         uint64 _expiration,
-        bytes memory _loanData
-    ) public returns (bytes32 id) {
+        bytes calldata _loanData
+    ) external returns (bytes32 id) {
         require(_borrower != address(0), "The request should have a borrower");
         require(Model(_model).validate(_loanData), "The loan data is not valid");
 
@@ -259,8 +259,8 @@ contract LoanManager is BytesUtils {
 
     function registerApproveRequest(
         bytes32 _id,
-        bytes memory _signature
-    ) public returns (bool approved) {
+        bytes calldata _signature
+    ) external returns (bool approved) {
         Request storage request = requests[_id];
         address borrower = request.borrower;
 
@@ -417,8 +417,8 @@ contract LoanManager is BytesUtils {
         uint256 _salt,
         uint64 _expiration,
         address _creator,
-        bytes memory _loanData
-    ) public view returns (bytes memory requestData, bytes32 id) {
+        bytes calldata _loanData
+    ) external view returns (bytes memory requestData, bytes32 id) {
         requestData = abi.encodePacked(
             _amount,
             _model,
@@ -518,9 +518,9 @@ contract LoanManager is BytesUtils {
     }
 
     function settleCancel(
-        bytes memory _requestData,
-        bytes memory _loanData
-    ) public returns (bool) {
+        bytes calldata _requestData,
+        bytes calldata _loanData
+    ) external returns (bool) {
         (bytes32 id, ) = _buildSettleId(_requestData, _loanData);
         require(
             msg.sender == address(uint256(read(_requestData, O_BORROWER, L_BORROWER))) ||
