@@ -102,7 +102,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         return operator == owner;
     }
 
-    function validate(bytes memory data) public view returns (bool) {
+    function validate(bytes calldata data) external view returns (bool) {
         require(data.length == L_DATA, "Invalid data length");
 
         (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
@@ -170,7 +170,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         return entry.total - entry.paid;
     }
 
-    function create(bytes32 id, bytes memory data) public onlyEngine returns (bool) {
+    function create(bytes32 id, bytes calldata data) external onlyEngine returns (bool) {
         require(data.length == L_DATA, "Invalid data length");
 
         if (errorFlag == ERROR_CREATE) return false;

@@ -53,7 +53,7 @@ contract OracleAdapter is RateOracle, ERC165 {
         return legacyOracle.url();
     }
 
-    function readSample(bytes memory _data) public returns (uint256 _tokens, uint256 _equivalent) {
+    function readSample(bytes calldata _data) external returns (uint256 _tokens, uint256 _equivalent) {
         (_tokens, _equivalent) = legacyOracle.getRate(icurrency, _data);
         _equivalent = 10 ** _equivalent;
     }
