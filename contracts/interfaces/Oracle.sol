@@ -1,7 +1,8 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.0;
 
 import "./../utils/Ownable.sol";
 import "./Token.sol";
+
 
 /**
     @dev Defines the interface of a standard RCN oracle.
@@ -20,7 +21,7 @@ contract Oracle is Ownable {
     /**
         @dev Returns the url where the oracle exposes a valid "oracleData" if needed
     */
-    function url() public view returns (string);
+    function url() public view returns (string memory);
 
     /**
         @dev Returns a valid convertion rate from the currency given to RCN
@@ -28,7 +29,7 @@ contract Oracle is Ownable {
         @param symbol Symbol of the currency
         @param data Generic data field, could be used for off-chain signing
     */
-    function getRate(bytes32 symbol, bytes data) public returns (uint256 rate, uint256 decimals);
+    function getRate(bytes32 symbol, bytes memory data) public returns (uint256 rate, uint256 decimals);
 
     /**
         @dev Adds a currency to the oracle, once added it cannot be removed
@@ -37,9 +38,9 @@ contract Oracle is Ownable {
 
         @return if the creation was done successfully
     */
-    function addCurrency(string ticker) public onlyOwner returns (bool) {
+    function addCurrency(string memory ticker) public onlyOwner returns (bool) {
         bytes32 currency = encodeCurrency(ticker);
-        NewSymbol(currency);
+        emit NewSymbol(currency);
         supported[currency] = true;
         currencies.push(currency);
         return true;
@@ -48,19 +49,23 @@ contract Oracle is Ownable {
     /**
         @return the currency encoded as a bytes32
     */
-    function encodeCurrency(string currency) public pure returns (bytes32 o) {
+    function encodeCurrency(string memory currency) public pure returns (bytes32 o) {
         require(bytes(currency).length <= 32);
         assembly {
             o := mload(add(currency, 32))
         }
     }
-    
+
     /**
         @return the currency string from a encoded bytes32
     */
-    function decodeCurrency(bytes32 b) public pure returns (string o) {
+    function decodeCurrency(bytes32 b) public pure returns (string memory o) {
         uint256 ns = 256;
-        while (true) { if (ns == 0 || (b<<ns-8) != 0) break; ns -= 8; }
+        while (true) {
+            if (ns == 0 || (b<<ns-8) != 0)
+                break;
+            ns -= 8;
+        }
         assembly {
             ns := div(ns, 8)
             o := mload(0x40)
@@ -69,5 +74,5 @@ contract Oracle is Ownable {
             mstore(add(o, 32), b)
         }
     }
-    
+
 }

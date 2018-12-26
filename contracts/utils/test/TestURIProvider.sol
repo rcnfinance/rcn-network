@@ -1,6 +1,7 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./../ERC721Base.sol";
+
 
 contract TestURIProvider is ERC721Base {
 
@@ -18,9 +19,10 @@ contract TestURIProvider is ERC721Base {
         return true;
     }
 
-    function tokenURI(uint256 _tokenId) external onlyHolder(assetId) view returns (string){
+    function tokenURI(uint256 _tokenId) external onlyHolder(assetId) view returns (string memory){
         return uri;
     }
+
     function setURIProvider(URIProvider _provider) external  {
         _setURIProvider(_provider);
     }

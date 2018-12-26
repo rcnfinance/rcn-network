@@ -1,10 +1,12 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./../utils/SimpleDelegable.sol";
 import "./../utils/BytesUtils.sol";
 import "./../interfaces/Oracle.sol";
 
+
 contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
+
     event DelegatedCall(address requester, address to);
     event CacheHit(address requester, bytes32 currency, uint256 requestTimestamp, uint256 deliverTimestamp, uint256 rate, uint256 decimals);
     event DeliveredRate(address requester, bytes32 currency, address signer, uint256 requestTimestamp, uint256 rate, uint256 decimals);
@@ -29,7 +31,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
         uint256 decimals;
     }
 
-    function url() public view returns (string) {
+    function url() public view returns (string memory) {
         return infoUrl;
     }
 
@@ -50,7 +52,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
 
         @param _url New url
     */
-    function setUrl(string _url) public onlyOwner returns (bool) {
+    function setUrl(string memory _url) public onlyOwner returns (bool) {
         infoUrl = _url;
         return true;
     }
@@ -81,7 +83,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
     }
 
     /**
-        @dev Retrieves the convertion rate of a given currency, the information of the rate is carried over the 
+        @dev Retrieves the convertion rate of a given currency, the information of the rate is carried over the
         data field. If there is a newer rate on the cache, that rate is delivered and the data field is ignored.
 
         If the data contains a more recent rate than the cache, the cache is updated.
@@ -91,34 +93,59 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
 
         @return the rate and decimals of the currency convertion
     */
-    function getRate(bytes32 currency, bytes data) public returns (uint256, uint256) {
-        if (fallback != address(0)) {
-            emit DelegatedCall(msg.sender, fallback);
+    function getRate(bytes32 currency, bytes memory data) public returns (uint256, uint256) {
+        if (address(fallback) != address(0)) {
+            emit DelegatedCall(msg.sender, address(fallback));
             return fallback.getRate(currency, data);
         }
 
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
         RateCache memory rateCache = cache[currency];
         if (rateCache.timestamp >= timestamp && !isExpired(rateCache.timestamp)) {
-            emit CacheHit(msg.sender, currency, timestamp, rateCache.timestamp, rateCache.rate, rateCache.decimals);
+            emit CacheHit(
+                msg.sender,
+                currency,
+                timestamp,
+                rateCache.timestamp,
+                rateCache.rate,
+                rateCache.decimals
+            );
             return (rateCache.rate, rateCache.decimals);
         } else {
             require(!isExpired(timestamp), "The rate provided is expired");
             uint256 rate = uint256(readBytes32(data, INDEX_RATE));
             uint256 decimals = uint256(readBytes32(data, INDEX_DECIMALS));
-            uint8 v = uint8(readBytes32(data, INDEX_V));
-            bytes32 r = readBytes32(data, INDEX_R);
-            bytes32 s = readBytes32(data, INDEX_S);
-            
-            bytes32 _hash = keccak256(this, currency, rate, decimals, timestamp);
-            address signer = ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _hash),v,r,s);
+
+            bytes32 _hash = keccak256(
+                abi.encodePacked(
+                    this,
+                    currency,
+                    rate,
+                    decimals,
+                    timestamp
+                    )
+                );
+            bytes32 preHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));
+            address signer = ecrecover(
+                preHash,
+                uint8(uint256(readBytes32(data, INDEX_V))), // v
+                readBytes32(data, INDEX_R), // r
+                readBytes32(data, INDEX_S) // s
+            );
 
             require(isDelegate(signer), "Signature is not valid");
 
             cache[currency] = RateCache(timestamp, rate, decimals);
 
-            emit DeliveredRate(msg.sender, currency, signer, timestamp, rate, decimals);
+            emit DeliveredRate(
+                msg.sender,
+                currency,
+                signer,
+                timestamp,
+                rate,
+                decimals
+            );
             return (rate, decimals);
         }
     }
-}   
+}

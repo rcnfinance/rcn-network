@@ -15,7 +15,7 @@ contract('Test Oracle adapter', function (accounts) {
             'Argentine Peso',
             'Test oracle, ripiocredit.network',
             2,
-            0x415253,
+            '0x415253',
             accounts[8]
         );
         await legacyOracle.setUrl('https://oracle.rcn.loans/');
@@ -33,23 +33,23 @@ contract('Test Oracle adapter', function (accounts) {
 
     it('Should convert legacy oracle getReturn, data 1', async function () {
         const data = await legacyOracle.dummyData1();
-        const rate = await legacyOracle.getRate.call(0x415253, data);
+        const rate = await legacyOracle.getRate.call('0x415253', data);
         const sample = await oracle.readSample.call(data);
         assert.equal(rate[0].toNumber(), sample[0].toNumber());
-        assert.equal(10 ** rate[1], sample[1].toNumber());
+        assert.equal(10 ** rate[1], sample[1]);
     });
 
     it('Should convert legacy oracle getReturn, data 2', async function () {
         const data = await legacyOracle.dummyData2();
-        const rate = await legacyOracle.getRate.call(0x415253, data);
+        const rate = await legacyOracle.getRate.call('0x415253', data);
         const sample = await oracle.readSample.call(data);
         assert.equal(rate[0].toNumber(), sample[0].toNumber());
-        assert.equal(10 ** rate[1], sample[1].toNumber());
+        assert.equal(10 ** rate[1], sample[1]);
     });
 
     it('Should fail with invalid data', async function () {
         const data = await legacyOracle.invalidData();
-        await Helper.assertThrow(legacyOracle.getRate(0x415253, data));
+        await Helper.assertThrow(legacyOracle.getRate('0x415253', data));
         await Helper.assertThrow(oracle.readSample(data));
     });
 });

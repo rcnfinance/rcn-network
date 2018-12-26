@@ -1,13 +1,10 @@
 const ReferenceOracle = artifacts.require('./examples/ReferenceOracle.sol');
 const Helper = require('./Helper.js');
 
-const abiGetRateView = [{ 'constant': true, 'inputs': [{ 'name': 'currency', 'type': 'bytes32' }, { 'name': 'data', 'type': 'bytes' }], 'name': 'getRate', 'outputs': [{ 'name': '', 'type': 'uint256' }, { 'name': '', 'type': 'uint256' }], 'payable': false, 'stateMutability': 'view', 'type': 'function' }];
-
 // global variables
 /// ///////////////
 // contracts
 let oracle;
-let oracleView;
 // accounts
 let user;
 let admin;
@@ -22,6 +19,22 @@ const BTC = {
 contract('ReferenceOracle', function (accounts) {
     let hacker;
 
+    async function signGetRate (oracle, signer, currency) {
+        const sign = web3.utils.soliditySha3(
+            { t: 'address', v: oracle.address },
+            { t: 'bytes32', v: currency.id },
+            { t: 'uint256', v: currency.rate },
+            { t: 'uint256', v: currency.decimals },
+            { t: 'bytes32', v: Helper.toBytes32(web3.utils.toHex(currency.timestamp)) }
+        );
+
+        const approveSignature = (await web3.eth.sign(sign, signer)).slice(2);
+        const r = '0x' + approveSignature.slice(0, 64);
+        const s = '0x' + approveSignature.slice(64, 128);
+        const v = web3.utils.toDecimal(approveSignature.slice(128, 130)) + 27;
+        return [v, r, s];
+    };
+
     before('Assign accounts, create contracts, add delegate and set a rate', async function () {
         // set account addresses
         admin = accounts[0];
@@ -29,7 +42,6 @@ contract('ReferenceOracle', function (accounts) {
         hacker = accounts[2];
 
         oracle = await ReferenceOracle.new({ from: admin });
-        oracleView = web3.eth.contract(abiGetRateView).at(oracle.address);
         await oracle.addDelegate(admin, { from: admin });
 
         BTC.timestamp = (await web3.eth.getBlock('latest')).timestamp;
@@ -42,16 +54,16 @@ contract('ReferenceOracle', function (accounts) {
     // only view
         let vrs = await signGetRate(oracle, admin, BTC);
         let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
-        let rate = await oracleView.getRate(BTC.id, data);
-        assert.equal(web3.toDecimal(rate[0]), BTC.rate.toString());
-        assert.equal(web3.toDecimal(rate[1]), BTC.decimals.toString());
+        let rate = await oracle.getRate.call(BTC.id, data);
+        assert.equal(web3.utils.toDecimal(rate[0]), BTC.rate.toString());
+        assert.equal(web3.utils.toDecimal(rate[1]), BTC.decimals.toString());
 
         BTC.rate = Helper.toBytes32(500);
         vrs = await signGetRate(oracle, admin, BTC);
         data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
-        rate = await oracleView.getRate(BTC.id, data);
-        assert.equal(web3.toDecimal(rate[0]), BTC.rate.toString());
-        assert.equal(web3.toDecimal(rate[1]), BTC.decimals.toString());
+        rate = await oracle.getRate.call(BTC.id, data);
+        assert.equal(web3.utils.toDecimal(rate[0]), BTC.rate.toString());
+        assert.equal(web3.utils.toDecimal(rate[1]), BTC.decimals.toString());
 
         let cache = await oracle.cache(BTC.id);
         for (let i = 0; i < cache.length; i++) { assert.equal(cache[i].toString(), 0); }
@@ -66,13 +78,13 @@ contract('ReferenceOracle', function (accounts) {
         assert.equal(args.currency, BTC.id);
         assert.equal(args.signer, admin);
         assert.equal(args.requestTimestamp, BTC.timestamp);
-        assert.equal(args.rate.toString(), web3.toDecimal(BTC.rate).toString());
-        assert.equal(args.decimals.toString(), web3.toDecimal(BTC.decimals).toString());
+        assert.equal(args.rate.toString(), web3.utils.toDecimal(BTC.rate).toString());
+        assert.equal(args.decimals.toString(), web3.utils.toDecimal(BTC.decimals).toString());
 
         cache = await oracle.cache(BTC.id);
-        assert.equal(cache[0].toString(), web3.toDecimal(BTC.timestamp).toString());
-        assert.equal(cache[1].toString(), web3.toDecimal(BTC.rate).toString());
-        assert.equal(cache[2].toString(), web3.toDecimal(BTC.decimals).toString());
+        assert.equal(cache[0].toString(), web3.utils.toDecimal(BTC.timestamp).toString());
+        assert.equal(cache[1].toString(), web3.utils.toDecimal(BTC.rate).toString());
+        assert.equal(cache[2].toString(), web3.utils.toDecimal(BTC.decimals).toString());
     });
 
     it('Test: getRate() try hack', async () => {
@@ -83,7 +95,7 @@ contract('ReferenceOracle', function (accounts) {
         // try to sign with a non-delegated account
         const vrsHacker = await signGetRate(oracle, hacker, BTC);
         const dataHacker = Helper.arrayToBytesOfBytes32([BTC.timestamp + 100, BTC.rate, BTC.decimals, vrsHacker[0], vrsHacker[1], vrsHacker[2]]);
-        await Helper.tryCatchRevert(() => oracleView.getRate(BTC.id, dataHacker), 'Signature is not valid');
+        await Helper.tryCatchRevert(() => oracle.getRate.call(BTC.id, dataHacker), 'Signature is not valid');
     });
 
     it('Test: getRate() with diferent timestamps', async () => {
@@ -106,8 +118,8 @@ contract('ReferenceOracle', function (accounts) {
         assert.equal(args.currency, BTC.id);
         assert.equal(args.requestTimestamp.toString(), BTCold.timestamp);
         assert.equal(args.deliverTimestamp.toString(), BTC.timestamp);
-        assert.equal(args.rate.toString(), web3.toDecimal(BTC.rate).toString());
-        assert.equal(args.decimals.toString(), web3.toDecimal(BTC.decimals).toString());
+        assert.equal(args.rate.toString(), web3.utils.toDecimal(BTC.rate).toString());
+        assert.equal(args.decimals.toString(), web3.utils.toDecimal(BTC.decimals).toString());
         // try get rate with expired timestamp
         await Helper.increaseTime(15 * 60);// 15 minutes foward in time
         vrs = await signGetRate(oracle, admin, BTCold);
@@ -183,15 +195,4 @@ contract('ReferenceOracle', function (accounts) {
         assert.equal(encoded, '0x4152530000000000000000000000000000000000000000000000000000000000');
         assert.equal(await oracle.decodeCurrency(encoded), 'ARS');
     });
-
-    async function signGetRate (oracle, signer, currency) {
-        let sign = [oracle.address, currency.id, currency.rate, currency.decimals, Helper.toBytes32(web3.toHex(currency.timestamp))];
-        sign = web3.sha3(sign.map(x => x.slice(2)).join(''), { encoding: 'hex' });
-
-        const approveSignature = await web3.eth.sign(signer, sign).slice(2);
-        const r = '0x' + approveSignature.slice(0, 64);
-        const s = '0x' + approveSignature.slice(64, 128);
-        const v = web3.toDecimal(approveSignature.slice(128, 130)) + 27;
-        return [v, r, s];
-    };
 });

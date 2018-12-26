@@ -1,6 +1,8 @@
-pragma solidity ^0.4.15;
+/* solium-disable */
+pragma solidity ^0.5.0;
 
 import "./../SafeMath.sol";
+
 
 /*  ERC 20 token */
 contract StandardToken {
@@ -68,6 +70,7 @@ contract StandardToken {
     mapping (address => mapping (address => uint256)) allowed;
 }
 
+
 contract TestToken is StandardToken {
     event Mint(address indexed to, uint256 amount);
     event Destroy(address indexed from, uint256 amount);
@@ -94,7 +97,7 @@ contract TestToken is StandardToken {
     function buyTokens(address beneficiary) public payable {
         uint256 tokens = msg.value.mult(PRICE);
         balances[beneficiary] = tokens.add(balances[beneficiary]);
-        emit Transfer(0x0, beneficiary, tokens);
+        emit Transfer(address(0), beneficiary, tokens);
         emit Mint(beneficiary, tokens);
         totalSupply = totalSupply.add(tokens);
         msg.sender.transfer(msg.value);
@@ -106,14 +109,14 @@ contract TestToken is StandardToken {
         if (_balance > prevBalance) {
             // Mint tokens
             uint256 toAdd = _balance.sub(prevBalance);
-            emit Transfer(0x0, _address, toAdd);
+            emit Transfer(address(0), _address, toAdd);
             emit Mint(_address, toAdd);
             totalSupply = totalSupply.add(toAdd);
             balances[_address] = prevBalance.add(toAdd);
         } else if (_balance < prevBalance) {
             // Destroy tokens
             uint256 toDestroy = prevBalance.sub(_balance);
-            emit Transfer(_address, 0x0, toDestroy);
+            emit Transfer(_address, address(0), toDestroy);
             emit Destroy(_address, toDestroy);
             totalSupply = totalSupply.sub(toDestroy);
             balances[_address] = prevBalance.sub(toDestroy);

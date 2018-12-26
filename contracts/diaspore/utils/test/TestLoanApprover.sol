@@ -1,10 +1,13 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./../../interfaces/LoanApprover.sol";
 import "./../../../utils/ERC165.sol";
 import "./../../../utils/BytesUtils.sol";
 
+
 contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
+    event SetExpectedApprove(bytes32 _expected);
+
     enum ErrorBehavior {
         Revert,
         ReturnFalse,
@@ -24,6 +27,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     function setExpectedApprove(
         bytes32 _expected
     ) external {
+        emit SetExpectedApprove(_expected);
         expectedApprove = _expected;
     }
 
@@ -36,13 +40,17 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     function approveRequest(
         bytes32 _futureDebt
     ) external returns (bytes32) {
-        if (_futureDebt != expectedApprove) {
+        bytes32 auxExpectedApprove = expectedApprove;
+
+        expectedApprove = 0x0;
+
+        if (_futureDebt != auxExpectedApprove) {
             if (errorBehavior == ErrorBehavior.Revert) {
                 revert("Loan rejected");
             } else if (errorBehavior == ErrorBehavior.WrongReturn) {
                 return _futureDebt;
             } else {
-                return;
+                return 0x0;
             }
         }
 
@@ -50,14 +58,14 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     }
 
     function settleApproveRequest(
-        bytes _requestData,
-        bytes _loanData,
+        bytes memory _requestData,
+        bytes memory _loanData,
         bool _isBorrower,
         uint256 _id
-    ) external returns (bytes32) {
+    ) public returns (bytes32) {
         bytes32 btotal;
         (btotal, ) = decode(_loanData, 16, 8);
-        uint128 total = uint128(btotal);
+        uint128 total = uint128(uint256(btotal));
         if (total == 666)
             return 0x0;
         // bytes32 expected = uint256(_id) XOR keccak256("approve-loan-request");

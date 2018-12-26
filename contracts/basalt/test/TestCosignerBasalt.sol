@@ -1,12 +1,13 @@
-pragma solidity ^0.4.15;
+/* solium-disable */
+pragma solidity ^0.5.0;
 
-import "../interfaces/CosignerBasalt.sol";
-import "../interfaces/Engine.sol";
-import "../../utils/BytesUtils.sol";
-import "../../interfaces/Token.sol";
+import "./../../interfaces/Cosigner.sol";
+import "./../../utils/BytesUtils.sol";
+import "./../../basalt/interfaces/Engine.sol";
+import "./../../interfaces/Token.sol";
 
 
-contract TestCosignerBasalt is CosignerBasalt, BytesUtils {
+contract TestCosigner is Cosigner, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
     bytes public data = buildData(keccak256("test_oracle"), dummyCost);
     bytes public noCosignData = buildData(keccak256("return_true_no_cosign"), 0);
@@ -31,7 +32,7 @@ contract TestCosignerBasalt is CosignerBasalt, BytesUtils {
         return uint256(dummyCost);
     }
 
-    function buildData(bytes32 a, bytes32 b) internal returns (bytes o) {
+    function buildData(bytes32 a, bytes32 b) internal returns (bytes memory o) {
         assembly {
             let size := 64
             o := mload(0x40)
@@ -42,11 +43,21 @@ contract TestCosignerBasalt is CosignerBasalt, BytesUtils {
         }
     }
 
-    function cost(address, uint256, bytes data, bytes) public view returns (uint256) {
+    function cost(
+        address,
+        uint256,
+        bytes memory data,
+        bytes memory
+    ) public view returns (uint256) {
         return uint256(readBytes32(data, 1));
     }
 
-    function requestCosign(Engine engine, uint256 index, bytes data, bytes) public returns (bool) {
+    function requestCosign(
+        Engine engine,
+        uint256 index,
+        bytes memory data,
+        bytes memory
+    ) public returns (bool) {
         if (readBytes32(data, 0) == keccak256("custom_data")) {
             require(engine.cosign(uint256(customId), customCost));
             customId = 0x0;
@@ -64,11 +75,11 @@ contract TestCosignerBasalt is CosignerBasalt, BytesUtils {
         }
     }
 
-    function url() public view returns (string) {
+    function url() public view returns (string memory) {
         return "";
     }
 
-    function claim(address, uint256, bytes) public returns (bool) {
+    function claim(address, uint256, bytes memory) public returns (bool) {
         return false;
     }
 }

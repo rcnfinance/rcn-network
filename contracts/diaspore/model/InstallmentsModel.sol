@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./../interfaces/Model.sol";
 import "./../interfaces/ModelDescriptor.sol";
@@ -6,7 +6,9 @@ import "./../../utils/Ownable.sol";
 import "./../../utils/BytesUtils.sol";
 import "./../../utils/ERC165.sol";
 
+
 contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor {
+
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {
@@ -60,12 +62,12 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     function modelId() external view returns (bytes32) {
         // InstallmentsModel A 0.0.2
-        return 0x496e7374616c6c6d656e74734d6f64656c204120302e302e3200000000000000;
+        return hex"496e7374616c6c6d656e74734d6f64656c204120302e302e32";
     }
 
     function descriptor() external view returns (address) {
         address _descriptor = altDescriptor;
-        return _descriptor == address(0) ? this : _descriptor;
+        return _descriptor == address(0) ? address(this) : _descriptor;
     }
 
     function setEngine(address _engine) external onlyOwner returns (bool) {
@@ -86,11 +88,11 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint24 _installments,
         uint40 _duration,
         uint32 _timeUnit
-    ) external pure returns (bytes) {
+    ) external pure returns (bytes memory) {
         return abi.encodePacked(_cuota, _interestRate, _installments, _duration, _timeUnit);
     }
 
-    function create(bytes32 id, bytes data) external onlyEngine returns (bool) {
+    function create(bytes32 id, bytes memory data) public onlyEngine returns (bool) {
         require(configs[id].cuota == 0, "Entry already exist");
 
         (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _decodeData(data);
@@ -259,8 +261,8 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 _clock,
         uint256 _targetClock,
         uint256 _prevInterest,
-        Config _config,
-        State _state
+        Config memory _config,
+        State memory _state
     ) internal pure returns (uint256 interest, uint256 clock) {
         (interest, clock) = _runAdvanceClock({
             _clock: _clock,
@@ -280,7 +282,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return _advanceClock(id, uint64(now) - config.lentTime);
     }
 
-    function validate(bytes data) external view returns (bool) {
+    function validate(bytes memory data) public view returns (bool) {
         (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _decodeData(data);
         _validate(cuota, interestRate, installments, duration, timeUnit);
         return true;
@@ -315,29 +317,29 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return _getClosingObligation(id);
     }
 
-    function simFirstObligation(bytes _data) external view returns (uint256 amount, uint256 time) {
+    function simFirstObligation(bytes memory _data) public view returns (uint256 amount, uint256 time) {
         (amount,,, time,) = _decodeData(_data);
     }
 
-    function simTotalObligation(bytes _data) external view returns (uint256 amount) {
+    function simTotalObligation(bytes memory _data) public view returns (uint256 amount) {
         (uint256 cuota,, uint256 installments,,) = _decodeData(_data);
         amount = cuota * installments;
     }
 
-    function simDuration(bytes _data) external view returns (uint256 duration) {
+    function simDuration(bytes memory _data) public view returns (uint256 duration) {
         (,,uint256 installments, uint256 installmentDuration,) = _decodeData(_data);
         duration = installmentDuration * installments;
     }
 
-    function simPunitiveInterestRate(bytes _data) external view returns (uint256 punitiveInterestRate) {
+    function simPunitiveInterestRate(bytes memory _data) public view returns (uint256 punitiveInterestRate) {
         (,punitiveInterestRate,,,) = _decodeData(_data);
     }
 
-    function simFrequency(bytes _data) external view returns (uint256 frequency) {
+    function simFrequency(bytes memory _data) public view returns (uint256 frequency) {
         (,,, frequency,) = _decodeData(_data);
     }
 
-    function simInstallments(bytes _data) external view returns (uint256 installments) {
+    function simInstallments(bytes memory _data) public view returns (uint256 installments) {
         (,, installments,,) = _decodeData(_data);
     }
 
@@ -407,7 +409,6 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 paid = state.paid;
         return debt > paid ? debt - paid : 0;
     }
-
 
     function _runAdvanceClock(
         uint256 _clock,
@@ -518,7 +519,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     }
 
     function _decodeData(
-        bytes _data
+        bytes memory _data
     ) internal pure returns (uint128, uint256, uint24, uint40, uint32) {
         require(_data.length == L_DATA, "Invalid data length");
         (
@@ -528,6 +529,6 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
             bytes32 duration,
             bytes32 timeUnit
         ) = decode(_data, 16, 32, 3, 5, 4);
-        return (uint128(cuota), uint256(interestRate), uint24(installments), uint40(duration), uint32(timeUnit));
+        return (uint128(uint256(cuota)), uint256(interestRate), uint24(uint256(installments)), uint40(uint256(duration)), uint32(uint256(timeUnit)));
     }
 }

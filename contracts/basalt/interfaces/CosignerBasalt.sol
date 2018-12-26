@@ -1,6 +1,7 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.0;
 
 import "./Engine.sol";
+
 
 /**
     @dev Defines the interface of a standard RCN cosigner.
@@ -21,14 +22,20 @@ contract CosignerBasalt {
     /**
         @return the url of the endpoint that exposes the insurance offers.
     */
-    function url() public view returns (string);
+    function url() public view returns (string memory);
 
     /**
         @dev Retrieves the cost of a given insurance, this amount should be exact.
 
         @return the cost of the cosign, in RCN wei
     */
-    function cost(address engine, uint256 index, bytes data, bytes oracleData) public view returns (uint256);
+    function cost(
+        address engine,
+        uint256 index,
+        bytes memory data,
+        bytes memory oracleData
+    )
+        public view returns (uint256);
 
     /**
         @dev The engine calls this method for confirmation of the conditions, if the cosigner accepts the liability of
@@ -37,7 +44,13 @@ contract CosignerBasalt {
 
         @return true if the cosigner accepts the liability
     */
-    function requestCosign(Engine engine, uint256 index, bytes data, bytes oracleData) public returns (bool);
+    function requestCosign(
+        Engine engine,
+        uint256 index,
+        bytes memory data,
+        bytes memory oracleData
+    )
+        public returns (bool);
 
     /**
         @dev Claims the benefit of the insurance if the loan is defaulted, this method should be only calleable by the
@@ -45,5 +58,5 @@ contract CosignerBasalt {
 
         @return true if the claim was done correctly.
     */
-    function claim(address engine, uint256 index, bytes oracleData) public returns (bool);
+    function claim(address engine, uint256 index, bytes memory oracleData) public returns (bool);
 }
