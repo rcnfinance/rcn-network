@@ -1,9 +1,9 @@
 /* solium-disable */
 pragma solidity ^0.5.0;
 
-import "./../../interfaces/Cosigner.sol";
+import "./../interfaces/CosignerBasalt.sol";
 import "./../../utils/BytesUtils.sol";
-import "./../../basalt/interfaces/Engine.sol";
+import "./../interfaces/Engine.sol";
 import "./../../interfaces/Token.sol";
 
 

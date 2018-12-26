@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
 
-contract ILoanManager {
+interface ILoanManager {
     function debtEngine() external view returns (address);
     function getStatus(uint256 _id) external view returns (uint256);
     function getDueTime(uint256 _id) external view returns (uint256);
