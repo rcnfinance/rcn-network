@@ -11,10 +11,6 @@ contract SimpleDelegable is Ownable {
         _;
     }
 
-    function isDelegate(address _delegate) public view returns (bool) {
-        return delegates[_delegate];
-    }
-
     function addDelegate(address _delegate) external onlyOwner returns (bool) {
         delegates[_delegate] = true;
         return true;
@@ -23,5 +19,9 @@ contract SimpleDelegable is Ownable {
     function removeDelegate(address _delegate) external onlyOwner returns (bool) {
         delegates[_delegate] = false;
         return true;
+    }
+
+    function isDelegate(address _delegate) public view returns (bool) {
+        return delegates[_delegate];
     }
 }

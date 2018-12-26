@@ -61,7 +61,11 @@ contract Oracle is Ownable {
     */
     function decodeCurrency(bytes32 b) public pure returns (string memory o) {
         uint256 ns = 256;
-        while (true) { if (ns == 0 || (b<<ns-8) != 0) break; ns -= 8; }
+        while (true) {
+            if (ns == 0 || (b<<ns-8) != 0)
+                break;
+            ns -= 8;
+        }
         assembly {
             ns := div(ns, 8)
             o := mload(0x40)
