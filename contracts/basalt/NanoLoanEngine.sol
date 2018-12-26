@@ -390,7 +390,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
 
         @return true if the lend was done successfully
     */
-    function lend(uint index, bytes memory oracleData, Cosigner cosigner, bytes memory cosignerData) public returns (bool) {
+    function lend(uint index, bytes memory oracleData, CosignerBasalt cosigner, bytes memory cosignerData) public returns (bool) {
         Loan storage loan = loans[index];
 
         require(loan.status == Status.initial);

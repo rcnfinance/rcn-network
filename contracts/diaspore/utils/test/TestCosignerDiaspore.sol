@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.5.0;
 
 import "../../interfaces/Cosigner.sol";
 import "../../interfaces/ILoanManager.sol";
