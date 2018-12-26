@@ -86,7 +86,7 @@ contract('ERC721 Base', function (accounts) {
         await token.generate(assetId, accounts[0]);
         await token.approve(accounts[1], assetId);
 
-        assert.equal(await token.getApprovedAddress(assetId), accounts[1]);
+        assert.equal(await token.getApproved(assetId), accounts[1]);
         assert.equal(await token.isApprovedForAll(accounts[1], accounts[0]), false);
     });
 
@@ -274,5 +274,51 @@ contract('ERC721 Base', function (accounts) {
         const uri = await instance.tokenURI(assetId1);
 
         assert.equal(uri, 'https://ripioCreditNetwork/debtId');
+    });
+
+    it('Should generate a new NFTs and tansfer randomly', async function () {
+        const assetIds = [];
+        const totalAssets = 25;
+
+        for (let i = 0; i < totalAssets; i++) {
+            assetIds.push(600 + i);
+            await token.generate(assetIds[i], accounts[i % 10]);
+        }
+
+        for (let i = totalAssets - 1; i >= 0; i--) {
+            const owner = await token.ownerOf(assetIds[i]);
+            const randomAcc = Math.floor(Math.random() * 10);
+
+            await token.transferFrom(
+                owner,
+                accounts[randomAcc],
+                assetIds[i],
+                { from: owner }
+            );
+        }
+
+        for (let i = 0; i < totalAssets; i++) {
+            const owner = await token.ownerOf(assetIds[i]);
+            const randomAcc = Math.floor(Math.random() * 10);
+
+            await token.transferFrom(
+                owner,
+                accounts[randomAcc],
+                assetIds[i],
+                { from: owner }
+            );
+        }
+
+        for (let i = totalAssets - 1; i >= 0; i--) {
+            const owner = await token.ownerOf(assetIds[i]);
+            const randomAcc = Math.floor(Math.random() * 10);
+
+            await token.transferFrom(
+                owner,
+                accounts[randomAcc],
+                assetIds[i],
+                { from: owner }
+            );
+        }
     });
 });

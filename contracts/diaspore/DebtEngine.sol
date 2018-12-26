@@ -605,6 +605,7 @@ contract DebtEngine is ERC721Base {
     }
 
     function withdraw(bytes32 _id, address _to) external returns (uint256 amount) {
+        require(_to != 0x0, "_to should not be 0x0");
         require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
         amount = debt.balance;
@@ -619,6 +620,7 @@ contract DebtEngine is ERC721Base {
     }
 
     function withdrawPartial(bytes32 _id, address _to, uint256 _amount) external returns (bool success) {
+        require(_to != 0x0, "_to should not be 0x0");
         require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
         require(debt.balance >= _amount, "Debt balance is not enought");
@@ -634,6 +636,7 @@ contract DebtEngine is ERC721Base {
     }
 
     function withdrawBatch(bytes32[] memory _ids, address _to) public returns (uint256 total) {
+        require(_to != 0x0, "_to should not be 0x0");
         bytes32 target;
         uint256 balance;
         for (uint256 i = 0; i < _ids.length; i++) {
