@@ -442,72 +442,72 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.notEqual(id1, id2);
         });
 
-    it('Try withdrawBatch funds to 0x0 address', async function () {
-	const id = await getId(debtEngine.create(
-	    testModel.address,
-	    accounts[0],
-	    0x0,
-	    await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
-	));
+        it('Try withdrawBatch funds to 0x0 address', async function () {
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                accounts[0],
+                Helper.address0x,
+                await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+            ));
 
-	await rcn.setBalance(accounts[0], 10000);
+            await rcn.setBalance(accounts[0], 10000);
 
-	await rcn.approve(debtEngine.address, 10000);
-	await debtEngine.pay(id, 4000, accounts[3], []);
+            await rcn.approve(debtEngine.address, 10000);
+            await debtEngine.pay(id, 4000, accounts[3], []);
 
-	await Helper.tryCatchRevert(
-	    () => debtEngine.withdrawBatch(
-	        [id],
-	        Helper.address0x
-	    ),
-	    '_to should not be 0x0'
-	);
-    });
+            await Helper.tryCatchRevert(
+                () => debtEngine.withdrawBatch(
+                    [id],
+                    Helper.address0x
+                ),
+                '_to should not be 0x0'
+            );
+        });
 
-    it('Try withdraw funds to 0x0 address', async function () {
-	const id = await getId(debtEngine.create(
-	    testModel.address,
-	    accounts[0],
-	    0x0,
-	    await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
-	));
+        it('Try withdraw funds to 0x0 address', async function () {
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                accounts[0],
+                Helper.address0x,
+                await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+            ));
 
-	await rcn.setBalance(accounts[0], 10000);
+            await rcn.setBalance(accounts[0], 10000);
 
-	await rcn.approve(debtEngine.address, 10000);
-	await debtEngine.pay(id, 4000, accounts[3], []);
+            await rcn.approve(debtEngine.address, 10000);
+            await debtEngine.pay(id, 4000, accounts[3], []);
 
-	await Helper.tryCatchRevert(
-	    () => debtEngine.withdraw(
-	        id,
-	        Helper.address0x
-	    ),
-	    '_to should not be 0x0'
-	);
-    });
+            await Helper.tryCatchRevert(
+                () => debtEngine.withdraw(
+                    id,
+                    Helper.address0x
+                ),
+                '_to should not be 0x0'
+            );
+        });
 
-    it('Try withdrawPartial funds to 0x0 address', async function () {
-	const id = await getId(debtEngine.create(
-	    testModel.address,
-	    accounts[0],
-	    0x0,
-	    await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
-	));
+        it('Try withdrawPartial funds to 0x0 address', async function () {
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                accounts[0],
+                Helper.address0x,
+                await testModel.encodeData(3000, (await Helper.getBlockTime()) + 2000)
+            ));
 
-	await rcn.setBalance(accounts[0], 10000);
+            await rcn.setBalance(accounts[0], 10000);
 
-	await rcn.approve(debtEngine.address, 10000);
-	await debtEngine.pay(id, 4000, accounts[3], []);
+            await rcn.approve(debtEngine.address, 10000);
+            await debtEngine.pay(id, 4000, accounts[3], []);
 
-	await Helper.tryCatchRevert(
-	    () => debtEngine.withdrawPartial(
-	        id,
-	        Helper.address0x,
-	        '1'
-	    ),
-	    '_to should not be 0x0'
-	);
-    });
+            await Helper.tryCatchRevert(
+                () => debtEngine.withdrawPartial(
+                    id,
+                    Helper.address0x,
+                    '1'
+                ),
+                '_to should not be 0x0'
+            );
+        });
 
         it('Should predict id create 3', async function () {
             const pid = await debtEngine.buildId3(
