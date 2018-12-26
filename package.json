@@ -36,7 +36,6 @@
   "homepage": "https://ripiocredit.network",
   "devDependencies": {
     "bn.js": "^4.11.8",
-    "bn-chai": "^1.0.1",
     "chai": "^4.2.0",
     "coveralls": "^3.0.1",
     "dotenv": "^4.0.0",
