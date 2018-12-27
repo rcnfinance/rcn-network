@@ -6,37 +6,12 @@ import "./../../interfaces/ILoanManager.sol";
 import "./../../../interfaces/Token.sol";
 import "./interfaces/IBundle.sol";
 import "./interfaces/IPoach.sol";
+import "./interfaces/IPawnManager.sol";
 
 import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/Ownable.sol";
 import "./../../../utils/SafeMath.sol";
 import "./../../../utils/ERC721Base.sol";
-
-
-contract Events {
-    event NewPawn(
-        uint256 pawnId,
-        uint256 loanId,
-        address borrower,
-        uint256 packageId
-    );
-
-    event RequestedPawn(
-        uint256 pawnId,
-        uint256 loanId,
-        address borrower,
-        address loanManager,
-        uint256 packageId
-    );
-
-    event StartedPawn(uint256 pawnId );
-
-    event CanceledPawn(uint256 pawnId, address from, address to);
-
-    event PaidPawn(uint256 pawnId, address from);
-
-    event DefaultedPawn(uint256 pawnId);
-}
 
 
 /**
@@ -47,10 +22,9 @@ contract Events {
 
     When the loan is resolved (paid, pardoned or defaulted), the pawn with his tokens can be recovered.
 */
-contract PawnManager is Cosigner, ERC721Base, Events, BytesUtils, Ownable {
+contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable {
     using SafeMath for uint256;
 
-    address constant internal ETH = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
     ILoanManager public loanManager;
     IBundle public bundle;
     IPoach public poach;
@@ -69,8 +43,6 @@ contract PawnManager is Cosigner, ERC721Base, Events, BytesUtils, Ownable {
         uint256 packageId;
         Status status;
     }
-
-    enum Status { Pending, Ongoing, Canceled, Paid, Defaulted }
 
     constructor(ILoanManager _loanManager, IBundle _bundle, IPoach _poach) public {
         ILoanManager = _loanManager;

@@ -1,37 +1,13 @@
 pragma solidity ^0.5.0;
 
 import "./../../../interfaces/Token.sol";
+import "./interfaces/IPoach.sol";
 
 import "./../../../utils/ERC721Base.sol";
 
 
-contract Events {
-    event Created(
-        uint256 _pairId,
-        address _owner,
-        address _erc20,
-        uint256 _amount
-    );
-
-    event Deposit(
-        uint256 _pairId,
-        address _sender,
-        uint256 _amount
-    );
-
-    event Destroy(
-        uint256 _pairId,
-        address _sender,
-        address _to,
-        uint256 _amount
-    );
-}
-
-
-contract Poach is ERC721Base, Events {
+contract Poach is ERC721Base, IPoach {
     using SafeMath for uint256;
-
-    address constant internal ETH = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
 
     struct Pair {
         Token token;
