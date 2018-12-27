@@ -56,8 +56,8 @@ contract Bundle is ERC721Base, Events, BytesUtils {
     /**
         @notice Get the content of a package
     */
-    function content(uint256 id) external view returns (address[] tokens, uint256[] ids) {
-        Package memory package = packages[id];
+    function content(uint256 _id) external view returns (address[] memory tokens, uint256[] memory ids) {
+        Package memory package = packages[_id];
         tokens = package.tokens;
         ids = package.ids;
     }
@@ -77,19 +77,19 @@ contract Bundle is ERC721Base, Events, BytesUtils {
         @notice Deposit a non fungible token on a package
 
         @param _packageId Index of package in packages array
-        @param token Token address (IERC721Base)
-        @param tokenId Token identifier
+        @param _token Token address (IERC721Base)
+        @param _tokenId Token identifier
 
         @return true If the operation was executed
     */
     function deposit(
         uint256 _packageId,
-        IERC721Base token,
-        uint256 tokenId
+        IERC721Base _token,
+        uint256 _tokenId
     ) external returns (bool) {
         uint256 packageId = _packageId == 0 ? create() : _packageId;
         require(canDeposit(packageId), "Not authorized for deposit");
-        return _deposit(packageId, token, tokenId);
+        return _deposit(packageId, _token, _tokenId);
     }
 
     /**
@@ -98,22 +98,22 @@ contract Bundle is ERC721Base, Events, BytesUtils {
         @dev The length of tokens and ids should be equal
 
         @param _packageId Index of package in packages array
-        @param tokens Token addresses (IERC721Base) array
-        @param ids Token identifiers array
+        @param _tokens Token addresses (IERC721Base) array
+        @param _ids Token identifiers array
 
         @return true If the operation was executed
     */
     function depositBatch(
         uint256 _packageId,
-        IERC721Base[] tokens,
-        uint256[] ids
+        IERC721Base[] calldata _tokens,
+        uint256[] calldata _ids
     ) external returns (bool) {
         uint256 packageId = _packageId == 0 ? create() : _packageId;
         require(canDeposit(packageId), "Not authorized for deposit");
 
-        require(tokens.length == ids.length);
-        for (uint256 i = 0; i < ids.length; i++) {
-            require(_deposit(packageId, tokens[i], ids[i]));
+        require(_tokens.length == _ids.length);
+        for (uint256 i = 0; i < _ids.length; i++) {
+            require(_deposit(packageId, _tokens[i], _ids[i]));
         }
 
         return true;
@@ -122,20 +122,20 @@ contract Bundle is ERC721Base, Events, BytesUtils {
     /**
         @notice Withdraw a non fungible token from a packag
 
-        @param packageId Index of package in packages array
-        @param token Token address (IERC721Base)
-        @param tokenId Token identifier
-        @param to address beneficiary
+        @param _packageId Index of package in packages array
+        @param _token Token address (IERC721Base)
+        @param _tokenId Token identifier
+        @param _to address beneficiary
 
         @return true If the operation was executed
     */
     function withdraw(
-        uint256 packageId,
-        IERC721Base token,
-        uint256 tokenId,
-        address to
-    ) external canWithdraw(packageId) returns (bool) {
-        return _withdraw(packageId, token, tokenId, to);
+        uint256 _packageId,
+        IERC721Base _token,
+        uint256 _tokenId,
+        address _to
+    ) external canWithdraw(_packageId) returns (bool) {
+        return _withdraw(_packageId, _token, _tokenId, _to);
     }
 
     /**
@@ -143,21 +143,21 @@ contract Bundle is ERC721Base, Events, BytesUtils {
 
         @dev The length of tokens and ids should be equal
 
-        @param packageId Index of package in packages array
-        @param tokens Token addresses (IERC721Base) array
-        @param ids Token identifiers array
-        @param to address beneficiary
+        @param _packageId Index of package in packages array
+        @param _tokens Token addresses (IERC721Base) array
+        @param _ids Token identifiers array
+        @param _to address beneficiary
 
         @return true If the operation was executed
     */
     function withdrawBatch(
-        uint256 packageId,
-        IERC721Base[] tokens,
-        uint256[] ids,
-        address to
-    ) external canWithdraw(packageId) returns (bool) {
-        for (uint256 i = 0; i < tokens.length; i++) {
-            require(_withdraw(packageId, tokens[i], ids[i], to));
+        uint256 _packageId,
+        IERC721Base[] calldata _tokens,
+        uint256[] calldata _ids,
+        address _to
+    ) external canWithdraw(_packageId) returns (bool) {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            require(_withdraw(_packageId, _tokens[i], _ids[i], _to));
         }
 
         return true;
@@ -166,20 +166,20 @@ contract Bundle is ERC721Base, Events, BytesUtils {
     /**
         @notice Withdraw all non fungible tokens from a package
 
-        @param packageId Index of package in packages array
-        @param to address beneficiary
+        @param _packageId Index of package in packages array
+        @param _to address beneficiary
 
         @return true If the operation was executed
     */
     function withdrawAll(
-        uint256 packageId,
-        address to
-    ) external canWithdraw(packageId) returns (bool) {
-        Package storage package = packages[packageId];
+        uint256 _packageId,
+        address _to
+    ) external canWithdraw(_packageId) returns (bool) {
+        Package storage package = packages[_packageId];
         uint256 i = package.ids.length - 1;
 
         for (; i != MAX_UINT256; i--) {
-            require(_withdraw(packageId, IERC721Base(package.tokens[i]), package.ids[i], to));
+            require(_withdraw(_packageId, IERC721Base(package.tokens[i]), package.ids[i], _to));
         }
 
         return true;
@@ -190,33 +190,33 @@ contract Bundle is ERC721Base, Events, BytesUtils {
     //
 
     function _deposit(
-        uint256 packageId,
-        IERC721Base token,
-        uint256 tokenId
+        uint256 _packageId,
+        IERC721Base _token,
+        uint256 _tokenId
     ) internal returns (bool) {
-        token.transferFrom(msg.sender, address(this), tokenId);
-        require(token.ownerOf(tokenId) == address(this), "ERC721Base transfer failed");
+        _token.transferFrom(msg.sender, address(this), _tokenId);
+        require(_token.ownerOf(_tokenId) == address(this), "ERC721Base transfer failed");
 
-        Package storage package = packages[packageId];
-        _add(package, token, tokenId);
+        Package storage package = packages[_packageId];
+        _add(package, _token, _tokenId);
 
-        emit Deposit(msg.sender, packageId, token, tokenId);
+        emit Deposit(msg.sender, _packageId, _token, _tokenId);
 
         return true;
     }
 
     function _withdraw(
-        uint256 packageId,
-        IERC721Base token,
-        uint256 tokenId,
-        address to
+        uint256 _packageId,
+        IERC721Base _token,
+        uint256 _tokenId,
+        address _to
     ) internal returns (bool) {
-        Package storage package = packages[packageId];
-        _remove(package, token, tokenId);
-        emit Withdraw(msg.sender, packageId, token, tokenId);
+        Package storage package = packages[_packageId];
+        _remove(package, _token, _tokenId);
+        emit Withdraw(msg.sender, _packageId, _token, _tokenId);
 
-        token.transferFrom(this, to, tokenId);
-        require(token.ownerOf(tokenId) == to, "ERC721Base transfer failed");
+        _token.transferFrom(this, _to, _tokenId);
+        require(_token.ownerOf(_tokenId) == _to, "ERC721Base transfer failed");
 
         return true;
     }

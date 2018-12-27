@@ -11,6 +11,6 @@ interface ILoanManager {
 
     function cosign(uint256 _id, uint256 _cost) external returns (bool);
     function safeTransferFrom(address _from, address _to, uint256 _assetId) external;
-    function requestLoan(uint128 _amount, address _model, address _oracle, address _borrower, uint256 _salt, uint64 _expiration, bytes _loanData) external returns (bytes32 id);
-    function registerApproveRequest(bytes32 _id, bytes _signature) external returns (bool approved);
+    function requestLoan(uint128 _amount, address _model, address _oracle, address _borrower, uint256 _salt, uint64 _expiration, bytes calldata _loanData) external returns (bytes32 id);
+    function registerApproveRequest(bytes32 _id, bytes calldata _signature) external returns (bool approved);
 }

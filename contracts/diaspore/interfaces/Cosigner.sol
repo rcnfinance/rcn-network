@@ -40,14 +40,19 @@ contract Cosigner {
     /**
         @return the url of the endpoint that exposes the insurance offers.
     */
-    function url() external view returns (string);
+    function url() external view returns (string memory);
 
     /**
         @dev Retrieves the cost of a given insurance, this amount should be exact.
 
         @return the cost of the cosign, in RCN wei
     */
-    function cost(address loanManager, uint256 index, bytes calldata data, bytes calldata oracleData) external view returns (uint256);
+    function cost(
+        address loanManager,
+        uint256 index,
+        bytes calldata data,
+        bytes calldata oracleData
+    ) external view returns (uint256);
 
     /**
         @dev The loanManager calls this method for confirmation of the conditions, if the cosigner accepts the liability of
@@ -56,7 +61,12 @@ contract Cosigner {
 
         @return true if the cosigner accepts the liability
     */
-    function requestCosign(address loanManager, uint256 index, bytes data, bytes calldata oracleData) external returns (bool);
+    function requestCosign(
+        address loanManager,
+        uint256 index,
+        bytes calldata data,
+        bytes calldata oracleData
+    ) external returns (bool);
 
     /**
         @dev Claims the benefit of the insurance if the loan is defaulted, this method should be only calleable by the
@@ -64,5 +74,9 @@ contract Cosigner {
 
         @return true if the claim was done correctly.
     */
-    function claim(address loanManager, uint256 index, bytes calldata oracleData) external returns (bool);
+    function claim(
+        address loanManager,
+        uint256 index,
+        bytes calldata oracleData
+    ) external returns (bool);
 }
