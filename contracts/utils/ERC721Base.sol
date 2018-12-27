@@ -1,5 +1,7 @@
 pragma solidity ^0.5.0;
 
+import "./../interfaces/IERC721Base.sol";
+
 import "./SafeMath.sol";
 import "./ERC165.sol";
 import "./IsContract.sol";
@@ -10,7 +12,7 @@ interface URIProvider {
 }
 
 
-contract ERC721Base is ERC165 {
+contract ERC721Base is IERC721Base, ERC165 {
     using SafeMath for uint256;
     using IsContract for address;
 
