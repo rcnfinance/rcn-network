@@ -85,7 +85,7 @@ contract('Poach', function (accounts) {
             assert(Helper.isRevertErrorMessage(e), 'expected throw but got: ' + e);
         }
 
-        assert.equal(web3.eth.getBalance(poach.address), ethAmount.toString());
+        assert.equal(await web3.eth.getBalance(poach.address), ethAmount.toString());
         ethPair = await poach.getPair(ethPairId);
         assert.equal(ethPair[I_TOKEN], ethAddress);
         assert.equal(ethPair[I_AMOUNT].toNumber(), ethAmount.toString());
@@ -197,15 +197,15 @@ contract('Poach', function (accounts) {
         } catch (e) {
             assert(Helper.isRevertErrorMessage(e), 'expected throw but got: ' + e);
         }
-        prevBal = web3.eth.getBalance(user);
-        const prevPachBal = web3.eth.getBalance(poach.address);
+        prevBal = await web3.eth.getBalance(user);
+        const prevPachBal = await web3.eth.getBalance(poach.address);
 
         await poach.destroy(ethPairId, { from: user });
 
         ethPair = await poach.getPair(ethPairId);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), prevPachBal.sub(ethAmount));
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), prevPachBal.sub(ethAmount));
         assert.equal(ethPair[I_TOKEN], ethAddress);
-        assert.isAbove(web3.eth.getBalance(user).toNumber(), prevBal.toNumber());// TIP! Check gas price
+        assert.isAbove(await web3.eth.getBalance(user).toNumber(), prevBal.toNumber());// TIP! Check gas price
         assert.equal(ethPair[I_ALIVE], false);
 
         try { // try destroy a destroyed eth pair

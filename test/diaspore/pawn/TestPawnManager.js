@@ -297,9 +297,9 @@ contract('TestPawnManager', function (accounts) {
 
         await bundle.withdrawAll(packageId, borrower, { from: borrower });
 
-        assert.equal(web3.eth.getBalance(bundle.address), 0);
-        assert.equal(web3.eth.getBalance(pawnManager.address), 0);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), ethAmount.toString());
+        assert.equal(await web3.eth.getBalance(bundle.address), 0);
+        assert.equal(await web3.eth.getBalance(pawnManager.address), 0);
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), ethAmount.toString());
 
         const prevBal = await pepeCoin.balanceOf(borrower);
         await poach.destroy(pawnPackage[1][0], { from: borrower });
@@ -313,7 +313,7 @@ contract('TestPawnManager', function (accounts) {
         pairEth = await poach.getPair(pawnPackage[1][1]);
         assert.equal(pair[1], 0);
         assert.equal(pairEth[2], false);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), 0);
 
         assert.equal(await pokemons.ownerOf(pikachu), borrower);
     });
@@ -328,7 +328,7 @@ contract('TestPawnManager', function (accounts) {
         const packageId = await pawnManager.getPawnPackageId(customPawnId);
         const pawnPackage = await bundle.content(packageId);
 
-        assert.equal(web3.eth.getBalance(poach.address).toString(), ethAmount.toString());
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), ethAmount.toString());
         const prevBal = await pepeCoin.balanceOf(borrower);
         const cancelPawnReceipt = await pawnManager.cancelPawn(customPawnId, borrower, false, { from: borrower });
         try { // try withdraw all tokens
@@ -351,9 +351,9 @@ contract('TestPawnManager', function (accounts) {
 
         const pairEth = await poach.getPair(pawnPackage[1][1]);
         assert.equal(pairEth[2], false);
-        assert.equal(web3.eth.getBalance(pawnManager.address).toString(), 0);
-        assert.equal(web3.eth.getBalance(bundle.address).toString(), 0);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(pawnManager.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(bundle.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), 0);
 
         assert.equal(await pokemons.ownerOf(pikachu), borrower);
     });
@@ -473,7 +473,7 @@ contract('TestPawnManager', function (accounts) {
         const pairEth = await poach.getPair(pawnPackage[1][1]);
         assert.equal(pair[1], 0);
         assert.equal(pairEth[2], false);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), 0);
 
         assert.equal(await pokemons.ownerOf(pikachu), borrowerHelper);
     });
@@ -496,7 +496,7 @@ contract('TestPawnManager', function (accounts) {
 
         assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
         const pawnPackage = await bundle.content(packageId);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), ethAmount.toString());
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), ethAmount.toString());
 
         const prevBal = await pepeCoin.balanceOf(borrower);
         await pawnManager.claimWithdraw(rcnEngine.address, customLoanId, { from: borrower });
@@ -519,9 +519,9 @@ contract('TestPawnManager', function (accounts) {
 
         const pairEth = await poach.getPair(pawnPackage[1][1]);
         assert.equal(pairEth[2], false);
-        assert.equal(web3.eth.getBalance(pawnManager.address).toString(), 0);
-        assert.equal(web3.eth.getBalance(bundle.address).toString(), 0);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(pawnManager.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(bundle.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), 0);
 
         assert.equal(await pokemons.ownerOf(pikachu), borrower);
     });
@@ -611,7 +611,7 @@ contract('TestPawnManager', function (accounts) {
         const pairEth = await poach.getPair(pawnPackage[1][1]);
         assert.equal(pair[1], 0);
         assert.equal(pairEth[2], false);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), 0);
 
         assert.equal(await pokemons.ownerOf(pikachu), borrower);
     });
@@ -663,7 +663,7 @@ contract('TestPawnManager', function (accounts) {
         const pairEth = await poach.getPair(pawnPackage[1][1]);
         assert.equal(pair[1], 0);
         assert.equal(pairEth[2], false);
-        assert.equal(web3.eth.getBalance(poach.address).toString(), 0);
+        assert.equal(await web3.eth.getBalance(poach.address).toString(), 0);
 
         assert.equal(await pokemons.ownerOf(pikachu), lender);
     });

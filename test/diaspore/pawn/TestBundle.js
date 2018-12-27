@@ -126,10 +126,10 @@ contract('TestBundle', function (accounts) {
         // ckeck package balance
         assert.equal(await rcn.balanceOf(poach.address), web3.toWei(5), 'ckeck package balance in rcn');
         assert.equal(await pepeCoin.balanceOf(poach.address), web3.toWei(6), 'ckeck package balance in pepeCoin');
-        assert.equal(web3.eth.getBalance(poach.address), ethAmount.toString());
+        assert.equal(await web3.eth.getBalance(poach.address), ethAmount.toString());
         assert.equal(await rcn.balanceOf(bundle.address), 0, 'ckeck package balance in rcn');
         assert.equal(await pepeCoin.balanceOf(bundle.address), 0, 'ckeck package balance in pepeCoin');
-        assert.equal(web3.eth.getBalance(bundle.address), 0);
+        assert.equal(await web3.eth.getBalance(bundle.address), 0);
         assert.equal(await poach.ownerOf(poach1Id), bundle.address);
         assert.equal(await poach.ownerOf(poach2Id), bundle.address);
         assert.equal(await poach.ownerOf(poachEthId), bundle.address);
