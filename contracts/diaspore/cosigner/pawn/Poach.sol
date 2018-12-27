@@ -29,16 +29,16 @@ contract Poach is ERC721Base, IPoach {
         @return _id Index of pair in the poaches array
     */
     function create(
-        address _token,
+        Token _token,
         uint256 _amount
     ) external payable returns (uint256 _id) {
         _deposit(_token, _amount);
 
-        _id = poaches.push(Pair(token, amount, true)) - 1;
+        _id = poaches.push(Pair(_token, _amount)) - 1;
 
         _generate(_id, msg.sender);
 
-        emit Created(_id, msg.sender, token, _amount);
+        emit Created(_id, msg.sender, _token, _amount);
     }
 
     /**
@@ -77,9 +77,9 @@ contract Poach is ERC721Base, IPoach {
     */
     function destroy(
         uint256 _id,
-        address _to
+        address payable _to
     ) external onlyAuthorized(_id) returns (bool) {
-        require(_to != 0x0, "_to should not be 0x0");
+        require(_to != address(0), "_to should not be 0x0");
         Pair storage pair = poaches[_id];
         uint256 amount = pair.amount;
         require(amount != 0, "The pair not exists");
@@ -97,12 +97,12 @@ contract Poach is ERC721Base, IPoach {
     }
 
     function _deposit(
-        address _token,
+        Token _token,
         uint256 _amount
     ) internal {
         if (msg.value == 0)
-            require(Token(_token).transferFrom(msg.sender, this, _amount), "Error pulling tokens");
+            require(_token.transferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
         else
-            require(_amount == msg.value && _token == ETH, "The amount should be equal to msg.value and the _token should be ETH");
+            require(_amount == msg.value && address(_token) == ETH, "The amount should be equal to msg.value and the _token should be ETH");
     }
 }

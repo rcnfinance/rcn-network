@@ -23,13 +23,13 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         packages.length++;
     }
 
-    modifier canWithdraw(uint256 packageId) {
-        require(_isAuthorized(msg.sender, packageId), "Not authorized for withdraw");
+    modifier canWithdraw(uint256 _packageId) {
+        require(_isAuthorized(msg.sender, _packageId), "Not authorized for withdraw");
         _;
     }
 
-    function canDeposit(uint256 packageId) public view returns (bool) {
-        return _isAuthorized(msg.sender, packageId);
+    function canDeposit(uint256 _packageId) public view returns (bool) {
+        return _isAuthorized(msg.sender, _packageId);
     }
 
     /**
@@ -177,7 +177,7 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         require(_token.ownerOf(_tokenId) == address(this), "ERC721Base transfer failed");
 
         Package storage package = packages[_packageId];
-        _add(package, _token, _tokenId);
+        _add(package, address(_token), _tokenId);
 
         emit Deposit(msg.sender, _packageId, _token, _tokenId);
 
@@ -191,60 +191,60 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         address _to
     ) internal returns (bool) {
         Package storage package = packages[_packageId];
-        _remove(package, _token, _tokenId);
+        _remove(package, address(_token), _tokenId);
         emit Withdraw(msg.sender, _packageId, _token, _tokenId);
 
-        _token.transferFrom(this, _to, _tokenId);
+        _token.transferFrom(address (this), _to, _tokenId);
         require(_token.ownerOf(_tokenId) == _to, "ERC721Base transfer failed");
 
         return true;
     }
 
     function _add(
-        Package storage package,
-        IERC721Base token,
-        uint256 id
+        Package storage _package,
+        address _token,
+        uint256 _id
     ) internal {
-        uint256 position = package.order[token][id];
-        require(!_isAsset(package, position, token, id), "Already exist");
-        position = package.tokens.length;
-        package.tokens.push(token);
-        package.ids.push(id);
-        package.order[token][id] = position;
+        uint256 position = _package.order[_token][_id];
+        require(!_isAsset(_package, position, _token, _id), "Already exist");
+        position = _package.tokens.length;
+        _package.tokens.push(_token);
+        _package.ids.push(_id);
+        _package.order[_token][_id] = position;
     }
 
     function _remove(
-        Package storage package,
-        IERC721Base token,
-        uint256 id
+        Package storage _package,
+        address _token,
+        uint256 _id
     ) internal {
-        uint256 delPosition = package.order[token][id];
-        require(_isAsset(package, delPosition, token, id), "The token does not exist inside the package");
+        uint256 delPosition = _package.order[_token][_id];
+        require(_isAsset(_package, delPosition, _token, _id), "The token does not exist inside the package");
 
         // Replace item to remove with last item
         // (make the item to remove the last one)
-        uint256 lastPosition = package.tokens.length - 1;
+        uint256 lastPosition = _package.tokens.length - 1;
         if (lastPosition != delPosition) {
-            address lastToken = package.tokens[lastPosition];
-            uint256 lastId = package.ids[lastPosition];
-            package.tokens[delPosition] = lastToken;
-            package.ids[delPosition] = lastId;
-            package.order[lastToken][lastId] = delPosition;
+            address lastToken = _package.tokens[lastPosition];
+            uint256 lastId = _package.ids[lastPosition];
+            _package.tokens[delPosition] = lastToken;
+            _package.ids[delPosition] = lastId;
+            _package.order[lastToken][lastId] = delPosition;
         }
 
         // Remove last position
-        package.tokens.length--;
-        package.ids.length--;
-        delete package.order[token][id];
+        _package.tokens.length--;
+        _package.ids.length--;
+        delete _package.order[_token][_id];
     }
 
     function _isAsset(
-        Package memory package,
-        uint256 position,
-        address token,
-        uint256 id
+        Package memory _package,
+        uint256 _position,
+        address _token,
+        uint256 _id
     ) internal pure returns (bool) {
-        return position != 0 ||
-            (package.ids.length != 0 && package.tokens[position] == token && package.ids[position] == id);
+        return _position != 0 ||
+            (_package.ids.length != 0 && _package.tokens[_position] == _token && _package.ids[_position] == _id);
     }
 }
