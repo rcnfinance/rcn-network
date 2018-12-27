@@ -132,35 +132,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     }
 
     /**
-        @notice Requests a pawn with a loan identifier
-
-        @dev The loan should exist in the designated loanManager
-             The length of _tokens and _amounts should be equal
-              also length of _ERC721s and _ids
-
-        @param _loanManager RCN Engine
-        @param _loanIdentifier Identifier of the loan asociated with the pawn
-
-        @param _tokens Array of ERC20 contract addresses
-        @param _amounts Array of tokens amounts
-        @param _ERC721s Array of ERC721 contract addresses
-        @param _ids Array of non fungible token ids
-
-        @return pawnId The id of the pawn
-        @return packageId The id of the package
-    */
-    function requestPawnWithLoanIdentifier(
-        ILoanManager _loanManager,
-        bytes32 _loanIdentifier,
-        Token[] calldata _tokens,
-        uint256[] calldata _amounts,
-        IERC721Base[] calldata _ERC721s,
-        uint256[] calldata _ids
-    ) external payable returns (uint256 pawnId, uint256 packageId) {
-        return requestPawnId(_loanManager, _loanManager.identifierToIndex(_loanIdentifier), _tokens, _amounts, _ERC721s, _ids);
-    }
-
-    /**
         @notice Request a pawn to buy a new loan
 
         @dev The loan should exist in the designated loanManager
