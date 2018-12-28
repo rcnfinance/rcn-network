@@ -125,41 +125,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return encodeData;
     }
 
-    async function getRequest (id) { //  TODO arreglar
-        const request = await loanManager.requests(id);
-        if (request[9] === Helper.address0x) { throw new Error('Request id: ' + id + ' does not exists'); }
-        return {
-            open: request[0],
-            approved: request[1],
-            position: request[2],
-            expiration: request[3],
-            amount: request[4],
-            cosigner: request[5],
-            model: request[6],
-            creator: request[7],
-            oracle: request[8],
-            borrower: request[9],
-            salt: request[10],
-            loanData: await loanManager.getLoanData(id),
-        };
-    }
-
-    async function positionDirectory (id) {
-        return (await loanManager.getDirectory()).indexOf(id);
-    }
-
-    async function getDebt (id) {
-        const debt = await debtEngine.debts(id);
-        if (debt[3] === Helper.address0x) { throw new Error('Debt id: ' + id + ' does not exists'); }
-        return {
-            error: debt[0],
-            balance: debt[1],
-            model: debt[2],
-            creator: debt[3],
-            oracle: debt[4],
-        };
-    }
-
     before('Create engine and model', async function () {
         rcn = await TestToken.new();
         debtEngine = await DebtEngine.new(rcn.address);
@@ -284,7 +249,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(requested._id, id);
             assert.equal(requested._internalSalt, internalSalt);
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(request.open, true, 'The request should be open');
             assert.equal(await loanManager.getApproved(id), false, 'The request should not be approved');
             assert.equal(request.approved, false, 'The request should not be approved');
@@ -520,7 +485,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(requested._id, id);
             assert.equal(requested._internalSalt, internalSalt);
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(await loanManager.getApproved(id), true, 'The request should be approved');
             assert.equal(request.approved, true, 'The request should be approved');
             assert.equal(await loanManager.isApproved(id), true, 'The request should be approved');
@@ -590,9 +555,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             assert.equal(approved._id, id);
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(request.approved, true, 'The request should be approved');
-            assert.equal(request.position, await positionDirectory(id), 'The loan its not approved');
+            assert.equal(request.position, (await loanManager.getDirectory()).indexOf(id), 'The loan its not approved');
             assert.equal(await loanManager.directory(request.position), id);
         });
 
@@ -811,7 +776,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: accounts[2] }
             );
 
-            assert.equal(await loanManager.isApproved(id), true);//  TODO arreglar
+            assert.equal(await loanManager.isApproved(id), true);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.equal(event.args._id, id);
@@ -1076,7 +1041,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await rcn.balanceOf(lender), '0', 'The lender does not have to have tokens');
             assert.equal(await rcn.balanceOf(borrower), amount.toString(), 'The borrower should have ' + amount.toString() + ' tokens');
 
-            const debt = await getDebt(id);
+            const debt = await debtEngine.debts(id);
             assert.equal(debt.error, false, 'The debt should not have error');
             assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
             assert.equal(debt.balance, '0', 'The debt should not be balance');
@@ -1087,7 +1052,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
             assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(request.position, '0');
             assert.equal(await loanManager.getDirectoryLength(), prevDirLength - 1);
         });
@@ -1393,7 +1358,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await rcn.balanceOf(loanManager.address), '0');
             assert.equal(await rcn.balanceOf(borrower), amountRCN.toString());
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(request.oracle, oracle.address);
             assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
             assert.equal(request.cosigner, Helper.address0x);
@@ -1459,7 +1424,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(cosigned._cosigner, cosigner.address);
             assert.equal(cosigned._cost, cosignerCost.toString());
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(request.cosigner, cosigner.address);
             assert.equal(request.salt, salt.toString());
         });
@@ -2074,7 +2039,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await rcn.balanceOf(loanManager.address), '0');
             assert.equal(await rcn.balanceOf(borrower), amount.toString());
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(request.open, false, 'The request should not be open');
             assert.equal(request.approved, true, 'The request should be approved');
             assert.equal(request.position, '0', 'The loan its not approved');
@@ -2650,7 +2615,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await rcn.balanceOf(loanManager.address), '0');
             assert.equal(await rcn.balanceOf(borrower), amountRCN.toString());
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(request.open, false, 'The request should not be open');
             assert.equal(request.approved, true, 'The request should be approved');
             assert.equal(request.position, '0', 'The loan its not approved');
@@ -2882,7 +2847,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await rcn.balanceOf(loanManager.address), '0');
             assert.equal(await rcn.balanceOf(borrower), amount.toString());
 
-            const request = await getRequest(id);
+            const request = await loanManager.requests(id);
             assert.equal(request.cosigner, cosigner.address);
             assert.equal(request.salt, salt.toString());
         });
