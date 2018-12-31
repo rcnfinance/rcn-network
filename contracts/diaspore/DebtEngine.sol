@@ -105,7 +105,7 @@ contract DebtEngine is ERC721Base, Ownable {
         require(address(_token).isContract(), "Token should be a contract");
     }
 
-    function setURIProvider(URIProvider _provider) onlyOwner external {
+    function setURIProvider(URIProvider _provider) external onlyOwner {
         _setURIProvider(_provider);
     }
 
