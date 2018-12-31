@@ -328,11 +328,6 @@ contract ERC721Base is ERC165 {
     // Transaction related operations
     //
 
-    modifier onlyHolder(uint256 _assetId) {
-        require(_ownerOf(_assetId) == msg.sender, "msg.sender Is not holder");
-        _;
-    }
-
     modifier onlyAuthorized(uint256 _assetId) {
         require(_isAuthorized(msg.sender, _assetId), "msg.sender Not authorized");
         _;
