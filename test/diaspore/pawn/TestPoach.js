@@ -1,4 +1,4 @@
-const TestToken = artifacts.require('./diaspore/utils/test/TestModel.sol');
+/* const TestToken = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const Poach = artifacts.require('./diaspore/cosigner/pawn/Poach.sol');
 
 const Helper = require('./../../Helper.js');
@@ -216,3 +216,4 @@ contract('Poach', function (accounts) {
         }
     });
 });
+*/

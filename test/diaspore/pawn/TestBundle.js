@@ -1,12 +1,16 @@
-const TestToken = artifacts.require('./diaspore/utils/test/TestModel.sol');
+/* const TestToken = artifacts.require('./diaspore/utils/test/TestModel.sol');
 const TestERC721 = artifacts.require('./utils/test/TestERC721.sol');
 
 const Bundle = artifacts.require('./diaspore/cosigner/pawn/Bundle.sol');
 const Poach = artifacts.require('./diaspore/cosigner/pawn/Poach.sol');
 
 const Helper = require('./../../Helper.js');
-const BigNumber = web3.BigNumber;
-const precision = new BigNumber(10 ** 18);
+
+const BN = web3.utils.BN;
+
+function bn (number) {
+    return new BN(number);
+}
 
 // Contracts
 let bundle;
@@ -15,7 +19,7 @@ let poach;
 let rcn;
 let pepeCoin;
 const ethAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
-const ethAmount = new BigNumber(50).times(precision);
+const ethAmount = bn('1');
 // ERC721 contacts
 let pokemons;
 let zombies;
@@ -454,3 +458,4 @@ contract('TestBundle', function (accounts) {
         assert.equal(await pokemons.ownerOf(vulpix), user2);
     });
 });
+*/
