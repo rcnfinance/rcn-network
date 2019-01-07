@@ -43,7 +43,7 @@ contract TestCosignerDiaspore is Cosigner, BytesUtils {
         }
     }
 
-    function cost(address, uint256, bytes calldata _data, bytes calldata) external view returns (uint256) {
+    function cost(address, bytes32, bytes calldata _data, bytes calldata) external view returns (uint256) {
         return uint256(readBytes32(_data, 1));
     }
 
@@ -69,7 +69,7 @@ contract TestCosignerDiaspore is Cosigner, BytesUtils {
         return "";
     }
 
-    function claim(address, uint256, bytes calldata) external returns (bool) {
+    function claim(address, bytes32, bytes calldata) external returns (bool) {
         return false;
     }
 }

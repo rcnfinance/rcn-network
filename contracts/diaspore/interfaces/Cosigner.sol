@@ -23,7 +23,7 @@ contract Cosigner {
 
     event Cosign(
         address _loanManager,
-        bytes32 indexed _index,
+        bytes32 indexed _loanId,
         address _signer,
         bytes _data,
         bytes _oracleData
@@ -31,7 +31,7 @@ contract Cosigner {
 
     event Claim(
         address _loanManager,
-        bytes32 indexed _index,
+        bytes32 indexed _loanId,
         address _sender,
         uint256 _claimAmount,
         bytes _oracleData
@@ -48,10 +48,10 @@ contract Cosigner {
         @return the cost of the cosign, in RCN wei
     */
     function cost(
-        address loanManager,
-        uint256 index,
-        bytes calldata data,
-        bytes calldata oracleData
+        address _loanManager,
+        bytes32 _loanId,
+        bytes calldata _data,
+        bytes calldata _oracleData
     )
         external view returns (uint256);
 
@@ -63,10 +63,10 @@ contract Cosigner {
         @return true if the cosigner accepts the liability
     */
     function requestCosign(
-        address loanManager,
-        uint256 index,
-        bytes calldata data,
-        bytes calldata oracleData
+        address _loanManager,
+        bytes32 _loanId,
+        bytes calldata _data,
+        bytes calldata _oracleData
     )
         external returns (bool);
 
@@ -77,9 +77,9 @@ contract Cosigner {
         @return true if the claim was done correctly.
     */
     function claim(
-        address loanManager,
-        uint256 index,
-        bytes calldata oracleData
+        address _loanManager,
+        bytes32 _loanId,
+        bytes calldata _oracleData
     )
         external returns (bool);
 }

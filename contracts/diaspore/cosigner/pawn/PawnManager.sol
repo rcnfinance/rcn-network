@@ -295,7 +295,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         @return 0, because it's free
     */
-    function cost(address , uint256 , bytes calldata, bytes calldata ) external view returns (uint256) {
+    function cost(address , bytes32 , bytes calldata, bytes calldata ) external view returns (uint256) {
         return 0;
     }
 
