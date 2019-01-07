@@ -43,24 +43,24 @@ contract TestCosignerDiaspore is Cosigner, BytesUtils {
         }
     }
 
-    function cost(address, uint256, bytes calldata data, bytes calldata) external view returns (uint256) {
-        return uint256(readBytes32(data, 1));
+    function cost(address, uint256, bytes calldata _data, bytes calldata) external view returns (uint256) {
+        return uint256(readBytes32(_data, 1));
     }
 
-    function requestCosign(address loanManager, uint256 index, bytes calldata data, bytes calldata) external returns (bool) {
-        if (readBytes32(data, 0) == keccak256("custom_data")) {
-            require(ILoanManager(loanManager).cosign(uint256(customId), customCost));
+    function requestCosign(address loanManager, bytes32 _loanId, bytes calldata _data, bytes calldata) external returns (bool) {
+        if (readBytes32(_data, 0) == keccak256("custom_data")) {
+            require(ILoanManager(loanManager).cosign(customId, customCost));
             customId = 0x0;
             customCost = 0;
             return true;
         }
 
-        if (readBytes32(data, 0) == keccak256("test_oracle")) {
-            require(ILoanManager(loanManager).cosign(index, uint256(readBytes32(data, 1))));
+        if (readBytes32(_data, 0) == keccak256("test_oracle")) {
+            require(ILoanManager(loanManager).cosign(_loanId, uint256(readBytes32(_data, 1))));
             return true;
         }
 
-        if (readBytes32(data, 0) == keccak256("return_true_no_cosign")) {
+        if (readBytes32(_data, 0) == keccak256("return_true_no_cosign")) {
             return true;
         }
     }
