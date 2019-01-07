@@ -101,7 +101,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         // ERC721
         IERC721Base[] calldata _ERC721s,
         uint256[] calldata _ids
-    ) external payable returns (uint256, uint256) {
+    ) external payable returns (uint256 pawnId, uint256 packageId) {
         bytes32 loanId = loanManager.requestLoan(
             _amount,
             _model,
@@ -117,13 +117,25 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             _signature
         );
 
-        (uint256 pawnId, uint256 packageId) = requestPawnId(
+        packageId = _createPackage(_tokens, _amounts, _ERC721s, _ids);
+
+        // Create the liability
+        pawnId = pawns.push(Pawn({
+            owner: _borrower,
+            loanManager: loanManager,
+            loanId: loanId,
+            packageId: packageId,
+            status: Status.Pending
+        })) - 1;
+
+        loanToLiability[address(loanManager)][loanId] = pawnId;
+
+        emit RequestedPawn(
+            pawnId,
+            loanId,
+            _borrower,
             loanManager,
-            uint256(loanId),
-            _tokens,
-            _amounts,
-            _ERC721s,
-            _ids
+            packageId
         );
 
         emit NewPawn(
@@ -132,8 +144,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             msg.sender,
             packageId
         );
-
-        return (pawnId, packageId);
     }
 
     /**
@@ -156,12 +166,12 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     */
     function requestPawnId(
         ILoanManager _loanManager,
-        uint256 _loanId,
-        Token[] memory _tokens,
-        uint256[] memory _amounts,
-        IERC721Base[] memory _ERC721s,
-        uint256[] memory _ids
-    ) public payable returns (uint256 pawnId, uint256 packageId) {
+        bytes32 _loanId,
+        Token[] calldata _tokens,
+        uint256[] calldata _amounts,
+        IERC721Base[] calldata _ERC721s,
+        uint256[] calldata _ids
+    ) external payable returns (uint256 pawnId, uint256 packageId) {
         // Validate the associated loan
         require(_loanManager.getStatus(_loanId) == 0, "The loan request should be open");
         require(_loanManager.isApproved(_loanId), "The loan its not approve");
@@ -169,7 +179,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
         require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
 
-        packageId = createPackage(_tokens, _amounts, _ERC721s, _ids);
+        packageId = _createPackage(_tokens, _amounts, _ERC721s, _ids);
 
         // Create the liability
         pawnId = pawns.push(Pawn({
@@ -182,13 +192,13 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         loanToLiability[address(_loanManager)][_loanId] = pawnId;
 
-        emit RequestedPawn({
-            pawnId: pawnId,
-            loanId: _loanId,
-            borrower: borrower,
-            loanManager: _loanManager,
-            packageId: packageId
-        });
+        emit RequestedPawn(
+            pawnId,
+            _loanId,
+            borrower,
+            _loanManager,
+            packageId
+        );
     }
 
     /**
@@ -204,7 +214,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         @return the index of package on array of bundle contract
     */
-    function createPackage(
+    function _createPackage(
         Token[] memory _tokens,
         uint256[] memory _amounts,
         IERC721Base[] memory _ERC721s,
@@ -215,7 +225,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(tokensLength == _amounts.length && erc721sLength == _ids.length, "The lends must be equal");
 
         packageId = bundle.create();
-        uint256 i = 0;
+        uint256 i;
         uint256 poachId;
         uint256 totEth;
 
@@ -425,14 +435,11 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         return true;
     }
 
-    function _transferAsset(uint _packageId, address payable _to, bool _asBundle) internal returns(bool) {
-        if (_asBundle) {
-            // Transfer the package back to the _to
-            //bundle.safeTransferFrom(address(this), _to, _packageId);
-        } else {
-            // Transfer all tokens to the _to
+    function _transferAsset(uint256 _packageId, address payable _to, bool _asBundle) internal returns(bool) {
+        if (_asBundle) // Transfer the package back to the _to
+            bundle.safeTransferFrom(address(this), _to, _packageId);
+        else // Transfer all tokens to the _to
             require(_withdrawAll(_packageId, _to));
-        }
 
         return true;
     }
@@ -452,7 +459,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         address addr;
         uint256 amount;
 
-        for (uint i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] != address(poach)) {
                 // for a ERC721 token
                 bundle.withdraw(_packageId, IERC721Base(tokens[i]), ids[i], _beneficiary);

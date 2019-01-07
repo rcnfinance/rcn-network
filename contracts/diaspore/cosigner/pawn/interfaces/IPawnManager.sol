@@ -11,7 +11,7 @@ contract IPawnManager {
     uint256 public constant STATUS_PAID = 2;
 
     event NewPawn(uint256 pawnId, bytes32 loanId, address borrower, uint256 packageId);
-    event RequestedPawn(uint256 pawnId, uint256 loanId, address borrower, ILoanManager loanManager, uint256 packageId);
+    event RequestedPawn(uint256 pawnId, bytes32 loanId, address borrower, ILoanManager loanManager, uint256 packageId);
     event StartedPawn(uint256 pawnId );
     event CanceledPawn(uint256 pawnId, address from, address to);
     event PaidPawn(uint256 pawnId, address from);
