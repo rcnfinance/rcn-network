@@ -90,7 +90,7 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         uint256 packageId = _packageId == 0 ? create() : _packageId;
         require(canDeposit(packageId), "Not authorized for deposit");
 
-        require(_tokens.length == _ids.length);
+        require(_tokens.length == _ids.length, "The _tokens length and _ids length must be equal");
         for (uint256 i = 0; i < _ids.length; i++) {
             _deposit(packageId, _tokens[i], _ids[i]);
         }
