@@ -163,12 +163,11 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         uint256[] memory _ids
     ) public payable returns (uint256 pawnId, uint256 packageId) {
         // Validate the associated loan
-        require(_loanManager.getStatus(_loanId) == 0);
-        require(_loanManager.getStatus(_loanId) == STATUS_ONGOING, "The loan status should be ongoing");
+        require(_loanManager.getStatus(_loanId) == 0, "The loan request should be open");
+        require(_loanManager.isApproved(_loanId), "The loan its not approve");
         address borrower = _loanManager.getBorrower(_loanId);
-        require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId));
-        require(_loanManager.isApproved(_loanId));
-        require(loanToLiability[address(_loanManager)][_loanId] == 0);
+        require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
+        require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
 
         packageId = createPackage(_tokens, _amounts, _ERC721s, _ids);
 
@@ -213,7 +212,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     ) internal returns(uint256 packageId) {
         uint256 tokensLength = _tokens.length;
         uint256 erc721sLength = _ERC721s.length;
-        require(tokensLength == _amounts.length && erc721sLength == _ids.length);
+        require(tokensLength == _amounts.length && erc721sLength == _ids.length, "The lends must be equal");
 
         packageId = bundle.create();
         uint256 i = 0;
@@ -222,8 +221,8 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         for (; i < tokensLength; i++) {
             if (address(_tokens[i]) != ETH) {
-                require(_tokens[i].transferFrom(msg.sender, address(this), _amounts[i]));
-                require(_tokens[i].approve(address(poach), _amounts[i]));
+                require(_tokens[i].transferFrom(msg.sender, address(this), _amounts[i]), "Error pulling tokens");
+                require(_tokens[i].approve(address(poach), _amounts[i]), "Error approve tokens");
                 poachId = poach.create(_tokens[i], _amounts[i]);
             } else {
                 poachId = poach.create.value(_amounts[i])(_tokens[i], _amounts[i]);
@@ -233,7 +232,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             poach.approve(address(bundle), poachId);
             bundle.deposit(packageId, IERC721Base(poach), poachId);
         }
-        require(totEth == msg.value);
+        require(totEth == msg.value, "The sum of all ETH amounts and msg.value must be equal");
 
         for (i = 0; i < erc721sLength; i++) {
             _ERC721s[i].transferFrom(msg.sender, address(this), _ids[i]);
@@ -271,7 +270,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         @dev Use to claim eth to the poach
     */
     function () external payable {
-        require(msg.sender == address(poach));
+        require(msg.sender == address(poach), "The sender must be the poach");
     }
 
     //
@@ -462,7 +461,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
                 (addr, amount,) = poach.getPair(ids[i]);
                 require(poach.destroy(ids[i]), "Fail destroy");
                 if (addr != ETH)
-                    require(Token(addr).transfer(_beneficiary, amount));
+                    require(Token(addr).transfer(_beneficiary, amount), "Error transfer tokens");
                 else
                     _beneficiary.transfer(amount);
             }
