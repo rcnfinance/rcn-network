@@ -92,7 +92,7 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
 
         require(_tokens.length == _ids.length);
         for (uint256 i = 0; i < _ids.length; i++) {
-            require(_deposit(packageId, _tokens[i], _ids[i]));
+            _deposit(packageId, _tokens[i], _ids[i]);
         }
 
         return true;
@@ -136,7 +136,7 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         address _to
     ) external canWithdraw(_packageId) returns (bool) {
         for (uint256 i = 0; i < _tokens.length; i++) {
-            require(_withdraw(_packageId, _tokens[i], _ids[i], _to));
+            _withdraw(_packageId, _tokens[i], _ids[i], _to);
         }
 
         return true;
@@ -158,7 +158,7 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         uint256 i = package.ids.length - 1;
 
         for (; i != MAX_UINT256; i--) {
-            require(_withdraw(_packageId, IERC721Base(package.tokens[i]), package.ids[i], _to));
+            _withdraw(_packageId, IERC721Base(package.tokens[i]), package.ids[i], _to);
         }
 
         return true;
