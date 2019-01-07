@@ -62,7 +62,7 @@ contract Poach is ERC721Base, IPoach {
 
         pair.amount += _amount;
 
-        emit Deposit( _id, msg.sender, _amount);
+        emit Deposit(_id, msg.sender, _amount);
 
         return true;
     }

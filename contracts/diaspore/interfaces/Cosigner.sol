@@ -52,7 +52,8 @@ contract Cosigner {
         uint256 index,
         bytes calldata data,
         bytes calldata oracleData
-    ) external view returns (uint256);
+    )
+        external view returns (uint256);
 
     /**
         @dev The loanManager calls this method for confirmation of the conditions, if the cosigner accepts the liability of
@@ -66,7 +67,8 @@ contract Cosigner {
         uint256 index,
         bytes calldata data,
         bytes calldata oracleData
-    ) external returns (bool);
+    )
+        external returns (bool);
 
     /**
         @dev Claims the benefit of the insurance if the loan is defaulted, this method should be only calleable by the
@@ -78,5 +80,6 @@ contract Cosigner {
         address loanManager,
         uint256 index,
         bytes calldata oracleData
-    ) external returns (bool);
+    )
+        external returns (bool);
 }
