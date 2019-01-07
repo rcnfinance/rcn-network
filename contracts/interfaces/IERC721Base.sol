@@ -9,7 +9,6 @@ interface IERC721Base {
     function ownerOf(uint256 _assetId) external view returns (address);
     function balanceOf(address _owner) external view returns (uint256);
     function isApprovedForAll(address _operator, address _assetHolder) external view returns (bool);
-    function getApprovedAddress(uint256 _assetId) external view returns (address);
     function isAuthorized(address _operator, uint256 _assetId) external view returns (bool);
 
     function setApprovalForAll(address _operator, bool _authorized) external;
