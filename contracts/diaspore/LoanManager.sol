@@ -394,17 +394,26 @@ contract LoanManager is BytesUtils {
     }
 
     function cosign(uint256 _id, uint256 _cost) external returns (bool) {
-        Request storage request = requests[bytes32(_id)];
+        return _cosign(bytes32(_id), _cost);
+    }
+
+    function cosign(bytes32 _id, uint256 _cost) external returns (bool) {
+        return _cosign(_id, _cost);
+    }
+
+    function _cosign(bytes32 _id, uint256 _cost) internal returns (bool) {
+        Request storage request = requests[_id];
         require(request.position == 0, "Request cosigned is invalid");
         require(request.cosigner != address(0), "Cosigner 0x0 is not valid");
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
         request.cosigner = msg.sender;
         require(request.salt >= _cost, "Cosigner cost exceeded");
-        require(token.transferFrom(debtEngine.ownerOf(_id), msg.sender, _cost), "Error paying cosigner");
-        emit Cosigned(bytes32(_id), msg.sender, _cost);
+        require(token.transferFrom(debtEngine.ownerOf(uint256(_id)), msg.sender, _cost), "Error paying cosigner");
+        emit Cosigned(_id, msg.sender, _cost);
         return true;
     }
+
 
     // ///
     // Offline requests
