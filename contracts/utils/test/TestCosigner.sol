@@ -1,9 +1,11 @@
+/* solium-disable */
 pragma solidity ^0.5.0;
 
 import "./../../interfaces/Cosigner.sol";
 import "./../../utils/BytesUtils.sol";
 import "./../../basalt/interfaces/Engine.sol";
 import "./../../interfaces/Token.sol";
+
 
 contract TestCosigner is Cosigner, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
@@ -41,11 +43,21 @@ contract TestCosigner is Cosigner, BytesUtils {
         }
     }
 
-    function cost(address, uint256, bytes memory data, bytes memory) public view returns (uint256) {
+    function cost(
+        address,
+        uint256,
+        bytes memory data,
+        bytes memory
+    ) public view returns (uint256) {
         return uint256(readBytes32(data, 1));
     }
 
-    function requestCosign(Engine engine, uint256 index, bytes memory data, bytes memory) public returns (bool) {
+    function requestCosign(
+        Engine engine,
+        uint256 index,
+        bytes memory data,
+        bytes memory
+    ) public returns (bool) {
         if (readBytes32(data, 0) == keccak256("custom_data")) {
             require(engine.cosign(uint256(customId), customCost));
             customId = 0x0;

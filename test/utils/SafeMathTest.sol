@@ -5,6 +5,7 @@ import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/SafeMath.sol";
 
+
 contract SafeMathMock {
     using SafeMath for uint256;
     function add(uint256 a, uint256 b) external returns (uint256 c) {
@@ -14,11 +15,12 @@ contract SafeMathMock {
     function sub(uint256 a, uint256 b) external returns (uint256 c) {
         c = a.sub(b);
     }
-    
+
     function mult(uint256 a, uint256 b) external returns (uint256 c) {
         c = a.mult(b);
     }
 }
+
 
 contract SafeMathTest {
     SafeMathMock safeMath;
@@ -39,6 +41,7 @@ contract SafeMathTest {
 
         Assert.equal(success, 0, "Call should fail");
     }
+
     function testCatchSubUnderflow() external {
         (uint256 success, bytes32 result) = _safeCall(
             address(safeMath),

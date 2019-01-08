@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./../../interfaces/IERC165.sol";
 
+
 /**
     @dev Defines the interface of a standard Diaspore RCN Oracle,
 
@@ -57,5 +58,5 @@ contract RateOracle is IERC165 {
     /**
         Returns a sample on how many token() are equals to how many currency()
     */
-    function readSample(bytes memory _data) public returns (uint256 _tokens, uint256 _equivalent);
+    function readSample(bytes calldata _data) external returns (uint256 _tokens, uint256 _equivalent);
 }

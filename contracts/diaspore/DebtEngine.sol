@@ -6,6 +6,7 @@ import "./interfaces/RateOracle.sol";
 import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
 
+
 contract DebtEngine is ERC721Base {
     using IsContract for address;
 
@@ -107,8 +108,8 @@ contract DebtEngine is ERC721Base {
         Model _model,
         address _owner,
         address _oracle,
-        bytes memory _data
-    ) public returns (bytes32 id) {
+        bytes calldata _data
+    ) external returns (bytes32 id) {
         uint256 nonce = nonces[msg.sender]++;
         id = keccak256(
             abi.encodePacked(
@@ -142,8 +143,8 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         uint256 _salt,
-        bytes memory _data
-    ) public returns (bytes32 id) {
+        bytes calldata _data
+    ) external returns (bytes32 id) {
         id = keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -179,8 +180,8 @@ contract DebtEngine is ERC721Base {
         address _owner,
         address _oracle,
         uint256 _salt,
-        bytes memory _data
-    ) public returns (bytes32 id) {
+        bytes calldata _data
+    ) external returns (bytes32 id) {
         id = keccak256(
             abi.encodePacked(
                 uint8(3),
@@ -227,8 +228,8 @@ contract DebtEngine is ERC721Base {
         address _model,
         address _oracle,
         uint256 _salt,
-        bytes memory _data
-    ) public view returns (bytes32) {
+        bytes calldata _data
+    ) external view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -260,8 +261,8 @@ contract DebtEngine is ERC721Base {
         bytes32 _id,
         uint256 _amount,
         address _origin,
-        bytes memory _oracleData
-    ) public returns (uint256 paid, uint256 paidToken) {
+        bytes calldata _oracleData
+    ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
 
         // Paid only required amount
@@ -302,8 +303,8 @@ contract DebtEngine is ERC721Base {
         bytes32 id,
         uint256 amount,
         address origin,
-        bytes memory oracleData
-    ) public returns (uint256 paid, uint256 paidToken) {
+        bytes calldata oracleData
+    ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
 
         // Read storage
@@ -356,12 +357,12 @@ contract DebtEngine is ERC721Base {
     }
 
     function payBatch(
-        bytes32[] memory _ids,
-        uint256[] memory _amounts,
+        bytes32[] calldata _ids,
+        uint256[] calldata _amounts,
         address _origin,
         address _oracle,
-        bytes memory _oracleData
-    ) public returns (uint256[] memory, uint256[] memory) {
+        bytes calldata _oracleData
+    ) external returns (uint256[] memory paid, uint256[] memory paidTokens) {
         uint256 count = _ids.length;
         require(count == _amounts.length, "_ids and _amounts should have the same length");
 
@@ -372,8 +373,8 @@ contract DebtEngine is ERC721Base {
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
-        uint256[] memory paid = new uint256[](count);
-        uint256[] memory paidTokens = new uint256[](count);
+        paid = new uint256[](count);
+        paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 amount = _amounts[i];
             (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, tokens, equivalent);
@@ -388,17 +389,15 @@ contract DebtEngine is ERC721Base {
                 _tokens: paidTokens[i]
             });
         }
-
-        return (paid, paidTokens);
     }
 
     function payTokenBatch(
-        bytes32[] memory _ids,
-        uint256[] memory _tokenAmounts,
+        bytes32[] calldata _ids,
+        uint256[] calldata _tokenAmounts,
         address _origin,
         address _oracle,
-        bytes memory _oracleData
-    ) public returns (uint256[] memory, uint256[] memory) {
+        bytes calldata _oracleData
+    ) external returns (uint256[] memory paid, uint256[] memory paidTokens) {
         uint256 count = _ids.length;
         require(count == _tokenAmounts.length, "_ids and _amounts should have the same length");
 
@@ -409,8 +408,8 @@ contract DebtEngine is ERC721Base {
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
 
-        uint256[] memory paid = new uint256[](count);
-        uint256[] memory paidTokens = new uint256[](count);
+        paid = new uint256[](count);
+        paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 tokenAmount = _tokenAmounts[i];
             (paid[i], paidTokens[i]) = _pay(
@@ -432,8 +431,6 @@ contract DebtEngine is ERC721Base {
                 _tokens: paidTokens[i]
             });
         }
-
-        return (paid, paidTokens);
     }
 
     /**
@@ -604,6 +601,7 @@ contract DebtEngine is ERC721Base {
     }
 
     function withdraw(bytes32 _id, address _to) external returns (uint256 amount) {
+        require(_to != address(0x0), "_to should not be 0x0");
         require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
         amount = debt.balance;
@@ -618,6 +616,7 @@ contract DebtEngine is ERC721Base {
     }
 
     function withdrawPartial(bytes32 _id, address _to, uint256 _amount) external returns (bool success) {
+        require(_to != address(0x0), "_to should not be 0x0");
         require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
         require(debt.balance >= _amount, "Debt balance is not enought");
@@ -632,7 +631,8 @@ contract DebtEngine is ERC721Base {
         success = true;
     }
 
-    function withdrawBatch(bytes32[] memory _ids, address _to) public returns (uint256 total) {
+    function withdrawBatch(bytes32[] calldata _ids, address _to) external returns (uint256 total) {
+        require(_to != address(0x0), "_to should not be 0x0");
         bytes32 target;
         uint256 balance;
         for (uint256 i = 0; i < _ids.length; i++) {

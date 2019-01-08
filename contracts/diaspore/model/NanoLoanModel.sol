@@ -7,6 +7,7 @@ import "./../../utils/SafeMath.sol";
 import "./../../utils/BytesUtils.sol";
 import "./../../utils/ERC165.sol";
 
+
 contract MinMax {
     function min(uint256 a, uint256 b) internal pure returns(uint256) {
         return (a < b) ? a : b;
@@ -16,6 +17,7 @@ contract MinMax {
         return (a > b) ? a : b;
     }
 }
+
 
 contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, MinMax  {
     using SafeMath for uint256;
@@ -94,7 +96,13 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         uint64  _dueTime,
         uint64  _cancelableAt
     ) external pure returns (bytes memory) {
-        return abi.encodePacked(_amount, _interestRate, _interestRatePunitory, _dueTime, _cancelableAt);
+        return abi.encodePacked(
+            _amount,
+            _interestRate,
+            _interestRatePunitory,
+            _dueTime,
+            _cancelableAt
+        );
     }
 
     function isOperator(address _target) external view returns (bool) {
@@ -107,12 +115,19 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         @param data Array of bytes parameters, used to create a loan
             * look in _decodeData function documentation for more info
     */
-    function validate(bytes memory data) public view returns (bool) {
+    function validate(bytes calldata data) external view returns (bool) {
         (
             uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
             uint64 duesIn, uint64 cancelableAt
         ) = _decodeData(data);
-        _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
+
+        _validate(
+            amount,
+            interestRate,
+            interestRatePunitory,
+            duesIn,
+            cancelableAt
+        );
 
         return true;
     }
@@ -212,12 +227,19 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         @param data Array of bytes parameters, used to create a loan
             * look in _decodeData function documentation for more info
     */
-    function create(bytes32 id, bytes memory data) public onlyEngine returns (bool) {
+    function create(bytes32 id, bytes calldata data) external onlyEngine returns (bool) {
         require(configs[id].interestRate == 0, "Entry already exist");
 
         (uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
             uint64 duesIn, uint64 cancelableAt) = _decodeData(data);
-        _validate(amount, interestRate, interestRatePunitory, duesIn, cancelableAt);
+
+        _validate(
+            amount,
+            interestRate,
+            interestRatePunitory,
+            duesIn,
+            cancelableAt
+        );
 
         configs[id] = Config({
             amount: amount,
@@ -345,7 +367,11 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         @return realDelta The real timeDelta applied
         @return interest The interest gained in the realDelta time
     */
-    function _calculateInterest(uint256 timeDelta, uint256 interestRate, uint256 amount) internal pure returns (uint256 realDelta, uint256 interest) {
+    function _calculateInterest(
+        uint256 timeDelta,
+        uint256 interestRate,
+        uint256 amount
+    ) internal pure returns (uint256 realDelta, uint256 interest) {
         if (amount == 0) {
             realDelta = timeDelta;
         } else {
@@ -405,14 +431,14 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     }
 
     // implements modelDescriptor interface
-    function simFirstObligation(bytes memory _data) public view returns (uint256 amount, uint256 cancelableAt) {
+    function simFirstObligation(bytes calldata _data) external view returns (uint256 amount, uint256 cancelableAt) {
         uint256 interestRate;
         (amount, interestRate,,, cancelableAt) = _decodeData(_data);
         (, interestRate) = _calculateInterest(cancelableAt, interestRate, amount);
         amount += interestRate;
     }
 
-    function simTotalObligation(bytes memory _data) public view returns (uint256 amount) {
+    function simTotalObligation(bytes calldata _data) external view returns (uint256 amount) {
         uint256 interestRate;
         uint256 cancelableAt;
         (amount, interestRate,,, cancelableAt) = _decodeData(_data);
@@ -420,19 +446,19 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         amount += interestRate;
     }
 
-    function simDuration(bytes memory _data) public view returns (uint256 duration) {
+    function simDuration(bytes calldata _data) external view returns (uint256 duration) {
         (,,, duration,) = _decodeData(_data);
     }
 
-    function simPunitiveInterestRate(bytes memory _data) public view returns (uint256 punitiveInterestRate) {
+    function simPunitiveInterestRate(bytes calldata _data) external view returns (uint256 punitiveInterestRate) {
         (,, punitiveInterestRate,,) = _decodeData(_data);
     }
 
-    function simFrequency(bytes memory _data) public view returns (uint256 frequency) {
+    function simFrequency(bytes calldata _data) external view returns (uint256 frequency) {
         return 1;
     }
 
-    function simInstallments(bytes memory _data) public view returns (uint256 installments) {
+    function simInstallments(bytes calldata _data) external view returns (uint256 installments) {
         return 1;
     }
 }

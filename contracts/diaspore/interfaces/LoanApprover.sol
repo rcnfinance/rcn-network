@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./../../interfaces/IERC165.sol";
 
+
 /**
     A contract implementing LoanApprover is able to approve loan requests using callbacks,
     to approve a loan the contract should respond the callbacks the result of
@@ -42,9 +43,9 @@ contract LoanApprover is IERC165 {
         @return _id XOR keccak256("approve-loan-request"), if the approve is accepted
     */
     function settleApproveRequest(
-        bytes memory _requestData,
-        bytes memory _loanData,
+        bytes calldata _requestData,
+        bytes calldata _loanData,
         bool _isBorrower,
         uint256 _id
-    ) public returns (bytes32);
+    ) external returns (bytes32);
 }

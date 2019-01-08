@@ -1,12 +1,15 @@
+/* solium-disable */
 pragma solidity ^0.5.0;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 import "../../contracts/utils/BytesUtils.sol";
 
-contract BytesUtilsInterface {
-    function pReadBytes32(bytes memory data, uint256 index) public;
+
+interface BytesUtilsInterface {
+    function pReadBytes32(bytes calldata data, uint256 index) external;
 }
+
 
 contract TestBytesUtils is BytesUtils {
     function pReadBytes32(bytes memory data, uint256 index) public returns (bytes32) {
