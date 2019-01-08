@@ -66,7 +66,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         @dev Requires the loan signed by the borrower
             The length of _tokens and _amounts should be equal
-             also length of _erc721Bases and _ids
+             also length of _erc721s and _erc721Ids
 
         @param _amount  Amount of the loan
         @param _oracle  Oracle of the loan
@@ -80,8 +80,8 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         @param _tokens Array of ERC20 contract addresses
         @param _amounts Array of tokens amounts
-        @param _ERC721s Array of ERC721Base contract addresses
-        @param _ids Array of non fungible token ids
+        @param _erc721s Array of ERC721Base contract addresses
+        @param _erc721Ids Array of non fungible token ids
 
         @return pawnId The id of the pawn
         @return packageId The id of the package
@@ -99,8 +99,8 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         Token[] calldata _tokens,
         uint256[] calldata _amounts,
         // ERC721
-        IERC721Base[] calldata _ERC721s,
-        uint256[] calldata _ids
+        IERC721Base[] calldata _erc721s,
+        uint256[] calldata _erc721Ids
     ) external payable returns (uint256 pawnId, uint256 packageId) {
         bytes32 loanId = loanManager.requestLoan(
             _amount,
@@ -117,7 +117,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             _signature
         );
 
-        packageId = _createPackage(_tokens, _amounts, _ERC721s, _ids);
+        packageId = _createPackage(_tokens, _amounts, _erc721s, _erc721Ids);
 
         // Create the liability
         pawnId = pawns.push(Pawn({
@@ -151,15 +151,15 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         @dev The loan should exist in the designated loanManager
              The length of _tokens and _amounts should be equal
-              also length of _ERC721s and _ids
+              also length of _erc721s and _erc721Ids
 
         @param _loanManager RCN Engine
         @param _loanId Id of the loan asociated with the pawn
 
         @param _tokens Array of ERC20 contract addresses
         @param _amounts Array of tokens amounts
-        @param _ERC721s Array of ERC721Base contract addresses
-        @param _ids Array of non fungible token ids
+        @param _erc721s Array of ERC721Base contract addresses
+        @param _erc721Ids Array of non fungible token ids
 
         @return pawnId The id of the pawn
         @return packageId The id of the package
@@ -169,8 +169,8 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         bytes32 _loanId,
         Token[] calldata _tokens,
         uint256[] calldata _amounts,
-        IERC721Base[] calldata _ERC721s,
-        uint256[] calldata _ids
+        IERC721Base[] calldata _erc721s,
+        uint256[] calldata _erc721Ids
     ) external payable returns (uint256 pawnId, uint256 packageId) {
         // Validate the associated loan
         require(_loanManager.getStatus(_loanId) == 0, "The loan request should be open");
@@ -179,7 +179,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
         require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
 
-        packageId = _createPackage(_tokens, _amounts, _ERC721s, _ids);
+        packageId = _createPackage(_tokens, _amounts, _erc721s, _erc721Ids);
 
         // Create the liability
         pawnId = pawns.push(Pawn({
@@ -204,25 +204,25 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     /**
         @notice Create a package
         @dev The length of _tokens and _amounts should be equal also
-              length of _ERC721s and _ids
+              length of _erc721s and _erc721Ids
               The sum of the all amounts of ether should be send
 
         @param _tokens Array of ERC20 contract addresses
         @param _amounts Array of tokens amounts
-        @param _ERC721s Array of ERC721Base contract addresses
-        @param _ids Array of non fungible token ids
+        @param _erc721s Array of ERC721Base contract addresses
+        @param _erc721Ids Array of non fungible token ids
 
         @return the index of package on array of bundle contract
     */
     function _createPackage(
         Token[] memory _tokens,
         uint256[] memory _amounts,
-        IERC721Base[] memory _ERC721s,
-        uint256[] memory _ids
+        IERC721Base[] memory _erc721s,
+        uint256[] memory _erc721Ids
     ) internal returns(uint256 packageId) {
         uint256 tokensLength = _tokens.length;
-        uint256 erc721sLength = _ERC721s.length;
-        require(tokensLength == _amounts.length && erc721sLength == _ids.length, "The lends must be equal");
+        uint256 erc721sLength = _erc721s.length;
+        require(tokensLength == _amounts.length && erc721sLength == _erc721Ids.length, "The lends must be equal");
 
         packageId = bundle.create();
         uint256 i;
@@ -245,10 +245,10 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(totEth == msg.value, "The sum of all ETH amounts and msg.value must be equal");
 
         for (i = 0; i < erc721sLength; i++) {
-            _ERC721s[i].transferFrom(msg.sender, address(this), _ids[i]);
-            _ERC721s[i].approve(address(bundle), _ids[i]);
+            _erc721s[i].transferFrom(msg.sender, address(this), _erc721Ids[i]);
+            _erc721s[i].approve(address(bundle), _erc721Ids[i]);
         }
-        bundle.depositBatch(packageId, _ERC721s, _ids);
+        bundle.depositBatch(packageId, _erc721s, _erc721Ids);
     }
 
     /**
@@ -261,7 +261,11 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         @return true If the operation was executed
     */
-    function cancelPawn(uint256 _pawnId, address payable _to, bool _asBundle) external returns (bool) {
+    function cancelPawn(
+        uint256 _pawnId,
+        address payable _to,
+        bool _asBundle
+    ) external returns (bool) {
         Pawn storage pawn = pawns[_pawnId];
 
         // Only the owner of the pawn and if the pawn is pending
@@ -455,20 +459,20 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         @return true If the operation was executed
     */
     function _withdrawAll(uint256 _packageId, address payable _beneficiary) internal returns(bool) {
-        (address[] memory tokens, uint256[] memory ids) = bundle.content(_packageId);
-        address addr;
+        (IERC721Base[] memory erc721s, uint256[] memory erc721Ids) = bundle.content(_packageId);
+        Token addr;
         uint256 amount;
 
-        for (uint256 i = 0; i < tokens.length; i++) {
-            if (tokens[i] != address(poach)) {
+        for (uint256 i = 0; i < erc721s.length; i++) {
+            if (erc721s[i] != poach) {
                 // for a ERC721 token
-                bundle.withdraw(_packageId, IERC721Base(tokens[i]), ids[i], _beneficiary);
+                bundle.withdraw(_packageId, erc721s[i], erc721Ids[i], _beneficiary);
             } else { // for a ERC20 token
-                bundle.withdraw(_packageId, IERC721Base(tokens[i]), ids[i], address(this));
-                (addr, amount,) = poach.getPair(ids[i]);
-                require(poach.destroy(ids[i]), "Fail destroy");
-                if (addr != ETH)
-                    require(Token(addr).transfer(_beneficiary, amount), "Error transfer tokens");
+                bundle.withdraw(_packageId, erc721s[i], erc721Ids[i], address(this));
+                (addr, amount) = poach.getPair(erc721Ids[i]);
+                require(poach.destroy(erc721Ids[i]), "Fail destroy");
+                if (address(addr) != ETH)
+                    require(addr.transfer(_beneficiary, amount), "Error transfer tokens");
                 else
                     _beneficiary.transfer(amount);
             }

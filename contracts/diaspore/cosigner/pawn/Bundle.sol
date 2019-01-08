@@ -14,8 +14,9 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
     Package[] private packages;
 
     struct Package {
-        address[] tokens;
-        uint256[] ids;
+        IERC721Base[] erc721s;
+        uint256[] erc721Ids;
+        // erc721 to erc721Id to position on erc721s
         mapping(address => mapping(uint256 => uint256)) order;
     }
 
@@ -35,15 +36,14 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
     /**
         @notice Get the content of a package
     */
-    function content(uint256 _id) external view returns (address[] memory tokens, uint256[] memory ids) {
+    function content(uint256 _id) external view returns (IERC721Base[] memory, uint256[] memory) {
         Package memory package = packages[_id];
-        tokens = package.tokens;
-        ids = package.ids;
+        return (package.erc721s, package.erc721Ids);
     }
 
     // create package
     /**
-    @notice Create a empty Package in packages array
+        @notice Create a empty Package in packages array
     */
     function create() public returns (uint256 id) {
         id = packages.length;
@@ -56,19 +56,19 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         @notice Deposit a non fungible token on a package
 
         @param _packageId Index of package in packages array
-        @param _token Token address (IERC721Base)
-        @param _tokenId Token identifier
+        @param _erc721 erc721 address
+        @param _erc721Id erc721 identifier
 
         @return true If the operation was executed
     */
     function deposit(
         uint256 _packageId,
-        IERC721Base _token,
-        uint256 _tokenId
+        IERC721Base _erc721,
+        uint256 _erc721Id
     ) external returns (bool) {
         uint256 packageId = _packageId == 0 ? create() : _packageId;
         require(canDeposit(packageId), "Not authorized for deposit");
-        return _deposit(packageId, _token, _tokenId);
+        return _deposit(packageId, _erc721, _erc721Id);
     }
 
     /**
@@ -77,44 +77,44 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         @dev The length of tokens and ids should be equal
 
         @param _packageId Index of package in packages array
-        @param _tokens Token addresses (IERC721Base) array
-        @param _ids Token identifiers array
+        @param _erc721s erc721 addresses array
+        @param _erc721Ids erc721 identifiers array
 
         @return true If the operation was executed
     */
     function depositBatch(
         uint256 _packageId,
-        IERC721Base[] calldata _tokens,
-        uint256[] calldata _ids
+        IERC721Base[] calldata _erc721s,
+        uint256[] calldata _erc721Ids
     ) external returns (bool) {
         uint256 packageId = _packageId == 0 ? create() : _packageId;
         require(canDeposit(packageId), "Not authorized for deposit");
 
-        require(_tokens.length == _ids.length, "The _tokens length and _ids length must be equal");
-        for (uint256 i = 0; i < _ids.length; i++) {
-            _deposit(packageId, _tokens[i], _ids[i]);
+        require(_erc721s.length == _erc721Ids.length, "The _erc721s length and _erc721Ids length must be equal");
+        for (uint256 i = 0; i < _erc721Ids.length; i++) {
+            _deposit(packageId, _erc721s[i], _erc721Ids[i]);
         }
 
         return true;
     }
 
     /**
-        @notice Withdraw a non fungible token from a packag
+        @notice Withdraw a non fungible token from a package
 
         @param _packageId Index of package in packages array
-        @param _token Token address (IERC721Base)
-        @param _tokenId Token identifier
+        @param _erc721 erc721 address
+        @param _erc721Id erc721 identifier
         @param _to address beneficiary
 
         @return true If the operation was executed
     */
     function withdraw(
         uint256 _packageId,
-        IERC721Base _token,
-        uint256 _tokenId,
+        IERC721Base _erc721,
+        uint256 _erc721Id,
         address _to
     ) external canWithdraw(_packageId) returns (bool) {
-        return _withdraw(_packageId, _token, _tokenId, _to);
+        return _withdraw(_packageId, _erc721, _erc721Id, _to);
     }
 
     /**
@@ -123,21 +123,20 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         @dev The length of tokens and ids should be equal
 
         @param _packageId Index of package in packages array
-        @param _tokens Token addresses (IERC721Base) array
-        @param _ids Token identifiers array
+        @param _erc721s erc721 addresses array
+        @param _erc721Ids erc721 identifiers array
         @param _to address beneficiary
 
         @return true If the operation was executed
     */
     function withdrawBatch(
         uint256 _packageId,
-        IERC721Base[] calldata _tokens,
-        uint256[] calldata _ids,
+        IERC721Base[] calldata _erc721s,
+        uint256[] calldata _erc721Ids,
         address _to
     ) external canWithdraw(_packageId) returns (bool) {
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            _withdraw(_packageId, _tokens[i], _ids[i], _to);
-        }
+        for (uint256 i = 0; i < _erc721s.length; i++)
+            _withdraw(_packageId, _erc721s[i], _erc721Ids[i], _to);
 
         return true;
     }
@@ -155,10 +154,10 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         address _to
     ) external canWithdraw(_packageId) returns (bool) {
         Package storage package = packages[_packageId];
-        uint256 i = package.ids.length - 1;
+        uint256 i = package.erc721Ids.length - 1;
 
         for (; i != MAX_UINT256; i--) {
-            _withdraw(_packageId, IERC721Base(package.tokens[i]), package.ids[i], _to);
+            _withdraw(_packageId, IERC721Base(package.erc721s[i]), package.erc721Ids[i], _to);
         }
 
         return true;
@@ -170,81 +169,81 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
 
     function _deposit(
         uint256 _packageId,
-        IERC721Base _token,
-        uint256 _tokenId
+        IERC721Base _erc721,
+        uint256 _erc721Id
     ) internal returns (bool) {
-        _token.transferFrom(msg.sender, address(this), _tokenId);
-        require(_token.ownerOf(_tokenId) == address(this), "ERC721Base transfer failed");
+        _erc721.transferFrom(msg.sender, address(this), _erc721Id);
+        require(_erc721.ownerOf(_erc721Id) == address(this), "IERC721Base transfer failed");
 
         Package storage package = packages[_packageId];
-        _add(package, address(_token), _tokenId);
+        _add(package, _erc721, _erc721Id);
 
-        emit Deposit(msg.sender, _packageId, _token, _tokenId);
+        emit Deposit(msg.sender, _packageId, _erc721, _erc721Id);
 
         return true;
     }
 
     function _withdraw(
         uint256 _packageId,
-        IERC721Base _token,
-        uint256 _tokenId,
+        IERC721Base _erc721,
+        uint256 _erc721Id,
         address _to
     ) internal returns (bool) {
         Package storage package = packages[_packageId];
-        _remove(package, address(_token), _tokenId);
-        emit Withdraw(msg.sender, _packageId, _token, _tokenId);
+        _remove(package, _erc721, _erc721Id);
+        emit Withdraw(msg.sender, _packageId, _erc721, _erc721Id);
 
-        _token.transferFrom(address (this), _to, _tokenId);
-        require(_token.ownerOf(_tokenId) == _to, "ERC721Base transfer failed");
+        _erc721.transferFrom(address (this), _to, _erc721Id);
+        require(_erc721.ownerOf(_erc721Id) == _to, "IERC721Base transfer failed");
 
         return true;
     }
 
     function _add(
         Package storage _package,
-        address _token,
-        uint256 _id
+        IERC721Base _erc721,
+        uint256 _erc721Id
     ) internal {
-        uint256 position = _package.order[_token][_id];
-        require(!_isAsset(_package, position, _token, _id), "Already exist");
-        position = _package.tokens.length;
-        _package.tokens.push(_token);
-        _package.ids.push(_id);
-        _package.order[_token][_id] = position;
+        uint256 position = _package.order[address(_erc721)][_erc721Id];
+        require(!_isAsset(_package, position, _erc721, _erc721Id), "Already exist");
+        position = _package.erc721s.length;
+        _package.erc721s.push(_erc721);
+        _package.erc721Ids.push(_erc721Id);
+        _package.order[address(_erc721)][_erc721Id] = position;
     }
 
     function _remove(
         Package storage _package,
-        address _token,
-        uint256 _id
+        IERC721Base _erc721,
+        uint256 _erc721Id
     ) internal {
-        uint256 delPosition = _package.order[_token][_id];
-        require(_isAsset(_package, delPosition, _token, _id), "The token does not exist inside the package");
+        uint256 delPosition = _package.order[address(_erc721)][_erc721Id];
+        require(_isAsset(_package, delPosition, _erc721, _erc721Id), "The token does not exist inside the package");
 
         // Replace item to remove with last item
         // (make the item to remove the last one)
-        uint256 lastPosition = _package.tokens.length - 1;
+        uint256 lastPosition = _package.erc721s.length - 1;
         if (lastPosition != delPosition) {
-            address lastToken = _package.tokens[lastPosition];
-            uint256 lastId = _package.ids[lastPosition];
-            _package.tokens[delPosition] = lastToken;
-            _package.ids[delPosition] = lastId;
-            _package.order[lastToken][lastId] = delPosition;
+            IERC721Base lasterc721 = _package.erc721s[lastPosition];
+            uint256 lasterc721Id = _package.erc721Ids[lastPosition];
+            _package.erc721s[delPosition] = lasterc721;
+            _package.erc721Ids[delPosition] = lasterc721Id;
+            _package.order[address(lasterc721)][lasterc721Id] = delPosition;
         }
 
         // Remove last position
-        _package.tokens.length--;
-        _package.ids.length--;
-        delete _package.order[_token][_id];
+        _package.erc721s.length--;
+        _package.erc721Ids.length--;
+        delete _package.order[address(_erc721)][_erc721Id];
     }
 
     function _isAsset(
         Package memory _package,
         uint256 _position,
-        address _token,
-        uint256 _id
+        IERC721Base _erc721,
+        uint256 _erc721Id
     ) internal pure returns (bool) {
         return _position != 0 ||
-            (_package.ids.length != 0 && _package.tokens[_position] == _token && _package.ids[_position] == _id);
+            (_package.erc721Ids.length != 0 && _package.erc721s[_position] == _erc721 && _package.erc721Ids[_position] == _erc721Id);
     }
 }
