@@ -431,8 +431,6 @@ contract DebtEngine is ERC721Base {
                 _tokens: paidTokens[i]
             });
         }
-
-        return (paid, paidTokens);
     }
 
     /**
