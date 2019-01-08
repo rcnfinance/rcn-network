@@ -11,7 +11,7 @@ contract IPoach is IERC721Base {
     event Deposit(uint256 _pairId, address _sender, uint256 _amount);
     event Destroy(uint256 _pairId, address _sender, address _to, uint256 _amount);
 
-    function getPair(uint256 _poachId) external view returns(address, uint, bool);
+    function getPair(uint256 _id) external view returns(Token, uint256);
 
     function create(Token _token, uint256 _amount) external payable returns (uint256 id);
     function deposit(uint256 _id, uint256 _amount) external payable returns (bool);
