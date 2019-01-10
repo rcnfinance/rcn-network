@@ -6,8 +6,10 @@ const OracleAdapter = artifacts.require('./diaspore/utils/OracleAdapter.sol');
 const TestRateOracle = artifacts.require('./diaspore/utils/test/TestRateOracle.sol');
 
 const Helper = require('../Helper.js');
-
 const BN = web3.utils.BN;
+const expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
 
 function bn (number) {
     return new BN(number);
@@ -122,22 +124,20 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
 
             assert.equal(Created._id, calcId);
-            assert.equal(Created._nonce, nonce.toString());
+            expect(Created._nonce).to.eq.BN(nonce);
             assert.equal(Created._data, data);
 
             // Check Debt
             const debt = await debtEngine.debts(calcId);
             assert.equal(debt.error, false);
-            assert.equal(debt.balance, '0');
+            expect(debt.balance).to.eq.BN('0');
             assert.equal(debt.model, testModel.address);
             assert.equal(debt.creator, creator);
             assert.equal(debt.oracle, Helper.address0x);
 
             assert.equal(await debtEngine.ownerOf(calcId), owner);
-            assert.equal(
-                await debtEngine.balanceOf(accounts[1]), prevBalAcc1.add(bn('1')).toString(),
-                'Account 1 should have a new asset'
-            );
+
+            expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
         });
 
         it('Differents debt engine should give differents ids, create', async function () {
@@ -214,22 +214,19 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
 
             assert.equal(Created2._id, calcId);
-            assert.equal(Created2._salt, salt.toString());
+            expect(Created2._salt).to.eq.BN(salt);
             assert.equal(Created2._data, data);
 
             // Check Debt
             const debt = await debtEngine.debts(calcId);
             assert.equal(debt.error, false);
-            assert.equal(debt.balance, '0');
+            expect(debt.balance).to.eq.BN('0');
             assert.equal(debt.model, testModel.address);
             assert.equal(debt.creator, creator);
             assert.equal(debt.oracle, Helper.address0x);
 
             assert.equal(await debtEngine.ownerOf(calcId), owner);
-            assert.equal(
-                await debtEngine.balanceOf(accounts[1]), prevBalAcc1.add(bn('1')).toString(),
-                'Account 1 should have a new asset'
-            );
+            expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
         });
 
         it('Should create 2 debts using create2', async function () {
@@ -244,10 +241,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 await testModel.encodeData(bn('3000'), (await Helper.getBlockTime()) + 2000)
             );
 
-            assert.equal(
-                await debtEngine.balanceOf(accounts[1]), prevBalAcc1.add(bn('1')).toString(),
-                'Account 1 should have a new asset'
-            );
+            expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
 
             await debtEngine.create2(
                 testModel.address,
@@ -257,10 +251,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 await testModel.encodeData(bn('2000'), (await Helper.getBlockTime()) + 3000)
             );
 
-            assert.equal(
-                await debtEngine.balanceOf(accounts[2]), prevBalAcc2.add(bn('1')).toString(),
-                'Account 2 should have a new asset'
-            );
+            expect(await debtEngine.balanceOf(accounts[2])).to.eq.BN(prevBalAcc2.add(bn('1')), 'Account 2 should have a new asset');
         });
 
         it('Should predict Ids', async function () {
@@ -395,22 +386,19 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
 
             assert.equal(Created3._id, calcId);
-            assert.equal(Created3._salt, salt.toString());
+            expect(Created3._salt).to.eq.BN(salt);
             assert.equal(Created3._data, data);
 
             // Check Debt
             const debt = await debtEngine.debts(calcId);
             assert.equal(debt.error, false);
-            assert.equal(debt.balance, '0');
+            expect(debt.balance).to.eq.BN('0');
             assert.equal(debt.model, testModel.address);
             assert.equal(debt.creator, creator);
             assert.equal(debt.oracle, Helper.address0x);
 
             assert.equal(await debtEngine.ownerOf(calcId), owner);
-            assert.equal(
-                await debtEngine.balanceOf(accounts[1]), prevBalAcc1.add(bn('1')).toString(),
-                'Account 1 should have a new asset'
-            );
+            expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
         });
 
         it('Differents debt engine should give differents ids, create3', async function () {
@@ -685,17 +673,18 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Paid._id, id);
             assert.equal(Paid._sender, payer);
             assert.equal(Paid._origin, originPayer);
-            assert.equal(Paid._requested, amount.toString());
-            assert.equal(Paid._requestedTokens, '0');
-            assert.equal(Paid._paid, amount.toString());
-            assert.equal(Paid._tokens, amount.toString());
+
+            expect(Paid._requested).to.eq.BN(amount);
+            expect(Paid._requestedTokens).to.eq.BN('0');
+            expect(Paid._paid).to.eq.BN(amount);
+            expect(Paid._tokens).to.eq.BN(amount);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt.balance, amount.toString());
+            expect(debt.balance).to.eq.BN(amount);
 
-            assert.equal(await rcn.balanceOf(payer), plusAmount.toString());
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_PAID);
-            assert.equal(await testModel.getPaid(id), amount.toString());
+            expect(await rcn.balanceOf(payer)).to.eq.BN(plusAmount);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_PAID);
+            expect(await testModel.getPaid(id)).to.eq.BN(amount);
         });
 
         it('Should pay using an Oracle', async function () {
@@ -739,42 +728,44 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Paid._id, id);
             assert.equal(Paid._sender, payer);
             assert.equal(Paid._origin, originPayer);
-            assert.equal(Paid._requested, '10');
-            assert.equal(Paid._requestedTokens.toString(), '0');
-            assert.equal(Paid._paid.toString(), _paid.toString());
-            assert.equal(Paid._tokens.toString(), payAmountToken.toString());
+            expect(Paid._requested).to.eq.BN('10');
+            expect(Paid._requestedTokens).to.eq.BN('0');
+            expect(Paid._paid).to.eq.BN(_paid);
+            expect(Paid._tokens).to.eq.BN(payAmountToken);
 
             const ReadedOracle = payEvents[1];
             assert.equal(ReadedOracle._id, id);
-            assert.equal(ReadedOracle._tokens, oracleTokens.toString());
-            assert.equal(ReadedOracle._equivalent, oracleEquivalent.toString());
+            expect(ReadedOracle._tokens).to.eq.BN(oracleTokens);
+            expect(ReadedOracle._equivalent).to.eq.BN(oracleEquivalent);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt.balance.toString(), payAmountOracle.toString());
+            expect(debt.balance).to.eq.BN(payAmountOracle);
 
-            assert.equal(await rcn.balanceOf(payer), '0');
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), _paid.toString());
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN(_paid);
 
             const dummyData2 = await legacyOracle.dummyData2();
 
-            assert.equal(await rcn.balanceOf(accounts[2]), '0');
-            assert.equal(await testModel.getPaid(id), '10');
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN('10');
 
             await rcn.approve(debtEngine.address, 500, { from: accounts[3] });
             await rcn.setBalance(accounts[3], 500);
             await debtEngine.pay(id, 1000, Helper.address0x, dummyData2, { from: accounts[3] });
 
-            assert.equal(await rcn.balanceOf(accounts[3]), 0);
-            assert.equal(await testModel.getPaid(id), 1010);
+            expect(await rcn.balanceOf(accounts[3])).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN('1010');
 
             await rcn.approve(debtEngine.address, 6000, { from: accounts[3] });
             await rcn.setBalance(accounts[3], 10000);
             await debtEngine.pay(id, 10000, accounts[0], dummyData2, { from: accounts[3] });
 
-            assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 10000 - (10000 - 1010) / 2);
-            assert.equal(await testModel.getPaid(id), 10000);
-            assert.equal(await debtEngine.getStatus(id), 2);
+            // 10000 - (10000 - 1010) / 2
+            const expectBalance = bn('10000').sub(bn('10000').sub(bn('1010')).divRound(bn('2')));
+            expect(await rcn.balanceOf(accounts[3])).to.eq.BN(expectBalance);
+            expect(await testModel.getPaid(id)).to.eq.BN('10000');
+            expect(await debtEngine.getStatus(id)).to.eq.BN('2');
         });
 
         it('Pay should round in favor of the owner', async function () {
@@ -793,7 +784,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.pay(id, 1, Helper.address0x, data));
 
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
 
         it('Should apply rate even when tokens is not divisible by 10', async function () {
@@ -812,7 +803,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.pay(id, 1000, Helper.address0x, data);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), '0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
 
         it('Should apply rate with token more expensive than currency', async function () {
@@ -831,7 +822,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.pay(id, toWei(1), Helper.address0x, data);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
 
         it('Pay should fail if paid is more than requested', async function () {
@@ -851,8 +842,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.pay(id, 100, Helper.address0x, Helper.address0x));
 
-            assert.equal(await testModel.getPaid(id), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
 
         it('Pay should fail if rate includes zero', async function () {
@@ -871,15 +862,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.pay(id, 1000, Helper.address0x, data));
 
-            assert.equal(await rcn.balanceOf(accounts[0]), value.toString());
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
 
             data = await testOracle.encodeRate(14123, 0);
 
             await Helper.assertThrow(debtEngine.pay(id, 1000, Helper.address0x, data));
 
-            assert.equal(await rcn.balanceOf(accounts[0]), value.toString());
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
 
         it('Pay should fail if payer has not enought balance', async function () {
@@ -895,7 +886,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.pay(id, 2000, Helper.address0x, Helper.address0x));
 
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
 
         it('Should catch and recover from a pay error', async function () {
@@ -911,9 +902,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.pay(id, 50, accounts[3], []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, 1);
@@ -925,9 +916,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 100);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('100');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -939,9 +930,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
 
         it('Should catch and recover from a pay infinite loop', async function () {
@@ -957,9 +948,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.pay(id, 50, accounts[3], []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), '0');
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), '50');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, '2');
@@ -971,9 +962,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 100);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('100');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -985,9 +976,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
 
         it('Should catch and recover from a pay error, with an Oracle', async function () {
@@ -1005,9 +996,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.pay(id, 50, accounts[3], dummyData2);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, 1);
@@ -1019,9 +1010,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 50);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -1033,9 +1024,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
     });
 
@@ -1072,17 +1063,17 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Paid._id, id);
             assert.equal(Paid._sender, payer);
             assert.equal(Paid._origin, originPayer);
-            assert.equal(Paid._requested, '0');
-            assert.equal(Paid._requestedTokens, amount.toString());
-            assert.equal(Paid._paid, amount.toString());
-            assert.equal(Paid._tokens, amount.toString());
+            expect(Paid._requested).to.eq.BN('0');
+            expect(Paid._requestedTokens).to.eq.BN(amount);
+            expect(Paid._paid).to.eq.BN(amount);
+            expect(Paid._tokens).to.eq.BN(amount);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt.balance, amount.toString());
+            expect(debt.balance).to.eq.BN(amount);
 
-            assert.equal(await rcn.balanceOf(payer), plusAmount.toString());
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_PAID);
-            assert.equal(await testModel.getPaid(id), amount.toString());
+            expect(await rcn.balanceOf(payer)).to.eq.BN(plusAmount);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_PAID);
+            expect(await testModel.getPaid(id)).to.eq.BN(amount);
         });
 
         it('Should payToken using an Oracle', async function () {
@@ -1125,22 +1116,22 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Paid._id, id);
             assert.equal(Paid._sender, payer);
             assert.equal(Paid._origin, originPayer);
-            assert.equal(Paid._requested, '0');
-            assert.equal(Paid._requestedTokens.toString(), payAmountOracle.toString());
-            assert.equal(Paid._paid.toString(), _paid.toString());
-            assert.equal(Paid._tokens.toString(), payAmountToken.toString());
+            expect(Paid._requested).to.eq.BN('0');
+            expect(Paid._requestedTokens).to.eq.BN(payAmountOracle);
+            expect(Paid._paid).to.eq.BN(_paid);
+            expect(Paid._tokens).to.eq.BN(payAmountToken);
 
             const ReadedOracle = payTokenEvents[1];
             assert.equal(ReadedOracle._id, id);
-            assert.equal(ReadedOracle._tokens, oracleTokens.toString());
-            assert.equal(ReadedOracle._equivalent, oracleEquivalent.toString());
+            expect(ReadedOracle._tokens).to.eq.BN(oracleTokens);
+            expect(ReadedOracle._equivalent).to.eq.BN(oracleEquivalent);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt.balance.toString(), payAmountOracle.toString());
+            expect(debt.balance).to.eq.BN(payAmountOracle);
 
-            assert.equal(await rcn.balanceOf(payer), '0');
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), _paid.toString());
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN(_paid);
 
             // payToken with dummyData2
             const payAmountOracle2 = bn('500');
@@ -1159,8 +1150,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 { from: payer }
             );
 
-            assert.equal(await rcn.balanceOf(payer), '0');
-            assert.equal(await testModel.getPaid(id), _paid.add(_paid2).toString());
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN(_paid.add(_paid2));
 
             const payer2 = accounts[5];
             await rcn.setBalance(payer2, bn('10000'));
@@ -1173,9 +1164,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 { from: payer2 }
             );
 
-            assert.equal(await rcn.balanceOf(payer2), bn('10000').sub((bn('10000').sub(bn('1010'))).div(bn('2'))).toString());
-            assert.equal(await testModel.getPaid(id), bn('10000').toString());
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_PAID);
+            // 10000 - (10000 - 1010) / 2
+            const expectBalance = bn('10000').sub(bn('10000').sub(bn('1010')).divRound(bn('2')));
+            expect(await rcn.balanceOf(payer2)).to.eq.BN(expectBalance);
+            expect(await testModel.getPaid(id)).to.eq.BN('10000');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_PAID);
         });
 
         it('Pay tokens round in favor of the owner', async function () {
@@ -1194,7 +1187,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payToken(id, 1, Helper.address0x, data);
 
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
 
         it('Should apply rate pay tokens even when tokens is not divisible by 10', async function () {
@@ -1213,8 +1206,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payToken(id, toWei(1), Helper.address0x, data);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), bn('342').toString());
-            assert.equal(await testModel.getPaid(id), '704974378193313');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('342');
+            expect(await testModel.getPaid(id)).to.eq.BN(bn('704974378193313'));
         });
 
         it('Should apply rate pay tokens with token more expensive than currency', async function () {
@@ -1233,8 +1226,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payToken(id, toWei(2), Helper.address0x, data);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 1834816);
-            assert.equal(await testModel.getPaid(id), bn('242587496458').toString());
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(bn('1834816'));
+            expect(await testModel.getPaid(id)).to.eq.BN(bn('242587496458'));
         });
 
         it('Should catch and recover from a payToken infinite loop', async function () {
@@ -1250,9 +1243,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.payToken(id, 50, accounts[3], []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, 2);
@@ -1264,9 +1257,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 100);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('100');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -1278,9 +1271,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
 
         it('Should catch and recover from a payToken infinite loop, with an Oracle', async function () {
@@ -1298,9 +1291,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.payToken(id, 25, accounts[3], dummyData2);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, 2);
@@ -1312,9 +1305,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 50, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 50);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -1326,9 +1319,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 50, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
 
         it('Should catch and recover from a payToken error, with an Oracle', async function () {
@@ -1346,9 +1339,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.payToken(id, 25, accounts[3], dummyData2);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, 1);
@@ -1360,9 +1353,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 50, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 50);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -1374,9 +1367,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 50, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
 
         it('Should catch and recover from a payToken error', async function () {
@@ -1392,9 +1385,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.payToken(id, 50, accounts[3], []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, 1);
@@ -1406,9 +1399,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 100);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('100');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -1420,9 +1413,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
 
         it('Pay tokens should fail if paid is more than requested', async function () {
@@ -1442,8 +1435,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payToken(id, 100, Helper.address0x, Helper.address0x));
 
-            assert.equal(await testModel.getPaid(id), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
 
         it('Pay tokens should fail if payer has not enought balance', async function () {
@@ -1459,7 +1452,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payToken(id, 2000, Helper.address0x, Helper.address0x));
 
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
 
         it('Pay tokens fail if rate includes zero', async function () {
@@ -1478,15 +1471,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payToken(id, 1000, Helper.address0x, data));
 
-            assert.equal(await rcn.balanceOf(accounts[0]), value.toString());
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
 
             data = await testOracle.encodeRate(14123, 0);
 
             await Helper.assertThrow(debtEngine.payToken(id, 1000, Helper.address0x, data));
 
-            assert.equal(await rcn.balanceOf(accounts[0]), value.toString());
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
     });
 
@@ -1557,9 +1550,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             // Test read oracle event
             const oracleEvent = receipt.logs.find((l) => l.event === 'ReadedOracleBatch');
             assert.isOk(oracleEvent);
-            assert.equal(oracleEvent.args._count, 2);
-            assert.equal(oracleEvent.args._tokens, 5);
-            assert.equal(oracleEvent.args._equivalent, 10);
+            expect(oracleEvent.args._count).to.eq.BN('2');
+            expect(oracleEvent.args._tokens).to.eq.BN('5');
+            expect(oracleEvent.args._equivalent).to.eq.BN('10');
 
             // Test paid events
             const paidLogs = receipt.logs.filter((l) => l.event === 'Paid');
@@ -1570,19 +1563,19 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 switch (event.args._id) {
                 case id1:
                     const args = event.args;
-                    assert.equal(args._requested, 2000);
-                    assert.equal(args._requestedTokens, 0);
-                    assert.equal(args._paid, 2000);
-                    assert.equal(args._tokens, 1000);
+                    expect(args._requested).to.eq.BN('2000');
+                    expect(args._requestedTokens).to.eq.BN('0');
+                    expect(args._paid).to.eq.BN('2000');
+                    expect(args._tokens).to.eq.BN('1000');
                     assert.equal(args._sender, accounts[0]);
                     assert.equal(args._origin, accounts[4]);
                     break;
                 case id2:
                     const args2 = event.args;
-                    assert.equal(args2._requested, 1000);
-                    assert.equal(args2._requestedTokens, 0);
-                    assert.equal(args2._paid, 1000);
-                    assert.equal(args2._tokens, 500);
+                    expect(args2._requested).to.eq.BN('1000');
+                    expect(args2._requestedTokens).to.eq.BN('0');
+                    expect(args2._paid).to.eq.BN('1000');
+                    expect(args2._tokens).to.eq.BN('500');
                     assert.equal(args2._sender, accounts[0]);
                     assert.equal(args2._origin, accounts[4]);
                     break;
@@ -1610,15 +1603,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payBatch([id1, id1, id2], [1000, 1000, 500], Helper.address0x, Helper.address0x, []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 500);
-            assert.equal(await testModel.getPaid(id1), 2000);
-            assert.equal(await testModel.getPaid(id2), 500);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('500');
+            expect(await testModel.getPaid(id1)).to.eq.BN('2000');
+            expect(await testModel.getPaid(id2)).to.eq.BN('500');
 
             const debt1 = await debtEngine.debts(id1);
-            assert.equal(debt1[1], 2000);
+            expect(debt1[1]).to.eq.BN('2000');
 
             const debt2 = await debtEngine.debts(id2);
-            assert.equal(debt2[1], 500);
+            expect(debt2[1]).to.eq.BN('500');
         });
 
         it('Should create and pay debts in batch', async function () {
@@ -1655,9 +1648,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payBatch(ids, amounts, Helper.address0x, Helper.address0x, []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 1050);
-            assert.equal(await debtEngine.getStatus(ids[0]), 2);
-            assert.equal(await testModel.getPaid(ids[0]), 3000);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('1050');
+            expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
+            expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
 
         it('Should pay batch using a oracle', async function () {
@@ -1675,8 +1668,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payBatch([id], [1000], accounts[1], oracle.address, dummyData1, { from: accounts[2] });
 
-            assert.equal(await rcn.balanceOf(accounts[2]), 0);
-            assert.equal(await testModel.getPaid(id), 1000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN('1000');
         });
 
         it('Pay batch should round in favor of the owner', async function () {
@@ -1697,7 +1690,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await Helper.assertThrow(debtEngine.payBatch([id], [1], Helper.address0x, testOracle.address, data));
             await debtEngine.payBatch([id], [0], Helper.address0x, testOracle.address, data);
 
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
 
         it('Should apply rate pay batch with token more expensive than currency', async function () {
@@ -1716,7 +1709,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payBatch([id], [toWei(1)], Helper.address0x, testOracle.address, data);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
 
         it('Pay batch should fail if one debt paid is more than requested', async function () {
@@ -1743,9 +1736,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], Helper.address0x, Helper.address0x, []));
 
-            assert.equal(await testModel.getPaid(id1), 0);
-            assert.equal(await testModel.getPaid(id2), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
+            expect(await testModel.getPaid(id1)).to.eq.BN('0');
+            expect(await testModel.getPaid(id2)).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
 
         it('Pay batch should fail if payer has balance for zero payments', async function () {
@@ -1768,8 +1761,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], Helper.address0x, Helper.address0x, []));
 
-            assert.equal(await testModel.getPaid(id1), 0);
-            assert.equal(await testModel.getPaid(id2), 0);
+            expect(await testModel.getPaid(id1)).to.eq.BN('0');
+            expect(await testModel.getPaid(id2)).to.eq.BN('0');
         });
 
         it('Pay batch should fail if payer has balance below total', async function () {
@@ -1792,8 +1785,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], Helper.address0x, Helper.address0x, []));
 
-            assert.equal(await testModel.getPaid(id1), 0);
-            assert.equal(await testModel.getPaid(id2), 0);
+            expect(await testModel.getPaid(id1)).to.eq.BN('0');
+            expect(await testModel.getPaid(id2)).to.eq.BN('0');
         });
 
         it('Should pay batch with tokens less expensive than currency', async function () {
@@ -1818,10 +1811,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
 
-            assert.equal(await testModel.getPaid(id1), 2000);
-            assert.equal(await testModel.getPaid(id2), 1000);
+            expect(await testModel.getPaid(id1)).to.eq.BN('2000');
+            expect(await testModel.getPaid(id2)).to.eq.BN('1000');
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
 
         it('Should pay batch with tokens more expensive than currency', async function () {
@@ -1846,10 +1839,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
 
-            assert.equal(await testModel.getPaid(id1), 2000);
-            assert.equal(await testModel.getPaid(id2), 1000);
+            expect(await testModel.getPaid(id1)).to.eq.BN('2000');
+            expect(await testModel.getPaid(id2)).to.eq.BN('1000');
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
 
         it('Should create and pay a debts using payTokens in batch', async function () {
@@ -1886,9 +1879,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch(ids, amounts, Helper.address0x, Helper.address0x, []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 1050);
-            assert.equal(await debtEngine.getStatus(ids[0]), 2);
-            assert.equal(await testModel.getPaid(ids[0]), 3000);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('1050');
+            expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
+            expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
     });
 
@@ -1945,7 +1938,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 3000, Helper.address0x, Helper.address0x);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 3000);
+            expect(debt[1]).to.eq.BN('3000');
 
             const value = bn('2').pow(bn('129'));
             await rcn.setBalance(accounts[0], value);
@@ -1953,15 +1946,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payTokenBatch([id2, id], [10, value], Helper.address0x, Helper.address0x, []));
 
-            assert.equal(await testModel.getPaid(id), 3000);
-            assert.equal(await testModel.getPaid(id2), 0);
+            expect(await testModel.getPaid(id)).to.eq.BN('3000');
+            expect(await testModel.getPaid(id2)).to.eq.BN('0');
 
             const ndebt = await debtEngine.debts(id);
-            assert.equal(ndebt[1], 3000);
+            expect(ndebt[1]).to.eq.BN('3000');
 
             await rcn.setBalance(accounts[2], 0);
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
 
         it('Pay tokens batch should fail if one debt paid is more than requested', async function () {
@@ -1988,9 +1981,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], Helper.address0x, Helper.address0x, []));
 
-            assert.equal(await testModel.getPaid(id1), 0);
-            assert.equal(await testModel.getPaid(id2), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])).toNumber(), prevBalance.toNumber());
+            expect(await testModel.getPaid(id1)).to.eq.BN('0');
+            expect(await testModel.getPaid(id2)).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
 
         it('Pay tokens batch should fail if payer has balance for zero payments', async function () {
@@ -2013,8 +2006,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], Helper.address0x, Helper.address0x, []));
 
-            assert.equal(await testModel.getPaid(id1), 0);
-            assert.equal(await testModel.getPaid(id2), 0);
+            expect(await testModel.getPaid(id1)).to.eq.BN('0');
+            expect(await testModel.getPaid(id2)).to.eq.BN('0');
         });
 
         it('Pay tokens batch should fail if payer has balance below total', async function () {
@@ -2037,8 +2030,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], Helper.address0x, Helper.address0x, []));
 
-            assert.equal(await testModel.getPaid(id1), 0);
-            assert.equal(await testModel.getPaid(id2), 0);
+            expect(await testModel.getPaid(id1)).to.eq.BN('0');
+            expect(await testModel.getPaid(id2)).to.eq.BN('0');
         });
 
         it('Should create and pay a debts using payTokens in batch', async function () {
@@ -2075,9 +2068,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch(ids, amounts, Helper.address0x, Helper.address0x, []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 1050);
-            assert.equal(await debtEngine.getStatus(ids[0]), 2);
-            assert.equal(await testModel.getPaid(ids[0]), 3000);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('1050');
+            expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
+            expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
 
         it('Should pay tokens batch with tokens less expensive than currency', async function () {
@@ -2102,10 +2095,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch([id1, id2], [4000, 2000], accounts[4], oracle.address, data);
 
-            assert.equal(await testModel.getPaid(id1), 2000);
-            assert.equal(await testModel.getPaid(id2), 1000);
+            expect(await testModel.getPaid(id1)).to.eq.BN('2000');
+            expect(await testModel.getPaid(id2)).to.eq.BN('1000');
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
 
         it('Should pay tokens batch with tokens more expensive than currency', async function () {
@@ -2130,10 +2123,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], oracle.address, data);
 
-            assert.equal(await testModel.getPaid(id1), 2000);
-            assert.equal(await testModel.getPaid(id2), 1000);
+            expect(await testModel.getPaid(id1)).to.eq.BN('2000');
+            expect(await testModel.getPaid(id2)).to.eq.BN('1000');
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
 
         it('Should pay token batch using a oracle', async function () {
@@ -2151,8 +2144,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch([id], [500], accounts[1], oracle.address, dummyData1, { from: accounts[2] });
 
-            assert.equal(await rcn.balanceOf(accounts[2]), 0);
-            assert.equal(await testModel.getPaid(id), 1000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN('1000');
         });
 
         it('Should create and pay a debts using payTokens in batch', async function () {
@@ -2189,9 +2182,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch(ids, amounts, Helper.address0x, Helper.address0x, []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 1050);
-            assert.equal(await debtEngine.getStatus(ids[0]), 2);
-            assert.equal(await testModel.getPaid(ids[0]), 3000);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('1050');
+            expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
+            expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
 
         it('Pay tokens batch round in favor of the owner', async function () {
@@ -2210,7 +2203,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch([id, id], [1, 1], Helper.address0x, testOracle.address, data);
 
-            assert.equal(await testModel.getPaid(id), 0);
+            expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
 
         it('Should not pay the third debt because not correspond the currency and oracle.', async function () {
@@ -2247,9 +2240,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch(ids, amounts, Helper.address0x, Helper.address0x, []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 4150);
-            assert.equal(await debtEngine.getStatus(ids[0]), 2);
-            assert.equal(await testModel.getPaid(ids[0]), 3000);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('4150');
+            expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
+            expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
 
         it('Should apply rate pay batch tokens even when tokens is not divisible by 10', async function () {
@@ -2268,8 +2261,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch([id], [toWei(1)], Helper.address0x, testOracle.address, data);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), bn('342').toString());
-            assert.equal(await testModel.getPaid(id), bn('704974378193313').toString());
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('342');
+            expect(await testModel.getPaid(id)).to.eq.BN(bn('704974378193313'));
         });
 
         it('Should apply rate pay batch tokens with token more expensive than currency', async function () {
@@ -2288,8 +2281,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch([id], [toWei(2)], Helper.address0x, testOracle.address, data);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 1834816);
-            assert.equal(await testModel.getPaid(id), 242587496458);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(bn('1834816'));
+            expect(await testModel.getPaid(id)).to.eq.BN(bn('242587496458'));
         });
 
         it('Pay tokens batch multiple times multiple id should be like paying the sum', async function () {
@@ -2312,15 +2305,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.payTokenBatch([id1, id2, id1], [1000, 500, 1000], Helper.address0x, Helper.address0x, []);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 500);
-            assert.equal(await testModel.getPaid(id1), 2000);
-            assert.equal(await testModel.getPaid(id2), 500);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('500');
+            expect(await testModel.getPaid(id1)).to.eq.BN('2000');
+            expect(await testModel.getPaid(id2)).to.eq.BN('500');
 
             const debt1 = await debtEngine.debts(id1);
-            assert.equal(debt1[1], 2000);
+            expect(debt1[1]).to.eq.BN('2000');
 
             const debt2 = await debtEngine.debts(id2);
-            assert.equal(debt2[1], 500);
+            expect(debt2[1]).to.eq.BN('500');
         });
 
         it('Pay token batch should emit pay event', async function () {
@@ -2348,9 +2341,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             // Test read oracle event
             const oracleEvent = receipt.logs.find((l) => l.event === 'ReadedOracleBatch');
             assert.isOk(oracleEvent);
-            assert.equal(oracleEvent.args._count, 2);
-            assert.equal(oracleEvent.args._tokens, 5);
-            assert.equal(oracleEvent.args._equivalent, 10);
+            expect(oracleEvent.args._count).to.eq.BN('2');
+            expect(oracleEvent.args._tokens).to.eq.BN('5');
+            expect(oracleEvent.args._equivalent).to.eq.BN('10');
 
             // Test paid events
             const paidLogs = receipt.logs.filter((l) => l.event === 'Paid');
@@ -2361,19 +2354,19 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 switch (event.args._id) {
                 case id1:
                     const args = event.args;
-                    assert.equal(args._requested, 0);
-                    assert.equal(args._requestedTokens, 1000);
-                    assert.equal(args._paid, 2000);
-                    assert.equal(args._tokens, 1000);
+                    expect(args._requested).to.eq.BN('0');
+                    expect(args._requestedTokens).to.eq.BN('1000');
+                    expect(args._paid).to.eq.BN('2000');
+                    expect(args._tokens).to.eq.BN('1000');
                     assert.equal(args._sender, accounts[0]);
                     assert.equal(args._origin, accounts[4]);
                     break;
                 case id2:
                     const args2 = event.args;
-                    assert.equal(args2._requested, 0);
-                    assert.equal(args2._requestedTokens, 500);
-                    assert.equal(args2._paid, 1000);
-                    assert.equal(args2._tokens, 500);
+                    expect(args2._requested).to.eq.BN('0');
+                    expect(args2._requestedTokens).to.eq.BN('500');
+                    expect(args2._paid).to.eq.BN('1000');
+                    expect(args2._tokens).to.eq.BN('500');
                     assert.equal(args2._sender, accounts[0]);
                     assert.equal(args2._origin, accounts[4]);
                     break;
@@ -2424,12 +2417,12 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Withdrawn1._id, id);
             assert.equal(Withdrawn1._sender, owner);
             assert.equal(Withdrawn1._to, beneficiary);
-            assert.equal(Withdrawn1._amount, amount.toString());
+            expect(Withdrawn1._amount).to.eq.BN(amount);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt.balance, '0');
+            expect(debt.balance).to.eq.BN('0');
 
-            assert.equal(await rcn.balanceOf(beneficiary), amount.toString());
+            expect(await rcn.balanceOf(beneficiary)).to.eq.BN(amount);
 
             // Withdraw again, should be 0
             await rcn.setBalance(beneficiary, '0');
@@ -2445,9 +2438,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Withdrawn2._id, id);
             assert.equal(Withdrawn2._sender, owner);
             assert.equal(Withdrawn2._to, beneficiary);
-            assert.equal(Withdrawn2._amount, '0');
+            expect(Withdrawn2._amount).to.eq.BN('0');
 
-            assert.equal(await rcn.balanceOf(beneficiary), '0');
+            expect(await rcn.balanceOf(beneficiary)).to.eq.BN('0');
         });
 
         it('Pay shoud not overflow the debt balance', async function () {
@@ -2466,7 +2459,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 3000, Helper.address0x, Helper.address0x);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 3000);
+            expect(debt[1]).to.eq.BN('3000');
 
             const value = bn('2').pow(bn('129'));
             await rcn.setBalance(accounts[0], value);
@@ -2475,11 +2468,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await Helper.assertThrow(debtEngine.pay(id, value, Helper.address0x, Helper.address0x));
 
             const ndebt = await debtEngine.debts(id);
-            assert.equal(ndebt[1], 3000);
+            expect(ndebt[1]).to.eq.BN('3000');
 
             await rcn.setBalance(accounts[2], 0);
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
 
         it('Pay token shoud not overflow the debt balance', async function () {
@@ -2498,7 +2491,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 3000, Helper.address0x, Helper.address0x);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 3000);
+            expect(debt[1]).to.eq.BN('3000');
 
             const value = bn('2').pow(bn('130'));
             await rcn.setBalance(accounts[0], value);
@@ -2507,11 +2500,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await Helper.assertThrow(debtEngine.payToken(id, bn('2').pow(bn('129')), Helper.address0x, Helper.address0x));
 
             const ndebt = await debtEngine.debts(id);
-            assert.equal(ndebt[1], 3000);
+            expect(ndebt[1]).to.eq.BN('3000');
 
             await rcn.setBalance(accounts[2], 0);
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
 
         it('Pay batch shoud not overflow the debt balance', async function () {
@@ -2537,7 +2530,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 3000, Helper.address0x, Helper.address0x);
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 3000);
+            expect(debt[1]).to.eq.BN('3000');
 
             const value = bn('2').pow(bn('130'));
             await rcn.setBalance(accounts[0], value);
@@ -2545,15 +2538,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.assertThrow(debtEngine.payBatch([id2, id], [10, bn('2').pow(bn('129'))], Helper.address0x, Helper.address0x, []));
 
-            assert.equal((await testModel.getPaid(id)).toNumber(), 3000);
-            assert.equal(await testModel.getPaid(id2), 0);
+            expect(await testModel.getPaid(id)).to.eq.BN('3000');
+            expect(await testModel.getPaid(id2)).to.eq.BN('0');
 
             const ndebt = await debtEngine.debts(id);
-            assert.equal(ndebt[1], 3000);
+            expect(ndebt[1]).to.eq.BN('3000');
 
             await rcn.setBalance(accounts[2], 0);
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
 
         it('Should fail withdraw not authorized', async function () {
@@ -2574,13 +2567,13 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await Helper.assertThrow(debtEngine.withdraw(id, accounts[3], { from: accounts[3] }));
             await Helper.assertThrow(debtEngine.withdraw(id, accounts[2], { from: accounts[3] }));
 
-            assert.equal(await rcn.balanceOf(accounts[3]), 0);
-            assert.equal(await rcn.balanceOf(accounts[2]), 0);
+            expect(await rcn.balanceOf(accounts[3])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
 
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
 
         it('Should fail withdraw if debt engine has no funds', async function () {
@@ -2602,7 +2595,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[2], 0);
             await Helper.assertThrow(debtEngine.withdraw(id, accounts[2], { from: accounts[2] }));
 
-            assert.equal(await rcn.balanceOf(accounts[2]), 0);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
 
             await rcn.setBalance(debtEngine.address, auxBalance);
         });
@@ -2620,19 +2613,19 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 4000);
             await debtEngine.pay(id, 50, accounts[3], []);
 
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             await debtEngine.pay(id, 50, accounts[3], []);
 
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 100);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('100');
 
             await debtEngine.setApprovalForAll(accounts[7], true);
             await rcn.setBalance(accounts[7], 0);
             await debtEngine.withdraw(id, accounts[7], { from: accounts[7] });
             await debtEngine.setApprovalForAll(accounts[7], false);
-            assert.equal(await rcn.balanceOf(accounts[7]), 100);
+            expect(await rcn.balanceOf(accounts[7])).to.eq.BN('100');
 
             await rcn.setBalance(accounts[2], 200);
             await debtEngine.pay(id, 200, accounts[2], []);
@@ -2641,12 +2634,12 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[7], 0);
             Helper.assertThrow(debtEngine.withdraw(id, accounts[7], { from: accounts[7] }));
             debtEngine.withdrawBatch([id], accounts[7], { from: accounts[7] });
-            assert.equal(await rcn.balanceOf(accounts[7]), 0);
+            expect(await rcn.balanceOf(accounts[7])).to.eq.BN('0');
 
             await debtEngine.approve(accounts[8], id);
             await rcn.setBalance(accounts[8], 0);
             await debtEngine.withdrawBatch([id], accounts[8], { from: accounts[8] });
-            assert.equal(await rcn.balanceOf(accounts[8]), 200);
+            expect(await rcn.balanceOf(accounts[8])).to.eq.BN('200');
         });
     });
 
@@ -2667,11 +2660,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[0], 500), 'Sender not authorized');
             await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[1], 500), 'Sender not authorized');
 
-            assert.equal((await rcn.balanceOf(accounts[1])), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])), 0);
+            expect(await rcn.balanceOf(accounts[1])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 1000);
+            expect(debt[1]).to.eq.BN('1000');
         });
 
         it('Should withdraw partially if sender is authorized', async function () {
@@ -2691,12 +2684,12 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.withdrawPartial(id, accounts[2], 600);
 
-            assert.equal((await rcn.balanceOf(accounts[2])), 600);
-            assert.equal((await rcn.balanceOf(accounts[1])), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])), 0);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('600');
+            expect(await rcn.balanceOf(accounts[1])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 400);
+            expect(debt[1]).to.eq.BN('400');
         });
 
         it('Should withdraw partially total amount', async function () {
@@ -2717,11 +2710,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await debtEngine.withdrawPartial(id, accounts[2], 1000);
 
-            assert.equal((await rcn.balanceOf(accounts[2])), 1000);
-            assert.equal((await rcn.balanceOf(accounts[0])), 0);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('1000');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 0);
+            expect(debt[1]).to.eq.BN('0');
         });
 
         it('Should fail to withdraw more than available', async function () {
@@ -2742,11 +2735,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 1100), 'Debt balance is not enought');
 
-            assert.equal((await rcn.balanceOf(accounts[2])), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])), 0);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 1000);
+            expect(debt[1]).to.eq.BN('1000');
         });
 
         it('Should fail to withdraw a more than possible balance', async function () {
@@ -2774,11 +2767,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 'Debt balance is not enought'
             );
 
-            assert.equal((await rcn.balanceOf(accounts[2])), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])), 0);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 1000);
+            expect(debt[1]).to.eq.BN('1000');
         });
 
         it('Should fail to withdraw if debt engine has no tokens', async function () {
@@ -2802,11 +2795,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await Helper.tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 200), 'Error sending tokens');
             await rcn.setBalance(debtEngine.address, prevBalance);
 
-            assert.equal((await rcn.balanceOf(accounts[2])), 0);
-            assert.equal((await rcn.balanceOf(accounts[0])), 0);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
 
             const debt = await debtEngine.debts(id);
-            assert.equal(debt[1], 1000);
+            expect(debt[1]).to.eq.BN('1000');
         });
     });
 
@@ -2863,27 +2856,27 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Withdrawn[0]._id, id1);
             assert.equal(Withdrawn[0]._sender, owner);
             assert.equal(Withdrawn[0]._to, beneficiary);
-            assert.equal(Withdrawn[0]._amount, amount1.toString());
+            expect(Withdrawn[0]._amount).to.eq.BN(amount1);
 
             assert.equal(Withdrawn[1]._id, id2);
             assert.equal(Withdrawn[1]._sender, owner);
             assert.equal(Withdrawn[1]._to, beneficiary);
-            assert.equal(Withdrawn[1]._amount, amount2.toString());
+            expect(Withdrawn[1]._amount).to.eq.BN(amount2);
 
             const debt1 = await debtEngine.debts(id1);
-            assert.equal(debt1.balance, '0');
+            expect(debt1.balance).to.eq.BN('0');
 
             const debt2 = await debtEngine.debts(id2);
-            assert.equal(debt2.balance, '0');
+            expect(debt2.balance).to.eq.BN('0');
 
-            assert.equal(await rcn.balanceOf(beneficiary), 10000);
+            expect(await rcn.balanceOf(beneficiary)).to.eq.BN('10000');
 
             // Withdraw again, should be 0
             await rcn.setBalance(beneficiary, 0);
             await debtEngine.withdraw(id1, beneficiary, { from: owner });
             await debtEngine.withdraw(id2, beneficiary, { from: owner });
             await debtEngine.withdrawBatch([id1, id2], beneficiary, { from: owner });
-            assert.equal(await rcn.balanceOf(beneficiary), 0);
+            expect(await rcn.balanceOf(beneficiary)).to.eq.BN('0');
         });
 
         it('Should pay using an Oracle and withdraw', async function () {
@@ -2913,13 +2906,16 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.transferFrom(accounts[0], accounts[9], id);
             await rcn.setBalance(accounts[9], 0);
             await debtEngine.withdrawBatch([id], accounts[9], { from: accounts[9] });
-            assert.equal(await rcn.balanceOf(accounts[9]), 60000 + 500 + (10000 - 1010) / 2);
+
+            // 60000 + 500 + (10000 - 1010) / 2)
+            const expectBalance = bn('60000').add(bn('500')).add((bn('10000').sub(bn('1010')).divRound(bn('2'))));
+            expect(await rcn.balanceOf(accounts[9])).to.eq.BN(expectBalance);
 
             // Withdraw again should transfer 0
             await rcn.setBalance(accounts[9], 0);
             await debtEngine.approve(accounts[3], id, { from: accounts[9] });
             await debtEngine.withdrawBatch([id], accounts[9], { from: accounts[3] });
-            assert.equal(await rcn.balanceOf(accounts[9]), 0);
+            expect(await rcn.balanceOf(accounts[9])).to.eq.BN('0');
         });
 
         it('Should fail withdraw batch if debt engine has no funds', async function () {
@@ -2948,7 +2944,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[2], 0);
             await Helper.assertThrow(debtEngine.withdrawBatch([id, id2], accounts[2], { from: accounts[2] }));
 
-            assert.equal(await rcn.balanceOf(accounts[2]), 0);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
 
             await rcn.setBalance(debtEngine.address, auxBalance);
         });
@@ -2978,13 +2974,13 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdrawBatch([id1, id2], accounts[3], { from: accounts[3] });
             await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[3] });
 
-            assert.equal(await rcn.balanceOf(accounts[3]), 0);
-            assert.equal(await rcn.balanceOf(accounts[2]), 0);
+            expect(await rcn.balanceOf(accounts[3])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
 
             await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[2] });
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
             await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[2] });
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
 
         it('Should fail withdraw batch not authorized mixed', async function () {
@@ -3012,13 +3008,13 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdrawBatch([id1, id2], accounts[3], { from: accounts[3] });
             await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[3] });
 
-            assert.equal(await rcn.balanceOf(accounts[3]), 0);
-            assert.equal(await rcn.balanceOf(accounts[2]), 0);
+            expect(await rcn.balanceOf(accounts[3])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
 
             await rcn.setBalance(accounts[4], 0);
             await debtEngine.withdrawBatch([id1, id2], accounts[4], { from: accounts[4] });
 
-            assert.equal(await rcn.balanceOf(accounts[4]), 1500);
+            expect(await rcn.balanceOf(accounts[4])).to.eq.BN('1500');
         });
 
         it('Withdraw multiple times same id should make no difference', async function () {
@@ -3044,13 +3040,13 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[2], 0);
             await debtEngine.withdrawBatch([id, id, id2, id, id, id, id], accounts[2], { from: accounts[2] });
 
-            assert.equal(await rcn.balanceOf(accounts[2]), 3000);
+            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
 
         it('Withdraw zero debts should have no effect', async function () {
             await rcn.setBalance(accounts[7], 0);
             await debtEngine.withdrawBatch([], accounts[7], { from: accounts[7] });
-            assert.equal(await rcn.balanceOf(accounts[7]), 0);
+            expect(await rcn.balanceOf(accounts[7])).to.eq.BN('0');
         });
     });
 
@@ -3070,9 +3066,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.pay(id, 50, accounts[3], dummyData2);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, 2);
@@ -3084,9 +3080,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 50);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -3098,9 +3094,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
 
         it('Should catch and recover from a pay infinite loop, with an Oracle', async function () {
@@ -3118,9 +3114,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.approve(debtEngine.address, 50);
             await debtEngine.pay(id, 50, accounts[3], dummyData2);
 
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
             await testModel.setErrorFlag(id, 2);
@@ -3132,9 +3128,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 50);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
-            assert.equal(await testModel.getPaid(id), 50);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -3146,9 +3142,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], dummyData2);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 150);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
 
         it('Should catch a getStatus error', async function () {
@@ -3163,7 +3159,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await testModel.setErrorFlag(id, 3);
 
             // Try to read status
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -3175,9 +3171,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 100);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('100');
         });
 
         it('Should catch a getStatus infinite loop', async function () {
@@ -3192,7 +3188,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await testModel.setErrorFlag(id, 4);
 
             // Try to read status
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -3204,9 +3200,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 100);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('100');
         });
 
         it('Should catch and recover from a run error', async function () {
@@ -3222,7 +3218,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             // Run and read status
             await debtEngine.run(id);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -3231,7 +3227,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.run(id);
 
             // Should have failed and the status should be 4
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
         });
 
         it('Should catch and recover from a run infinite loop', async function () {
@@ -3247,7 +3243,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             // Run and read status
             await debtEngine.run(id);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -3256,7 +3252,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.run(id);
 
             // Should have failed and the status should be 4
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
         });
 
         it('Should catch a getStatus write storage error', async function () {
@@ -3271,7 +3267,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await testModel.setErrorFlag(id, 5);
 
             // Try to read status
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ERROR);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -3283,9 +3279,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.payToken(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            assert.equal(await rcn.balanceOf(accounts[0]), 0);
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-            assert.equal(await testModel.getPaid(id), 100);
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN('100');
         });
     });
 
@@ -3302,9 +3298,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await rcn.approve(debtEngine.address, 4000);
         await debtEngine.pay(id, 4000, accounts[3], []);
 
-        assert.equal(await rcn.balanceOf(accounts[0]), 1000);
-        assert.equal(await debtEngine.getStatus(id), 2);
-        assert.equal(await testModel.getPaid(id), 3000);
+        expect(await rcn.balanceOf(accounts[0])).to.eq.BN('1000');
+        expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_PAID);
+        expect(await testModel.getPaid(id)).to.eq.BN('3000');
 
         // Transfer debt
         await debtEngine.transferFrom(accounts[0], accounts[6], id);
@@ -3312,7 +3308,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         // Withdraw funds
         await rcn.setBalance(accounts[6], 0);
         await debtEngine.withdraw(id, accounts[6], { from: accounts[6] });
-        assert.equal(await rcn.balanceOf(accounts[6]), 3000);
+        expect(await rcn.balanceOf(accounts[6])).to.eq.BN('3000');
     });
 
     it('Calling pay, payTokens, payBatch or payBatchTokens should get the same rate', async function () {
@@ -3354,13 +3350,13 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await debtEngine.payTokenBatch([id3], [toWei(1)], Helper.address0x, testOracle.address, data);
 
         const paid1 = await testModel.getPaid(id1);
-        assert.equal(paid1, (await testModel.getPaid(id3)).toString());
+        expect(paid1).to.eq.BN(await testModel.getPaid(id3));
 
         await debtEngine.pay(id2, paid1, Helper.address0x, data);
         await debtEngine.payBatch([id4], [paid1], Helper.address0x, testOracle.address, data);
 
-        assert.equal(paid1, (await testModel.getPaid(id4)).toString());
-        assert.equal(paid1, (await testModel.getPaid(id2)).toString());
+        expect(paid1).to.eq.BN(await testModel.getPaid(id4));
+        expect(paid1).to.eq.BN(await testModel.getPaid(id2));
     });
 
     // Notice: Keep this test last
@@ -3377,9 +3373,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await rcn.approve(debtEngine.address, 50);
         await debtEngine.payToken(id, 50, accounts[3], []);
 
-        assert.equal(await rcn.balanceOf(accounts[0]), 0);
-        assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-        assert.equal(await testModel.getPaid(id), 50);
+        expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+        expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+        expect(await testModel.getPaid(id)).to.eq.BN('50');
 
         await rcn.setBalance(accounts[0], 100);
         await rcn.approve(debtEngine.address, 100);
@@ -3391,7 +3387,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             } catch (ignored) {
             }
 
-            assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             // eslint-disable-next-line eqeqeq
             if (await testModel.getPaid(id) == 150) {
                 break;
@@ -3399,7 +3395,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         }
 
         // Should have failed and the status should be 1
-        assert.equal(await debtEngine.getStatus(id), Helper.STATUS_ONGOING);
-        assert.equal(await testModel.getPaid(id), 150);
+        expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+        expect(await testModel.getPaid(id)).to.eq.BN('150');
     });
 });

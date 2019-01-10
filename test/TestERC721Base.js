@@ -4,12 +4,21 @@ const TestERC721ReceiverLegacy = artifacts.require('./utils/test/TestERC721Recei
 const TestERC721ReceiverLegacyRaw = artifacts.require('./utils/test/TestERC721ReceiverLegacyRaw.sol');
 const TestERC721ReceiverMultiple = artifacts.require('./utils/test/TestERC721ReceiverMultiple.sol');
 const TestNoReceive = artifacts.require('./utils/test/TokenLockable.sol');
-const Helper = require('./Helper.js');
 const TestURIProvider = artifacts.require('./utils/test/TestURIProvider.sol');
 
-contract('ERC721 Base', function (accounts) {
-    let token;
+const Helper = require('./Helper.js');
+const BN = web3.utils.BN;
+const expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
 
+function bn (number) {
+    return new BN(number);
+}
+
+contract('ERC721 Base', function (accounts) {
+
+    let token;
     before('Create ERC721 Base', async function () {
         token = await TestERC721.new();
     });
@@ -25,7 +34,7 @@ contract('ERC721 Base', function (accounts) {
         assert.equal(await token.ownerOf(assetId), receiver.address);
         assert.equal(await receiver.lastOperator(), accounts[0]);
         assert.equal(await receiver.lastFrom(), accounts[0]);
-        assert.equal(await receiver.lastTokenId(), assetId);
+        expect(await receiver.lastTokenId()).to.eq.BN(assetId);
     });
 
     it('Test safeTransfer legacy', async function () {
@@ -38,7 +47,7 @@ contract('ERC721 Base', function (accounts) {
 
         assert.equal(await token.ownerOf(assetId), receiver.address);
         assert.equal(await receiver.lastFrom(), accounts[0]);
-        assert.equal(await receiver.lastTokenId(), assetId);
+        expect(await receiver.lastTokenId()).to.eq.BN(assetId);
     });
 
     it('Test safeTransfer legacy witout fallback', async function () {
@@ -51,7 +60,7 @@ contract('ERC721 Base', function (accounts) {
 
         assert.equal(await token.ownerOf(assetId), receiver.address);
         assert.equal(await receiver.lastFrom(), accounts[0]);
-        assert.equal(await receiver.lastTokenId(), assetId);
+        expect(await receiver.lastTokenId()).to.eq.BN(assetId);
     });
 
     it('Test can\'t receive safe transfer', async function () {
@@ -74,10 +83,10 @@ contract('ERC721 Base', function (accounts) {
         await token.safeTransferFrom(accounts[0], receiver.address, assetId);
 
         assert.equal(await token.ownerOf(assetId), receiver.address);
-        assert.equal(await receiver.methodCalled(), 2);
+        expect(await receiver.methodCalled()).to.eq.BN('2');
         assert.equal(await receiver.lastOperator(), accounts[0]);
         assert.equal(await receiver.lastFrom(), accounts[0]);
-        assert.equal(await receiver.lastTokenId(), assetId);
+        expect(await receiver.lastTokenId()).to.eq.BN(assetId);
     });
 
     it('Test approve a third party operator to manage one particular asset', async function () {
@@ -150,9 +159,7 @@ contract('ERC721 Base', function (accounts) {
 
         await token.safeTransferFrom(accounts[0], accounts[2], assetId, { from: accounts[1] });
 
-        const ownerOfAsset = await token.ownerOf(assetId);
-
-        assert.equal(ownerOfAsset, accounts[2]);
+        assert.equal(await token.ownerOf(assetId), accounts[2]);
     });
 
     it('Test functions that get information of tokens and owners', async function () {
@@ -169,10 +176,10 @@ contract('ERC721 Base', function (accounts) {
         const auxOwnerIndex = assetsOfOWner.length - 1;
         const tokenOfOwnerByIndex = await token.tokenOfOwnerByIndex(accounts[0], auxOwnerIndex);
 
-        assert.equal(totalSupply, 11);
+        expect(totalSupply).to.eq.BN('11');
         assert.equal(name, 'Test ERC721');
         assert.equal(symbol, 'TST');
-        assert.equal(parseInt(tokenAtIndex), parseInt(tokenOfOwnerByIndex), 'Tokens Id of owner and allTokens at indexes should be equal');
+        expect(tokenAtIndex).to.eq.BN(tokenOfOwnerByIndex, 'Tokens Id of owner and allTokens at indexes should be equal');
         assert.equal(allTokens.length, 11);
     });
 
@@ -260,8 +267,8 @@ contract('ERC721 Base', function (accounts) {
         const assetsOfAddr5After = await token.balanceOf(accounts[5]);
 
         assert.equal(await token.ownerOf(assetId1), accounts[5]);
-        assert.equal(parseInt(assetsOfAddr1after), parseInt(assetsOfAddr1Before) - 1);
-        assert.equal(parseInt(assetsOfAddr5After), parseInt(assetsOfAddr5Before) + 1);
+        expect(assetsOfAddr1after).to.eq.BN(assetsOfAddr1Before.sub(bn('1')));
+        expect(assetsOfAddr5After).to.eq.BN(assetsOfAddr5Before.add(bn('1')));
     });
 
     it('test to setURIProvider and tokenURI functions', async function () {
