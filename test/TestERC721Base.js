@@ -17,7 +17,6 @@ function bn (number) {
 }
 
 contract('ERC721 Base', function (accounts) {
-
     let token;
     before('Create ERC721 Base', async function () {
         token = await TestERC721.new();
