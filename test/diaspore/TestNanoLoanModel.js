@@ -1,7 +1,10 @@
 const NanoLoanModel = artifacts.require('./diaspore/model/NanoLoanModel.sol');
-const Helper = require('../Helper.js');
 
+const Helper = require('../Helper.js');
 const BN = web3.utils.BN;
+const expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
 
 function bn (number) {
     return new BN(number);
@@ -48,10 +51,10 @@ contract('NanoLoanModel', function (accounts) {
     it('Test get obligations functions', async function () {
         const id = Helper.toBytes32(idCounter++);
         // if the loan its no create the obligation should be 0
-        assert.equal(await model.getClosingObligation(id), '0', 'should be 0');
-        assert.equal(await model.getEstimateObligation(id), '0', 'should be 0');
+        expect(await model.getClosingObligation(id)).to.eq.BN('0', 'should be 0');
+        expect(await model.getEstimateObligation(id)).to.eq.BN('0', 'should be 0');
         const obligation = await model.getObligation(id, 0);
-        assert.equal(obligation.amount, '0', 'should be 0');
+        expect(obligation.amount).to.eq.BN('0', 'should be 0');
         assert.equal(obligation.defined, true, 'should be false');
     });
 
@@ -178,19 +181,19 @@ contract('NanoLoanModel', function (accounts) {
         const timestamp = bn((await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp.toString());
 
         const config = await model.configs(id);
-        assert.equal(config.amount, defaultParams.amount.toString(), 'The amount its wrong');
-        assert.equal(config.interestRate, defaultParams.interestRate.toString(), 'The interest rate its wrong');
-        assert.equal(config.interestRatePunitory, defaultParams.interestRatePunitory.toString(), 'The interest rate punitory its wrong');
-        assert.equal(config.dueTime, timestamp.add(monthInSec).toString(), 'The dues in its wrong');
+        expect(config.amount).to.eq.BN(defaultParams.amount, 'The amount its wrong');
+        expect(config.interestRate).to.eq.BN(defaultParams.interestRate, 'The interest rate its wrong');
+        expect(config.interestRatePunitory).to.eq.BN(defaultParams.interestRatePunitory, 'The interest rate punitory its wrong');
+        expect(config.dueTime).to.eq.BN(timestamp.add(monthInSec), 'The dues in its wrong');
         assert.equal(config.id, id, 'The id its wrong');
 
         const state = await model.states(id);
-        assert.equal(state.paid, '0', 'The paid should be 0');
-        assert.equal(state.interest, '125', 'The interest should be 125');
-        assert.equal(state.punitoryInterest, '0', 'The punitoryInterest should be 0');
+        expect(state.paid).to.eq.BN('0', 'The paid should be 0');
+        expect(state.interest).to.eq.BN('125', 'The interest should be 125');
+        expect(state.punitoryInterest).to.eq.BN('0', 'The punitoryInterest should be 0');
         // we need check the realDelta timestamp
-        // assert.equal(state.interestTimestamp, timestamp.add(cancelableAt).toString(), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
-        assert.equal(state.status, '0', 'The status should not be paid');
+        // expect(state.interestTimestamp).to.eq.BN(timestamp.add(cancelableAt), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
+        expect(state.status).to.eq.BN('0', 'The status should not be paid');
     });
 
     it('Test addPaid without punitory', async function () {
@@ -203,12 +206,12 @@ contract('NanoLoanModel', function (accounts) {
         await model.addPaid(id, 1000, { from: owner });
 
         const state = await model.states(id);
-        assert.equal(state.paid, '1000', 'The paid should be 1000');
-        assert.equal(state.interest, '125', 'The interest should be 125');
-        assert.equal(state.punitoryInterest, '0', 'The punitoryInterest should be 0');
+        expect(state.paid).to.eq.BN('1000', 'The paid should be 1000');
+        expect(state.interest).to.eq.BN('125', 'The interest should be 125');
+        expect(state.punitoryInterest).to.eq.BN('0', 'The punitoryInterest should be 0');
         // we need check the realDelta timestamp
-        // assert.equal(state.interestTimestamp, timestamp.add(cancelableAt).toString(), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
-        assert.equal(state.status, '0', 'The status should not be paid');
+        // expect(state.interestTimestamp).to.eq.BN(timestamp.add(cancelableAt), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
+        expect(state.status).to.eq.BN('0', 'The status should not be paid');
     });
 
     it('Test pay total with interest and interestPunitory', async function () {
@@ -224,12 +227,12 @@ contract('NanoLoanModel', function (accounts) {
         await model.addPaid(id, total, { from: owner });
 
         const state = await model.states(id);
-        assert.equal(state.paid, total.toString(), 'The paid should be 10762');
-        assert.equal(state.interest, interestTotal.toString(), 'The interest should be 250');
-        assert.equal(state.punitoryInterest, interestPTotal.toString(), 'The punitoryInterest should be 512');
+        expect(state.paid).to.eq.BN(total, 'The paid should be 10762');
+        expect(state.interest).to.eq.BN(interestTotal, 'The interest should be 250');
+        expect(state.punitoryInterest).to.eq.BN(interestPTotal, 'The punitoryInterest should be 512');
         // we need check the realDelta timestamp
         // assert.equal(state.interestTimestamp, timestamp.add(cancelableAt).toString(), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
-        assert.equal(state.status, Helper.STATUS_PAID, 'The status should be paid');
+        expect(state.status).to.eq.BN(Helper.STATUS_PAID, 'The status should be paid');
     });
 
     //                                              amount, interest, pInterest, duesIn, d1, v1, d2, v2, d3, v3, d4, v4
@@ -310,8 +313,8 @@ contract('NanoLoanModel', function (accounts) {
             await model.addPaid(id, d4PendingAmount, { from: owner });
 
             const state = await model.states(id);
-            assert.equal(state.paid, d4PendingAmount.toString(), 'The paid should be ' + d4PendingAmount.toString());
-            assert.equal(state.status, Helper.STATUS_PAID, 'The status should be paid');
+            expect(state.paid).to.eq.BN(d4PendingAmount, 'The paid should be ' + d4PendingAmount.toString());
+            expect(state.status).to.eq.BN(Helper.STATUS_PAID, 'The status should be paid');
         };
     };
 });

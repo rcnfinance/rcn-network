@@ -4,8 +4,10 @@ const TestOracle = artifacts.require('./utils/test/TestOracle.sol');
 const TestCosigner = artifacts.require('./utils/test/TestCosigner.sol');
 
 const Helper = require('./Helper.js');
-
 const BN = web3.utils.BN;
+const expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
 
 function bn (number) {
     return new BN(number);
@@ -40,7 +42,8 @@ contract('NanoLoanEngine', function (accounts) {
             metadata,
             { from: from }
         );
-        assert.equal(prevLoans, (await engine.getTotalLoans()).sub(bn('1')).toString(), 'No more than 1 loan should be created in parallel, during tests');
+
+        expect(prevLoans).to.eq.BN((await engine.getTotalLoans()).sub(bn('1')), 'No more than 1 loan should be created in parallel, during tests');
         return (await engine.getTotalLoans()).sub(bn('1'));
     }
 
@@ -52,8 +55,7 @@ contract('NanoLoanEngine', function (accounts) {
 
     it('Should work as a ERC721 token', async () => {
         // Total supply should start at 1
-        let totalSupply = await engine.totalSupply();
-        assert.equal(totalSupply, 0, 'Total supply should start at 0');
+        expect(await engine.totalSupply()).to.eq.BN('0', 'Total supply should start at 0');
 
         // Create 5 loans
         const loanId1 = await createLoan(engine, Helper.address0x, accounts[0], Helper.bytes320x, 4000, Helper.toInterestRate(27), Helper.toInterestRate(40),
@@ -66,37 +68,32 @@ contract('NanoLoanEngine', function (accounts) {
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], 'Loan 4');
 
         // Total supply should remain 0 until one loan activates
-        totalSupply = await engine.totalSupply();
-        assert.equal(totalSupply.toNumber(), 0, 'Total supply be 0');
+        expect(await engine.totalSupply()).to.eq.BN('0', 'Total supply be 0');
 
         // lend 2 loans
         await lendLoan(rcn, engine, accounts[1], loanId1, 4000);
         await lendLoan(rcn, engine, accounts[1], loanId2, 4000);
 
         // Total supply should be 2
-        totalSupply = await engine.totalSupply();
-        assert.equal(totalSupply.toNumber(), 2, 'Should have 2 active loans');
+        expect(await engine.totalSupply()).to.eq.BN('2', 'Should have 2 active loans');
 
         // Check the lender balance
-        const account1balance = await engine.balanceOf(accounts[1]);
-        assert.equal(account1balance.toNumber(), 2, 'Account 1 has 2 loans');
+        expect(await engine.balanceOf(accounts[1])).to.eq.BN('2', 'Account 1 has 2 loans');
 
         // Check the list of loans of account 1
         let allLoans = await engine.tokensOfOwner(accounts[1]);
         assert.equal(allLoans.length, 2, 'Account should have 2 loans');
-        assert.equal(allLoans[0], loanId1.toString(), 'Should have loan 1');
-        assert.equal(allLoans[1], loanId2.toString(), 'Should have loan 2');
+        expect(allLoans[0]).to.eq.BN(loanId1, 'Should have loan 1');
+        expect(allLoans[1]).to.eq.BN(loanId2, 'Should have loan 2');
 
         // lend 1 more loan from another lender
         await lendLoan(rcn, engine, accounts[2], loanId3, 4000);
 
         // Total supply should be 3
-        totalSupply = await engine.totalSupply();
-        assert.equal(totalSupply.toNumber(), 3, 'Should have 3 active loans');
+        expect(await engine.totalSupply()).to.eq.BN('3', 'Should have 3 active loans');
 
         // account 2 should have 1 loan
-        const account2balance = await engine.balanceOf(accounts[2]);
-        assert.equal(account2balance.toNumber(), 1, 'Account 2 has 1 loans');
+        expect(await engine.balanceOf(accounts[2])).to.eq.BN('1', 'Account 2 has 1 loans');
 
         // transfer all loans to account 3
         await engine.transfer(accounts[3], loanId1, { from: accounts[1] });
@@ -104,15 +101,14 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.transfer(accounts[3], loanId3, { from: accounts[2] });
 
         // account 3 should have 3 loans
-        const account3balance = await engine.balanceOf(accounts[3]);
-        assert.equal(account3balance, '3', 'Account 3 has 3 loans');
+        expect(await engine.balanceOf(accounts[3])).to.eq.BN('3', 'Account 3 has 3 loans');
 
         // check all loans of account 3
         let allLoans3 = await engine.tokensOfOwner(accounts[3]);
         assert.equal(allLoans3.length, 3, 'Account should have 3 loans');
-        assert.equal(allLoans3[0], loanId1.toString(), 'Should have loan 1');
-        assert.equal(allLoans3[1], loanId2.toString(), 'Should have loan 2');
-        assert.equal(allLoans3[2], loanId3.toString(), 'Should have loan 3');
+        expect(allLoans3[0]).to.eq.BN(loanId1, 'Should have loan 1');
+        expect(allLoans3[1]).to.eq.BN(loanId2, 'Should have loan 2');
+        expect(allLoans3[2]).to.eq.BN(loanId3, 'Should have loan 3');
 
         // account 1 and 2 should have no loans
         allLoans = await engine.tokensOfOwner(accounts[1]);
@@ -126,12 +122,11 @@ contract('NanoLoanEngine', function (accounts) {
         // check all loans of account 3
         allLoans3 = await engine.tokensOfOwner(accounts[3]);
         assert.equal(allLoans3.length, 2, 'Account should have 2 loans');
-        assert.equal(allLoans3[0], loanId1.toString(), 'Should have loan 1');
-        assert.equal(allLoans3[1], loanId3.toString(), 'Should have loan 3');
+        expect(allLoans3[0]).to.eq.BN(loanId1, 'Should have loan 1');
+        expect(allLoans3[1]).to.eq.BN(loanId3, 'Should have loan 3');
 
         // total supply should have dropped
-        totalSupply = await engine.totalSupply();
-        assert.equal(totalSupply, '2', 'Should have 2 active loans');
+        expect(await engine.totalSupply()).to.eq.BN('2', 'Should have 2 active loans');
 
         // lend a new loan
         await lendLoan(rcn, engine, accounts[5], loanId4, 4000);
@@ -142,13 +137,12 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.pay(loanId1, 8000, accounts[0], [], { from: accounts[0] });
 
         // total supply should have dropped
-        totalSupply = await engine.totalSupply();
-        assert.equal(totalSupply.toNumber(), 2, 'Should have 2 active loans');
+        expect(await engine.totalSupply()).to.eq.BN('2', 'Should have 2 active loans');
 
         // check all loans of account 3
         allLoans3 = await engine.tokensOfOwner(accounts[3]);
         assert.equal(allLoans3.length, 1, 'Account should have 2 loans');
-        assert.equal(allLoans3[0], loanId3.toString(), 'Should have loan 3');
+        expect(allLoans3[0]).to.eq.BN(loanId3, 'Should have loan 3');
 
         // try pull loan witout approval, should fail
         await Helper.tryCatchRevert(() => engine.takeOwnership(loanId3, { from: accounts[2] }), '');
@@ -262,7 +256,7 @@ contract('NanoLoanEngine', function (accounts) {
             ''
         );
 
-        assert.equal(await engine.identifierToIndex(loanId1Identifier), loanId1.toString());
+        expect(await engine.identifierToIndex(loanId1Identifier)).to.eq.BN(loanId1);
         assert.equal(await engine.getIdentifier(loanId1), loanId1Identifier);
 
         // create one a little bit different
@@ -294,8 +288,7 @@ contract('NanoLoanEngine', function (accounts) {
             bn('11').mul(bn('10').pow(bn('20'))),
             'Test'
         );
-
-        assert.equal(await engine.identifierToIndex(loanId2Identifier), ((await engine.getTotalLoans()).sub(bn('1'))).toString());
+        expect(await engine.identifierToIndex(loanId2Identifier)).to.eq.BN((await engine.getTotalLoans()).sub(bn('1')));
         assert.equal(await engine.getIdentifier(loanId2), loanId2Identifier);
     });
 
@@ -333,7 +326,7 @@ contract('NanoLoanEngine', function (accounts) {
 
         await engine.approveLoanIdentifier(loanIdIdentifier, { from: accounts[3] });
 
-        assert.equal(await engine.getIdentifier(loanId), loanIdIdentifier);
+        expect(await engine.getIdentifier(loanId)).to.eq.BN(loanIdIdentifier);
         assert.isTrue(await engine.isApproved(loanId));
     });
 
@@ -369,8 +362,8 @@ contract('NanoLoanEngine', function (accounts) {
 
         await engine.destroyIdentifier(loanIdIdentifier, { from: accounts[3] });
 
-        assert.equal(await engine.getIdentifier(loanId), loanIdIdentifier);
-        assert.equal(await engine.getStatus(loanId), 3);
+        expect(await engine.getIdentifier(loanId)).to.eq.BN(loanIdIdentifier);
+        expect(await engine.getStatus(loanId)).to.eq.BN('3');
     });
 
     it('Should register an approve', async () => {
@@ -439,8 +432,7 @@ contract('NanoLoanEngine', function (accounts) {
         await Helper.tryCatchRevert(() => engine.lend(loanId, [], Helper.address0x, [], { from: accounts[2] }), '');
 
         // check that the status didn't change
-        const status = await engine.getStatus(loanId);
-        assert.equal(status.toNumber(), 0, 'Status should be initial');
+        expect(await engine.getStatus(loanId)).to.eq.BN('0', 'Status should be initial');
     });
 
     it('Should handle a loan with an oracle', async () => {
@@ -472,19 +464,17 @@ contract('NanoLoanEngine', function (accounts) {
         assert.equal(loanOwner, accounts[2], 'The lender should be account 2');
 
         // check the borrower balance
-        const borrowerBalance = await rcn.balanceOf(accounts[1]);
-        assert.equal(borrowerBalance, bn(web3.utils.toWei('1')).mul(bn('6000')).toString(), 'Borrower balance should be 6000 RCN');
+        expect(await rcn.balanceOf(accounts[1])).to.eq.BN(bn(web3.utils.toWei('1')).mul(bn('6000')), 'Borrower balance should be 6000 RCN');
 
         // check the status of the loan
-        let status = await engine.getStatus(loanId);
-        assert.equal(status, '1', 'Status should be lent');
+        expect(await engine.getStatus(loanId)).to.eq.BN('1', 'Status should be lent');
 
         // pay half of the loan
         await rcn.approve(engine.address, web3.utils.toWei('7000'), { from: accounts[1] });
         await engine.pay(loanId, bn(web3.utils.toWei('1')).div(bn('2')), accounts[1], dummyData, { from: accounts[1] });
 
         // check if payment succeded
-        assert.equal(await engine.getLenderBalance(loanId), bn(web3.utils.toWei('1')).div(bn('2')).mul(bn('6000')).toString(), 'The lender should have received 3000 RCN');
+        expect(await engine.getLenderBalance(loanId)).to.eq.BN(bn(web3.utils.toWei('1')).div(bn('2')).mul(bn('6000')), 'The lender should have received 3000 RCN');
 
         // pay the total of the loan
         await Helper.buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
@@ -492,8 +482,7 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.pay(loanId, web3.utils.toWei('1'), accounts[1], dummyData, { from: accounts[1] });
 
         // check the status of the loan, should be paid
-        status = await engine.getStatus(loanId);
-        assert.equal(status, '2', 'Status should be paid');
+        expect(await engine.getStatus(loanId)).to.eq.BN('2', 'Status should be paid');
     });
 
     it('Should handle a loan with an oracle if RCN is more expensive than ETH', async () => {
@@ -526,20 +515,18 @@ contract('NanoLoanEngine', function (accounts) {
         assert.equal(loanOwner, accounts[2], 'The lender should be account 2');
 
         // check the borrower balance
-        const borrowerBalance = await rcn.balanceOf(accounts[1]);
-        assert.equal(borrowerBalance, bn(web3.utils.toWei('1')).div(bn('2')).toString(), 'Borrower balance should be 0.5 RCN');
+        expect(await rcn.balanceOf(accounts[1])).to.eq.BN(bn(web3.utils.toWei('1')).div(bn('2')), 'Borrower balance should be 0.5 RCN');
 
         // check the status of the loan
-        let status = await engine.getStatus(loanId);
-        assert.equal(status, '1', 'Status should be lent');
+        expect(await engine.getStatus(loanId)).to.eq.BN('1', 'Status should be lent');
 
         // pay half of the loan
         const prevLenderBalance = await engine.getLenderBalance(loanId);
         await rcn.approve(engine.address, web3.utils.toWei('7000'), { from: accounts[1] });
-        await engine.pay(loanId, bn(web3.utils.toWei('1')).div(bn('2')).toString(), accounts[1], dummyData, { from: accounts[1] });
+        await engine.pay(loanId, bn(web3.utils.toWei('1')).div(bn('2')), accounts[1], dummyData, { from: accounts[1] });
 
         // check if payment succeded
-        assert.equal(await engine.getLenderBalance(loanId), prevLenderBalance.add(bn(web3.utils.toWei('0.25'))).toString(), 'The lender should have received 0.25 RCN');
+        expect(await engine.getLenderBalance(loanId)).to.eq.BN(prevLenderBalance.add(bn(web3.utils.toWei('0.25'))), 'The lender should have received 0.25 RCN');
 
         // pay the total of the loan
         await Helper.buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
@@ -547,8 +534,7 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.pay(loanId, web3.utils.toWei('1'), accounts[1], dummyData, { from: accounts[1] });
 
         // check the status of the loan, should be paid
-        status = await engine.getStatus(loanId);
-        assert.equal(status, '2', 'Status should be paid');
+        expect(await engine.getStatus(loanId)).to.eq.BN('2', 'Status should be paid');
     });
 
     it('Should handle a loan with an oracle if RCN changes rate', async () => {
@@ -577,16 +563,13 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.lend(loanId, dummyData, Helper.address0x, [], { from: accounts[2] });
 
         // check the lender of the loan
-        const loanOwner = await engine.ownerOf(loanId);
-        assert.equal(loanOwner, accounts[2], 'The lender should be account 2');
+        assert.equal(await engine.ownerOf(loanId), accounts[2], 'The lender should be account 2');
 
         // check the borrower balance
-        const borrowerBalance = await rcn.balanceOf(accounts[1]);
-        assert.equal(borrowerBalance, bn(web3.utils.toWei('1')).mul(bn('6000')).toString(), 'Borrower balance should be 0.5 RCN');
+        expect(await rcn.balanceOf(accounts[1])).to.eq.BN(bn(web3.utils.toWei('1')).mul(bn('6000')), 'Borrower balance should be 0.5 RCN');
 
         // check the status of the loan
-        let status = await engine.getStatus(loanId);
-        assert.equal(status, '1', 'Status should be lent');
+        expect(await engine.getStatus(loanId)).to.eq.BN('1', 'Status should be lent');
 
         // load new rate, RCN is more expensive now
         dummyData = await oracle.dummyDataBytes2();
@@ -596,7 +579,7 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.pay(loanId, bn(web3.utils.toWei('1')).div(bn('2')), accounts[1], dummyData, { from: accounts[1] });
 
         // check if payment succeded
-        assert.equal(await engine.getLenderBalance(loanId), web3.utils.toWei('0.25'), 'The lender should have received 3000 RCN');
+        expect(await engine.getLenderBalance(loanId)).to.eq.BN(web3.utils.toWei('0.25'), 'The lender should have received 3000 RCN');
 
         // pay the total of the loan
         await Helper.buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
@@ -604,8 +587,7 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.pay(loanId, web3.utils.toWei('1'), accounts[1], dummyData, { from: accounts[1] });
 
         // check the status of the loan, should be paid
-        status = await engine.getStatus(loanId);
-        assert.equal(status, '2', 'Status should be paid');
+        expect(await engine.getStatus(loanId)).to.eq.BN('2', 'Status should be paid');
     });
 
     it('Should fail if the oracle has the wrong data', async () => {
@@ -623,8 +605,7 @@ contract('NanoLoanEngine', function (accounts) {
         await Helper.tryCatchRevert(() => engine.lend(loanId, [0x23, 0x12, 0x4a], Helper.address0x, [], { from: accounts[2] }), '');
 
         // check that the status didn't change
-        const status = await engine.getStatus(loanId);
-        assert.equal(status.toNumber(), 0, 'Status should be initial');
+        expect(await engine.getStatus(loanId)).to.eq.BN('0', 'Status should be initial');
     });
 
     it('Should not allow the withdraw of lender tokens, but permit a emergency withdrawal', async () => {
@@ -657,13 +638,11 @@ contract('NanoLoanEngine', function (accounts) {
         // lender trying to withdraw more of his balance should fail
         await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[2]), { from: accounts[2] });
         await Helper.tryCatchRevert(() => engine.withdrawal(loanId, accounts[2], web3.utils.toWei('2.5'), { from: accounts[2] }), '');
-        let lenderBalance = await rcn.balanceOf(accounts[2]);
-        assert.equal(lenderBalance, 0, 'Lender should have no balance');
+        expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0', 'Lender should have no balance');
 
         // withdraw part of the lender balance and check it
         await engine.withdrawal(loanId, accounts[2], 2000, { from: accounts[2] });
-        lenderBalance = await rcn.balanceOf(accounts[2]);
-        assert.equal(lenderBalance, '2000', 'Lender should have his RCN');
+        expect(await rcn.balanceOf(accounts[2])).to.eq.BN('2000', 'Lender should have his RCN');
     });
 
     it('Test fix error pay all', async () => {
@@ -692,16 +671,13 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.lend(loanId, [], cosigner.address, cosignerData, { from: accounts[1] });
 
         // cosigner should have 1 RCN
-        const cosignerBalance = await rcn.balanceOf(cosigner.address);
-        assert.equal(cosignerBalance, web3.utils.toWei('1').toString(), 'Cosigner should have 1 RCN');
+        expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(web3.utils.toWei('1'), 'Cosigner should have 1 RCN');
 
         // the cosigner of the loan should be the test cosigner
-        const loanCosigner = await engine.getCosigner(loanId);
-        assert.equal(loanCosigner, cosigner.address, 'The cosigner should be the test cosigner');
+        assert.equal(await engine.getCosigner(loanId), cosigner.address, 'The cosigner should be the test cosigner');
 
         // the loan should be in lent status
-        const loanStatus = await engine.getStatus(loanId);
-        assert.equal(loanStatus, '1', 'The status should be lent');
+        expect(await engine.getStatus(loanId)).to.eq.BN('1', 'The status should be lent');
     });
 
     it('Should not work with the wrong cosigner data', async () => {
@@ -710,8 +686,7 @@ contract('NanoLoanEngine', function (accounts) {
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '2');
 
         // cosigner should be empty
-        let loanCosigner = await engine.getCosigner(loanId);
-        assert.equal(loanCosigner, Helper.address0x, 'Cosigner should be empty');
+        assert.equal(await engine.getCosigner(loanId), Helper.address0x, 'Cosigner should be empty');
 
         // get cosigner data
         const cosignerData = await cosigner.badData();
@@ -722,15 +697,13 @@ contract('NanoLoanEngine', function (accounts) {
         await Helper.tryCatchRevert(() => engine.lend(loanId, [], cosigner.address, cosignerData, { from: accounts[1] }), '');
 
         // cosigner should have 0 RCN
-        assert.equal(await rcn.balanceOf(cosigner.address), prevCosignerBalance.toString());
+        expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(prevCosignerBalance);
 
         // the cosigner of the loan should not be the test cosigner
-        loanCosigner = await engine.getCosigner(loanId);
-        assert.equal(loanCosigner, Helper.address0x, 'The cosigner should not be the test cosigner');
+        assert.equal(await engine.getCosigner(loanId), Helper.address0x, 'The cosigner should not be the test cosigner');
 
         // the loan should be in initial status
-        const loanStatus = await engine.getStatus(loanId);
-        assert.equal(loanStatus, 0, 'The status should be initial');
+        expect(await engine.getStatus(loanId)).to.eq.BN('0', 'The status should be initial');
     });
 
     it('Should withdraw batch', async function () {
@@ -757,11 +730,11 @@ contract('NanoLoanEngine', function (accounts) {
 
         // Withdraw 3 loans
         await engine.withdrawalList([id1, id2, id3], accounts[4], { from: accounts[2] });
-        assert.equal(await rcn.balanceOf(accounts[4]), bn(web3.utils.toWei('35')).div(bn('10')).toString());
+        expect(await rcn.balanceOf(accounts[4])).to.eq.BN(bn(web3.utils.toWei('35')).div(bn('10')));
 
         // Multiples withdrawal should have no effect
         await engine.withdrawalList([id1, id3], accounts[4], { from: accounts[2] });
-        assert.equal(await rcn.balanceOf(accounts[4]), bn(web3.utils.toWei('35')).div(bn('10')).toString());
+        expect(await rcn.balanceOf(accounts[4])).to.eq.BN(bn(web3.utils.toWei('35')).div(bn('10')));
     });
 
     it('Should withdraw only from owned loans', async function () {
@@ -823,11 +796,11 @@ contract('NanoLoanEngine', function (accounts) {
 
         // Withdraw 3 loans
         await engine.withdrawalList([id1, id2, id3], accounts[4], { from: accounts[2] });
-        assert.equal(await rcn.balanceOf(accounts[4]), web3.utils.toWei('2.5'));
+        expect(await rcn.balanceOf(accounts[4])).to.eq.BN(web3.utils.toWei('2.5'));
 
         // Multiples withdrawal should have no effect
         await engine.withdrawalList([id1, id3], accounts[4], { from: accounts[2] });
-        assert.equal(await rcn.balanceOf(accounts[4]), web3.utils.toWei('2.5'));
+        expect(await rcn.balanceOf(accounts[4])).to.eq.BN(web3.utils.toWei('2.5'));
     });
 
     it('Should remove approve after transfer', async function () {
@@ -1108,20 +1081,20 @@ contract('NanoLoanEngine', function (accounts) {
             const approvedTransfer = await engine.getApproved(loanId);
             const expirationRequest = await engine.getExpirationRequest(loanId);
 
-            assert.equal(expirationRequest, bn('10').pow(bn('21')).toString(), 'Should had the defined expiration');
+            expect(expirationRequest).to.eq.BN(bn('10').pow(bn('21')), 'Should had the defined expiration');
             assert.equal(approvedTransfer, Helper.address0x, 'Approved transfer should start empty');
-            assert.equal(cancelableAt, 0, 'Cancelable at should be 0');
-            assert.equal(lenderBalance, 0, 'Lender balance should start at 0');
-            assert.equal(dueTime, 0, 'Due time should start at 0');
-            assert.equal(loanDuesIn, duesIn.toString(), 'Dues in should be the defined');
-            assert.equal(interestRate, interest.toString(), 'Interest rate should be the defined');
-            assert.equal(interestRatePunitory, punitoryInterest.toString(), 'Interest rate punitory should be the defined');
-            assert.equal(paid, 0, 'Paid should start at 0');
-            assert.equal(interestTimestamp, 0, 'Interest timestamp should start at 0');
-            assert.equal(loanInterest, 0, 'Interest should start at 0');
-            assert.equal(loanPunitoryInterest, 0, 'Punitory interest should start at 0');
-            assert.equal(loanAmount, amount.toString(), 'Amount should be the defined amount');
-            assert.equal(status, 0, 'Status should be initial');
+            expect(cancelableAt).to.eq.BN('0', 'Cancelable at should be 0');
+            expect(lenderBalance).to.eq.BN('0', 'Lender balance should start at 0');
+            expect(dueTime).to.eq.BN('0', 'Due time should start at 0');
+            expect(loanDuesIn).to.eq.BN(duesIn, 'Dues in should be the defined');
+            expect(interestRate).to.eq.BN(interest, 'Interest rate should be the defined');
+            expect(interestRatePunitory).to.eq.BN(punitoryInterest, 'Interest rate punitory should be the defined');
+            expect(paid).to.eq.BN('0', 'Paid should start at 0');
+            expect(interestTimestamp).to.eq.BN('0', 'Interest timestamp should start at 0');
+            expect(loanInterest).to.eq.BN('0', 'Interest should start at 0');
+            expect(loanPunitoryInterest).to.eq.BN('0', 'Punitory interest should start at 0');
+            expect(loanAmount).to.eq.BN(amount, 'Amount should be the defined amount');
+            expect(status).to.eq.BN('0', 'Status should be initial');
             assert.equal(cosigner, Helper.address0x, 'Cosigner should be empty');
             assert.equal(borrower, accounts[1], 'Borrower should be account 1');
             assert.equal(creator, accounts[1], 'Creator should be account 0');
@@ -1142,7 +1115,7 @@ contract('NanoLoanEngine', function (accounts) {
 
             // check that the borrower received the RCN
             const received = (await rcn.balanceOf(accounts[1])).sub(prevBal);
-            assert.equal(received, amount.toString(), 'The borrower should have the RCN');
+            expect(received).to.eq.BN(amount, 'The borrower should have the RCN');
 
             // forward time, d1 days
             await Helper.increaseTime(d1.mul(secondsInDay).toNumber());
@@ -1216,20 +1189,20 @@ contract('NanoLoanEngine', function (accounts) {
             const approvedTransfer = await engine.getApproved(loanId);
             const expirationRequest = await engine.getExpirationRequest(loanId);
 
-            assert.equal(expirationRequest, bn('10').pow(bn('21')).toString(), 'Should had the defined expiration');
+            expect(expirationRequest).to.eq.BN(bn('10').pow(bn('21')), 'Should had the defined expiration');
             assert.equal(approvedTransfer, Helper.address0x, 'Approved transfer should start empty');
-            assert.equal(cancelableAt, d1.mul(secondsInDay).toString(), 'Cancelable at should be 0');
-            assert.equal(lenderBalance, 0, 'Lender balance should start at 0');
-            assert.equal(dueTime, 0, 'Due time should start at 0');
-            assert.equal(loanDuesIn, duesIn.toString(), 'Dues in should be the defined');
-            assert.equal(interestRate, interest.toString(), 'Interest rate should be the defined');
-            assert.equal(interestRatePunitory, punitoryInterest.toString(), 'Interest rate punitory should be the defined');
-            assert.equal(paid, 0, 'Paid should start at 0');
-            assert.equal(interestTimestamp, 0, 'Interest timestamp should start at 0');
-            assert.equal(loanInterest, 0, 'Interest should start at 0');
-            assert.equal(loanPunitoryInterest, 0, 'Punitory interest should start at 0');
-            assert.equal(loanAmount, amount.toString(), 'Amount should be the defined amount');
-            assert.equal(status, 0, 'Status should be initial');
+            expect(cancelableAt).to.eq.BN(d1.mul(secondsInDay), 'Cancelable at should be 0');
+            expect(lenderBalance).to.eq.BN('0', 'Lender balance should start at 0');
+            expect(dueTime).to.eq.BN('0', 'Due time should start at 0');
+            expect(loanDuesIn).to.eq.BN(duesIn, 'Dues in should be the defined');
+            expect(interestRate).to.eq.BN(interest, 'Interest rate should be the defined');
+            expect(interestRatePunitory).to.eq.BN(punitoryInterest, 'Interest rate punitory should be the defined');
+            expect(paid).to.eq.BN('0', 'Paid should start at 0');
+            expect(interestTimestamp).to.eq.BN('0', 'Interest timestamp should start at 0');
+            expect(loanInterest).to.eq.BN('0', 'Interest should start at 0');
+            expect(loanPunitoryInterest).to.eq.BN('0', 'Punitory interest should start at 0');
+            expect(loanAmount).to.eq.BN(amount, 'Amount should be the defined amount');
+            expect(status).to.eq.BN('0', 'Status should be initial');
             assert.equal(cosigner, Helper.address0x, 'Cosigner should be empty');
             assert.equal(borrower, accounts[1], 'Borrower should be account 1');
             assert.equal(creator, accounts[1], 'Creator should be account 0');
@@ -1250,7 +1223,7 @@ contract('NanoLoanEngine', function (accounts) {
 
             // check that the borrower received the RCN
             const received = (await rcn.balanceOf(accounts[1])).sub(prevBal);
-            assert.equal(received, amount.toString(), 'The borrower should have the RCN');
+            expect(received).to.eq.BN(amount, 'The borrower should have the RCN');
 
             // check cancelable at assigned value
             let d1PendingAmount = await engine.getRawPendingAmount(loanId);

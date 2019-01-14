@@ -36,6 +36,7 @@
   "homepage": "https://ripiocredit.network",
   "devDependencies": {
     "ethlint": "^1.2.0",
+    "bn-chai": "^1.0.1",
     "bn.js": "^4.11.8",
     "chai": "^4.2.0",
     "coveralls": "^3.0.1",

@@ -47,5 +47,6 @@ contract LoanApprover is IERC165 {
         bytes calldata _loanData,
         bool _isBorrower,
         uint256 _id
-    ) external returns (bytes32);
+    )
+        external returns (bytes32);
 }
