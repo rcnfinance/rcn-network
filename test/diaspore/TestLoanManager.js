@@ -1314,7 +1314,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const tokens = bn('400023333566612312000000');
             const equivalent = bn('82711175222132156792');
 
-            const oracleData = await oracle.encodeRate(tokens.toString(), equivalent.toString());
+            const oracleData = await oracle.encodeRate(tokens, equivalent);
 
             const amountETH = bn('6545');
             const amountRCN = amountETH.mul(tokens).div(equivalent);
@@ -2575,7 +2575,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
             const tokens = bn('400023333566612312000000');
             const equivalent = bn('82711175222132156792');
-            const oracleData = await oracle.encodeRate(tokens.toString(), equivalent.toString());
+            const oracleData = await oracle.encodeRate(tokens, equivalent);
 
             const amountETH = bn('3320');
             const amountRCN = amountETH.mul(tokens).div(equivalent);
