@@ -156,3 +156,17 @@ module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
         reason
     );
 };
+
+module.exports.call = async (_from, _to, functionSignature, ...hexArgs) => {
+    const signature = web3.utils.soliditySha3({ t: 'string', v: functionSignature }).slice(0, 10);
+    const dataArgsFunction = [];
+    for (let i = 0; i < hexArgs.length; i++) {
+        dataArgsFunction.push(web3.utils.padLeft(hexArgs[i], 64).slice(2));
+    }
+
+    return web3.eth.call({
+        to: _to,
+        data: signature + dataArgsFunction,
+        from: _from,
+    });
+}
