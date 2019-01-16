@@ -48,131 +48,123 @@ contract('NanoLoanModel', function (accounts) {
         );
     });
 
-    it('Test get obligations functions', async function () {
-        const id = Helper.toBytes32(idCounter++);
-        // if the loan its no create the obligation should be 0
-        expect(await model.getClosingObligation(id)).to.eq.BN('0', 'should be 0');
-        expect(await model.getEstimateObligation(id)).to.eq.BN('0', 'should be 0');
-        const obligation = await model.getObligation(id, 0);
-        expect(obligation.amount).to.eq.BN('0', 'should be 0');
-        assert.equal(obligation.defined, true, 'should be false');
+    describe('Validate function', function () {
+        it('Sould validate a data', async function () {
+            const data = await model.encodeData(amount, interestRate, interestRatePunitory, monthInSec, cancelableAt);
+
+            assert.isOk(await model.validate(data));
+        });
+
+        it('Try validate a wrong data length', async function () {
+            const data = await model.encodeData(amount, interestRate, interestRatePunitory, monthInSec, cancelableAt);
+
+            await Helper.tryCatchRevert(
+                () => model.validate(
+                    data.slice(0, -2)
+                ),
+                'Invalid data length'
+            );
+
+            await Helper.tryCatchRevert(
+                () => model.validate(
+                    data + '00'
+                ),
+                'Invalid data length'
+            );
+        });
+
+        it('Try validate a data with cancelable at more than dues in', async function () {
+            const data = await model.encodeData(amount, interestRate, interestRatePunitory, 1, 2);
+
+            await Helper.tryCatchRevert(
+                () => model.validate(
+                    data
+                ),
+                'The cancelableAt should be less or equal than duesIn'
+            );
+        });
+
+        it('Try validate a data with interest rate less than 1000', async function () {
+            const data = await model.encodeData(amount, 1000, interestRatePunitory, monthInSec, cancelableAt);
+
+            await Helper.tryCatchRevert(
+                () => model.validate(
+                    data
+                ),
+                'Interest rate too high'
+            );
+        });
+
+        it('Try validate a data with interest rate punitory less than 1000', async function () {
+            const data = await model.encodeData(amount, interestRate, 1000, monthInSec, cancelableAt);
+
+            await Helper.tryCatchRevert(
+                () => model.validate(
+                    data
+                ),
+                'Punitory interest rate too high'
+            );
+        });
+
+        it('Try validate a data with amount 0', async function () {
+            const data = await model.encodeData(0, interestRate, interestRatePunitory, monthInSec, cancelableAt);
+
+            await Helper.tryCatchRevert(
+                () => model.validate(
+                    data
+                ),
+                'amount can\'t be 0'
+            );
+        });
+
+        it('Try validate a data with dues in equal 0', async function () {
+            const data = await model.encodeData(amount, interestRate, interestRatePunitory, 0, 0);
+
+            await Helper.tryCatchRevert(
+                () => model.validate(
+                    data
+                ),
+                'duesIn should be not 0 or overflow now plus duesIn'
+            );
+        });
+
+        it('Try validate a data with Max value dues in to try make overflow', async function () {
+            const data = await model.encodeData(amount, interestRate, interestRatePunitory, maxUint(64), cancelableAt);
+            await Helper.tryCatchRevert(
+                () => model.validate(
+                    data
+                ),
+                'duesIn should be not 0 or overflow now plus duesIn'
+            );
+        });
     });
 
-    it('Test validate function', async function () {
-        let data;
-        // Try validate:
-        // a wrong data length
-        data = await model.encodeData(
-            amount,
-            interestRate,
-            interestRatePunitory,
-            monthInSec,
-            cancelableAt
-        );
+    describe('Get obligation functions(_getObligation(bytes32,uint64))', function () {
+        it('If the loan its no create the obligation should be 0', async function () {
+            const id = Helper.toBytes32(idCounter++);
 
-        await Helper.tryCatchRevert(
-            () => model.validate(
-                data.slice(0, -2)
-            ),
-            'Invalid data length'
-        );
+            expect(await model.getClosingObligation(id)).to.eq.BN('0', 'should be 0');
+            expect(await model.getEstimateObligation(id)).to.eq.BN('0', 'should be 0');
+            const obligation = await model.getObligation(id, 0);
+            expect(obligation.amount).to.eq.BN('0', 'should be 0');
+            assert.equal(obligation.defined, true, 'should be false');
+        });
 
-        await Helper.tryCatchRevert(
-            () => model.validate(
-                data + '00'
-            ),
-            'Invalid data length'
-        );
+        it('Test _getObligation', async function () {
+            // TODO test _getObligation(bytes32 id, uint256 timestamp)
+        });
 
-        // a data with cancelable at more than dues in
-        data = await model.encodeData(
-            amount,
-            interestRate,
-            interestRatePunitory,
-            1,
-            2
-        );
-        await Helper.tryCatchRevert(
-            () => model.validate(
-                data
-            ),
-            'The cancelableAt should be less or equal than duesIn'
-        );
+        it('Test _getObligation', async function () {
+            // TODO test _getObligation(bytes32 id, uint256 timestamp) a loan with state.status == STATUS_PAID should be return 0
+        });
 
-        // a data with interest rate less than 1000
-        data = await model.encodeData(
-            amount,
-            1000,
-            interestRatePunitory,
-            monthInSec,
-            cancelableAt
-        );
-        await Helper.tryCatchRevert(
-            () => model.validate(
-                data
-            ),
-            'Interest rate too high'
-        );
+        it('Test getObligation', async function () {
+            // TODO test getObligation(bytes32 id, uint64 timestamp)
+        });
 
-        // a data with interest rate punitory less than 1000
-        data = await model.encodeData(
-            amount,
-            interestRate,
-            1000,
-            monthInSec,
-            cancelableAt
-        );
-        await Helper.tryCatchRevert(
-            () => model.validate(
-                data
-            ),
-            'Punitory interest rate too high'
-        );
-
-        // a data with amount 0
-        data = await model.encodeData(
-            0,
-            interestRate,
-            interestRatePunitory,
-            monthInSec,
-            cancelableAt
-        );
-        await Helper.tryCatchRevert(
-            () => model.validate(
-                data
-            ),
-            'amount can\'t be 0'
-        );
-
-        // data with dues in equal 0
-        data = await model.encodeData(
-            amount,
-            interestRate,
-            interestRatePunitory,
-            0,
-            0
-        );
-        await Helper.tryCatchRevert(
-            () => model.validate(
-                data
-            ),
-            'duesIn should be not 0 or overflow now plus duesIn'
-        );
-
-        // data with Max value dues in to try make overflow
-        data = await model.encodeData(
-            amount,
-            interestRate,
-            interestRatePunitory,
-            maxUint(64),
-            cancelableAt
-        );
-        await Helper.tryCatchRevert(
-            () => model.validate(
-                data
-            ),
-            'duesIn should be not 0 or overflow now plus duesIn'
-        );
+        it('Try getObligation', async function () {
+            // TODO try broke getObligation(bytes32 id, uint64 timestamp) with id inexistent and high timestamp o low timestamp
+        });
     });
 
     it('Test create function', async function () {
