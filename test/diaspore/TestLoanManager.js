@@ -1373,7 +1373,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('123123');
             const amount = bn('5545');
-            const cosignerCost = (await cosigner.getDummyCost());
+            const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
             const expiration = (await Helper.getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
