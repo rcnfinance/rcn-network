@@ -120,7 +120,7 @@ contract ERC721Base is ERC165 {
     * @notice Enumerate valid NFTs
     * @dev Throws if `_index` >= `totalSupply()`.
     * @param _index A counter less than `totalSupply()`
-    * @return The token identifier for the `_index`th NFT,
+    * @return The token identifier for the `_index` of the NFT,
     *  (sort order not specified)
     */
     function tokenByIndex(uint256 _index) external view returns (uint256) {
@@ -134,7 +134,7 @@ contract ERC721Base is ERC165 {
     *  `_owner` is the zero address, representing invalid NFTs.
     * @param _owner An address where we are interested in NFTs owned by them
     * @param _index A counter less than `balanceOf(_owner)`
-    * @return The token identifier for the `_index`th NFT assigned to `_owner`,
+    * @return The token identifier for the `_index` of the NFT assigned to `_owner`,
     *   (sort order not specified)
     */
     function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256) {

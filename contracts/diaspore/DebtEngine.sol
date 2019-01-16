@@ -389,8 +389,6 @@ contract DebtEngine is ERC721Base {
                 _tokens: paidTokens[i]
             });
         }
-
-        return (paid, paidTokens);
     }
 
     function payTokenBatch(
@@ -433,8 +431,6 @@ contract DebtEngine is ERC721Base {
                 _tokens: paidTokens[i]
             });
         }
-
-        return (paid, paidTokens);
     }
 
     /**

@@ -36,6 +36,7 @@
   "homepage": "https://ripiocredit.network",
   "devDependencies": {
     "ethlint": "^1.2.0",
+    "bn-chai": "^1.0.1",
     "bn.js": "^4.11.8",
     "chai": "^4.2.0",
     "coveralls": "^3.0.1",
@@ -49,7 +50,7 @@
     "ethjs-abi": "^0.2.1",
     "ganache-cli": "^6.1.8",
     "ganache-cli-coverage": "agusx1211/ganache-cli#coverage",
-    "solidity-coverage": "^0.5.4",
+    "solidity-coverage": "rotcivegaf/solidity-coverage",
     "solium": "^1.1.8",
     "truffle": "^5.0.0",
     "truffle-hdwallet-provider": "0.0.5",
