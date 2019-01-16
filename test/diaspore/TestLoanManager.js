@@ -17,10 +17,6 @@ function bn (number) {
     return new BN(number);
 }
 
-function bytes32ToAddress (bytes32) {
-    return web3.utils.toChecksumAddress('0x' + bytes32.slice(26));
-};
-
 const MAX_UINT256 = bn('2').pow(bn('256')).sub(bn('1'));
 
 contract('Test LoanManager Diaspore', function (accounts) {
@@ -214,61 +210,46 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             assert.equal(await loanManager.getBorrower(id), borrower);
-            const callGetBorrower = bytes32ToAddress(await Helper.call(accounts[0], loanManager.address, 'getBorrower(bytes32)', id));
-            assert.equal(callGetBorrower, borrower);
+            assert.equal(await loanManager.methods['getBorrower(bytes32)'](id), borrower);
 
             assert.equal(await loanManager.getCreator(id), creator);
-            const callGetCreator = bytes32ToAddress(await Helper.call(accounts[0], loanManager.address, 'getCreator(bytes32)', id));
-            assert.equal(callGetCreator, creator);
+            assert.equal(await loanManager.methods['getCreator(bytes32)'](id), creator);
 
             assert.equal(await loanManager.getOracle(id), oracle.address);
-            const callGetOracle = bytes32ToAddress(await Helper.call(accounts[0], loanManager.address, 'getOracle(bytes32)', id));
-            assert.equal(callGetOracle, oracle.address);
+            assert.equal(await loanManager.methods['getOracle(bytes32)'](id), oracle.address);
 
             assert.equal(await loanManager.getCosigner(id), cosigner.address);
-            const callGetCosigner = bytes32ToAddress(await Helper.call(accounts[0], loanManager.address, 'getCosigner(bytes32)', id));
-            assert.equal(callGetCosigner, cosigner.address);
+            assert.equal(await loanManager.methods['getCosigner(bytes32)'](id), cosigner.address);
 
             assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
-            const callGetCurrency = await Helper.call(accounts[0], loanManager.address, 'getCurrency(bytes32)', id);
-            assert.equal(callGetCurrency, Helper.bytes320x);
+            assert.equal(await loanManager.methods['getCurrency(bytes32)'](id), Helper.bytes320x);
 
             expect(await loanManager.getAmount(id)).to.eq.BN('1');
-            const callGetAmount = await Helper.call(accounts[0], loanManager.address, 'getAmount(bytes32)', id);
-            expect(web3.utils.toBN(callGetAmount)).to.eq.BN('1');
+            expect(await loanManager.methods['getAmount(bytes32)'](id)).to.eq.BN('1');
 
             expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
-            const callGetExpirationRequest = await Helper.call(accounts[0], loanManager.address, 'getExpirationRequest(bytes32)', id);
-            expect(web3.utils.toBN(callGetExpirationRequest)).to.eq.BN(expiration);
+            expect(await loanManager.methods['getExpirationRequest(bytes32)'](id)).to.eq.BN(expiration);
 
             assert.equal(await loanManager.getApproved(id), true);
-            const callGetApproved = await Helper.call(accounts[0], loanManager.address, 'getApproved(bytes32)', id);
-            expect(web3.utils.toBN(callGetApproved)).to.eq.BN('1');
+            assert.equal(await loanManager.methods['getApproved(bytes32)'](id), true);
 
             expect(await loanManager.getDueTime(id)).to.eq.BN(expiration);
-            const callGetDueTime = await Helper.call(accounts[0], loanManager.address, 'getDueTime(bytes32)', id);
-            expect(web3.utils.toBN(callGetDueTime)).to.eq.BN(expiration);
+            expect(await loanManager.methods['getDueTime(bytes32)'](id)).to.eq.BN(expiration);
 
             expect(await loanManager.getClosingObligation(id)).to.eq.BN(amount);
-            const callGetClosingObligation = await Helper.call(accounts[0], loanManager.address, 'getClosingObligation(bytes32)', id);
-            expect(web3.utils.toBN(callGetClosingObligation)).to.eq.BN(amount);
+            expect(await loanManager.methods['getClosingObligation(bytes32)'](id)).to.eq.BN(amount);
 
             assert.equal(await loanManager.getLoanData(id), loanData);
-            // slice(2 for 0x + 64 to init of data + 64 of length of data, 32 of total + 16 of dueTime)
-            const callGetLoanData = '0x' + (await Helper.call(accounts[0], loanManager.address, 'getLoanData(bytes32)', id)).slice(130, 130 + 48);
-            assert.equal(callGetLoanData, loanData);
+            assert.equal(await loanManager.methods['getLoanData(bytes32)'](id), loanData);
 
             assert.equal(await loanManager.isApproved(id), true);
-            const callIsApproved = await Helper.call(accounts[0], loanManager.address, 'isApproved(bytes32)', id);
-            expect(web3.utils.toBN(callIsApproved)).to.eq.BN('1');
+            assert.equal(await loanManager.methods['isApproved(bytes32)'](id), true);
 
             expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
-            const callGetStatus = await Helper.call(accounts[0], loanManager.address, 'getStatus(bytes32)', id);
-            expect(web3.utils.toBN(callGetStatus)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.methods['getStatus(bytes32)'](id)).to.eq.BN(Helper.STATUS_ONGOING);
 
             assert.equal(await loanManager.ownerOf(id), lender);
-            const callOwnerOf = bytes32ToAddress(await Helper.call(accounts[0], loanManager.address, 'ownerOf(bytes32)', id));
-            assert.equal(callOwnerOf, lender);
+            assert.equal(await loanManager.methods['ownerOf(bytes32)'](id), lender);
         });
     });
 
