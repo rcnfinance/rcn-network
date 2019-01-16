@@ -394,8 +394,6 @@ contract DebtEngine is ERC721Base, Ownable {
                 _tokens: paidTokens[i]
             });
         }
-
-        return (paid, paidTokens);
     }
 
     function payTokenBatch(
@@ -438,8 +436,6 @@ contract DebtEngine is ERC721Base, Ownable {
                 _tokens: paidTokens[i]
             });
         }
-
-        return (paid, paidTokens);
     }
 
     /**

@@ -1,8 +1,15 @@
 const ReferenceOracle = artifacts.require('./examples/ReferenceOracle.sol');
 const Helper = require('./Helper.js');
 
-// global variables
-/// ///////////////
+const BN = web3.utils.BN;
+const expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
+
+function bn (number) {
+    return new BN(number);
+}
+
 // contracts
 let oracle;
 // accounts
@@ -51,22 +58,26 @@ contract('ReferenceOracle', function (accounts) {
     });
 
     it('Test: getRate()', async () => {
-    // only view
+        // only view
         let vrs = await signGetRate(oracle, admin, BTC);
         let data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
         let rate = await oracle.getRate.call(BTC.id, data);
-        assert.equal(web3.utils.toDecimal(rate[0]), BTC.rate.toString());
-        assert.equal(web3.utils.toDecimal(rate[1]), BTC.decimals.toString());
+
+        expect(rate[0]).to.eq.BN(web3.utils.toDecimal(BTC.rate));
+        expect(rate[1]).to.eq.BN(web3.utils.toDecimal(BTC.decimals));
 
         BTC.rate = Helper.toBytes32(500);
         vrs = await signGetRate(oracle, admin, BTC);
         data = Helper.arrayToBytesOfBytes32([BTC.timestamp, BTC.rate, BTC.decimals, vrs[0], vrs[1], vrs[2]]);
         rate = await oracle.getRate.call(BTC.id, data);
-        assert.equal(web3.utils.toDecimal(rate[0]), BTC.rate.toString());
-        assert.equal(web3.utils.toDecimal(rate[1]), BTC.decimals.toString());
+
+        expect(rate[0]).to.eq.BN(web3.utils.toDecimal(BTC.rate));
+        expect(rate[1]).to.eq.BN(web3.utils.toDecimal(BTC.decimals));
 
         let cache = await oracle.cache(BTC.id);
-        for (let i = 0; i < cache.length; i++) { assert.equal(cache[i].toString(), 0); }
+        for (let i = 0; i < cache.length; i++) {
+            expect(cache[i]).to.eq.BN('0');
+        }
         // change cache
         BTC.rate = Helper.toBytes32(650);
         vrs = await signGetRate(oracle, admin, BTC);
@@ -77,14 +88,14 @@ contract('ReferenceOracle', function (accounts) {
         assert.equal(args.requester, user);
         assert.equal(args.currency, BTC.id);
         assert.equal(args.signer, admin);
-        assert.equal(args.requestTimestamp, BTC.timestamp);
-        assert.equal(args.rate.toString(), web3.utils.toDecimal(BTC.rate).toString());
-        assert.equal(args.decimals.toString(), web3.utils.toDecimal(BTC.decimals).toString());
+        expect(args.requestTimestamp).to.eq.BN(BTC.timestamp);
+        expect(args.rate).to.eq.BN(web3.utils.toDecimal(BTC.rate));
+        expect(args.decimals).to.eq.BN(web3.utils.toDecimal(BTC.decimals));
 
         cache = await oracle.cache(BTC.id);
-        assert.equal(cache[0].toString(), web3.utils.toDecimal(BTC.timestamp).toString());
-        assert.equal(cache[1].toString(), web3.utils.toDecimal(BTC.rate).toString());
-        assert.equal(cache[2].toString(), web3.utils.toDecimal(BTC.decimals).toString());
+        expect(cache[0]).to.eq.BN(web3.utils.toDecimal(BTC.timestamp));
+        expect(cache[1]).to.eq.BN(web3.utils.toDecimal(BTC.rate));
+        expect(cache[2]).to.eq.BN(web3.utils.toDecimal(BTC.decimals));
     });
 
     it('Test: getRate() try hack', async () => {
@@ -116,10 +127,10 @@ contract('ReferenceOracle', function (accounts) {
         assert.equal(tx.logs[0].event, 'CacheHit');
         assert.equal(args.requester, user);
         assert.equal(args.currency, BTC.id);
-        assert.equal(args.requestTimestamp.toString(), BTCold.timestamp);
-        assert.equal(args.deliverTimestamp.toString(), BTC.timestamp);
-        assert.equal(args.rate.toString(), web3.utils.toDecimal(BTC.rate).toString());
-        assert.equal(args.decimals.toString(), web3.utils.toDecimal(BTC.decimals).toString());
+        expect(args.requestTimestamp).to.eq.BN(BTCold.timestamp);
+        expect(args.deliverTimestamp).to.eq.BN(BTC.timestamp);
+        expect(args.rate).to.eq.BN(web3.utils.toDecimal(BTC.rate));
+        expect(args.decimals).to.eq.BN(web3.utils.toDecimal(BTC.decimals));
         // try get rate with expired timestamp
         await Helper.increaseTime(15 * 60);// 15 minutes foward in time
         vrs = await signGetRate(oracle, admin, BTCold);
@@ -164,9 +175,9 @@ contract('ReferenceOracle', function (accounts) {
         assert.equal(tx.logs[0].event, 'DeliveredRate');
         assert.equal(args.requester, user);
         assert.equal(args.currency, BTC.id);
-        assert.equal(args.requestTimestamp.toString(), BTCold.timestamp);
-        assert.equal(args.rate.toString(), '1');
-        assert.equal(args.decimals.toString(), '1');
+        expect(args.requestTimestamp).to.eq.BN(BTCold.timestamp);
+        expect(args.rate).to.eq.BN(bn('1'));
+        expect(args.decimals).to.eq.BN(bn('1'));
     });
 
     it('Should change the expiration time', async function () {
@@ -185,9 +196,9 @@ contract('ReferenceOracle', function (accounts) {
         assert.equal(tx.logs[0].event, 'DeliveredRate');
         assert.equal(args.requester, user);
         assert.equal(args.currency, BTC.id);
-        assert.equal(args.requestTimestamp.toString(), BTCold.timestamp);
-        assert.equal(args.rate.toString(), '1');
-        assert.equal(args.decimals.toString(), '1');
+        expect(args.requestTimestamp).to.eq.BN(BTCold.timestamp);
+        expect(args.rate).to.eq.BN(bn('1'));
+        expect(args.decimals).to.eq.BN(bn('1'));
     });
 
     it('Should encode and decode currency', async function () {
