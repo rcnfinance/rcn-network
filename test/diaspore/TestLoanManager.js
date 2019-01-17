@@ -224,7 +224,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData
             );
 
-            const requested = await Helper.toEvents(
+            const Requested = await Helper.toEvents(
                 loanManager.requestLoan(
                     amount,           // Amount
                     model.address,    // Model
@@ -238,7 +238,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 'Requested'
             );
 
-            assert.equal(requested._id, id);
+            assert.equal(Requested._id, id);
+            expect(Requested._amount).to.eq.BN(amount);
+            assert.equal(Requested._model, model.address);
+            assert.equal(Requested._creator, creator);
+            assert.equal(Requested._oracle, Helper.address0x);
+            assert.equal(Requested._borrower, borrower);
+            expect(Requested._salt).to.eq.BN(salt);
+            assert.equal(Requested._loanData, loanData);
+            expect(Requested._expiration).to.eq.BN(expiration);
 
             const request = await loanManager.requests(id);
             assert.equal(request.open, true, 'The request should be open');
@@ -449,7 +457,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData
             );
 
-            const requested = await Helper.toEvents(
+            const Requested = await Helper.toEvents(
                 loanManager.requestLoan(
                     amount,            // Amount
                     model.address,     // Model
@@ -463,7 +471,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 'Requested'
             );
 
-            assert.equal(requested._id, id);
+            assert.equal(Requested._id, id);
+            expect(Requested._amount).to.eq.BN(amount);
+            assert.equal(Requested._model, model.address);
+            assert.equal(Requested._creator, borrower);
+            assert.equal(Requested._oracle, Helper.address0x);
+            assert.equal(Requested._borrower, borrower);
+            expect(Requested._salt).to.eq.BN(salt);
+            assert.equal(Requested._loanData, loanData);
+            expect(Requested._expiration).to.eq.BN(expiration);
 
             const request = await loanManager.requests(id);
             assert.equal(await loanManager.getApproved(id), true, 'The request should be approved');

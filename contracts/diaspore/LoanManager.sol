@@ -22,7 +22,17 @@ contract LoanManager is BytesUtils {
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
-    event Requested(bytes32 indexed _id);
+    event Requested(
+        bytes32 indexed _id,
+        uint128 _amount,
+        address _model,
+        address _creator,
+        address _oracle,
+        address _borrower,
+        uint256 _salt,
+        bytes _loanData,
+        uint256 _expiration
+    );
     event Approved(bytes32 indexed _id);
     event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
     event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
@@ -199,7 +209,7 @@ contract LoanManager is BytesUtils {
             expiration: _expiration
         });
 
-        emit Requested(id);
+        emit Requested(id, _amount, _model, msg.sender, _oracle, _borrower, _salt, _loanData, _expiration);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
