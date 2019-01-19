@@ -643,7 +643,7 @@ contract('ERC721 Base', function (accounts) {
         });
     });
 
-    describe('Functional tests', async function () {
+    describe('Functions setURIProvider and tokenURI', async function () {
         it('test to setURIProvider and tokenURI functions', async function () {
             const assetId = bn('443');
             const testURIProvider = await TestURIProvider.new();
@@ -660,7 +660,7 @@ contract('ERC721 Base', function (accounts) {
             assert.equal(await testURIProvider.tokenURI(assetId, { from: user }), await testURIProvider.uri());
         });
 
-        it('test to setURIProvider and tokenURI functions', async function () {
+        it('test to setURIProvider and tokenURI(ERC721Base) functions', async function () {
             const assetId = bn('42243');
             await token.generate(assetId, user);
 
