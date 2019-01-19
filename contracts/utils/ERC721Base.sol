@@ -245,7 +245,7 @@ contract ERC721Base is ERC165 {
     function setApprovalForAll(address _operator, bool _authorized) external {
         if (_operators[msg.sender][_operator] != _authorized) {
             _operators[msg.sender][_operator] = _authorized;
-            emit ApprovalForAll(_operator, msg.sender, _authorized);
+            emit ApprovalForAll(msg.sender, _operator, _authorized);
         }
     }
 
