@@ -4,7 +4,6 @@ import "./../ERC721Base.sol";
 
 
 contract TestURIProvider is ERC721Base {
-
     string public uri = "https://ripioCreditNetwork/debtId";
     uint256 public assetId;
 
