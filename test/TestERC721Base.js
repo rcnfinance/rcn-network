@@ -5,7 +5,6 @@ const TestERC721ReceiverLegacyRaw = artifacts.require('./utils/test/TestERC721Re
 const TestERC721ReceiverMultiple = artifacts.require('./utils/test/TestERC721ReceiverMultiple.sol');
 const TestNoReceive = artifacts.require('./utils/test/TokenLockable.sol');
 const TestURIProvider = artifacts.require('./utils/test/TestURIProvider.sol');
-const TestURIProvider2 = artifacts.require('./utils/test/TestURIProvider2.sol');
 
 const Helper = require('./Helper.js');
 const BN = web3.utils.BN;
