@@ -644,7 +644,7 @@ contract('ERC721 Base', function (accounts) {
     });
 
     describe('Functions setURIProvider and tokenURI', async function () {
-        it('test to setURIProvider and tokenURI functions', async function () {
+        it('test setURIProvider and tokenURI functions', async function () {
             const assetId = bn('443');
             const testURIProvider = await TestURIProvider.new();
 
@@ -660,25 +660,12 @@ contract('ERC721 Base', function (accounts) {
             assert.equal(await testURIProvider.tokenURI(assetId, { from: user }), await testURIProvider.uri());
         });
 
-        it('test to setURIProvider and tokenURI(ERC721Base) functions', async function () {
+        it('test tokenURI(ERC721Base) function', async function () {
             const assetId = bn('42243');
             await token.generate(assetId, user);
 
             assert.equal(await token.tokenURI(assetId, { from: user }), '');
-
-            const testURIProvider2 = await TestURIProvider2.new();
-
-            const SetURIProvider = await Helper.toEvents(
-                testURIProvider.setURIProvider(testURIProvider2.address),
-                'SetURIProvider'
-            );
-
-            assert.equal(SetURIProvider._uriProvider, testURIProvider2.address);
-
-            assert.equal(await testURIProvider2.tokenURI('0'), await testURIProvider2.uri());
         });
-
-        const testURIProvider = await TestURIProvider.new();
 
         it('Try get tokenURI of a inexist token', async function () {
             await Helper.tryCatchRevert(
