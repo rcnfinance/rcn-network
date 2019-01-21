@@ -1314,7 +1314,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const tokens = bn('400023333566612312000000');
             const equivalent = bn('82711175222132156792');
 
-            const oracleData = await oracle.encodeRate(tokens.toString(), equivalent.toString());
+            const oracleData = await oracle.encodeRate(tokens, equivalent);
 
             const amountETH = bn('6545');
             const amountRCN = amountETH.mul(tokens).div(equivalent);
@@ -1373,7 +1373,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('123123');
             const amount = bn('5545');
-            const cosignerCost = (await cosigner.getDummyCost());
+            const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
             const expiration = (await Helper.getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
@@ -2575,7 +2575,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
             const tokens = bn('400023333566612312000000');
             const equivalent = bn('82711175222132156792');
-            const oracleData = await oracle.encodeRate(tokens.toString(), equivalent.toString());
+            const oracleData = await oracle.encodeRate(tokens, equivalent);
 
             const amountETH = bn('3320');
             const amountRCN = amountETH.mul(tokens).div(equivalent);
