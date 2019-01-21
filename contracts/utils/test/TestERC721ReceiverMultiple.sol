@@ -1,21 +1,9 @@
-pragma solidity ^0.4.15;
+/* solium-disable */
+pragma solidity ^0.5.0;
 
-interface IERC721Receiver {
-    function onERC721Received(
-        address _operator,
-        address _from,
-        uint256 _tokenId,
-        bytes   _userData
-    ) external returns (bytes4);
-}
+import "./IERC721Receiver.sol";
+import "./IERC721ReceiverLegacy.sol";
 
-interface IERC721ReceiverLegacy {
-    function onERC721Received(
-        address _from,
-        uint256 _tokenId,
-        bytes   _userData
-    ) external returns (bytes4);
-}
 
 contract TestERC721ReceiverMultiple is IERC721Receiver, IERC721ReceiverLegacy {
     address public lastOperator;
@@ -30,9 +18,14 @@ contract TestERC721ReceiverMultiple is IERC721Receiver, IERC721ReceiverLegacy {
         address _operator,
         address _from,
         uint256 _tokenId,
-        bytes   _userData
+        bytes calldata _userData
     ) external returns (bytes4) {
-        emit Received(_operator, _from, _tokenId, _userData);
+        emit Received(
+            _operator,
+            _from,
+            _tokenId,
+            _userData
+        );
         lastOperator = _operator;
         lastFrom = _from;
         lastTokenId = _tokenId;
@@ -44,7 +37,7 @@ contract TestERC721ReceiverMultiple is IERC721Receiver, IERC721ReceiverLegacy {
     function onERC721Received(
         address _from,
         uint256 _tokenId,
-        bytes   _userData
+        bytes calldata _userData
     ) external returns (bytes4) {
         lastFrom = _from;
         lastTokenId = _tokenId;

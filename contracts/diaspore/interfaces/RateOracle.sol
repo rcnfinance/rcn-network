@@ -1,10 +1,11 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./../../interfaces/IERC165.sol";
 
+
 /**
     @dev Defines the interface of a standard Diaspore RCN Oracle,
-    
+
     The contract should also implement it's ERC165 interface: 0xa265d8e0
 
     @notice Each oracle can only support one currency
@@ -20,12 +21,12 @@ contract RateOracle is IERC165 {
     /**
         3 or 4 letters symbol of the currency, Ej: ETH
     */
-    function symbol() external view returns (string);
+    function symbol() external view returns (string memory);
 
     /**
         Descriptive name of the currency, Ej: Ethereum
     */
-    function name() external view returns (string);
+    function name() external view returns (string memory);
 
     /**
         The number of decimals of the currency represented by this Oracle,
@@ -43,19 +44,19 @@ contract RateOracle is IERC165 {
         The currency symbol encoded on a UTF-8 Hex
     */
     function currency() external view returns (bytes32);
-    
+
     /**
         The name of the Individual or Company in charge of this Oracle
     */
-    function maintainer() external view returns (string);
+    function maintainer() external view returns (string memory);
 
     /**
         Returns the url where the oracle exposes a valid "oracleData" if needed
     */
-    function url() external view returns (string);
+    function url() external view returns (string memory);
 
-    /** 
+    /**
         Returns a sample on how many token() are equals to how many currency()
     */
-    function readSample(bytes _data) external returns (uint256 _tokens, uint256 _equivalent);
+    function readSample(bytes calldata _data) external returns (uint256 _tokens, uint256 _equivalent);
 }

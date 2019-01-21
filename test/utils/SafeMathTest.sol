@@ -1,9 +1,10 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/SafeMath.sol";
+
 
 contract SafeMathMock {
     using SafeMath for uint256;
@@ -14,11 +15,12 @@ contract SafeMathMock {
     function sub(uint256 a, uint256 b) external returns (uint256 c) {
         c = a.sub(b);
     }
-    
+
     function mult(uint256 a, uint256 b) external returns (uint256 c) {
         c = a.mult(b);
     }
 }
+
 
 contract SafeMathTest {
     SafeMathMock safeMath;
@@ -29,7 +31,7 @@ contract SafeMathTest {
 
     function testCatchAddOverflow() external {
         (uint256 success, bytes32 result) = _safeCall(
-            safeMath,
+            address(safeMath),
             abi.encodeWithSelector(
                 safeMath.add.selector,
                 uint256(2) ** uint256(255),
@@ -39,9 +41,10 @@ contract SafeMathTest {
 
         Assert.equal(success, 0, "Call should fail");
     }
+
     function testCatchSubUnderflow() external {
         (uint256 success, bytes32 result) = _safeCall(
-            safeMath,
+            address(safeMath),
             abi.encodeWithSelector(
                 safeMath.sub.selector,
                 uint256(2),
@@ -54,7 +57,7 @@ contract SafeMathTest {
 
     function testCatchMultOverflow() external {
         (uint256 success, bytes32 result) = _safeCall(
-            safeMath,
+            address(safeMath),
             abi.encodeWithSelector(
                 safeMath.mult.selector,
                 uint256(2) ** uint256(255),
@@ -67,7 +70,7 @@ contract SafeMathTest {
 
     function _safeCall(
         address _contract,
-        bytes _data
+        bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
         assembly {
             let x := mload(0x40)

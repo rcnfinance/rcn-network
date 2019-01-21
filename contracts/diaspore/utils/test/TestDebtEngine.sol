@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
+
 
 contract TestDebtEngine {
     address public token;
@@ -14,7 +15,7 @@ contract TestDebtEngine {
         address _model,
         address _oracle,
         uint256 _salt,
-        bytes _data
+        bytes calldata _data
     ) external view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
@@ -28,13 +29,13 @@ contract TestDebtEngine {
             )
         );
     }
-    
+
     function create2(
         address _model,
         address _owner,
         address _oracle,
         uint256 _salt,
-        bytes _data
+        bytes calldata _data
     ) external returns (bytes32) {
         return 0x0;
     }

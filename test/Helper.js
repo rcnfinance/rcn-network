@@ -1,4 +1,9 @@
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
+module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+module.exports.STATUS_ONGOING = '1';
+module.exports.STATUS_PAID = '2';
+module.exports.STATUS_ERROR = '4';
 
 module.exports.arrayToBytesOfBytes32 = (array) => {
     let bytes = '0x';
@@ -15,7 +20,7 @@ module.exports.arrayToBytesOfBytes32 = (array) => {
 };
 
 module.exports.toBytes32 = (source) => {
-    source = web3.toHex(source);
+    source = web3.utils.toHex(source);
     const rl = 64;
     source = source.toString().replace('0x', '');
     if (source.length < rl) {
@@ -25,8 +30,29 @@ module.exports.toBytes32 = (source) => {
     return '0x' + source;
 };
 
-module.exports.increaseTime = async (delta) => {
-    await web3.currentProvider.send({ jsonrpc: '2.0', method: 'evm_increaseTime', params: [delta], id: 0 });
+module.exports.increaseTime = function increaseTime(duration) {
+    const id = Date.now();
+
+    return new Promise((resolve, reject) => {
+        web3.currentProvider.send({
+            jsonrpc: "2.0",
+            method: "evm_increaseTime",
+            params: [duration],
+            id: id
+        },
+        err1 => {
+            if (err1) return reject(err1);
+
+            web3.currentProvider.send({
+                jsonrpc: "2.0",
+                method: "evm_mine",
+                id: id + 1
+            },
+            (err2, res) => {
+                return err2 ? reject(err2) : resolve(res);
+            });
+        });
+    });
 };
 
 module.exports.isRevertErrorMessage = (error) => {
@@ -37,7 +63,7 @@ module.exports.isRevertErrorMessage = (error) => {
 };
 
 module.exports.getBlockTime = async () => {
-    return (await web3.eth.getBlock('pending')).timestamp;
+    return (await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp;
 };
 
 module.exports.assertThrow = async (promise) => {
@@ -81,14 +107,16 @@ module.exports.tryCatchRevert = async (promise, message) => {
 };
 
 module.exports.toInterestRate = (interest) => {
-    return Math.floor((10000000 / interest) * 360 * 86400);
+    const secondsInYear = 360 * 86400;
+    const rawInterest = Math.floor(10000000 / interest);
+    return rawInterest * secondsInYear;
 };
 
 module.exports.buyTokens = async (token, amount, account) => {
     const prevAmount = await token.balanceOf(account);
     await token.buyTokens(account, { from: account, value: amount / 4000 });
     const newAmount = await token.balanceOf(account);
-    assert.equal(newAmount.toNumber() - prevAmount.toNumber(), amount, 'Should have minted tokens');
+    assert.equal(newAmount.sub(prevAmount), amount.toString(), 'Should have minted tokens');
 };
 
 module.exports.searchEvent = (tx, eventName) => {
@@ -97,11 +125,34 @@ module.exports.searchEvent = (tx, eventName) => {
     return event[0];
 };
 
+module.exports.toEvents = async (promise, ...events) => {
+    const logs = (await promise).logs;
+
+    let eventObjs = [].concat.apply(
+        [], events.map(
+            event => logs.filter(
+                log => log.event === event
+            )
+        )
+    );
+
+    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
+        console.warn('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
+        assert.fail();
+    }
+    eventObjs = eventObjs.map(x => x.args);
+    return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
+};
+
 module.exports.eventNotEmitted = async (receipt, eventName) => {
     const logsCount = receipt.logs.length;
     assert.equal(logsCount, 0, 'Should have not emitted the event ' + eventName);
 };
 
 module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
-    assert.isBelow(Math.abs(await p1 - await p2), margin, reason);
+    assert.isBelow(
+        Math.abs((await p1).toNumber() - (await p2)),
+        margin,
+        reason
+    );
 };
