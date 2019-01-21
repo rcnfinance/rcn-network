@@ -868,4 +868,13 @@ contract('Installments model', function (accounts) {
         expect(await descriptor.simFrequency(data)).to.eq.BN(secInMonth);
         expect(await descriptor.simInstallments(data)).to.eq.BN('12');
     });
+
+    it('get modelId', async function () {
+        const nameModel = 'InstallmentsModel A 0.0.2';
+        const calcModelId = web3.utils.toTwosComplement(web3.utils.asciiToHex(nameModel));
+        assert.equal(await model.modelId(), calcModelId);
+
+        const modelId = 0x00000000000000496e7374616c6c6d656e74734d6f64656c204120302e302e32;
+        assert.equal(await model.modelId(), modelId);
+    });
 });

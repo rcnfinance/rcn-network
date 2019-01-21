@@ -317,4 +317,13 @@ contract('NanoLoanModel', function (accounts) {
             expect(state.status).to.eq.BN(Helper.STATUS_PAID, 'The status should be paid');
         };
     };
+
+    it('get modelId', async function () {
+        const nameModel = 'NanoLoanModel 1.0';
+        const calcModelId = web3.utils.toTwosComplement(web3.utils.asciiToHex(nameModel));
+        assert.equal(await model.modelId(), calcModelId);
+
+        const modelId = 0x0000000000000000000000000000004e616e6f4c6f616e4d6f64656c20312e30;
+        assert.equal(await model.modelId(), modelId);
+    });
 });
