@@ -162,6 +162,97 @@ contract('Test LoanManager Diaspore', function (accounts) {
         });
     });
 
+    describe('Getters', function () {
+        it('The getters legacy(uint256) and actual(bytes32) should be equals', async function () {
+            const creator = accounts[1];
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('13132123');
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 11100;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const id = await calcId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                oracle.address,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,           // Amount
+                model.address,    // Model
+                oracle.address,  // Oracle
+                borrower,         // Borrower
+                salt,             // salt
+                expiration,       // Expiration
+                loanData,         // Loan data
+                { from: creator } // Creator
+            );
+
+            await loanManager.approveRequest(id, { from: borrower });
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+            await cosigner.setCustomData(id, bn('0'));
+
+            await loanManager.lend(
+                id,
+                await oracle.encodeRate(bn('1'), bn('1')),
+                cosigner.address,
+                '0',
+                await cosigner.customData(),
+                { from: lender }
+            );
+
+            assert.equal(await loanManager.getBorrower(id), borrower);
+            assert.equal(await loanManager.methods['getBorrower(bytes32)'](id), borrower);
+
+            assert.equal(await loanManager.getCreator(id), creator);
+            assert.equal(await loanManager.methods['getCreator(bytes32)'](id), creator);
+
+            assert.equal(await loanManager.getOracle(id), oracle.address);
+            assert.equal(await loanManager.methods['getOracle(bytes32)'](id), oracle.address);
+
+            assert.equal(await loanManager.getCosigner(id), cosigner.address);
+            assert.equal(await loanManager.methods['getCosigner(bytes32)'](id), cosigner.address);
+
+            assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
+            assert.equal(await loanManager.methods['getCurrency(bytes32)'](id), Helper.bytes320x);
+
+            expect(await loanManager.getAmount(id)).to.eq.BN('1');
+            expect(await loanManager.methods['getAmount(bytes32)'](id)).to.eq.BN('1');
+
+            expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
+            expect(await loanManager.methods['getExpirationRequest(bytes32)'](id)).to.eq.BN(expiration);
+
+            assert.equal(await loanManager.getApproved(id), true);
+            assert.equal(await loanManager.methods['getApproved(bytes32)'](id), true);
+
+            expect(await loanManager.getDueTime(id)).to.eq.BN(expiration);
+            expect(await loanManager.methods['getDueTime(bytes32)'](id)).to.eq.BN(expiration);
+
+            expect(await loanManager.getClosingObligation(id)).to.eq.BN(amount);
+            expect(await loanManager.methods['getClosingObligation(bytes32)'](id)).to.eq.BN(amount);
+
+            assert.equal(await loanManager.getLoanData(id), loanData);
+            assert.equal(await loanManager.methods['getLoanData(bytes32)'](id), loanData);
+
+            assert.equal(await loanManager.isApproved(id), true);
+            assert.equal(await loanManager.methods['isApproved(bytes32)'](id), true);
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.methods['getStatus(bytes32)'](id)).to.eq.BN(Helper.STATUS_ONGOING);
+
+            assert.equal(await loanManager.ownerOf(id), lender);
+            assert.equal(await loanManager.methods['ownerOf(bytes32)'](id), lender);
+        });
+    });
+
     describe('Function internalSalt', function () {
         it('Should return future internal salt', async function () {
             const creator = accounts[1];
