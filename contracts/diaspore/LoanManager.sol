@@ -391,7 +391,6 @@ contract LoanManager is BytesUtils {
             bytes32 last = directory[directory.length - 1];
             requests[last].position = request.position;
             directory[request.position] = last;
-            request.position = 0;
             directory.length--;
         }
 
