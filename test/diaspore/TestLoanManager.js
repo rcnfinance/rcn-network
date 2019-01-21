@@ -224,7 +224,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData
             );
 
-            const requested = await Helper.toEvents(
+            const Requested = await Helper.toEvents(
                 loanManager.requestLoan(
                     amount,           // Amount
                     model.address,    // Model
@@ -238,18 +238,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 'Requested'
             );
 
-            const internalSalt = web3.utils.hexToNumberString(
-                web3.utils.soliditySha3(
-                    { t: 'uint128', v: amount },
-                    { t: 'address', v: borrower },
-                    { t: 'address', v: creator },
-                    { t: 'uint256', v: salt },
-                    { t: 'uint64', v: expiration }
-                )
-            );
-
-            assert.equal(requested._id, id);
-            expect(requested._internalSalt).to.eq.BN(internalSalt);
+            assert.equal(Requested._id, id);
+            expect(Requested._amount).to.eq.BN(amount);
+            assert.equal(Requested._model, model.address);
+            assert.equal(Requested._creator, creator);
+            assert.equal(Requested._oracle, Helper.address0x);
+            assert.equal(Requested._borrower, borrower);
+            expect(Requested._salt).to.eq.BN(salt);
+            assert.equal(Requested._loanData, loanData);
+            expect(Requested._expiration).to.eq.BN(expiration);
 
             const request = await loanManager.requests(id);
             assert.equal(request.open, true, 'The request should be open');
@@ -460,7 +457,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData
             );
 
-            const requested = await Helper.toEvents(
+            const Requested = await Helper.toEvents(
                 loanManager.requestLoan(
                     amount,            // Amount
                     model.address,     // Model
@@ -474,18 +471,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 'Requested'
             );
 
-            const internalSalt = web3.utils.hexToNumberString(
-                web3.utils.soliditySha3(
-                    { t: 'uint128', v: amount },
-                    { t: 'address', v: borrower },
-                    { t: 'address', v: borrower },
-                    { t: 'uint256', v: salt },
-                    { t: 'uint64', v: expiration }
-                )
-            );
-
-            assert.equal(requested._id, id);
-            expect(requested._internalSalt).to.eq.BN(internalSalt);
+            assert.equal(Requested._id, id);
+            expect(Requested._amount).to.eq.BN(amount);
+            assert.equal(Requested._model, model.address);
+            assert.equal(Requested._creator, borrower);
+            assert.equal(Requested._oracle, Helper.address0x);
+            assert.equal(Requested._borrower, borrower);
+            expect(Requested._salt).to.eq.BN(salt);
+            assert.equal(Requested._loanData, loanData);
+            expect(Requested._expiration).to.eq.BN(expiration);
 
             const request = await loanManager.requests(id);
             assert.equal(await loanManager.getApproved(id), true, 'The request should be approved');
