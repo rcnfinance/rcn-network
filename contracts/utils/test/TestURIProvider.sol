@@ -18,7 +18,7 @@ contract TestURIProvider is ERC721Base {
         return true;
     }
 
-    function tokenURI(uint256 _tokenId) external onlyHolder(assetId) view returns (string memory){
+    function tokenURI(uint256 _tokenId) external view returns (string memory){
         return uri;
     }
 
