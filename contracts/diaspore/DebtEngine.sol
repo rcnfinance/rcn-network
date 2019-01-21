@@ -5,9 +5,10 @@ import "./interfaces/Model.sol";
 import "./interfaces/RateOracle.sol";
 import "./../utils/IsContract.sol";
 import "./../utils/ERC721Base.sol";
+import "./../utils/Ownable.sol";
 
 
-contract DebtEngine is ERC721Base {
+contract DebtEngine is ERC721Base, Ownable {
     using IsContract for address;
 
     event Created(
@@ -102,6 +103,10 @@ contract DebtEngine is ERC721Base {
 
         // Sanity checks
         require(address(_token).isContract(), "Token should be a contract");
+    }
+
+    function setURIProvider(URIProvider _provider) external onlyOwner {
+        _setURIProvider(_provider);
     }
 
     function create(
