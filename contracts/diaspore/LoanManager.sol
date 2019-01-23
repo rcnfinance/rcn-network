@@ -22,7 +22,17 @@ contract LoanManager is BytesUtils {
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
-    event Requested(bytes32 indexed _id, uint256 _internalSalt);
+    event Requested(
+        bytes32 indexed _id,
+        uint128 _amount,
+        address _model,
+        address _creator,
+        address _oracle,
+        address _borrower,
+        uint256 _salt,
+        bytes _loanData,
+        uint256 _expiration
+    );
     event Approved(bytes32 indexed _id);
     event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
     event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
@@ -54,6 +64,7 @@ contract LoanManager is BytesUtils {
 
     function getDirectoryLength() external view returns (uint256) { return directory.length; }
 
+    // uint256 getters(legacy)
     function getBorrower(uint256 _id) external view returns (address) { return requests[bytes32(_id)].borrower; }
     function getCreator(uint256 _id) external view returns (address) { return requests[bytes32(_id)].creator; }
     function getOracle(uint256 _id) external view returns (address) { return requests[bytes32(_id)].oracle; }
@@ -62,25 +73,43 @@ contract LoanManager is BytesUtils {
         address oracle = requests[bytes32(_id)].oracle;
         return oracle == address(0) ? bytes32(0x0) : RateOracle(oracle).currency();
     }
-
     function getAmount(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].amount; }
-
     function getExpirationRequest(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].expiration; }
     function getApproved(uint256 _id) external view returns (bool) { return requests[bytes32(_id)].approved; }
     function getDueTime(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getDueTime(bytes32(_id)); }
+    function getClosingObligation(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getClosingObligation(bytes32(_id)); }
     function getLoanData(uint256 _id) external view returns (bytes memory) { return requests[bytes32(_id)].loanData; }
-
-    function isApproved(uint256 _id) external view returns (bool) {
-        return requests[bytes32(_id)].approved;
-    }
-
+    function isApproved(uint256 _id) external view returns (bool) { return requests[bytes32(_id)].approved; }
     function getStatus(uint256 _id) external view returns (uint256) {
         Request storage request = requests[bytes32(_id)];
         return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
     }
-
     function ownerOf(uint256 _id) external view returns (address) {
         return debtEngine.ownerOf(_id);
+    }
+
+    // bytes32 getters
+    function getBorrower(bytes32 _id) external view returns (address) { return requests[_id].borrower; }
+    function getCreator(bytes32 _id) external view returns (address) { return requests[_id].creator; }
+    function getOracle(bytes32 _id) external view returns (address) { return requests[_id].oracle; }
+    function getCosigner(bytes32 _id) external view returns (address) { return requests[_id].cosigner; }
+    function getCurrency(bytes32 _id) external view returns (bytes32) {
+        address oracle = requests[_id].oracle;
+        return oracle == address(0) ? bytes32(0x0) : RateOracle(oracle).currency();
+    }
+    function getAmount(bytes32 _id) external view returns (uint256) { return requests[_id].amount; }
+    function getExpirationRequest(bytes32 _id) external view returns (uint256) { return requests[_id].expiration; }
+    function getApproved(bytes32 _id) external view returns (bool) { return requests[_id].approved; }
+    function getDueTime(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getDueTime(bytes32(_id)); }
+    function getClosingObligation(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getClosingObligation(bytes32(_id)); }
+    function getLoanData(bytes32 _id) external view returns (bytes memory) { return requests[_id].loanData; }
+    function isApproved(bytes32 _id) external view returns (bool) { return requests[_id].approved; }
+    function getStatus(bytes32 _id) external view returns (uint256) {
+        Request storage request = requests[_id];
+        return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
+    }
+    function ownerOf(bytes32 _id) external view returns (address) {
+        return debtEngine.ownerOf(uint256(_id));
     }
 
     struct Request {
@@ -199,7 +228,7 @@ contract LoanManager is BytesUtils {
             expiration: _expiration
         });
 
-        emit Requested(id, innerSalt);
+        emit Requested(id, _amount, _model, msg.sender, _oracle, _borrower, _salt, _loanData, _expiration);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
@@ -362,7 +391,6 @@ contract LoanManager is BytesUtils {
             bytes32 last = directory[directory.length - 1];
             requests[last].position = request.position;
             directory[request.position] = last;
-            request.position = 0;
             directory.length--;
         }
 
@@ -381,8 +409,10 @@ contract LoanManager is BytesUtils {
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
         request.cosigner = msg.sender;
-        require(request.salt >= _cost, "Cosigner cost exceeded");
-        require(token.transferFrom(debtEngine.ownerOf(_id), msg.sender, _cost), "Error paying cosigner");
+        if (_cost != 0){
+            require(request.salt >= _cost, "Cosigner cost exceeded");
+            require(token.transferFrom(debtEngine.ownerOf(_id), msg.sender, _cost), "Error paying cosigner");
+        }
         emit Cosigned(bytes32(_id), msg.sender, _cost);
         return true;
     }
