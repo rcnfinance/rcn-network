@@ -4,6 +4,7 @@ const TestToken = artifacts.require('./utils/test/TestToken.sol');
 const TestOracle = artifacts.require('./utils/test/TestOracle.sol');
 const OracleAdapter = artifacts.require('./diaspore/utils/OracleAdapter.sol');
 const TestRateOracle = artifacts.require('./diaspore/utils/test/TestRateOracle.sol');
+const TestURIProvider = artifacts.require('./utils/test/TestURIProvider.sol');
 
 const Helper = require('../Helper.js');
 const BN = web3.utils.BN;
@@ -58,6 +59,32 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     accounts[2]
                 ),
                 'Token should be a contract'
+            );
+        });
+    });
+
+    describe('Function setURIProvider', function () {
+        it('Should set the URI provider', async function () {
+            const URIProvider = await TestURIProvider.new();
+
+            const SetURIProvider = await Helper.toEvents(
+                debtEngine.setURIProvider(
+                    URIProvider.address,
+                    { from: accounts[0] }
+                ),
+                'SetURIProvider'
+            );
+
+            assert.equal(SetURIProvider._uriProvider, URIProvider.address);
+        });
+
+        it('Try set URI provider without ownership', async function () {
+            await Helper.tryCatchRevert(
+                () => debtEngine.setURIProvider(
+                    Helper.address0x,
+                    { from: accounts[1] }
+                ),
+                ''
             );
         });
     });

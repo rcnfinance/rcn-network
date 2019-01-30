@@ -22,7 +22,17 @@ contract LoanManager is BytesUtils {
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
-    event Requested(bytes32 indexed _id, uint256 _internalSalt);
+    event Requested(
+        bytes32 indexed _id,
+        uint128 _amount,
+        address _model,
+        address _creator,
+        address _oracle,
+        address _borrower,
+        uint256 _salt,
+        bytes _loanData,
+        uint256 _expiration
+    );
     event Approved(bytes32 indexed _id);
     event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
     event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
@@ -218,7 +228,7 @@ contract LoanManager is BytesUtils {
             expiration: _expiration
         });
 
-        emit Requested(id, innerSalt);
+        emit Requested(id, _amount, _model, msg.sender, _oracle, _borrower, _salt, _loanData, _expiration);
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
@@ -381,7 +391,6 @@ contract LoanManager is BytesUtils {
             bytes32 last = directory[directory.length - 1];
             requests[last].position = request.position;
             directory[request.position] = last;
-            request.position = 0;
             directory.length--;
         }
 
@@ -400,12 +409,13 @@ contract LoanManager is BytesUtils {
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
         request.cosigner = msg.sender;
-        require(request.salt >= _cost, "Cosigner cost exceeded");
-        require(token.transferFrom(debtEngine.ownerOf(uint256(_id)), msg.sender, _cost), "Error paying cosigner");
+    	if (_cost != 0){
+		require(request.salt >= _cost, "Cosigner cost exceeded");
+		require(token.transferFrom(debtEngine.ownerOf(uint256(_id)), msg.sender, _cost), "Error paying cosigner");
+	}
         emit Cosigned(_id, msg.sender, _cost);
         return true;
     }
-
 
     // ///
     // Offline requests

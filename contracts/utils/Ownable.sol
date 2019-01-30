@@ -19,7 +19,7 @@ contract Ownable {
         @param _to Address of the new owner
     */
     function transferTo(address _to) public onlyOwner returns (bool) {
-        require(_to != address(0), "Only the owner can transfer the ownership");
+        require(_to != address(0), "0x0 Is not a valid owner");
         owner = _to;
         return true;
     }

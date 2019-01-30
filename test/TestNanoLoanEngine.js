@@ -631,6 +631,9 @@ contract('NanoLoanEngine', function (accounts) {
         await rcn.approve(engine.address, web3.utils.toWei('2'), { from: accounts[1] });
         await engine.pay(loanId, web3.utils.toWei('2'), accounts[1], [], { from: accounts[1] });
 
+        // try and fail to withdraw tokens as the owner of the engine
+        await Helper.tryCatchRevert(() => engine.withdrawTokens(rcn.address, accounts[3], web3.utils.toWei('1'), { from: accounts[0] }), '');
+
         // deposit some RCN "by mistake"
         await Helper.buyTokens(rcn, web3.utils.toWei('1'), accounts[4]);
         await rcn.transfer(engine.address, web3.utils.toWei('1'), { from: accounts[4] });
@@ -639,6 +642,11 @@ contract('NanoLoanEngine', function (accounts) {
         await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[2]), { from: accounts[2] });
         await Helper.tryCatchRevert(() => engine.withdrawal(loanId, accounts[2], web3.utils.toWei('2.5'), { from: accounts[2] }), '');
         expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0', 'Lender should have no balance');
+
+        // test the emergency withdraw function
+        await engine.withdrawTokens(rcn.address, accounts[3], web3.utils.toWei('1'), { from: accounts[0] });
+        const emergencyBalance = await rcn.balanceOf(accounts[3]);
+        expect(emergencyBalance).to.eq.BN(web3.utils.toWei('1'), 'The emergency balance should be on the account 3');
 
         // withdraw part of the lender balance and check it
         await engine.withdrawal(loanId, accounts[2], 2000, { from: accounts[2] });

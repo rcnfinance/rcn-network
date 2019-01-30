@@ -4,7 +4,6 @@ import "./../ERC721Base.sol";
 
 
 contract TestURIProvider is ERC721Base {
-
     string public uri = "https://ripioCreditNetwork/debtId";
     uint256 public assetId;
 
@@ -19,7 +18,7 @@ contract TestURIProvider is ERC721Base {
         return true;
     }
 
-    function tokenURI(uint256 _tokenId) external onlyHolder(assetId) view returns (string memory){
+    function tokenURI(uint256 _tokenId) external view returns (string memory){
         return uri;
     }
 

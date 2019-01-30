@@ -122,7 +122,7 @@ contract ERC721Base is IERC721Base, ERC165 {
     * @notice Enumerate valid NFTs
     * @dev Throws if `_index` >= `totalSupply()`.
     * @param _index A counter less than `totalSupply()`
-    * @return The token identifier for the `_index`th NFT,
+    * @return The token identifier for the `_index` of the NFT,
     *  (sort order not specified)
     */
     function tokenByIndex(uint256 _index) external view returns (uint256) {
@@ -136,7 +136,7 @@ contract ERC721Base is IERC721Base, ERC165 {
     *  `_owner` is the zero address, representing invalid NFTs.
     * @param _owner An address where we are interested in NFTs owned by them
     * @param _index A counter less than `balanceOf(_owner)`
-    * @return The token identifier for the `_index`th NFT assigned to `_owner`,
+    * @return The token identifier for the `_index` of the NFT assigned to `_owner`,
     *   (sort order not specified)
     */
     function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256) {
@@ -247,7 +247,7 @@ contract ERC721Base is IERC721Base, ERC165 {
     function setApprovalForAll(address _operator, bool _authorized) external {
         if (_operators[msg.sender][_operator] != _authorized) {
             _operators[msg.sender][_operator] = _authorized;
-            emit ApprovalForAll(_operator, msg.sender, _authorized);
+            emit ApprovalForAll(msg.sender, _operator, _authorized);
         }
     }
 
@@ -329,11 +329,6 @@ contract ERC721Base is IERC721Base, ERC165 {
     //
     // Transaction related operations
     //
-
-    modifier onlyHolder(uint256 _assetId) {
-        require(_ownerOf(_assetId) == msg.sender, "msg.sender Is not holder");
-        _;
-    }
 
     modifier onlyAuthorized(uint256 _assetId) {
         require(_isAuthorized(msg.sender, _assetId), "msg.sender Not authorized");

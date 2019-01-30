@@ -206,7 +206,7 @@ contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
     ) public returns (uint256) {
         require(!deprecated);
         require(_cancelableAt <= _duesIn);
-        require(address(_oracleContract) != address(0) || address(uint256(_currency)) == address(0)); //TODO: (jpgonzalezra) TESTEAR
+        require(address(_oracleContract) != address(0) || _currency == bytes32(0));
         require(_borrower != address(0));
         require(_amount != 0);
         require(_interestRatePunitory != 0);

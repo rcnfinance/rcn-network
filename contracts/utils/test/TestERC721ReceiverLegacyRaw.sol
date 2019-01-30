@@ -9,8 +9,6 @@ contract TestERC721ReceiverLegacyRaw is IERC721ReceiverLegacy {
     uint256 public lastTokenId;
     bytes public lastData;
 
-    event CalledFallback();
-
     function onERC721Received(
         address _from,
         uint256 _tokenId,
