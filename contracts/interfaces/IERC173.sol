@@ -10,7 +10,7 @@ interface IERC173 {
 
     /// @notice Get the address of the owner
     /// @return The address of the owner.
-    function owner() external view;
+    function owner() external view returns(address);
 
     /// @notice Set the address of the new owner of the contract
     /// @param _newOwner The address of the new owner of the contract

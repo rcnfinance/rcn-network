@@ -4,18 +4,22 @@ import "./../interfaces/IERC173.sol";
 
 
 contract Ownable is IERC173 {
-    address public owner;
+    address internal _owner;
 
     event OwnershipTransferred(address indexed _previousOwner, address indexed _newOwner);
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "The owner should be the sender");
+        require(msg.sender == _owner, "The owner should be the sender");
         _;
     }
 
     constructor() public {
-        owner = msg.sender;
+        _owner = msg.sender;
         emit OwnershipTransferred(address(0x0), msg.sender);
+    }
+
+    function owner() external view returns(address) {
+        return _owner;
     }
 
     /**
@@ -25,7 +29,7 @@ contract Ownable is IERC173 {
     */
     function transferOwnership(address _newOwner) external onlyOwner {
         require(_newOwner != address(0), "0x0 Is not a valid owner");
-        emit OwnershipTransferred(owner, _newOwner);
-        owner = _newOwner;
+        emit OwnershipTransferred(_owner, _newOwner);
+        _owner = _newOwner;
     }
 }
