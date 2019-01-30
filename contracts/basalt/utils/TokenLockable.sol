@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
 
 import "./RpSafeMath.sol";
-import "./Ownable.sol";
-import "./../interfaces/Token.sol";
+import "./../../utils/Ownable.sol";
+import "./../../interfaces/Token.sol";
 
 
 contract TokenLockable is RpSafeMath, Ownable {

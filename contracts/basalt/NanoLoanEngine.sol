@@ -4,7 +4,7 @@ pragma solidity ^0.5.0;
 import "../interfaces/Oracle.sol";
 import "../interfaces/Token.sol";
 import "../utils/Ownable.sol";
-import "../utils/TokenLockable.sol";
+import "./utils/TokenLockable.sol";
 import "../interfaces/Cosigner.sol";
 import "./interfaces/Engine.sol";
 import "./interfaces/ERC721.sol";
