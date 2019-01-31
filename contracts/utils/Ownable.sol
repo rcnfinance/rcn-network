@@ -6,8 +6,6 @@ import "./../interfaces/IERC173.sol";
 contract Ownable is IERC173 {
     address internal _owner;
 
-    event OwnershipTransferred(address indexed _previousOwner, address indexed _newOwner);
-
     modifier onlyOwner() {
         require(msg.sender == _owner, "The owner should be the sender");
         _;
@@ -18,7 +16,7 @@ contract Ownable is IERC173 {
         emit OwnershipTransferred(address(0x0), msg.sender);
     }
 
-    function owner() external view returns(address) {
+    function owner() external view returns (address) {
         return _owner;
     }
 
