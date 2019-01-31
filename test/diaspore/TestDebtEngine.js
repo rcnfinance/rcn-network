@@ -3425,4 +3425,148 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
         expect(await testModel.getPaid(id)).to.eq.BN('150');
     });
+
+    describe('Try broke the engine', function () {
+        it('Try use pay to pay a debt with invalid id', async function () {
+            await rcn.setBalance(accounts[0], 1);
+            await rcn.approve(debtEngine.address, 1);
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.pay(
+                    Helper.bytes320x,
+                    '1',
+                    accounts[0],
+                    []
+                ),
+                ''
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.pay(
+                    web3.utils.randomHex(32),
+                    '1',
+                    accounts[0],
+                    []
+                ),
+                ''
+            );
+        });
+
+        it('Try use payToken to pay a debt with invalid id', async function () {
+            await rcn.setBalance(accounts[0], 1);
+            await rcn.approve(debtEngine.address, 1);
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payToken(
+                    Helper.bytes320x,
+                    '1',
+                    accounts[0],
+                    []
+                ),
+                ''
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payToken(
+                    web3.utils.randomHex(32),
+                    '1',
+                    accounts[0],
+                    []
+                ),
+                ''
+            );
+        });
+
+        it('Try use payBatch to pay a debt/s with invalid id/s', async function () {
+            await rcn.setBalance(accounts[0], 1);
+            await rcn.approve(debtEngine.address, 1);
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payBatch(
+                    [Helper.bytes320x],
+                    ['1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                ''
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payBatch(
+                    [web3.utils.randomHex(32)],
+                    ['1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                ''
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payBatch(
+                    [Helper.bytes320x, web3.utils.randomHex(32)],
+                    ['0', '1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                ''
+            );
+        });
+
+        it('Try use payTokenBatch to pay a debt/s with invalid id/s', async function () {
+            await rcn.setBalance(accounts[0], 1);
+            await rcn.approve(debtEngine.address, 1);
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payTokenBatch(
+                    [Helper.bytes320x],
+                    ['1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                ''
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payTokenBatch(
+                    [web3.utils.randomHex(32)],
+                    ['1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                ''
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payTokenBatch(
+                    [Helper.bytes320x, web3.utils.randomHex(32)],
+                    ['0', '1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                ''
+            );
+        });
+
+        it('Try run a debt/s with invalid id/s', async function () {
+            await Helper.tryCatchRevert(
+                () => debtEngine.run(
+                    Helper.bytes320x
+                ),
+                ''
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.run(
+                    web3.utils.randomHex(32)
+                ),
+                ''
+            );
+        });
+    });
 });
