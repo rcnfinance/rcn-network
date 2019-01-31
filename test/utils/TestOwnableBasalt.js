@@ -1,4 +1,4 @@
-const OwnableBasalt = artifacts.require('../basalt/utils/OwnableBasalt.sol');
+const OwnableBasalt = artifacts.require('./basalt/utils/OwnableBasalt.sol');
 const Helper = require('../Helper.js');
 
 contract('OwnableBasalt', function (accounts) {
