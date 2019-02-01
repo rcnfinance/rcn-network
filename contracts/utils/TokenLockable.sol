@@ -1,11 +1,11 @@
 pragma solidity ^0.5.0;
 
 import "./RpSafeMath.sol";
-import "./Ownable.sol";
+import "./../basalt/utils/OwnableBasalt.sol";
 import "./../interfaces/Token.sol";
 
 
-contract TokenLockable is RpSafeMath, Ownable {
+contract TokenLockable is RpSafeMath, OwnableBasalt {
     mapping(address => uint256) public lockedTokens;
 
     /**

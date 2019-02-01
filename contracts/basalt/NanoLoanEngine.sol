@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 
 import "../interfaces/Oracle.sol";
 import "../interfaces/Token.sol";
-import "../utils/Ownable.sol";
+import "./utils/OwnableBasalt.sol";
 import "../utils/TokenLockable.sol";
 import "./interfaces/CosignerBasalt.sol";
 import "./interfaces/Engine.sol";
@@ -11,7 +11,7 @@ import "./interfaces/ERC721.sol";
 import "../utils/BytesUtils.sol";
 
 
-contract NanoLoanEngine is ERC721, Engine, Ownable, TokenLockable {
+contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal RCN_DECIMALS = 18;
