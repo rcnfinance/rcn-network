@@ -1,4 +1,4 @@
-const Ownable = artifacts.require('../utils/Ownable.sol');
+const Ownable = artifacts.require('./basalt/Ownable.sol');
 const Helper = require('../Helper.js');
 
 contract('Ownable', function (accounts) {
@@ -6,51 +6,78 @@ contract('Ownable', function (accounts) {
     const secondOwner = accounts[2];
     const thirdOwner = accounts[3];
 
-    it('Should change owner on transfer', async function () {
-        const ownable = await Ownable.new({ from: owner });
-        await ownable.transferTo(secondOwner, { from: owner });
-
-        assert.equal(await ownable.owner(), secondOwner);
+    describe('Constructor', function () {
+        it('ConstructorShould be creator with caller as owner', async function () {
+            const ownable = await Ownable.new({ from: accounts[7] });
+            assert.equal(await ownable.owner(), accounts[7]);
+        });
     });
 
-    it('Should revert if try to transfer to 0x0', async function () {
-        const ownable = await Ownable.new({ from: owner });
+    describe('Function transferOwnership', function () {
+        it('Should change owner on transfer', async function () {
+            const ownable = await Ownable.new({ from: owner });
 
-        await Helper.tryCatchRevert(
-            () => ownable.transferTo(
-                Helper.address0x,
-                { from: owner }
-            ),
-            '0x0 Is not a valid owner'
-        );
+            const OwnershipTransferred = await Helper.toEvents(
+                ownable.transferOwnership(
+                    secondOwner,
+                    { from: owner }
+                ),
+                'OwnershipTransferred'
+            );
 
-        assert.equal(await ownable.owner(), owner);
-    });
+            assert.equal(OwnershipTransferred._previousOwner, owner);
+            assert.equal(OwnershipTransferred._newOwner, secondOwner);
 
-    it('Should revert if another account tries to transfer', async function () {
-        const ownable = await Ownable.new({ from: owner });
+            assert.equal(await ownable.owner(), secondOwner);
+        });
 
-        await Helper.tryCatchRevert(
-            () => ownable.transferTo(
-                secondOwner,
-                { from: secondOwner }
-            ),
-            'The owner should be the sender'
-        );
+        it('Try to transfer ownership to 0x0', async function () {
+            const ownable = await Ownable.new({ from: owner });
 
-        await Helper.tryCatchRevert(
-            () => ownable.transferTo(
-                thirdOwner,
-                { from: secondOwner }
-            ),
-            'The owner should be the sender'
-        );
+            await Helper.tryCatchRevert(
+                () => ownable.transferOwnership(
+                    Helper.address0x,
+                    { from: owner }
+                ),
+                '0x0 Is not a valid owner'
+            );
 
-        assert.equal(await ownable.owner(), owner);
-    });
+            assert.equal(await ownable.owner(), owner);
+        });
 
-    it('Should be creator with caller as owner', async function () {
-        const ownable = await Ownable.new({ from: accounts[7] });
-        assert.equal(await ownable.owner(), accounts[7]);
+        // modifier onlyOwner
+        it('Should revert if account without ownership tries to transfer', async function () {
+            const ownable = await Ownable.new({ from: owner });
+
+            await Helper.tryCatchRevert(
+                () => ownable.transferOwnership(
+                    secondOwner,
+                    { from: secondOwner }
+                ),
+                'The owner should be the sender'
+            );
+
+            await Helper.tryCatchRevert(
+                () => ownable.transferOwnership(
+                    thirdOwner,
+                    { from: secondOwner }
+                ),
+                'The owner should be the sender'
+            );
+
+            assert.equal(await ownable.owner(), owner);
+
+            await ownable.transferOwnership(secondOwner, { from: owner });
+
+            await Helper.tryCatchRevert(
+                () => ownable.transferOwnership(
+                    secondOwner,
+                    { from: owner }
+                ),
+                'The owner should be the sender'
+            );
+
+            assert.equal(await ownable.owner(), secondOwner);
+        });
     });
 });

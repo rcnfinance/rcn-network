@@ -88,7 +88,7 @@ contract SimpleDelegableTest {
         SimpleDelegableMock delegable = new SimpleDelegableMock();
         AccountMock account1 = new AccountMock();
         AccountMock account2 = new AccountMock();
-        delegable.transferTo(address(account2));
+        delegable.transferOwnership(address(account2));
         assertRevert(
             address(delegable),
             abi.encodeWithSelector(
@@ -120,7 +120,7 @@ contract SimpleDelegableTest {
         AccountMock account1 = new AccountMock();
         AccountMock account2 = new AccountMock();
         delegable.addDelegate(address(account1));
-        delegable.transferTo(address(account2));
+        delegable.transferOwnership(address(account2));
         assertRevert(
             address(delegable),
             abi.encodeWithSelector(
