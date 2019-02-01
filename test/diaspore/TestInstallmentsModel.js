@@ -19,13 +19,13 @@ contract('Installments model', function (accounts) {
 
     async function ping () {
         try {
-            await model.transferTo(await model.owner());
+            await model.transferOwnership(await model.owner());
         } catch (ignored) {}
     }
 
     before('Create the model', async function () {
         model = await InstallmentsDebtModel.new();
-        await model.transferTo(accounts[1]);
+        await model.transferOwnership(accounts[1]);
         await model.setEngine(accounts[0], { from: accounts[1] });
     });
 
