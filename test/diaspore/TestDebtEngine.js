@@ -1067,7 +1067,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     accounts[0],
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
 
             await Helper.tryCatchRevert(
@@ -1077,7 +1077,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     accounts[0],
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
         });
     });
@@ -1545,7 +1545,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     accounts[0],
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
 
             await Helper.tryCatchRevert(
@@ -1555,7 +1555,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     accounts[0],
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
         });
     });
@@ -1973,7 +1973,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     Helper.address0x,
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
 
             await Helper.tryCatchRevert(
@@ -1984,7 +1984,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     Helper.address0x,
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
 
             await Helper.tryCatchRevert(
@@ -1995,7 +1995,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     Helper.address0x,
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
         });
     });
@@ -2501,7 +2501,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     Helper.address0x,
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
 
             await Helper.tryCatchRevert(
@@ -2512,7 +2512,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     Helper.address0x,
                     []
                 ),
-                'Request does not exist'
+                'Debt does not exist'
             );
 
             await Helper.tryCatchRevert(
@@ -2523,7 +2523,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     Helper.address0x,
                     []
                 ),
-                ''
+                'Debt does not exist'
             );
         });
     });
@@ -3517,14 +3517,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             () => debtEngine.run(
                 Helper.bytes320x
             ),
-            'Request does not exist'
+            'Debt does not exist'
         );
 
         await Helper.tryCatchRevert(
             () => debtEngine.run(
                 web3.utils.randomHex(32)
             ),
-            'Request does not exist'
+            'Debt does not exist'
         );
     });
 
