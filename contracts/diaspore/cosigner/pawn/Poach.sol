@@ -11,18 +11,16 @@ contract Poach is ERC721Base, IPoach {
 
     struct Pair {
         Token token;
-        uint256 amount;
+        uint256 balance;
     }
 
     Pair[] public poaches;
 
-    constructor() public {
-        poaches.length++;
-    }
+    constructor() public ERC721Base("ERC20 ETH Poach", "EEP") { }
 
-    function getPair(uint256 _id) external view returns(Token, uint256){
+    function getPair(uint256 _id) external view returns(Token, uint256) {
         Pair storage pair = poaches[_id];
-        return (pair.token, pair.amount);
+        return (pair.token, pair.balance);
     }
 
     /**
@@ -61,11 +59,9 @@ contract Poach is ERC721Base, IPoach {
         uint256 _amount
     ) external payable returns (bool) {
         Pair storage pair = poaches[_id];
-        require(pair.amount != 0, "The pair not exists");
-
         _deposit(pair.token, _amount);
 
-        pair.amount += _amount;
+        pair.balance += _amount;
 
         emit Deposit(_id, msg.sender, _amount);
 
@@ -86,17 +82,19 @@ contract Poach is ERC721Base, IPoach {
     ) external onlyAuthorized(_id) returns (bool) {
         require(_to != address(0), "_to should not be 0x0");
         Pair storage pair = poaches[_id];
-        uint256 amount = pair.amount;
-        require(amount != 0, "The pair not exists");
+        require(pair.token != Token(0), "The pair not exists");
 
-        if (address(pair.token) != ETH)
-            require(pair.token.transfer(_to, amount), "Error transfer tokens");
+        uint256 balance = pair.balance;
+
+        if (pair.token != Token(ETH))
+            require(pair.token.transfer(_to, balance), "Error transfer tokens");
         else
-            _to.transfer(amount);
+            _to.transfer(balance);
 
-        delete (pair.amount);
+        delete (pair.token);
+        delete (pair.balance);
 
-        emit Destroy(_id, msg.sender, _to, amount);
+        emit Destroy(_id, msg.sender, _to, balance);
 
         return true;
     }
@@ -105,9 +103,14 @@ contract Poach is ERC721Base, IPoach {
         Token _token,
         uint256 _amount
     ) internal {
-        if (msg.value == 0)
-            require(_token.transferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+        require(_token != Token(0), "The Token should not be the address 0x0");
+
+        if (_amount != 0)
+            if (msg.value == 0)
+                require(_token.transferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+            else
+                require(_amount == msg.value && _token == Token(ETH), "The amount should be equal to msg.value and the _token should be ETH");
         else
-            require(_amount == msg.value && address(_token) == ETH, "The amount should be equal to msg.value and the _token should be ETH");
+            require(msg.value == 0, "The msg.value should be 0");
     }
 }
