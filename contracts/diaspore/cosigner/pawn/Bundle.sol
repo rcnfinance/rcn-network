@@ -20,9 +20,7 @@ contract Bundle is ERC721Base, IBundle, BytesUtils {
         mapping(address => mapping(uint256 => uint256)) order;
     }
 
-    constructor() public {
-        packages.length++;
-    }
+    constructor() public ERC721Base("ERC721 Bundle", "EB") { }
 
     modifier canWithdraw(uint256 _packageId) {
         require(_isAuthorized(msg.sender, _packageId), "Not authorized for withdraw");
