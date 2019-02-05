@@ -470,7 +470,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             } else { // for a ERC20 token
                 bundle.withdraw(_packageId, erc721s[i], erc721Ids[i], address(this));
                 (addr, amount) = poach.getPair(erc721Ids[i]);
-                require(poach.destroy(erc721Ids[i]), "Fail destroy");
+                require(poach.destroy(erc721Ids[i], _beneficiary), "Fail destroy");
                 if (address(addr) != ETH)
                     require(addr.transfer(_beneficiary, amount), "Error transfer tokens");
                 else
