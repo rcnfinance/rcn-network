@@ -26,7 +26,7 @@ contract Bundle is ERC721Base, IBundle {
         _;
     }
 
-    function canDeposit(uint256 _packageId) public view returns (bool) {
+    function canDeposit(uint256 _packageId) external view returns (bool) {
         return _isAuthorized(msg.sender, _packageId);
     }
 

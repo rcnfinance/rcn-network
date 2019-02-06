@@ -8,7 +8,7 @@ contract IBundle is IERC721Base {
     event Deposit(address _sender, uint256 _bundle, IERC721Base _erc721, uint256 _id);
     event Withdraw(address _retriever, uint256 _bundle, IERC721Base _erc721, uint256 _id);
 
-    function canDeposit(uint256 _packageId) public view returns (bool);
+    function canDeposit(uint256 _packageId) external view returns (bool);
     function content(uint256 _id) external view returns (IERC721Base[] memory erc721s, uint256[] memory erc721Ids);
 
     function create() public returns (uint256 id);
