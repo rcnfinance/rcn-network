@@ -97,6 +97,7 @@ contract Poach is ERC721Base, IPoach {
 
         delete (pair.token);
         delete (pair.balance);
+        // TODO destroy ERC721?
 
         emit Destroy(_id, msg.sender, _to, balance);
 
