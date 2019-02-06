@@ -236,13 +236,13 @@ contract('Poach', function (accounts) {
                 poach.deposit(
                     id,
                     '1',
-                    { from: depositer, value: '1' }
+                    { from: creator, value: '1' }
                 ),
                 'Deposit'
             );
 
             expect(Deposit._pairId).to.eq.BN(id);
-            assert.equal(Deposit._sender, depositer);
+            assert.equal(Deposit._sender, creator);
             expect(Deposit._amount).to.eq.BN('1');
 
             let pair = await poach.getPair(id);
@@ -266,13 +266,13 @@ contract('Poach', function (accounts) {
                 poach.deposit(
                     id,
                     '0',
-                    { from: depositer, value: '0' }
+                    { from: creator, value: '0' }
                 ),
                 'Deposit'
             );
 
             expect(Deposit._pairId).to.eq.BN(id);
-            assert.equal(Deposit._sender, depositer);
+            assert.equal(Deposit._sender, creator);
             expect(Deposit._amount).to.eq.BN('0');
 
             let pair = await poach.getPair(id);
@@ -289,8 +289,8 @@ contract('Poach', function (accounts) {
         it('Should deposit amount in a Token poach', async function () {
             const id = await poach.totalSupply();
             await poach.create(token.address, '0', { from: creator });
-            await token.setBalance(depositer, '1');
-            await token.approve(poach.address, '1', { from: depositer });
+            await token.setBalance(creator, '1');
+            await token.approve(poach.address, '1', { from: creator });
 
             const prevTokenBal = await token.balanceOf(poach.address);
 
@@ -298,13 +298,13 @@ contract('Poach', function (accounts) {
                 poach.deposit(
                     id,
                     '1',
-                    { from: depositer }
+                    { from: creator }
                 ),
                 'Deposit'
             );
 
             expect(Deposit._pairId).to.eq.BN(id);
-            assert.equal(Deposit._sender, depositer);
+            assert.equal(Deposit._sender, creator);
             expect(Deposit._amount).to.eq.BN('1');
 
             let pair = await poach.getPair(id);
@@ -328,13 +328,13 @@ contract('Poach', function (accounts) {
                 poach.deposit(
                     id,
                     '0',
-                    { from: depositer }
+                    { from: creator }
                 ),
                 'Deposit'
             );
 
             expect(Deposit._pairId).to.eq.BN(id);
-            assert.equal(Deposit._sender, depositer);
+            assert.equal(Deposit._sender, creator);
             expect(Deposit._amount).to.eq.BN('0');
 
             let pair = await poach.getPair(id);
@@ -348,6 +348,39 @@ contract('Poach', function (accounts) {
             expect(await token.balanceOf(poach.address)).to.eq.BN(prevTokenBal);
         });
 
+        it('Should a third member deposit amount in a ETH poach', async function () {
+            const id = await poach.totalSupply();
+            await poach.create(ETH, '0', { from: creator });
+            await poach.setApprovalForAll(depositer, true, { from: creator });
+
+            const prevETHBal = await getETHBalance(poach.address);
+
+            const Deposit = await Helper.toEvents(
+                poach.deposit(
+                    id,
+                    '1',
+                    { from: depositer, value: '1' }
+                ),
+                'Deposit'
+            );
+
+            expect(Deposit._pairId).to.eq.BN(id);
+            assert.equal(Deposit._sender, depositer);
+            expect(Deposit._amount).to.eq.BN('1');
+
+            let pair = await poach.getPair(id);
+            assert.equal(pair[0], ETH);
+            expect(pair[1]).to.eq.BN('1');
+
+            pair = await poach.poaches(id);
+            assert.equal(pair.token, ETH);
+            expect(pair.balance).to.eq.BN('1');
+
+            expect(await getETHBalance(poach.address)).to.eq.BN(inc(prevETHBal));
+
+            await poach.setApprovalForAll(depositer, false, { from: creator });
+        });
+
         it('Try deposit in a destroy poach', async function () {
             const id = await poach.totalSupply();
             await poach.create(token.address, '0', { from: creator });
@@ -357,22 +390,21 @@ contract('Poach', function (accounts) {
                 () => poach.deposit(
                     id,
                     '0',
-                    { from: depositer }
+                    { from: creator }
                 ),
                 'The Token should not be the address 0x0'
             );
         });
 
         it('Try deposit in a inexists poach', async function () {
-            try {
-                await poach.deposit(
+            await Helper.tryCatchRevert(
+                () => poach.deposit(
                     '999999999999999999999',
-                    '1',
-                    { from: depositer }
-                );
-            } catch (error) {
-                assert.equal(error.message, 'Returned error: VM Exception while processing transaction: invalid opcode');
-            }
+                    '0',
+                    { from: creator }
+                ),
+                'msg.sender Not authorized'
+            );
         });
     });
 
