@@ -7,8 +7,6 @@ import "./../../../utils/Ownable.sol";
 import "./../../../utils/ERC721Base.sol";
 
 
-    uint256 private constant MAX_UINT256 = uint256(0) - uint256(1);
-
 contract Bundle is ERC721Base, IBundle {
     Package[] private packages;
 
@@ -58,9 +56,7 @@ contract Bundle is ERC721Base, IBundle {
         IERC721Base _erc721,
         uint256 _erc721Id
     ) external returns (bool) {
-        uint256 packageId = _packageId == 0 ? create() : _packageId;
-        require(canDeposit(packageId), "Not authorized for deposit");
-        return _deposit(packageId, _erc721, _erc721Id);
+        return _deposit(_packageId == 0 ? create() : _packageId, _erc721, _erc721Id);
     }
 
     /**
@@ -80,8 +76,6 @@ contract Bundle is ERC721Base, IBundle {
         uint256[] calldata _erc721Ids
     ) external returns (bool) {
         uint256 packageId = _packageId == 0 ? create() : _packageId;
-        require(canDeposit(packageId), "Not authorized for deposit");
-
         require(_erc721s.length == _erc721Ids.length, "The _erc721s length and _erc721Ids length must be equal");
         for (uint256 i = 0; i < _erc721Ids.length; i++) {
             _deposit(packageId, _erc721s[i], _erc721Ids[i]);
@@ -146,9 +140,8 @@ contract Bundle is ERC721Base, IBundle {
         address _to
     ) external onlyAuthorized(_packageId) returns (bool) {
         Package storage package = packages[_packageId];
-        uint256 i = package.erc721Ids.length - 1;
 
-        for (; i != MAX_UINT256; i--) {
+        for (uint256 i = package.erc721Ids.length - 1; i > 0; i--) {
             _withdraw(_packageId, IERC721Base(package.erc721s[i]), package.erc721Ids[i], _to);
         }
 
@@ -164,11 +157,13 @@ contract Bundle is ERC721Base, IBundle {
         IERC721Base _erc721,
         uint256 _erc721Id
     ) internal returns (bool) {
+        require(_isAuthorized(msg.sender, _packageId), "Not authorized for deposit");
+
         _erc721.transferFrom(msg.sender, address(this), _erc721Id);
-        require(_erc721.ownerOf(_erc721Id) == address(this), "IERC721Base transfer failed");
 
         Package storage package = packages[_packageId];
-        _add(package, _erc721, _erc721Id);
+        package.order[address(_erc721)][_erc721Id] = package.erc721s.push(_erc721) - 1;
+        package.erc721Ids.push(_erc721Id);
 
         emit Deposit(msg.sender, _packageId, _erc721, _erc721Id);
 
@@ -191,51 +186,43 @@ contract Bundle is ERC721Base, IBundle {
         return true;
     }
 
-    function _add(
-        Package storage _package,
-        IERC721Base _erc721,
-        uint256 _erc721Id
-    ) internal {
-        uint256 position = _package.order[address(_erc721)][_erc721Id];
-        require(!_isAsset(_package, position, _erc721, _erc721Id), "Already exist");
-        position = _package.erc721s.length;
-        _package.erc721s.push(_erc721);
-        _package.erc721Ids.push(_erc721Id);
-        _package.order[address(_erc721)][_erc721Id] = position;
-    }
-
     function _remove(
         Package storage _package,
         IERC721Base _erc721,
         uint256 _erc721Id
     ) internal {
-        uint256 delPosition = _package.order[address(_erc721)][_erc721Id];
-        require(_isAsset(_package, delPosition, _erc721, _erc721Id), "The token does not exist inside the package");
+        require(_hasAsset(_package, _erc721, _erc721Id), "The package dont has the asset");
 
         // Replace item to remove with last item
         // (make the item to remove the last one)
+        uint256 delPosition = _package.order[address(_erc721)][_erc721Id];
         uint256 lastPosition = _package.erc721s.length - 1;
+
         if (lastPosition != delPosition) {
-            IERC721Base lasterc721 = _package.erc721s[lastPosition];
-            uint256 lasterc721Id = _package.erc721Ids[lastPosition];
-            _package.erc721s[delPosition] = lasterc721;
-            _package.erc721Ids[delPosition] = lasterc721Id;
-            _package.order[address(lasterc721)][lasterc721Id] = delPosition;
+            IERC721Base lastErc721 = _package.erc721s[lastPosition];
+            uint256 lastErc721Id = _package.erc721Ids[lastPosition];
+            _package.erc721s[delPosition] = lastErc721;
+            _package.erc721Ids[delPosition] = lastErc721Id;
+            _package.order[address(lastErc721)][lastErc721Id] = delPosition;
         }
 
         // Remove last position
+        delete _package.erc721s[delPosition] ;
         _package.erc721s.length--;
+        delete _package.erc721Ids[delPosition];
         _package.erc721Ids.length--;
         delete _package.order[address(_erc721)][_erc721Id];
     }
 
-    function _isAsset(
-        Package memory _package,
-        uint256 _position,
+    function _hasAsset(
+        Package storage _package,
         IERC721Base _erc721,
         uint256 _erc721Id
-    ) internal pure returns (bool) {
-        return _position != 0 ||
-            (_package.erc721Ids.length != 0 && _package.erc721s[_position] == _erc721 && _package.erc721Ids[_position] == _erc721Id);
+    ) internal returns (bool) {
+        uint256 position = _package.order[address(_erc721)][_erc721Id];
+        return position != 0 ||
+            (_package.erc721Ids.length != 0 &&
+                _package.erc721s[position] == _erc721 &&
+                _package.erc721Ids[position] == _erc721Id);
     }
 }
