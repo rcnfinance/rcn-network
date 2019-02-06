@@ -3,14 +3,13 @@ pragma solidity ^0.5.0;
 import "./../../../interfaces/IERC721Base.sol";
 import "./interfaces/IBundle.sol";
 
-import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/Ownable.sol";
 import "./../../../utils/ERC721Base.sol";
 
 
-contract Bundle is ERC721Base, IBundle, BytesUtils {
     uint256 private constant MAX_UINT256 = uint256(0) - uint256(1);
 
+contract Bundle is ERC721Base, IBundle {
     Package[] private packages;
 
     struct Package {
