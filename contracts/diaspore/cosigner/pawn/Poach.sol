@@ -61,7 +61,7 @@ contract Poach is ERC721Base, IPoach {
     function deposit(
         uint256 _id,
         uint256 _amount
-    ) external payable returns (bool) {
+    ) external payable onlyAuthorized(_id) returns (bool) {
         Pair storage pair = poaches[_id];
         _deposit(pair.token, _amount);
 
