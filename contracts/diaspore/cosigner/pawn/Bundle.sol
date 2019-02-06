@@ -21,11 +21,6 @@ contract Bundle is ERC721Base, IBundle {
 
     constructor() public ERC721Base("ERC721 Bundle", "EB") { }
 
-    modifier canWithdraw(uint256 _packageId) {
-        require(_isAuthorized(msg.sender, _packageId), "Not authorized for withdraw");
-        _;
-    }
-
     function canDeposit(uint256 _packageId) external view returns (bool) {
         return _isAuthorized(msg.sender, _packageId);
     }
@@ -110,7 +105,7 @@ contract Bundle is ERC721Base, IBundle {
         IERC721Base _erc721,
         uint256 _erc721Id,
         address _to
-    ) external canWithdraw(_packageId) returns (bool) {
+    ) external onlyAuthorized(_packageId) returns (bool) {
         return _withdraw(_packageId, _erc721, _erc721Id, _to);
     }
 
@@ -131,7 +126,7 @@ contract Bundle is ERC721Base, IBundle {
         IERC721Base[] calldata _erc721s,
         uint256[] calldata _erc721Ids,
         address _to
-    ) external canWithdraw(_packageId) returns (bool) {
+    ) external onlyAuthorized(_packageId) returns (bool) {
         for (uint256 i = 0; i < _erc721s.length; i++)
             _withdraw(_packageId, _erc721s[i], _erc721Ids[i], _to);
 
@@ -149,7 +144,7 @@ contract Bundle is ERC721Base, IBundle {
     function withdrawAll(
         uint256 _packageId,
         address _to
-    ) external canWithdraw(_packageId) returns (bool) {
+    ) external onlyAuthorized(_packageId) returns (bool) {
         Package storage package = packages[_packageId];
         uint256 i = package.erc721Ids.length - 1;
 
