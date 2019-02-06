@@ -18,6 +18,10 @@ contract Poach is ERC721Base, IPoach {
 
     constructor() public ERC721Base("ERC20 ETH Poach", "EEP") { }
 
+    function canDeposit(uint256 _packageId) external view returns (bool) {
+        return _isAuthorized(msg.sender, _packageId);
+    }
+
     function getPair(uint256 _id) external view returns(Token, uint256) {
         Pair storage pair = poaches[_id];
         return (pair.token, pair.balance);
