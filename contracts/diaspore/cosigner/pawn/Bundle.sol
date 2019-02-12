@@ -189,7 +189,7 @@ contract Bundle is ERC721Base, IBundle {
     ) internal returns (bool) {
         Package storage package = packages[_packageId];
         _remove(package, _erc721, _erc721Id);
-        emit Withdraw(msg.sender, _packageId, _erc721, _erc721Id);
+        emit Withdraw(msg.sender, _to, _packageId, _erc721, _erc721Id);
 
         _erc721.transferFrom(address (this), _to, _erc721Id);
         require(_erc721.ownerOf(_erc721Id) == _to, "IERC721Base transfer failed");

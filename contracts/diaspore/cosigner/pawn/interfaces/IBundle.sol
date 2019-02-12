@@ -4,9 +4,9 @@ import "./../../../../interfaces/IERC721Base.sol";
 
 
 contract IBundle is IERC721Base {
-    event Withdraw(address _retriever, uint256 _bundle, IERC721Base _erc721, uint256 _id);
     event Created(address _owner, uint256 _packageId);
     event Deposit(address _sender, uint256 _packageId, IERC721Base _erc721, uint256 _erc721Id);
+    event Withdraw(address _retriever, address _beneficiary, uint256 _packageId, IERC721Base _erc721, uint256 _erc721Id);
 
     function canDeposit(uint256 _packageId) external view returns (bool);
     function content(uint256 _packageId) external view returns (IERC721Base[] memory erc721s, uint256[] memory erc721Ids);
