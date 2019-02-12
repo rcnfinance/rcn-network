@@ -152,9 +152,12 @@ contract Bundle is ERC721Base, IBundle {
     ) external onlyAuthorized(_packageId) returns (bool) {
         Package storage package = packages[_packageId];
 
-        for (uint256 i = package.erc721Ids.length - 1; i > 0; i--) {
+        uint256 i = package.erc721Ids.length;
+        require(i > 0, "The package its empty");
+        for (i--; i > 0; i--)
             _withdraw(_packageId, IERC721Base(package.erc721s[i]), package.erc721Ids[i], _to);
-        }
+
+        _withdraw(_packageId, IERC721Base(package.erc721s[0]), package.erc721Ids[0], _to);
 
         return true;
     }
