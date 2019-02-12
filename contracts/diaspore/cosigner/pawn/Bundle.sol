@@ -191,8 +191,8 @@ contract Bundle is ERC721Base, IBundle {
         _remove(package, _erc721, _erc721Id);
         emit Withdraw(msg.sender, _to, _packageId, _erc721, _erc721Id);
 
-        require(_erc721.ownerOf(_erc721Id) == _to, "IERC721Base transfer failed");
         _erc721.transferFrom(address(this), _to, _erc721Id);
+        require(_erc721.ownerOf(_erc721Id) == _to, "ERC721 asset transfer failed");
 
         return true;
     }
