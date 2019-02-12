@@ -15,9 +15,12 @@ contract Bundle is ERC721Base, IBundle {
         mapping(address => mapping(uint256 => uint256)) order;
     }
 
-    constructor() public ERC721Base("ERC721 Bundle", "EB") { }
     Package[] private packages;
 
+    constructor() public ERC721Base("ERC721 Bundle", "EB") {
+        // the package of index 0 use in deposit function to create a package before deposit
+        packages.length++;
+    }
 
     function canDeposit(uint256 _packageId) external view returns (bool) {
         return _isAuthorized(msg.sender, _packageId);
