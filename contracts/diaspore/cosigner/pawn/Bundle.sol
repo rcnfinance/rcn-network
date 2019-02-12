@@ -37,8 +37,8 @@ contract Bundle is ERC721Base, IBundle {
     /**
         @notice Get the content of a package
     */
-    function content(uint256 _id) external view returns (IERC721Base[] memory, uint256[] memory) {
-        Package memory package = packages[_id];
+    function content(uint256 _packageId) external view returns (IERC721Base[] memory, uint256[] memory) {
+        Package memory package = packages[_packageId];
         return (package.erc721s, package.erc721Ids);
     }
 
@@ -46,11 +46,11 @@ contract Bundle is ERC721Base, IBundle {
     /**
         @notice Create a empty Package in packages array
     */
-    function create() public returns (uint256 id) {
-        id = packages.length;
+    function create() public returns (uint256 packageId) {
+        packageId = packages.length;
         packages.length++;
-        emit Created(msg.sender, id);
-        _generate(id, msg.sender);
+        emit Created(msg.sender, packageId);
+        _generate(packageId, msg.sender);
     }
 
     /**
