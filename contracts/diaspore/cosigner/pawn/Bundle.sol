@@ -8,8 +8,6 @@ import "./../../../utils/ERC721Base.sol";
 
 
 contract Bundle is ERC721Base, IBundle {
-    Package[] private packages;
-
     struct Package {
         IERC721Base[] erc721s;
         uint256[] erc721Ids;
@@ -18,6 +16,8 @@ contract Bundle is ERC721Base, IBundle {
     }
 
     constructor() public ERC721Base("ERC721 Bundle", "EB") { }
+    Package[] private packages;
+
 
     function canDeposit(uint256 _packageId) external view returns (bool) {
         return _isAuthorized(msg.sender, _packageId);
