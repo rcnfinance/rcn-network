@@ -1,26 +1,33 @@
 pragma solidity ^0.5.0;
 
+import "./../interfaces/IERC173.sol";
 
-contract Ownable {
-    address public owner;
+
+contract Ownable is IERC173 {
+    address internal _owner;
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "The owner should be the sender");
+        require(msg.sender == _owner, "The owner should be the sender");
         _;
     }
 
     constructor() public {
-        owner = msg.sender;
+        _owner = msg.sender;
+        emit OwnershipTransferred(address(0x0), msg.sender);
+    }
+
+    function owner() external view returns (address) {
+        return _owner;
     }
 
     /**
         @dev Transfers the ownership of the contract.
 
-        @param _to Address of the new owner
+        @param _newOwner Address of the new owner
     */
-    function transferTo(address _to) public onlyOwner returns (bool) {
-        require(_to != address(0), "0x0 Is not a valid owner");
-        owner = _to;
-        return true;
+    function transferOwnership(address _newOwner) external onlyOwner {
+        require(_newOwner != address(0), "0x0 Is not a valid owner");
+        emit OwnershipTransferred(_owner, _newOwner);
+        _owner = _newOwner;
     }
 }
