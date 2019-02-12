@@ -99,7 +99,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     }
 
     function isOperator(address operator) external view returns (bool) {
-        return operator == owner;
+        return operator == _owner;
     }
 
     function validate(bytes calldata data) external view returns (bool) {
