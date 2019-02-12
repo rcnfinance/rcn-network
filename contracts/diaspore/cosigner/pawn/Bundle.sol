@@ -205,11 +205,14 @@ contract Bundle is ERC721Base, IBundle {
         IERC721Base _erc721,
         uint256 _erc721Id
     ) internal {
-        require(_hasAsset(_package, _erc721, _erc721Id), "The package dont has the asset");
+        uint256 delPosition = _package.order[address(_erc721)][_erc721Id];
+        require(
+            _package.erc721s[delPosition] == _erc721 && _package.erc721Ids[delPosition] == _erc721Id,
+            "The package dont has the asset"
+        );
 
         // Replace item to remove with last item
         // (make the item to remove the last one)
-        uint256 delPosition = _package.order[address(_erc721)][_erc721Id];
         uint256 lastPosition = _package.erc721s.length - 1;
 
         if (lastPosition != delPosition) {
@@ -221,22 +224,10 @@ contract Bundle is ERC721Base, IBundle {
         }
 
         // Remove last position
-        delete _package.erc721s[delPosition] ;
+        delete _package.erc721s[lastPosition];
         _package.erc721s.length--;
-        delete _package.erc721Ids[delPosition];
+        delete _package.erc721Ids[lastPosition];
         _package.erc721Ids.length--;
         delete _package.order[address(_erc721)][_erc721Id];
-    }
-
-    function _hasAsset(
-        Package storage _package,
-        IERC721Base _erc721,
-        uint256 _erc721Id
-    ) internal returns (bool) {
-        uint256 position = _package.order[address(_erc721)][_erc721Id];
-        return position != 0 ||
-            (_package.erc721Ids.length != 0 &&
-                _package.erc721s[position] == _erc721 &&
-                _package.erc721Ids[position] == _erc721Id);
     }
 }
