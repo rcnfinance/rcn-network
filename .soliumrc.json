@@ -7,7 +7,7 @@
     "lbrace": "off",
     "linebreak-style": ["error", "unix"],
     "no-constant": ["error"],
-    "no-empty-blocks": "error",
+    "no-empty-blocks": "warning",
     "quotes": ["error", "double"],
     "uppercase": "off",
     "imports-on-top": "error",
