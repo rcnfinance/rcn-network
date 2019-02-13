@@ -119,13 +119,13 @@ contract Poach is ERC721Base, IPoach {
         Pair storage pair = poaches[_id];
 
         require(pair.balance >= _amount, "The balance of poach its to low");
+        pair.balance -= _amount;
 
         if (pair.token != Token(ETH))
             require(pair.token.transfer(_to, _amount), "Error transfer tokens");
         else
             _to.transfer(_amount);
 
-        pair.balance -= _amount;
 
         emit Withdraw(_id, msg.sender, _to, _amount);
 
