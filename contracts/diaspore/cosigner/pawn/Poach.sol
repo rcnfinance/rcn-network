@@ -73,20 +73,19 @@ contract Poach is ERC721Base, IPoach {
     }
 
     /**
-        @notice Destroy a pair and return the funds
+        @notice Withdraw all funds of a pair
 
         @param _id Index of pair in poaches array
         @param _to The beneficiary of returned funds
 
         @return true If the operation was executed
     */
-    function destroy(
+    function withdraw(
         uint256 _id,
         address payable _to
     ) external onlyAuthorized(_id) returns (bool) {
         require(_to != address(0), "_to should not be 0x0");
         Pair storage pair = poaches[_id];
-        require(pair.token != Token(0), "The pair not exists");
 
         uint256 balance = pair.balance;
 
@@ -95,11 +94,40 @@ contract Poach is ERC721Base, IPoach {
         else
             _to.transfer(balance);
 
-        delete (pair.token);
         delete (pair.balance);
-        // TODO destroy ERC721?
 
-        emit Destroy(_id, msg.sender, _to, balance);
+        emit Withdraw(_id, msg.sender, _to, balance);
+
+        return true;
+    }
+
+    /**
+        @notice Withdraw a partial amount of funds of a pair
+
+        @param _id Index of pair in poaches array
+        @param _to The beneficiary of returned funds
+        @param _amount The amount of returned funds
+
+        @return true If the operation was executed
+    */
+    function withdrawPartial(
+        uint256 _id,
+        address payable _to,
+        uint256 _amount
+    ) external onlyAuthorized(_id) returns (bool) {
+        require(_to != address(0), "_to should not be 0x0");
+        Pair storage pair = poaches[_id];
+
+        require(pair.balance >= _amount, "The balance of poach its to low");
+
+        if (pair.token != Token(ETH))
+            require(pair.token.transfer(_to, _amount), "Error transfer tokens");
+        else
+            _to.transfer(_amount);
+
+        pair.balance -= _amount;
+
+        emit Withdraw(_id, msg.sender, _to, _amount);
 
         return true;
     }

@@ -381,21 +381,6 @@ contract('Poach', function (accounts) {
             await poach.setApprovalForAll(depositer, false, { from: creator });
         });
 
-        it('Try deposit in a destroy poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(token.address, '0', { from: creator });
-            await poach.destroy(id, creator, { from: creator });
-
-            await Helper.tryCatchRevert(
-                () => poach.deposit(
-                    id,
-                    '0',
-                    { from: creator }
-                ),
-                'The Token should not be the address 0x0'
-            );
-        });
-
         it('Try deposit in a inexists poach', async function () {
             await Helper.tryCatchRevert(
                 () => poach.deposit(
@@ -408,74 +393,74 @@ contract('Poach', function (accounts) {
         });
     });
 
-    describe('destroy function', function () {
-        it('Should destroy a ETH poach with amount', async function () {
+    describe('withdraw function', function () {
+        it('Should withdraw a ETH poach', async function () {
             const id = await poach.totalSupply();
             await poach.create(ETH, '1', { from: creator, value: '1' });
 
             const prevETHBal = await getETHBalance(poach.address);
             const prevBeneficiaryBal = await getETHBalance(beneficiary);
 
-            const Destroy = await Helper.toEvents(
-                poach.destroy(
+            const Withdraw = await Helper.toEvents(
+                poach.withdraw(
                     id,
                     beneficiary,
                     { from: creator }
                 ),
-                'Destroy'
+                'Withdraw'
             );
 
-            expect(Destroy._pairId).to.eq.BN(id);
-            assert.equal(Destroy._sender, creator);
-            assert.equal(Destroy._to, beneficiary);
-            expect(Destroy._balance).to.eq.BN('1');
+            expect(Withdraw._pairId).to.eq.BN(id);
+            assert.equal(Withdraw._sender, creator);
+            assert.equal(Withdraw._to, beneficiary);
+            expect(Withdraw._amount).to.eq.BN('1');
 
             let pair = await poach.getPair(id);
-            assert.equal(pair[0], Helper.address0x);
+            assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('0');
 
             pair = await poach.poaches(id);
-            assert.equal(pair.token, Helper.address0x);
+            assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('0');
 
             expect(await getETHBalance(poach.address)).to.eq.BN(dec(prevETHBal));
             expect(await getETHBalance(beneficiary)).to.eq.BN(inc(prevBeneficiaryBal));
         });
 
-        it('Should destroy a ETH poach without amount', async function () {
+        it('Should withdraw a ETH poach without amount', async function () {
             const id = await poach.totalSupply();
             await poach.create(ETH, '0', { from: creator, value: '0' });
 
             const prevETHBal = await getETHBalance(poach.address);
             const prevBeneficiaryBal = await getETHBalance(beneficiary);
 
-            const Destroy = await Helper.toEvents(
-                poach.destroy(
+            const Withdraw = await Helper.toEvents(
+                poach.withdraw(
                     id,
                     beneficiary,
                     { from: creator }
                 ),
-                'Destroy'
+                'Withdraw'
             );
 
-            expect(Destroy._pairId).to.eq.BN(id);
-            assert.equal(Destroy._sender, creator);
-            assert.equal(Destroy._to, beneficiary);
-            expect(Destroy._balance).to.eq.BN('0');
+            expect(Withdraw._pairId).to.eq.BN(id);
+            assert.equal(Withdraw._sender, creator);
+            assert.equal(Withdraw._to, beneficiary);
+            expect(Withdraw._amount).to.eq.BN('0');
 
             let pair = await poach.getPair(id);
-            assert.equal(pair[0], Helper.address0x);
+            assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('0');
 
             pair = await poach.poaches(id);
-            assert.equal(pair.token, Helper.address0x);
+            assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('0');
 
             expect(await getETHBalance(poach.address)).to.eq.BN(prevETHBal);
             expect(await getETHBalance(beneficiary)).to.eq.BN(prevBeneficiaryBal);
         });
 
-        it('Should destroy a token poach with amount', async function () {
+        it('Should withdraw a token poach with amount', async function () {
             const id = await poach.totalSupply();
             await token.setBalance(creator, '1');
             await token.approve(poach.address, '1', { from: creator });
@@ -484,71 +469,71 @@ contract('Poach', function (accounts) {
             const prevTokenBal = await token.balanceOf(poach.address);
             const prevBeneficiaryBal = await token.balanceOf(beneficiary);
 
-            const Destroy = await Helper.toEvents(
-                poach.destroy(
+            const Withdraw = await Helper.toEvents(
+                poach.withdraw(
                     id,
                     beneficiary,
                     { from: creator }
                 ),
-                'Destroy'
+                'Withdraw'
             );
 
-            expect(Destroy._pairId).to.eq.BN(id);
-            assert.equal(Destroy._sender, creator);
-            assert.equal(Destroy._to, beneficiary);
-            expect(Destroy._balance).to.eq.BN('1');
+            expect(Withdraw._pairId).to.eq.BN(id);
+            assert.equal(Withdraw._sender, creator);
+            assert.equal(Withdraw._to, beneficiary);
+            expect(Withdraw._amount).to.eq.BN('1');
 
             let pair = await poach.getPair(id);
-            assert.equal(pair[0], Helper.address0x);
+            assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('0');
 
             pair = await poach.poaches(id);
-            assert.equal(pair.token, Helper.address0x);
+            assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('0');
 
             expect(await token.balanceOf(poach.address)).to.eq.BN(dec(prevTokenBal));
             expect(await token.balanceOf(beneficiary)).to.eq.BN(inc(prevBeneficiaryBal));
         });
 
-        it('Should destroy a token poach without amount', async function () {
+        it('Should withdraw a token poach without amount', async function () {
             const id = await poach.totalSupply();
             await poach.create(token.address, '0', { from: creator });
 
             const prevTokenBal = await token.balanceOf(poach.address);
             const prevBeneficiaryBal = await token.balanceOf(beneficiary);
 
-            const Destroy = await Helper.toEvents(
-                poach.destroy(
+            const Withdraw = await Helper.toEvents(
+                poach.withdraw(
                     id,
                     beneficiary,
                     { from: creator }
                 ),
-                'Destroy'
+                'Withdraw'
             );
 
-            expect(Destroy._pairId).to.eq.BN(id);
-            assert.equal(Destroy._sender, creator);
-            assert.equal(Destroy._to, beneficiary);
-            expect(Destroy._balance).to.eq.BN('0');
+            expect(Withdraw._pairId).to.eq.BN(id);
+            assert.equal(Withdraw._sender, creator);
+            assert.equal(Withdraw._to, beneficiary);
+            expect(Withdraw._amount).to.eq.BN('0');
 
             let pair = await poach.getPair(id);
-            assert.equal(pair[0], Helper.address0x);
+            assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('0');
 
             pair = await poach.poaches(id);
-            assert.equal(pair.token, Helper.address0x);
+            assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('0');
 
             expect(await token.balanceOf(poach.address)).to.eq.BN(prevTokenBal);
             expect(await token.balanceOf(beneficiary)).to.eq.BN(prevBeneficiaryBal);
         });
 
-        it('Try destroy a poach and send the funds to 0x0 address', async function () {
+        it('Try withdraw a poach and send the funds to 0x0 address', async function () {
             const id = await poach.totalSupply();
             await poach.create(ETH, '0', { from: creator });
 
             await Helper.tryCatchRevert(
-                () => poach.destroy(
+                () => poach.withdraw(
                     id,
                     Helper.address0x,
                     { from: creator }
@@ -557,32 +542,238 @@ contract('Poach', function (accounts) {
             );
         });
 
-        it('Try destroy an inexists(destroyed) poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
-            await poach.destroy(id, creator, { from: creator });
-
+        it('Try withdraw an inexists poach', async function () {
             await Helper.tryCatchRevert(
-                () => poach.destroy(
-                    id,
+                () => poach.withdraw(
+                    '999999999999999999999999999999999',
                     beneficiary,
                     { from: creator }
                 ),
-                'The pair not exists'
+                'msg.sender Not authorized'
             );
         });
 
-        it('Try destroy a pair with an unauthorized account', async function () {
+        it('Try withdraw a pair with an unauthorized account', async function () {
             const id = await poach.totalSupply();
             await poach.create(ETH, '0', { from: creator });
 
             await Helper.tryCatchRevert(
-                () => poach.destroy(
+                () => poach.withdraw(
                     id,
                     beneficiary,
                     { from: accounts[9] }
                 ),
                 'msg.sender Not authorized'
+            );
+        });
+    });
+
+    describe('withdrawPartial function', function () {
+        it('Should withdrawPartial a ETH poach', async function () {
+            const id = await poach.totalSupply();
+            await poach.create(ETH, '2', { from: creator, value: '2' });
+
+            const prevETHBal = await getETHBalance(poach.address);
+            const prevBeneficiaryBal = await getETHBalance(beneficiary);
+
+            const Withdraw = await Helper.toEvents(
+                poach.withdrawPartial(
+                    id,
+                    beneficiary,
+                    '1',
+                    { from: creator }
+                ),
+                'Withdraw'
+            );
+
+            expect(Withdraw._pairId).to.eq.BN(id);
+            assert.equal(Withdraw._sender, creator);
+            assert.equal(Withdraw._to, beneficiary);
+            expect(Withdraw._amount).to.eq.BN('1');
+
+            let pair = await poach.getPair(id);
+            assert.equal(pair[0], ETH);
+            expect(pair[1]).to.eq.BN('1');
+
+            pair = await poach.poaches(id);
+            assert.equal(pair.token, ETH);
+            expect(pair.balance).to.eq.BN('1');
+
+            expect(await getETHBalance(poach.address)).to.eq.BN(dec(prevETHBal));
+            expect(await getETHBalance(beneficiary)).to.eq.BN(inc(prevBeneficiaryBal));
+        });
+
+        it('Should withdrawPartial a ETH poach without amount', async function () {
+            const id = await poach.totalSupply();
+            await poach.create(ETH, '0', { from: creator, value: '0' });
+
+            const prevETHBal = await getETHBalance(poach.address);
+            const prevBeneficiaryBal = await getETHBalance(beneficiary);
+
+            const Withdraw = await Helper.toEvents(
+                poach.withdrawPartial(
+                    id,
+                    beneficiary,
+                    '0',
+                    { from: creator }
+                ),
+                'Withdraw'
+            );
+
+            expect(Withdraw._pairId).to.eq.BN(id);
+            assert.equal(Withdraw._sender, creator);
+            assert.equal(Withdraw._to, beneficiary);
+            expect(Withdraw._amount).to.eq.BN('0');
+
+            let pair = await poach.getPair(id);
+            assert.equal(pair[0], ETH);
+            expect(pair[1]).to.eq.BN('0');
+
+            pair = await poach.poaches(id);
+            assert.equal(pair.token, ETH);
+            expect(pair.balance).to.eq.BN('0');
+
+            expect(await getETHBalance(poach.address)).to.eq.BN(prevETHBal);
+            expect(await getETHBalance(beneficiary)).to.eq.BN(prevBeneficiaryBal);
+        });
+
+        it('Should withdrawPartial a token poach with amount', async function () {
+            const id = await poach.totalSupply();
+            await token.setBalance(creator, '2');
+            await token.approve(poach.address, '2', { from: creator });
+            await poach.create(token.address, '2', { from: creator });
+
+            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevBeneficiaryBal = await token.balanceOf(beneficiary);
+
+            const Withdraw = await Helper.toEvents(
+                poach.withdrawPartial(
+                    id,
+                    beneficiary,
+                    '1',
+                    { from: creator }
+                ),
+                'Withdraw'
+            );
+
+            expect(Withdraw._pairId).to.eq.BN(id);
+            assert.equal(Withdraw._sender, creator);
+            assert.equal(Withdraw._to, beneficiary);
+            expect(Withdraw._amount).to.eq.BN('1');
+
+            let pair = await poach.getPair(id);
+            assert.equal(pair[0], token.address);
+            expect(pair[1]).to.eq.BN('1');
+
+            pair = await poach.poaches(id);
+            assert.equal(pair.token, token.address);
+            expect(pair.balance).to.eq.BN('1');
+
+            expect(await token.balanceOf(poach.address)).to.eq.BN(dec(prevTokenBal));
+            expect(await token.balanceOf(beneficiary)).to.eq.BN(inc(prevBeneficiaryBal));
+        });
+
+        it('Should withdrawPartial a token poach without amount', async function () {
+            const id = await poach.totalSupply();
+            await poach.create(token.address, '0', { from: creator });
+
+            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevBeneficiaryBal = await token.balanceOf(beneficiary);
+
+            const Withdraw = await Helper.toEvents(
+                poach.withdrawPartial(
+                    id,
+                    beneficiary,
+                    '0',
+                    { from: creator }
+                ),
+                'Withdraw'
+            );
+
+            expect(Withdraw._pairId).to.eq.BN(id);
+            assert.equal(Withdraw._sender, creator);
+            assert.equal(Withdraw._to, beneficiary);
+            expect(Withdraw._amount).to.eq.BN('0');
+
+            let pair = await poach.getPair(id);
+            assert.equal(pair[0], token.address);
+            expect(pair[1]).to.eq.BN('0');
+
+            pair = await poach.poaches(id);
+            assert.equal(pair.token, token.address);
+            expect(pair.balance).to.eq.BN('0');
+
+            expect(await token.balanceOf(poach.address)).to.eq.BN(prevTokenBal);
+            expect(await token.balanceOf(beneficiary)).to.eq.BN(prevBeneficiaryBal);
+        });
+
+        it('Try withdrawPartial a poach and send the funds to 0x0 address', async function () {
+            const id = await poach.totalSupply();
+            await poach.create(ETH, '0', { from: creator });
+
+            await Helper.tryCatchRevert(
+                () => poach.withdrawPartial(
+                    id,
+                    Helper.address0x,
+                    '0',
+                    { from: creator }
+                ),
+                '_to should not be 0x0'
+            );
+        });
+
+        it('Try withdrawPartial an inexists poach', async function () {
+            await Helper.tryCatchRevert(
+                () => poach.withdrawPartial(
+                    '999999999999999999999999999999999',
+                    beneficiary,
+                    '0',
+                    { from: creator }
+                ),
+                'msg.sender Not authorized'
+            );
+        });
+
+        it('Try withdrawPartial a pair with an unauthorized account', async function () {
+            const id = await poach.totalSupply();
+            await poach.create(ETH, '0', { from: creator });
+
+            await Helper.tryCatchRevert(
+                () => poach.withdrawPartial(
+                    id,
+                    beneficiary,
+                    '0',
+                    { from: accounts[9] }
+                ),
+                'msg.sender Not authorized'
+            );
+        });
+
+        it('Try make an underflow', async function () {
+            const id = await poach.totalSupply();
+            await poach.create(ETH, '0', { from: creator });
+
+            await Helper.tryCatchRevert(
+                () => poach.withdrawPartial(
+                    id,
+                    beneficiary,
+                    '1',
+                    { from: creator }
+                ),
+                'The balance of poach its to low'
+            );
+
+            const id2 = await poach.totalSupply();
+            await poach.create(token.address, '0', { from: creator });
+
+            await Helper.tryCatchRevert(
+                () => poach.withdrawPartial(
+                    id2,
+                    beneficiary,
+                    '1',
+                    { from: creator }
+                ),
+                'The balance of poach its to low'
             );
         });
     });
