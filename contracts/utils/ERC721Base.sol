@@ -229,10 +229,8 @@ contract ERC721Base is IERC721Base, ERC165 {
     function _isAuthorized(address _operator, uint256 _assetId) internal view returns (bool) {
         require(_operator != address(0), "0x0 is an invalid operator");
         address owner = _ownerOf(_assetId);
-        if (_operator == owner) {
-            return true;
-        }
-        return _isApprovedForAll(_operator, owner) || _getApproved(_assetId) == _operator;
+
+        return _operator == owner || _isApprovedForAll(_operator, owner) || _getApproved(_assetId) == _operator;
     }
 
     //
