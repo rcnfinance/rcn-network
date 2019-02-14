@@ -100,26 +100,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         require(loanManager.registerApproveRequest(loanId, _signature), "Reject the approve");
 
-        packageId = _createPackage(_tokens, _amounts, _erc721s, _erc721Ids);
-
-        // Create the liability
-        pawnId = pawns.push(Pawn({
-            owner: _borrower,
-            loanManager: loanManager,
-            loanId: loanId,
-            packageId: packageId,
-            status: Status.Pending
-        })) - 1;
-
-        loanToLiability[address(loanManager)][loanId] = pawnId;
-
-        emit RequestedPawn(
-            pawnId,
-            loanId,
-            _borrower,
-            loanManager,
-            packageId
-        );
+        (pawnId, packageId) = _requestPawn(loanManager, _oracle, loanId, _tokens, _amounts, _erc721s, _erc721Ids);
 
         emit NewPawn(
             pawnId,
@@ -146,6 +127,37 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             _salt,
             _expiration,
             _modelData
+        );
+    }
+
+    function _requestPawn(
+        ILoanManager _loanManager,
+        address owner,
+        bytes32 _loanId,
+        Token[] memory _tokens,
+        uint256[] memory _amounts,
+        IERC721Base[] memory _erc721s,
+        uint256[] memory _erc721Ids
+    ) internal returns (uint256 pawnId, uint256 packageId) {
+        packageId = _createPackage(_tokens, _amounts, _erc721s, _erc721Ids);
+
+        // Create the liability
+        pawnId = pawns.push(Pawn({
+            owner: owner,
+            loanManager: loanManager,
+            loanId: _loanId,
+            packageId: packageId,
+            status: Status.Pending
+        })) - 1;
+
+        loanToLiability[address(loanManager)][_loanId] = pawnId;
+
+        emit RequestedPawn(
+            pawnId,
+            _loanId,
+            owner,
+            loanManager,
+            packageId
         );
     }
 
