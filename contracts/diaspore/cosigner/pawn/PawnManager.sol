@@ -85,10 +85,10 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         Token[] memory _tokens,
         uint256[] memory _amounts,
         // ERC721
-        bytes32 loanId = loanManager.requestLoan(
         IERC721Base[] memory _erc721s,
         uint256[] memory _erc721Ids
     ) public payable returns (uint256 pawnId, uint256 packageId) {
+        bytes32 loanId = _requestLoan(
             _amount,
             _model,
             _oracle,
@@ -126,6 +126,26 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             loanId,
             msg.sender,
             packageId
+        );
+    }
+
+    function _requestLoan(
+        uint128 _amount,
+        address _model,
+        address _oracle,
+        address _borrower,
+        uint256 _salt,
+        uint64 _expiration,
+        bytes memory _modelData
+    ) internal returns (bytes32) {
+        return loanManager.requestLoan(
+            _amount,
+            _model,
+            _oracle,
+            _borrower,
+            _salt,
+            _expiration,
+            _modelData
         );
     }
 
