@@ -109,7 +109,7 @@ contract('TestBundle', function (accounts) {
 
             const events = await Helper.toEvents(
                 bundle.deposit(
-                    '0',
+                    prevPackageLength,
                     erc721.address,
                     assetId,
                     { from: user }
@@ -202,7 +202,7 @@ contract('TestBundle', function (accounts) {
 
             const events = await Helper.toEvents(
                 bundle.depositBatch(
-                    '0',
+                    prevPackageLength,
                     erc721s.map(x => x.address),
                     erc721Ids,
                     { from: user }
@@ -303,7 +303,8 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const packageId = (await Helper.toEvents(await bundle.depositBatch('0', erc721s.map(x => x.address), erc721Ids, { from: user }), 'Created'))._packageId;
+            const packageId = await bundle.packageLength();
+            await bundle.depositBatch(packageId, erc721s.map(x => x.address), erc721Ids, { from: user });
             await bundle.approve(user2, packageId, { from: user });
 
             const Withdraw = await Helper.toEvents(
@@ -336,7 +337,8 @@ contract('TestBundle', function (accounts) {
 
         it('Should withdraw an asset in last posotion', async function () {
             const assetId = await generateERC721(erc721, user);
-            const packageId = (await Helper.toEvents(await bundle.deposit('0', erc721.address, assetId, { from: user }), 'Created'))._packageId;
+            const packageId = await bundle.packageLength();
+            await bundle.deposit(packageId, erc721.address, assetId, { from: user });
 
             const Withdraw = await Helper.toEvents(
                 bundle.withdraw(
@@ -367,7 +369,8 @@ contract('TestBundle', function (accounts) {
         });
 
         it('Try withdraw an asset of inexist package', async function () {
-            const packageId = (await Helper.toEvents(await bundle.deposit('0', erc721.address, await generateERC721(erc721, user), { from: user }), 'Created'))._packageId;
+            const packageId = await bundle.packageLength();
+            await bundle.deposit(packageId, erc721.address, await generateERC721(erc721, user), { from: user });
 
             await Helper.tryCatchRevert(
                 () => bundle.withdraw(
@@ -391,7 +394,8 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const packageId = (await Helper.toEvents(await bundle.depositBatch('0', erc721s.map(x => x.address), erc721Ids, { from: user }), 'Created'))._packageId;
+            const packageId = await bundle.packageLength();
+            await bundle.depositBatch(packageId, erc721s.map(x => x.address), erc721Ids, { from: user });
 
             const withdraws = await Helper.toEvents(
                 bundle.withdrawBatch(
@@ -436,7 +440,8 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const packageId = (await Helper.toEvents(await bundle.depositBatch('0', erc721s.map(x => x.address), erc721Ids, { from: user }), 'Created'))._packageId;
+            const packageId = await bundle.packageLength();
+            await bundle.depositBatch(packageId, erc721s.map(x => x.address), erc721Ids, { from: user });
 
             const withdraws = await Helper.toEvents(
                 bundle.withdrawBatch(
@@ -477,7 +482,8 @@ contract('TestBundle', function (accounts) {
     describe('Function withdrawAll', function () {
         it('Should withdrawAll assets of a package with only one asset', async function () {
             const erc721Id = await generateERC721(erc721, user);
-            const packageId = (await Helper.toEvents(await bundle.deposit('0', erc721.address, erc721Id, { from: user }), 'Created'))._packageId;
+            const packageId = await bundle.packageLength();
+            await bundle.deposit(packageId, erc721.address, erc721Id, { from: user });
 
             await bundle.withdrawAll(
                 packageId,
@@ -503,7 +509,8 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const packageId = (await Helper.toEvents(await bundle.depositBatch('0', erc721s.map(x => x.address), erc721Ids, { from: user }), 'Created'))._packageId;
+            const packageId = await bundle.packageLength();
+            await bundle.depositBatch(packageId, erc721s.map(x => x.address), erc721Ids, { from: user });
 
             const tx = await bundle.withdrawAll(
                 packageId,

@@ -17,10 +17,7 @@ contract Bundle is ERC721Base, IBundle {
 
     Package[] private packages;
 
-    constructor() public ERC721Base("ERC721 Bundle", "EB") {
-        // the package of index 0 use in deposit function to create a package before deposit
-        packages.length++;
-    }
+    constructor() public ERC721Base("ERC721 Bundle", "EB") { }
 
     function canDeposit(uint256 _packageId) external view returns (bool) {
         return _isAuthorized(msg.sender, _packageId);
@@ -67,7 +64,7 @@ contract Bundle is ERC721Base, IBundle {
         IERC721Base _erc721,
         uint256 _erc721Id
     ) external returns (bool) {
-        return _deposit(_packageId == 0 ? create() : _packageId, _erc721, _erc721Id);
+        return _deposit(_ownerOf(_packageId) == address(0) ? create() : _packageId, _erc721, _erc721Id);
     }
 
     /**
@@ -86,7 +83,7 @@ contract Bundle is ERC721Base, IBundle {
         IERC721Base[] calldata _erc721s,
         uint256[] calldata _erc721Ids
     ) external returns (bool) {
-        uint256 packageId = _packageId == 0 ? create() : _packageId;
+        uint256 packageId = _ownerOf(_packageId) == address(0) ? create() : _packageId;
         require(_erc721s.length == _erc721Ids.length, "The _erc721s length and _erc721Ids length must be equal");
         for (uint256 i = 0; i < _erc721Ids.length; i++) {
             _deposit(packageId, _erc721s[i], _erc721Ids[i]);
