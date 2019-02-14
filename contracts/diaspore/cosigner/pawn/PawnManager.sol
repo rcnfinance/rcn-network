@@ -182,11 +182,11 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function requestPawnId(
         ILoanManager _loanManager,
         bytes32 _loanId,
-        Token[] calldata _tokens,
-        uint256[] calldata _amounts,
-        IERC721Base[] calldata _erc721s,
-        uint256[] calldata _erc721Ids
-    ) external payable returns (uint256 pawnId, uint256 packageId) {
+        Token[] memory _tokens,
+        uint256[] memory _amounts,
+        IERC721Base[] memory _erc721s,
+        uint256[] memory _erc721Ids
+    ) public payable returns (uint256 pawnId, uint256 packageId) {
         // Validate the associated loan
         require(_loanManager.getStatus(_loanId) == 0, "The loan request should be open");
         require(_loanManager.isApproved(_loanId), "The loan its not approve");
