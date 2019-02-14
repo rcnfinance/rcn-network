@@ -205,7 +205,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     ) internal returns(uint256 packageId) {
         uint256 tokensLength = _tokens.length;
         uint256 erc721sLength = _erc721s.length;
-        require(tokensLength == _amounts.length && erc721sLength == _erc721Ids.length, "The lends must be equal");
+        require(tokensLength == _amounts.length && erc721sLength == _erc721Ids.length, "The lengths must be equal");
 
         packageId = bundle.create();
         uint256 i;
