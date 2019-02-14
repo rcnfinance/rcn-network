@@ -1055,6 +1055,31 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
+
+        it('Try use pay to pay a debt with invalid id', async function () {
+            await rcn.setBalance(accounts[0], 1);
+            await rcn.approve(debtEngine.address, 1);
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.pay(
+                    Helper.bytes320x,
+                    '1',
+                    accounts[0],
+                    []
+                ),
+                'Debt does not exist'
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.pay(
+                    web3.utils.randomHex(32),
+                    '1',
+                    accounts[0],
+                    []
+                ),
+                'Debt does not exist'
+            );
+        });
     });
 
     describe('Function payToken', function () {
@@ -1508,6 +1533,31 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
+
+        it('Try use payToken to pay a debt with invalid id', async function () {
+            await rcn.setBalance(accounts[0], 1);
+            await rcn.approve(debtEngine.address, 1);
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payToken(
+                    Helper.bytes320x,
+                    '1',
+                    accounts[0],
+                    []
+                ),
+                'Debt does not exist'
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payToken(
+                    web3.utils.randomHex(32),
+                    '1',
+                    accounts[0],
+                    []
+                ),
+                'Debt does not exist'
+            );
+        });
     });
 
     describe('Function payBatch', function () {
@@ -1909,6 +1959,44 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('1050');
             expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
             expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
+        });
+
+        it('Try use payTokenBatch to pay a debt/s with invalid id/s', async function () {
+            await rcn.setBalance(accounts[0], 1);
+            await rcn.approve(debtEngine.address, 1);
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payTokenBatch(
+                    [Helper.bytes320x],
+                    ['1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                'Debt does not exist'
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payTokenBatch(
+                    [web3.utils.randomHex(32)],
+                    ['1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                'Debt does not exist'
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payTokenBatch(
+                    [Helper.bytes320x, web3.utils.randomHex(32)],
+                    ['0', '1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                'Debt does not exist'
+            );
         });
     });
 
@@ -2399,6 +2487,44 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     break;
                 }
             });
+        });
+
+        it('Try use payBatch to pay a debt/s with invalid id/s', async function () {
+            await rcn.setBalance(accounts[0], 1);
+            await rcn.approve(debtEngine.address, 1);
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payBatch(
+                    [Helper.bytes320x],
+                    ['1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                'Debt does not exist'
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payBatch(
+                    [web3.utils.randomHex(32)],
+                    ['1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                'Debt does not exist'
+            );
+
+            await Helper.tryCatchRevert(
+                () => debtEngine.payBatch(
+                    [Helper.bytes320x, web3.utils.randomHex(32)],
+                    ['0', '1'],
+                    accounts[0],
+                    Helper.address0x,
+                    []
+                ),
+                'Debt does not exist'
+            );
         });
     });
 
@@ -3384,6 +3510,22 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         expect(paid1).to.eq.BN(await testModel.getPaid(id4));
         expect(paid1).to.eq.BN(await testModel.getPaid(id2));
+    });
+
+    it('Try run a debt/s with invalid id/s', async function () {
+        await Helper.tryCatchRevert(
+            () => debtEngine.run(
+                Helper.bytes320x
+            ),
+            'Debt does not exist'
+        );
+
+        await Helper.tryCatchRevert(
+            () => debtEngine.run(
+                web3.utils.randomHex(32)
+            ),
+            'Debt does not exist'
+        );
     });
 
     // Notice: Keep this test last

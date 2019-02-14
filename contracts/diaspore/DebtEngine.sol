@@ -269,7 +269,6 @@ contract DebtEngine is ERC721Base, Ownable {
         bytes calldata _oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
-
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
         require(paid <= _amount, "Paid can't be more than requested");
@@ -311,7 +310,6 @@ contract DebtEngine is ERC721Base, Ownable {
         bytes calldata oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
-
         // Read storage
         RateOracle oracle = RateOracle(debt.oracle);
 
@@ -457,6 +455,7 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _equivalent
     ) internal returns (uint256 paid, uint256 paidToken){
         Debt storage debt = debts[_id];
+
         if (_oracle != debt.oracle) {
             emit PayBatchError(
                 _id,
@@ -487,6 +486,8 @@ contract DebtEngine is ERC721Base, Ownable {
         Model _model,
         uint256 _available
     ) internal returns (uint256) {
+        require(_model != Model(0), "Debt does not exist");
+
         (uint256 success, bytes32 paid) = _safeGasCall(
             address(_model),
             abi.encodeWithSelector(
@@ -567,6 +568,7 @@ contract DebtEngine is ERC721Base, Ownable {
 
     function run(bytes32 _id) external returns (bool) {
         Debt storage debt = debts[_id];
+        require(debt.model != Model(0), "Debt does not exist");
 
         (uint256 success, bytes32 result) = _safeGasCall(
             address(debt.model),
