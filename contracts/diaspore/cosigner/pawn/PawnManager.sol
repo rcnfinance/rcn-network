@@ -98,10 +98,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             _modelData
         );
 
-        loanManager.registerApproveRequest(
-            loanId,
-            _signature
-        );
+        require(loanManager.registerApproveRequest(loanId, _signature), "Reject the approve");
 
         packageId = _createPackage(_tokens, _amounts, _erc721s, _erc721Ids);
 
