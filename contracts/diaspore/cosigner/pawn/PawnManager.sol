@@ -10,7 +10,6 @@ import "./interfaces/IPawnManager.sol";
 
 import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/Ownable.sol";
-import "./../../../utils/SafeMath.sol";
 import "./../../../utils/ERC721Base.sol";
 
 
@@ -23,8 +22,6 @@ import "./../../../utils/ERC721Base.sol";
     When the loan is resolved (paid, pardoned or defaulted), the pawn with his tokens can be recovered.
 */
 contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable {
-    using SafeMath for uint256;
-
     ILoanManager public loanManager;
     IBundle public bundle;
     IPoach public poach;
@@ -236,7 +233,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
                 poachId = poach.create(_tokens[i], _amounts[i]);
             } else {
                 poachId = poach.create.value(_amounts[i])(_tokens[i], _amounts[i]);
-                totEth = totEth.add(_amounts[i]);
+                totEth += _amounts[i];
             }
 
             poach.approve(address(bundle), poachId);
