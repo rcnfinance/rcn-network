@@ -41,7 +41,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         Status status;
     }
 
-    constructor(ILoanManager _loanManager, IBundle _bundle, IPoach _poach) public {
+    constructor(ILoanManager _loanManager, IBundle _bundle, IPoach _poach) public ERC721Base("Pawn manager", "PM") {
         loanManager = _loanManager;
         bundle = _bundle;
         poach = _poach;
