@@ -318,7 +318,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         @return True if the cosign was performed
     */
     function requestCosign(address _loanManager, bytes32 _loanId, bytes calldata _data, bytes calldata ) external returns (bool) {
-        require(msg.sender == _loanManager, "the sender its not the Engine");
+        require(msg.sender == _loanManager, "The sender its not the Engine");
         uint256 pawnId = uint256(readBytes32(_data, I_PAWN_ID));
         Pawn storage pawn = pawns[pawnId];
 
