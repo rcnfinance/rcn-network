@@ -47,16 +47,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         poach = _poach;
     }
 
-    // Getters
-    function getLiability(ILoanManager _loanManager, bytes32 _loanId) external view returns(uint256) { return loanToLiability[address(_loanManager)][_loanId]; }
-    function getPawnId(uint256 _packageId) external view returns(uint256) { return pawnByPackageId[_packageId]; }
-    // Struct pawn getters
-    function getPawnOwner(uint256 _pawnId) external view returns(address) { return pawns[_pawnId].owner; }
-    function getPawnLoanManager(uint256 _pawnId) external view returns(ILoanManager) { return pawns[_pawnId].loanManager; }
-    function getPawnLoanId(uint256 _pawnId) external view returns(bytes32) { return pawns[_pawnId].loanId; }
-    function getPawnPackageId(uint256 _pawnId) external view returns(uint256) { return pawns[_pawnId].packageId; }
-    function getPawnStatus(uint256 _pawnId) external view returns(Status) { return pawns[_pawnId].status; }
-
     /**
         @notice Request a loan and attachs a pawn request
 
