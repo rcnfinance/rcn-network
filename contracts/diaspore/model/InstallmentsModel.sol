@@ -43,7 +43,6 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint64 lentTime;
         uint128 cuota;
         uint256 interestRate;
-        bytes32 id;
     }
 
     struct State {
@@ -104,8 +103,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
             lentTime: uint64(now),
             cuota: cuota,
             interestRate: interestRate,
-            timeUnit: timeUnit,
-            id: id
+            timeUnit: timeUnit
         });
 
         states[id].clock = duration;
