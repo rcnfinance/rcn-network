@@ -292,6 +292,8 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     function getDueTime(bytes32 id) external view returns (uint256) {
         Config storage config = configs[id];
+        if (config.cuota == 0)
+            return 0;
         uint256 last = states[id].lastPayment;
         uint256 duration = config.duration;
         last = last != 0 ? last : duration;
