@@ -22,6 +22,10 @@ contract Poach is ERC721Base, IPoach {
         return _isAuthorized(msg.sender, _packageId);
     }
 
+    function poachesLength() external view returns (uint256) {
+        return poaches.length;
+    }
+
     function getPair(uint256 _id) external view returns(Token, uint256) {
         Pair storage pair = poaches[_id];
         return (pair.token, pair.balance);
