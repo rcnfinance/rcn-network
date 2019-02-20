@@ -10,9 +10,8 @@ contract IPawnManager {
     uint256 public constant STATUS_ONGOING = 1;
     uint256 public constant STATUS_PAID = 2;
 
-    event NewPawn(uint256 _pawnId, bytes32 _loanId, address _creator, uint256 _packageId);
-    event RequestedPawn(uint256 _pawnId, bytes32 _loanId, address _borrower, ILoanManager _loanManager, uint256 _packageId);
-    event StartedPawn(uint256 _pawnId );
+    event RequestedPawn(uint256 _pawnId, bytes32 _loanId, address _creator, address _borrower, ILoanManager _loanManager, uint256 _packageId);
+    event StartedPawn(uint256 _pawnId);
     event CanceledPawn(uint256 _pawnId, address _from, address _to);
     event PaidPawn(uint256 _pawnId, address _from);
     event DefaultedPawn(uint256 _pawnId);
