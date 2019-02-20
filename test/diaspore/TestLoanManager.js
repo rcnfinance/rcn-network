@@ -242,9 +242,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await loanManager.getLoanData(id), loanData);
             assert.equal(await loanManager.methods['getLoanData(bytes32)'](id), loanData);
 
-            assert.equal(await loanManager.isApproved(id), true);
-            assert.equal(await loanManager.methods['isApproved(bytes32)'](id), true);
-
             expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await loanManager.methods['getStatus(bytes32)'](id)).to.eq.BN(Helper.STATUS_ONGOING);
 
@@ -343,7 +340,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(request.open, true, 'The request should be open');
             assert.equal(await loanManager.getApproved(id), false, 'The request should not be approved');
             assert.equal(request.approved, false, 'The request should not be approved');
-            assert.equal(await loanManager.isApproved(id), false, 'The request should not be approved');
             expect(request.position).to.eq.BN('0', 'The loan its not approved');
             expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
             expect(request.expiration).to.eq.BN(expiration);
@@ -575,7 +571,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const request = await loanManager.requests(id);
             assert.equal(await loanManager.getApproved(id), true, 'The request should be approved');
             assert.equal(request.approved, true, 'The request should be approved');
-            assert.equal(await loanManager.isApproved(id), true, 'The request should be approved');
 
             expect(request.position).to.eq.BN((await loanManager.getDirectoryLength()).sub(bn('1')), 'The request position should be the last position of directory array');
             assert.equal(await loanManager.directory(request.position), id, 'The request should be in directory');
@@ -727,7 +722,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             assert.equal(events[0]._id, id);
             assert.equal(events[1]._id, id);
-            assert.equal(await loanManager.isApproved(id), true);
+            assert.equal(await loanManager.getApproved(id), true);
 
             const request = await loanManager.requests(id);
             expect(request.position).to.eq.BN((await loanManager.getDirectoryLength()).sub(bn('1')));
@@ -768,7 +763,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 signature,
                 { from: accounts[2] }
             );
-            assert.equal(await loanManager.isApproved(id), false);
+            assert.equal(await loanManager.getApproved(id), false);
 
             const request = await loanManager.requests(id);
             expect(request.position).to.eq.BN('0');
@@ -816,14 +811,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             assert.equal(Approved._id, id);
-            assert.equal(await loanManager.isApproved(id), true);
+            assert.equal(await loanManager.getApproved(id), true);
 
             const receipt2 = await loanManager.registerApproveRequest(
                 id,
                 signature,
                 { from: accounts[2] }
             );
-            assert.equal(await loanManager.isApproved(id), true);
+            assert.equal(await loanManager.getApproved(id), true);
 
             const event2 = receipt2.logs.find(l => l.event === 'Approved');
             assert.notOk(event2);
@@ -864,7 +859,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: accounts[2] }
             );
 
-            assert.equal(await loanManager.isApproved(id), true);
+            assert.equal(await loanManager.getApproved(id), true);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.equal(event.args._id, id);
@@ -903,7 +898,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 { from: accounts[2] }
             );
-            assert.equal(await loanManager.isApproved(id), false);
+            assert.equal(await loanManager.getApproved(id), false);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);
@@ -941,7 +936,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 { from: accounts[2] }
             );
-            assert.equal(await loanManager.isApproved(id), false);
+            assert.equal(await loanManager.getApproved(id), false);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);
@@ -979,7 +974,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 { from: accounts[2] }
             );
-            assert.equal(await loanManager.isApproved(id), false);
+            assert.equal(await loanManager.getApproved(id), false);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);
@@ -1021,14 +1016,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             assert.equal(Approved._id, id);
-            assert.equal(await loanManager.isApproved(id), true);
+            assert.equal(await loanManager.getApproved(id), true);
 
             const receipt2 = await loanManager.registerApproveRequest(
                 id,
                 [],
                 { from: accounts[2] }
             );
-            assert.equal(await loanManager.isApproved(id), true);
+            assert.equal(await loanManager.getApproved(id), true);
 
             const event2 = receipt2.logs.find(l => l.event === 'Approved');
             assert.notOk(event2);
@@ -1065,7 +1060,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 { from: accounts[2] }
             );
-            assert.equal(await loanManager.isApproved(id), false);
+            assert.equal(await loanManager.getApproved(id), false);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);

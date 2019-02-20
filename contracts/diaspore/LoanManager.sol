@@ -79,7 +79,6 @@ contract LoanManager is BytesUtils {
     function getDueTime(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getDueTime(bytes32(_id)); }
     function getClosingObligation(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getClosingObligation(bytes32(_id)); }
     function getLoanData(uint256 _id) external view returns (bytes memory) { return requests[bytes32(_id)].loanData; }
-    function isApproved(uint256 _id) external view returns (bool) { return requests[bytes32(_id)].approved; }
     function getStatus(uint256 _id) external view returns (uint256) {
         Request storage request = requests[bytes32(_id)];
         return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
@@ -103,7 +102,6 @@ contract LoanManager is BytesUtils {
     function getDueTime(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getDueTime(bytes32(_id)); }
     function getClosingObligation(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getClosingObligation(bytes32(_id)); }
     function getLoanData(bytes32 _id) external view returns (bytes memory) { return requests[_id].loanData; }
-    function isApproved(bytes32 _id) external view returns (bool) { return requests[_id].approved; }
     function getStatus(bytes32 _id) external view returns (uint256) {
         Request storage request = requests[_id];
         return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
