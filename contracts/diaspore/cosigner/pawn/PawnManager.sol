@@ -28,7 +28,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
     // Relates packageIds to pawnIds
     mapping(uint256 => uint256) public pawnByPackageId;
-    // Relates loanManager address to loanId to pawnIds
+    // Relates loanManager address to loanId to pawnId
     mapping(address => mapping(bytes32 => uint256)) public loanToLiability;
 
     Pawn[] public pawns;
