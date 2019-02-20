@@ -5,7 +5,7 @@ interface ILoanManager {
     function getBorrower(bytes32 _id) external view returns (address);
     function getCreator(bytes32 _id) external view returns (address);
     function getDueTime(bytes32 _id) external view returns (uint256);
-    function isApproved(bytes32 _id) external view returns (bool);
+    function getApproved(bytes32 _id) external view returns (bool);
     function getStatus(bytes32 _id) external view returns (uint256);
     function ownerOf(bytes32 _id) external view returns (address);
 

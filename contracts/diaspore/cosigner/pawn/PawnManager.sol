@@ -183,7 +183,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     ) public payable returns (uint256 pawnId, uint256 packageId) {
         // Validate the associated loan
         require(_loanManager.getStatus(_loanId) == 0, "The loan request should be open");
-        require(_loanManager.isApproved(_loanId), "The loan its not approve");
+        require(_loanManager.getApproved(_loanId), "The loan its not approve");
         address borrower = _loanManager.getBorrower(_loanId);
         require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
         require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
