@@ -47,6 +47,10 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         poach = _poach;
     }
 
+    function pawnsLength() external view returns (uint256) {
+        return pawns.length;
+    }
+
     /**
         @notice Request a loan and attachs a pawn request
 
