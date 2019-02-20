@@ -23,7 +23,7 @@ contract Bundle is ERC721Base, IBundle {
         return _isAuthorized(msg.sender, _packageId);
     }
 
-    function packageLength() external view returns (uint256) {
+    function packagesLength() external view returns (uint256) {
         return packages.length;
     }
 

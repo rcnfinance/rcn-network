@@ -46,7 +46,7 @@ contract('TestBundle', function (accounts) {
 
     describe('Function create', function () {
         it('Should create a new package', async function () {
-            const prevPackageLength = await bundle.packageLength();
+            const prevPackageLength = await bundle.packagesLength();
             const Created = await Helper.toEvents(
                 bundle.create(
                     { from: user }
@@ -55,14 +55,14 @@ contract('TestBundle', function (accounts) {
             );
 
             assert.equal(Created._owner, user);
-            expect(Created._packageId).to.eq.BN(dec(await bundle.packageLength()));
+            expect(Created._packageId).to.eq.BN(dec(await bundle.packagesLength()));
 
             const content = await bundle.content(Created._packageId);
 
             assert.isEmpty(content[ERC721S]);
             assert.isEmpty(content[ERC721IDS]);
 
-            expect(await bundle.packageLength()).to.eq.BN(inc(prevPackageLength));
+            expect(await bundle.packagesLength()).to.eq.BN(inc(prevPackageLength));
             assert.equal(await bundle.ownerOf(Created._packageId), user);
         });
     });
@@ -105,7 +105,7 @@ contract('TestBundle', function (accounts) {
     describe('Function _deposit and deposit', function () {
         it('Should deposit an asset', async function () {
             const assetId = await generateERC721(erc721, user);
-            const prevPackageLength = await bundle.packageLength();
+            const prevPackageLength = await bundle.packagesLength();
 
             const events = await Helper.toEvents(
                 bundle.deposit(
@@ -120,11 +120,11 @@ contract('TestBundle', function (accounts) {
 
             const Created = events[0];
             assert.equal(Created._owner, user);
-            expect(Created._packageId).to.eq.BN(dec(await bundle.packageLength()));
+            expect(Created._packageId).to.eq.BN(dec(await bundle.packagesLength()));
 
             const Deposit = events[1];
             assert.equal(Deposit._sender, user);
-            expect(Deposit._packageId).to.eq.BN(dec(await bundle.packageLength()));
+            expect(Deposit._packageId).to.eq.BN(dec(await bundle.packagesLength()));
             assert.equal(Deposit._erc721, erc721.address);
             expect(Deposit._erc721Id).to.eq.BN(assetId);
 
@@ -134,7 +134,7 @@ contract('TestBundle', function (accounts) {
             assert.equal(content[ERC721IDS].length, 1);
             expect(await bundle.getPackageOrder(Created._packageId, erc721.address, assetId)).to.eq.BN('0');
 
-            expect(await bundle.packageLength()).to.eq.BN(inc(prevPackageLength));
+            expect(await bundle.packagesLength()).to.eq.BN(inc(prevPackageLength));
             assert.equal(await bundle.ownerOf(Created._packageId), user);
             assert.equal(await erc721.ownerOf(assetId), bundle.address);
         });
@@ -143,7 +143,7 @@ contract('TestBundle', function (accounts) {
             const assetId = await generateERC721(erc721, user);
             const packageId = (await Helper.toEvents(bundle.create({ from: user }), 'Created'))._packageId;
 
-            const prevPackageLength = await bundle.packageLength();
+            const prevPackageLength = await bundle.packagesLength();
 
             const Deposit = await Helper.toEvents(
                 bundle.deposit(
@@ -156,7 +156,7 @@ contract('TestBundle', function (accounts) {
             );
 
             assert.equal(Deposit._sender, user);
-            expect(Deposit._packageId).to.eq.BN(dec(await bundle.packageLength()));
+            expect(Deposit._packageId).to.eq.BN(dec(await bundle.packagesLength()));
             assert.equal(Deposit._erc721, erc721.address);
             expect(Deposit._erc721Id).to.eq.BN(assetId);
 
@@ -166,7 +166,7 @@ contract('TestBundle', function (accounts) {
             assert.equal(content[ERC721IDS].length, 1);
             expect(await bundle.getPackageOrder(packageId, erc721.address, assetId)).to.eq.BN('0');
 
-            expect(await bundle.packageLength()).to.eq.BN(prevPackageLength);
+            expect(await bundle.packagesLength()).to.eq.BN(prevPackageLength);
             assert.equal(await bundle.ownerOf(packageId), user);
             assert.equal(await erc721.ownerOf(assetId), bundle.address);
         });
@@ -198,7 +198,7 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const prevPackageLength = await bundle.packageLength();
+            const prevPackageLength = await bundle.packagesLength();
 
             const events = await Helper.toEvents(
                 bundle.depositBatch(
@@ -213,9 +213,9 @@ contract('TestBundle', function (accounts) {
 
             const Created = events[0];
             assert.equal(Created._owner, user);
-            expect(Created._packageId).to.eq.BN(dec(await bundle.packageLength()));
+            expect(Created._packageId).to.eq.BN(dec(await bundle.packagesLength()));
 
-            const packageId = dec(await bundle.packageLength());
+            const packageId = dec(await bundle.packagesLength());
             const Deposits = events.slice(1);
             assert.equal(Deposits.length, batchLength);
             for (let i = 0; i < batchLength; i++) {
@@ -231,7 +231,7 @@ contract('TestBundle', function (accounts) {
                 expect(await bundle.getPackageOrder(packageId, erc721s[i].address, erc721Ids[i])).to.eq.BN(i);
             }
 
-            expect(await bundle.packageLength()).to.eq.BN(inc(prevPackageLength));
+            expect(await bundle.packagesLength()).to.eq.BN(inc(prevPackageLength));
             assert.equal(await bundle.ownerOf(packageId), user);
             for (let i = 0; i < erc721s.length; i++) {
                 assert.equal(await erc721s[i].ownerOf(erc721Ids[i]), bundle.address);
@@ -247,7 +247,7 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const prevPackageLength = await bundle.packageLength();
+            const prevPackageLength = await bundle.packagesLength();
 
             const Deposits = await Helper.toEvents(
                 bundle.depositBatch(
@@ -273,7 +273,7 @@ contract('TestBundle', function (accounts) {
                 expect(await bundle.getPackageOrder(packageId, erc721s[i].address, erc721Ids[i])).to.eq.BN(i);
             }
 
-            expect(await bundle.packageLength()).to.eq.BN(prevPackageLength);
+            expect(await bundle.packagesLength()).to.eq.BN(prevPackageLength);
             assert.equal(await bundle.ownerOf(packageId), user);
             for (let i = 0; i < erc721s.length; i++) {
                 assert.equal(await erc721s[i].ownerOf(erc721Ids[i]), bundle.address);
@@ -303,7 +303,7 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const packageId = await bundle.packageLength();
+            const packageId = await bundle.packagesLength();
             await bundle.depositBatch(packageId, erc721s.map(x => x.address), erc721Ids, { from: user });
             await bundle.approve(user2, packageId, { from: user });
 
@@ -337,7 +337,7 @@ contract('TestBundle', function (accounts) {
 
         it('Should withdraw an asset in last posotion', async function () {
             const assetId = await generateERC721(erc721, user);
-            const packageId = await bundle.packageLength();
+            const packageId = await bundle.packagesLength();
             await bundle.deposit(packageId, erc721.address, assetId, { from: user });
 
             const Withdraw = await Helper.toEvents(
@@ -369,7 +369,7 @@ contract('TestBundle', function (accounts) {
         });
 
         it('Try withdraw an asset of inexist package', async function () {
-            const packageId = await bundle.packageLength();
+            const packageId = await bundle.packagesLength();
             await bundle.deposit(packageId, erc721.address, await generateERC721(erc721, user), { from: user });
 
             await Helper.tryCatchRevert(
@@ -394,7 +394,7 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const packageId = await bundle.packageLength();
+            const packageId = await bundle.packagesLength();
             await bundle.depositBatch(packageId, erc721s.map(x => x.address), erc721Ids, { from: user });
 
             const withdraws = await Helper.toEvents(
@@ -440,7 +440,7 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const packageId = await bundle.packageLength();
+            const packageId = await bundle.packagesLength();
             await bundle.depositBatch(packageId, erc721s.map(x => x.address), erc721Ids, { from: user });
 
             const withdraws = await Helper.toEvents(
@@ -482,7 +482,7 @@ contract('TestBundle', function (accounts) {
     describe('Function withdrawAll', function () {
         it('Should withdrawAll assets of a package with only one asset', async function () {
             const erc721Id = await generateERC721(erc721, user);
-            const packageId = await bundle.packageLength();
+            const packageId = await bundle.packagesLength();
             await bundle.deposit(packageId, erc721.address, erc721Id, { from: user });
 
             await bundle.withdrawAll(
@@ -509,7 +509,7 @@ contract('TestBundle', function (accounts) {
                 erc721s.push(erc721);
                 erc721Ids.push(await generateERC721(erc721, user));
             }
-            const packageId = await bundle.packageLength();
+            const packageId = await bundle.packagesLength();
             await bundle.depositBatch(packageId, erc721s.map(x => x.address), erc721Ids, { from: user });
 
             const tx = await bundle.withdrawAll(
