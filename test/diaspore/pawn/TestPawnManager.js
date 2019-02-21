@@ -20,12 +20,25 @@ function bn (number) {
     return new BN(number);
 }
 
+function inc (number) {
+    return number.add(bn('1'));
+}
+
 function dec (number) {
     return number.sub(bn('1'));
 }
 
+async function getETHBalance (account) {
+    return bn(await web3.eth.getBalance(account));
+};
+
+function toHexBytes32 (number) {
+    return web3.utils.toTwosComplement(number);
+};
+
 contract('TestBundle', function (accounts) {
     const user = accounts[1];
+    const beneficiary = accounts[2];
 
     let model;
     let loanManager;
@@ -39,6 +52,7 @@ contract('TestBundle', function (accounts) {
     const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
     const PENDING = 0;
+    const CANCELED = 2;
 
     const ERC721S = 0;
     const ERC721IDS = 1;
@@ -135,7 +149,7 @@ contract('TestBundle', function (accounts) {
             assert.equal(request.approved, true);
             expect(request.position).to.eq.BN((await loanManager.getDirectoryLength()).sub(bn('1')));
             expect(request.expiration).to.eq.BN(expiration);
-            assert.equal(await loanManager.getCurrency(loanId), 0x0);
+            assert.equal(await loanManager.getCurrency(loanId), Helper.bytes320x);
             expect(request.amount).to.eq.BN(amount);
             assert.equal(request.cosigner, Helper.address0x);
             assert.equal(request.model, model.address);
@@ -493,7 +507,7 @@ contract('TestBundle', function (accounts) {
             assert.equal(request.approved, true);
             expect(request.position).to.eq.BN((await loanManager.getDirectoryLength()).sub(bn('1')));
             expect(request.expiration).to.eq.BN(expiration);
-            assert.equal(await loanManager.getCurrency(loanId), 0x0);
+            assert.equal(await loanManager.getCurrency(loanId), Helper.bytes320x);
             expect(request.amount).to.eq.BN(amount);
             assert.equal(request.cosigner, Helper.address0x);
             assert.equal(request.model, model.address);
@@ -726,6 +740,278 @@ contract('TestBundle', function (accounts) {
                     { from: creator }
                 ),
                 'The liability its taken'
+            );
+        });
+    });
+
+    describe('cancelPawn function', function () {
+        it('Should cancel a request pawn and withdraw as a package', async () => {
+            const borrower = user;
+            const creator = accounts[3];
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                pawnManager.address,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+            const signature = await web3.eth.sign(loanId, borrower);
+
+            await erc20.setBalance(creator, '1');
+            await erc20.approve(pawnManager.address, '1', { from: creator });
+
+            const erc20s = [ETH, erc20.address];
+            const amounts = ['1', '1'];
+            const assetId = await generateERC721(erc721, creator);
+
+            const erc721s = [erc721.address];
+            const erc721Ids = [assetId];
+
+            const pawnId = await pawnManager.pawnsLength();
+            const packageId = await bundle.packagesLength();
+
+            await pawnManager.requestPawn(
+                amount, // Amount
+                model.address, // Model
+                Helper.address0x, // Oracle
+                borrower, // Borrower
+                salt, // Salt
+                expiration, // Expiration
+                loanData, // Model data
+                signature, // Signature
+                erc20s, // ERC20 Tokens addresses
+                amounts, // ERC20 amounts
+                erc721s, // ERC721 Tokens addresses
+                erc721Ids, // ERC721 ids
+                { from: creator, value: '1' }
+            );
+
+            const CanceledPawn = await Helper.toEvents(
+                await pawnManager.cancelPawn(
+                    pawnId,
+                    beneficiary,
+                    true,
+                    { from: borrower }
+                ),
+                'CanceledPawn'
+            );
+
+            expect(CanceledPawn._pawnId).to.eq.BN(pawnId);
+            assert.equal(CanceledPawn._from, borrower);
+            assert.equal(CanceledPawn._to, beneficiary);
+
+            const pawn = await pawnManager.pawns(pawnId);
+            expect(pawn.status).to.eq.BN(CANCELED);
+
+            assert.equal(await bundle.ownerOf(packageId), beneficiary);
+        });
+
+        it('Should cancel a request pawn and disamble package', async () => {
+            const borrower = user;
+            const creator = accounts[3];
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                pawnManager.address,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+            const signature = await web3.eth.sign(loanId, borrower);
+
+            await erc20.setBalance(creator, '1');
+            await erc20.approve(pawnManager.address, '1', { from: creator });
+
+            const erc20s = [ETH, erc20.address];
+            const amounts = ['1', '1'];
+            const assetId = await generateERC721(erc721, creator);
+
+            const erc721s = [erc721.address];
+            const erc721Ids = [assetId];
+
+            const pawnId = await pawnManager.pawnsLength();
+            const packageId = await bundle.packagesLength();
+
+            const pairETHId = await poach.poachesLength();
+            const pairERC20Id = inc(await poach.poachesLength());
+
+            await pawnManager.requestPawn(
+                amount, // Amount
+                model.address, // Model
+                Helper.address0x, // Oracle
+                borrower, // Borrower
+                salt, // Salt
+                expiration, // Expiration
+                loanData, // Model data
+                signature, // Signature
+                erc20s, // ERC20 Tokens addresses
+                amounts, // ERC20 amounts
+                erc721s, // ERC721 Tokens addresses
+                erc721Ids, // ERC721 ids
+                { from: creator, value: '1' }
+            );
+
+            const prevBeneficiaryETH = await getETHBalance(beneficiary);
+            const prevBeneficiaryERC20 = await erc20.balanceOf(beneficiary);
+
+            const CanceledPawn = await Helper.toEvents(
+                await pawnManager.cancelPawn(
+                    pawnId,
+                    beneficiary,
+                    false,
+                    { from: borrower }
+                ),
+                'CanceledPawn'
+            );
+
+            expect(CanceledPawn._pawnId).to.eq.BN(pawnId);
+            assert.equal(CanceledPawn._from, borrower);
+            assert.equal(CanceledPawn._to, beneficiary);
+
+            const pawn = await pawnManager.pawns(pawnId);
+            expect(pawn.status).to.eq.BN(CANCELED);
+
+            assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
+            assert.equal(await poach.ownerOf(pairETHId), pawnManager.address);
+            assert.equal(await poach.ownerOf(pairERC20Id), pawnManager.address);
+
+            expect(await getETHBalance(beneficiary)).to.eq.BN(inc(prevBeneficiaryETH));
+            expect(await erc20.balanceOf(beneficiary)).to.eq.BN(inc(prevBeneficiaryERC20));
+            assert.equal(await erc721.ownerOf(assetId), beneficiary);
+        });
+
+        it('Try cancel a pawn without ownership', async () => {
+            const borrower = user;
+            const creator = accounts[9];
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: creator } // Creator
+            );
+
+            await loanManager.approveRequest(loanId, { from: borrower });
+
+            const pawnId = await pawnManager.pawnsLength();
+
+            await pawnManager.requestPawnId(
+                loanManager.address,
+                loanId,
+                [], // ERC20 Tokens addresses
+                [], // ERC20 amounts
+                [], // ERC721 Tokens addresses
+                [], // ERC721 ids
+                { from: creator }
+            );
+
+            await Helper.tryCatchRevert(
+                () => pawnManager.cancelPawn(
+                    pawnId,
+                    beneficiary,
+                    true,
+                    { from: creator }
+                ),
+                'Only the owner can cancel the pawn'
+            );
+        });
+
+        it('Try cancel a lended pawn', async () => {
+            const borrower = user;
+            const creator = accounts[9];
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            const pawnId = await pawnManager.pawnsLength();
+
+            await pawnManager.requestPawnId(
+                loanManager.address,
+                loanId,
+                [], // ERC20 Tokens addresses
+                [], // ERC20 amounts
+                [], // ERC721 Tokens addresses
+                [], // ERC721 ids
+                { from: borrower }
+            );
+
+            await erc20.setBalance(creator, '1');
+            await erc20.approve(loanManager.address, '1', { from: creator });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                pawnManager.address,
+                '0',
+                toHexBytes32(pawnId),
+                { from: creator }
+            );
+
+            await Helper.tryCatchRevert(
+                () => pawnManager.cancelPawn(
+                    pawnId,
+                    beneficiary,
+                    true,
+                    { from: borrower }
+                ),
+                'The pawn is not pending'
             );
         });
     });
