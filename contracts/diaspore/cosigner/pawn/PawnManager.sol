@@ -462,7 +462,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         if (_asBundle) // Transfer the package back to the _to
             bundle.safeTransferFrom(address(this), _to, _packageId);
         else // Transfer all tokens to the _to
-            require(_withdrawAll(_packageId, _to));
+            require(_withdrawAll(_packageId, _to), "_withdrawAll fails");
 
         return true;
     }
