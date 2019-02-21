@@ -479,8 +479,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     */
     function _withdrawAll(uint256 _packageId, address payable _beneficiary) internal returns(bool) {
         (IERC721Base[] memory erc721s, uint256[] memory erc721Ids) = bundle.content(_packageId);
-        Token addr;
-        uint256 amount;
 
         for (uint256 i = 0; i < erc721s.length; i++) {
             if (erc721s[i] != poach) {
