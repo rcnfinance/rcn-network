@@ -17,7 +17,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
     event ChangedObligation(bytes32 indexed _id, uint256 _timestamp, uint256 _debt);
     event ChangedFrequency(bytes32 indexed _id, uint256 _timestamp, uint256 _frequency);
-    event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+    event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp);
     event ChangedFinalTime(bytes32 indexed _id, uint256 _timestamp, uint64 _dueTime);
     event AddedDebt(bytes32 indexed _id, uint256 _amount);
     event AddedPaid(bytes32 indexed _id, uint256 _paid);
@@ -192,7 +192,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         });
 
         emit ChangedStatus(id, now, STATUS_ONGOING);
-        emit ChangedDueTime(id, now, dueTime);
+        emit ChangedDueTime(id, now);
         emit ChangedFinalTime(id, now, dueTime);
 
         return true;
