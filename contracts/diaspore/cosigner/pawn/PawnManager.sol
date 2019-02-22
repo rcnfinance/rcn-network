@@ -26,8 +26,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     IBundle public bundle;
     IPoach public poach;
 
-    // Relates packageIds to pawnIds
-    mapping(uint256 => uint256) public pawnByPackageId;
     // Relates loanManager address to loanId to pawnId
     mapping(address => mapping(bytes32 => uint256)) public loanToLiability;
 
@@ -352,9 +350,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         // Cosign contract
         require(ILoanManager(_loanManager).cosign(_loanId, 0), "Error performing cosign");
 
-        // Save pawn id registry
-        pawnByPackageId[pawn.packageId] = pawnId;
-
         // Emit pawn event
         emit StartedPawn(pawnId);
 
@@ -451,9 +446,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         // ERC721 Delete asset
         //_destroy(pawnId);
-
-        // Delete pawn id registry
-        delete pawnByPackageId[pawn.packageId];
 
         return true;
     }
