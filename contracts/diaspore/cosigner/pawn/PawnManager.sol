@@ -312,15 +312,15 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         bytes calldata _data,
         bytes calldata
     ) external returns (bool) {
-        require(msg.sender == _loanManager, "The sender its not the Engine");
+        require(msg.sender == _loanManager, "The sender its not the LoanManager");
         uint256 pawnId = uint256(readBytes32(_data, I_PAWN_ID));
         Pawn storage pawn = pawns[pawnId];
 
         // Validate that the loan matches with the pawn
         // and the pawn is still pending
-        require(pawn.loanManager == ILoanManager(_loanManager), "Engine does not match");
+        require(pawn.loanManager == ILoanManager(_loanManager), "LoanManager does not match");
         require(pawn.loanId == _loanId, "Loan id does not match");
-        require(pawn.status == Status.Pending, "Pawn is not pending");
+        require(pawn.status == Status.Pending, "The pawn is not pending");
 
         pawn.status = Status.Ongoing;
 
