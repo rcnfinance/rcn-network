@@ -50,6 +50,42 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     }
 
     /**
+        @notice Request a pawn to buy a new loan
+
+        @dev The loan should exist in the designated loanManager
+             The length of _tokens and _amounts should be equal
+              also length of _erc721s and _erc721Ids
+
+        @param _loanManager RCN Engine
+        @param _loanId Id of the loan asociated with the pawn
+
+        @param _tokens Array of ERC20 contract addresses
+        @param _amounts Array of tokens amounts
+        @param _erc721s Array of ERC721Base contract addresses
+        @param _erc721Ids Array of non fungible token ids
+
+        @return pawnId The id of the pawn
+        @return packageId The id of the package
+    */
+    function requestPawnId(
+        ILoanManager _loanManager,
+        bytes32 _loanId,
+        Token[] memory _tokens,
+        uint256[] memory _amounts,
+        IERC721Base[] memory _erc721s,
+        uint256[] memory _erc721Ids
+    ) public payable returns (uint256 pawnId, uint256 packageId) {
+        // Validate the associated loan
+        require(_loanManager.getStatus(_loanId) == 0, "The loan request should be open");
+        require(_loanManager.getApproved(_loanId), "The loan its not approve");
+        address borrower = _loanManager.getBorrower(_loanId);
+        require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
+        require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
+
+        return _requestPawn(_loanManager, _loanId, _tokens, _amounts, _erc721s, _erc721Ids);
+    }
+
+    /**
         @notice Request a loan and attachs a pawn request
 
         @dev Requires the loan signed by the borrower
@@ -153,62 +189,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             msg.sender,
             owner,
             loanManager,
-            packageId
-        );
-    }
-
-    /**
-        @notice Request a pawn to buy a new loan
-
-        @dev The loan should exist in the designated loanManager
-             The length of _tokens and _amounts should be equal
-              also length of _erc721s and _erc721Ids
-
-        @param _loanManager RCN Engine
-        @param _loanId Id of the loan asociated with the pawn
-
-        @param _tokens Array of ERC20 contract addresses
-        @param _amounts Array of tokens amounts
-        @param _erc721s Array of ERC721Base contract addresses
-        @param _erc721Ids Array of non fungible token ids
-
-        @return pawnId The id of the pawn
-        @return packageId The id of the package
-    */
-    function requestPawnId(
-        ILoanManager _loanManager,
-        bytes32 _loanId,
-        Token[] memory _tokens,
-        uint256[] memory _amounts,
-        IERC721Base[] memory _erc721s,
-        uint256[] memory _erc721Ids
-    ) public payable returns (uint256 pawnId, uint256 packageId) {
-        // Validate the associated loan
-        require(_loanManager.getStatus(_loanId) == 0, "The loan request should be open");
-        require(_loanManager.getApproved(_loanId), "The loan its not approve");
-        address borrower = _loanManager.getBorrower(_loanId);
-        require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
-        require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
-
-        packageId = _createPackage(_tokens, _amounts, _erc721s, _erc721Ids);
-
-        // Create the liability
-        pawnId = pawns.push(Pawn({
-            owner: borrower,
-            loanManager: _loanManager,
-            loanId: _loanId,
-            packageId: packageId,
-            status: Status.Pending
-        })) - 1;
-
-        loanToLiability[address(_loanManager)][_loanId] = pawnId;
-
-        emit RequestedPawn(
-            pawnId,
-            _loanId,
-            msg.sender,
-            borrower,
-            _loanManager,
             packageId
         );
     }
