@@ -37,6 +37,7 @@ function toHexBytes32 (number) {
 };
 
 contract('TestBundle', function (accounts) {
+    const owner = accounts[0];
     const user = accounts[1];
     const beneficiary = accounts[2];
 
@@ -1237,6 +1238,176 @@ contract('TestBundle', function (accounts) {
         });
     });
 
+    describe('isDefaulted function', function () {
+        it('Should returns false', async () => {
+            const borrower = user;
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            await erc20.setBalance(borrower, '1');
+            await erc20.approve(loanManager.address, '1', { from: borrower });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                Helper.address0x,
+                '0',
+                [],
+                { from: borrower }
+            );
+
+            assert.isFalse(await pawnManager.isDefaulted(loanManager.address, loanId));
+        });
+
+        it('Should returns false(loan expired, but not lending)', async () => {
+            const borrower = user;
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            await Helper.increaseTime((60 * 24 * 7) + 2000);
+
+            assert.isFalse(await pawnManager.isDefaulted(loanManager.address, loanId));
+        });
+
+        it('Should returns false(loan not expired, loan lending)', async () => {
+            const borrower = user;
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            await erc20.setBalance(borrower, '1');
+            await erc20.approve(loanManager.address, '1', { from: borrower });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                Helper.address0x,
+                '0',
+                [],
+                { from: borrower }
+            );
+
+            assert.isFalse(await pawnManager.isDefaulted(loanManager.address, loanId));
+        });
+
+        it('Should returns true(loan expired, loan lending)', async () => {
+            const borrower = user;
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            await erc20.setBalance(borrower, '1');
+            await erc20.approve(loanManager.address, '1', { from: borrower });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                Helper.address0x,
+                '0',
+                [],
+                { from: borrower }
+            );
+
+            await Helper.increaseTime((60 * 60 * 24 * 7) + 2000);
+
+            assert.isTrue(await pawnManager.isDefaulted(loanManager.address, loanId));
+        });
+    });
+
     it('Try send ether to the pawnManager', async () => {
         await Helper.tryCatchRevert(
             () => web3.eth.sendTransaction(
@@ -1248,5 +1419,24 @@ contract('TestBundle', function (accounts) {
 
     it('The cost should be 0', async () => {
         expect(await pawnManager.cost(Helper.address0x, Helper.bytes320x, [], [])).to.eq.BN('0');
+    });
+
+    it('Url and setUrl functions', async () => {
+        assert.equal(await pawnManager.url(), '');
+
+        const newUrl = 'https://www.testUrl.com/';
+
+        await pawnManager.setUrl(newUrl);
+        const NewUrl = await Helper.toEvents(
+            await pawnManager.setUrl(
+                newUrl,
+                { from: owner }
+            ),
+            'NewUrl'
+        );
+
+        assert.equal(NewUrl._url, newUrl);
+
+        assert.equal(await pawnManager.url(), newUrl);
     });
 });
