@@ -25,6 +25,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     ILoanManager public loanManager;
     IBundle public bundle;
     IPoach public poach;
+    string internal _url;
 
     // Relates loanManager address to loanId to pawnId
     mapping(address => mapping(bytes32 => uint256)) public loanToLiability;
@@ -335,7 +336,12 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     }
 
     function url() external view returns (string memory) {
-        return "";
+        return _url;
+    }
+
+    function setUrl(string calldata newUrl) external onlyOwner {
+        _url = newUrl;
+        emit NewUrl(newUrl);
     }
 
     /**
