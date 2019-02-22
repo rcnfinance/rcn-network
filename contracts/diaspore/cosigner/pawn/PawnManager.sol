@@ -187,7 +187,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             pawnId,
             _loanId,
             msg.sender,
-            owner,
             loanManager,
             packageId
         );
