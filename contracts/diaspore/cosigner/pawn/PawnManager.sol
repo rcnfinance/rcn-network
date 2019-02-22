@@ -138,7 +138,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         require(loanManager.registerApproveRequest(loanId, _signature), "Reject the approve");
 
-        (pawnId, packageId) = _requestPawn(loanManager, _borrower, loanId, _tokens, _amounts, _erc721s, _erc721Ids);
+        (pawnId, packageId) = _requestPawn(loanManager, loanId, _tokens, _amounts, _erc721s, _erc721Ids);
     }
 
     function _requestLoan(
@@ -163,7 +163,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
     function _requestPawn(
         ILoanManager _loanManager,
-        address owner,
         bytes32 _loanId,
         Token[] memory _tokens,
         uint256[] memory _amounts,
@@ -174,7 +173,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         // Create the liability
         pawnId = pawns.push(Pawn({
-            owner: owner,
+            owner: msg.sender,
             loanManager: loanManager,
             loanId: _loanId,
             packageId: packageId,
