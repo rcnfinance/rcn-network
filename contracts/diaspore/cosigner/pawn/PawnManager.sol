@@ -347,8 +347,8 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         @return true if the loan is considered defaulted
     */
     function isDefaulted(ILoanManager _loanManager, bytes32 _loanId) public view returns (bool) {
-        return _loanManager.getStatus(_loanId) == STATUS_ONGOING &&
-            _loanManager.getDueTime(_loanId) + 7 days <= block.timestamp;
+        return _loanManager.getStatus(_loanId) == 1 &&
+            _loanManager.getDueTime(_loanId) + 7 days <= now;
     }
 
     /**
