@@ -52,10 +52,6 @@ contract('TestBundle', function (accounts) {
 
     const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-    const STATUS_PENDING = 0;
-    const STATUS_ONGOING = 1;
-    const STATUS_CANCELED = 2;
-
     const ERC721S = 0;
     const ERC721IDS = 1;
 
@@ -143,7 +139,6 @@ contract('TestBundle', function (accounts) {
             assert.equal(pawn.loanManager, loanManager.address);
             assert.equal(pawn.loanId, loanId);
             expect(pawn.packageId).to.eq.BN(packageId);
-            expect(pawn.status).to.eq.BN(STATUS_PENDING);
 
             const request = await loanManager.requests(loanId);
             assert.equal(request.open, true);
@@ -500,7 +495,6 @@ contract('TestBundle', function (accounts) {
             assert.equal(pawn.loanManager, loanManager.address);
             assert.equal(pawn.loanId, loanId);
             expect(pawn.packageId).to.eq.BN(packageId);
-            expect(pawn.status).to.eq.BN(STATUS_PENDING);
 
             const request = await loanManager.requests(loanId);
             assert.equal(request.open, true);
@@ -808,7 +802,10 @@ contract('TestBundle', function (accounts) {
             assert.equal(CanceledPawn._to, beneficiary);
 
             const pawn = await pawnManager.pawns(pawnId);
-            expect(pawn.status).to.eq.BN(STATUS_CANCELED);
+            assert.equal(pawn.owner, Helper.address0x);
+            assert.equal(pawn.loanManager, Helper.address0x);
+            assert.equal(pawn.loanId, Helper.bytes320x);
+            expect(pawn.packageId).to.eq.BN('0');
 
             assert.equal(await bundle.ownerOf(packageId), beneficiary);
         });
@@ -882,7 +879,10 @@ contract('TestBundle', function (accounts) {
             assert.equal(CanceledPawn._to, beneficiary);
 
             const pawn = await pawnManager.pawns(pawnId);
-            expect(pawn.status).to.eq.BN(STATUS_CANCELED);
+            assert.equal(pawn.owner, Helper.address0x);
+            assert.equal(pawn.loanManager, Helper.address0x);
+            assert.equal(pawn.loanId, Helper.bytes320x);
+            expect(pawn.packageId).to.eq.BN('0');
 
             assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
             assert.equal(await poach.ownerOf(pairETHId), pawnManager.address);
@@ -1009,7 +1009,7 @@ contract('TestBundle', function (accounts) {
                     true,
                     { from: borrower }
                 ),
-                'The pawn is not pending'
+                'The pawn is take'
             );
         });
     });
@@ -1071,9 +1071,6 @@ contract('TestBundle', function (accounts) {
             const topic = web3.utils.sha3('StartedPawn(uint256)');
             const pawnIdEmitted = tx.receipt.rawLogs.find(x => x.topics[0] === topic).data.slice(2);
             expect(pawnIdEmitted).to.eq.BN(pawnId);
-
-            const pawn = await pawnManager.pawns(pawnId);
-            expect(pawn.status).to.eq.BN(STATUS_ONGOING);
 
             assert.equal(await pawnManager.ownerOf(pawnId), borrower);
         });
@@ -1233,7 +1230,7 @@ contract('TestBundle', function (accounts) {
                     toHexBytes32(pawnId),
                     { from: creator }
                 ),
-                'The pawn is not pending'
+                'The pawn is take'
             );
         });
     });

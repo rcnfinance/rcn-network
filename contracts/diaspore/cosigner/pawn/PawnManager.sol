@@ -37,7 +37,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         ILoanManager loanManager;
         bytes32 loanId;
         uint256 packageId;
-        Status status;
     }
 
     constructor(ILoanManager _loanManager, IBundle _bundle, IPoach _poach) public ERC721Base("Pawn manager", "PM") {
@@ -177,8 +176,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             owner: msg.sender,
             loanManager: loanManager,
             loanId: _loanId,
-            packageId: packageId,
-            status: Status.Pending
+            packageId: packageId
         })) - 1;
 
         loanToLiability[address(loanManager)][_loanId] = pawnId;
@@ -261,13 +259,14 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         // Only the owner of the pawn and if the pawn is pending
         require(msg.sender == pawn.owner, "Only the owner can cancel the pawn");
-        require(pawn.status == Status.Pending, "The pawn is not pending");
-
-        pawn.status = Status.Canceled;
+        require(_ownerOf(_pawnId) == address(0), "The pawn is take");
 
         _transferAsset(pawn.packageId, _to, _asBundle);
 
         emit CanceledPawn(_pawnId, _to);
+
+        delete pawns[_pawnId];
+
         return true;
     }
 
@@ -319,9 +318,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         // and the pawn is still pending
         require(pawn.loanManager == ILoanManager(_loanManager), "LoanManager does not match");
         require(pawn.loanId == _loanId, "Loan id does not match");
-        require(pawn.status == Status.Pending, "The pawn is not pending");
-
-        pawn.status = Status.Ongoing;
+        require(_ownerOf(pawnId) == address(0), "The pawn is take");
 
         // Mint pawn ERC721 Token
         _generate(pawnId, pawn.owner);
@@ -401,14 +398,12 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         uint256 pawnId = loanToLiability[_loanManager][_loanId];
         Pawn storage pawn = pawns[pawnId];
         // Validate that the pawn wasn't claimed
-        require(pawn.status == Status.Ongoing, "Pawn not ongoing");
+        require(_ownerOf(pawnId) == pawn.owner, "The pawn is not take");
         require(pawn.loanId == _loanId, "Pawn don't match loan id");
 
         if (pawn.loanManager.getStatus(_loanId) == STATUS_PAID) {
             // The pawn is paid
             require(_isAuthorized(msg.sender, uint256(_loanId)), "Sender not authorized");
-
-            pawn.status = Status.Paid;
 
             _transferAsset(pawn.packageId, msg.sender, _asBundle);
 
@@ -418,8 +413,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
                 // The pawn is defaulted
                 require(msg.sender == pawn.loanManager.ownerOf(_loanId), "Sender not lender");
 
-                pawn.status = Status.Defaulted;
-
                 _transferAsset(pawn.packageId, msg.sender, _asBundle);
 
                 emit DefaultedPawn(pawnId);
@@ -428,8 +421,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             }
         }
 
-        // ERC721 Delete asset
-        //_destroy(pawnId);
+        delete pawns[pawnId];
 
         return true;
     }
