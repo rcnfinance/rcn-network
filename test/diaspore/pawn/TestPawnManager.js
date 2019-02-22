@@ -51,8 +51,9 @@ contract('TestBundle', function (accounts) {
 
     const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-    const PENDING = 0;
-    const CANCELED = 2;
+    const STATUS_PENDING = 0;
+    const STATUS_ONGOING = 1;
+    const STATUS_CANCELED = 2;
 
     const ERC721S = 0;
     const ERC721IDS = 1;
@@ -132,17 +133,16 @@ contract('TestBundle', function (accounts) {
             );
             expect(RequestedPawn._pawnId).to.eq.BN(pawnId);
             expect(RequestedPawn._loanId).to.eq.BN(loanId);
-            expect(RequestedPawn._creator).to.eq.BN(creator);
-            expect(RequestedPawn._borrower).to.eq.BN(borrower);
-            expect(RequestedPawn._loanManager).to.eq.BN(loanManager.address);
+            assert.equal(RequestedPawn._owner, creator);
+            assert.equal(RequestedPawn._loanManager, loanManager.address);
             expect(RequestedPawn._packageId).to.eq.BN(packageId);
 
             const pawn = await pawnManager.pawns(pawnId);
-            assert.equal(pawn.owner, borrower);
+            assert.equal(pawn.owner, creator);
             assert.equal(pawn.loanManager, loanManager.address);
             assert.equal(pawn.loanId, loanId);
             expect(pawn.packageId).to.eq.BN(packageId);
-            expect(pawn.status).to.eq.BN(PENDING);
+            expect(pawn.status).to.eq.BN(STATUS_PENDING);
 
             const request = await loanManager.requests(loanId);
             assert.equal(request.open, true);
@@ -490,17 +490,16 @@ contract('TestBundle', function (accounts) {
             );
             expect(RequestedPawn._pawnId).to.eq.BN(pawnId);
             expect(RequestedPawn._loanId).to.eq.BN(loanId);
-            expect(RequestedPawn._creator).to.eq.BN(creator);
-            expect(RequestedPawn._borrower).to.eq.BN(borrower);
-            expect(RequestedPawn._loanManager).to.eq.BN(loanManager.address);
+            assert.equal(RequestedPawn._owner, creator);
+            assert.equal(RequestedPawn._loanManager, loanManager.address);
             expect(RequestedPawn._packageId).to.eq.BN(packageId);
 
             const pawn = await pawnManager.pawns(pawnId);
-            assert.equal(pawn.owner, borrower);
+            assert.equal(pawn.owner, creator);
             assert.equal(pawn.loanManager, loanManager.address);
             assert.equal(pawn.loanId, loanId);
             expect(pawn.packageId).to.eq.BN(packageId);
-            expect(pawn.status).to.eq.BN(PENDING);
+            expect(pawn.status).to.eq.BN(STATUS_PENDING);
 
             const request = await loanManager.requests(loanId);
             assert.equal(request.open, true);
@@ -799,17 +798,16 @@ contract('TestBundle', function (accounts) {
                     pawnId,
                     beneficiary,
                     true,
-                    { from: borrower }
+                    { from: creator }
                 ),
                 'CanceledPawn'
             );
 
             expect(CanceledPawn._pawnId).to.eq.BN(pawnId);
-            assert.equal(CanceledPawn._from, borrower);
             assert.equal(CanceledPawn._to, beneficiary);
 
             const pawn = await pawnManager.pawns(pawnId);
-            expect(pawn.status).to.eq.BN(CANCELED);
+            expect(pawn.status).to.eq.BN(STATUS_CANCELED);
 
             assert.equal(await bundle.ownerOf(packageId), beneficiary);
         });
@@ -874,17 +872,16 @@ contract('TestBundle', function (accounts) {
                     pawnId,
                     beneficiary,
                     false,
-                    { from: borrower }
+                    { from: creator }
                 ),
                 'CanceledPawn'
             );
 
             expect(CanceledPawn._pawnId).to.eq.BN(pawnId);
-            assert.equal(CanceledPawn._from, borrower);
             assert.equal(CanceledPawn._to, beneficiary);
 
             const pawn = await pawnManager.pawns(pawnId);
-            expect(pawn.status).to.eq.BN(CANCELED);
+            expect(pawn.status).to.eq.BN(STATUS_CANCELED);
 
             assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
             assert.equal(await poach.ownerOf(pairETHId), pawnManager.address);
@@ -944,7 +941,7 @@ contract('TestBundle', function (accounts) {
                     pawnId,
                     beneficiary,
                     true,
-                    { from: creator }
+                    { from: borrower }
                 ),
                 'Only the owner can cancel the pawn'
             );
@@ -1014,5 +1011,242 @@ contract('TestBundle', function (accounts) {
                 'The pawn is not pending'
             );
         });
+    });
+
+    describe('requestCosign function', function () {
+        it('Should lend a pawn with pawn as cosigner', async () => {
+            const borrower = user;
+            const creator = accounts[9];
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            const pawnId = await pawnManager.pawnsLength();
+
+            await pawnManager.requestPawnId(
+                loanManager.address,
+                loanId,
+                [], // ERC20 Tokens addresses
+                [], // ERC20 amounts
+                [], // ERC721 Tokens addresses
+                [], // ERC721 ids
+                { from: borrower }
+            );
+
+            await erc20.setBalance(creator, '1');
+            await erc20.approve(loanManager.address, '1', { from: creator });
+
+            const tx = await loanManager.lend(
+                loanId,
+                [],
+                pawnManager.address,
+                '0',
+                toHexBytes32(pawnId),
+                { from: creator }
+            );
+            const topic = web3.utils.sha3('StartedPawn(uint256)');
+            const pawnIdEmitted = tx.receipt.rawLogs.find(x => x.topics[0] === topic).data.slice(2);
+            expect(pawnIdEmitted).to.eq.BN(pawnId);
+
+            const pawn = await pawnManager.pawns(pawnId);
+            expect(pawn.status).to.eq.BN(STATUS_ONGOING);
+
+            assert.equal(await pawnManager.ownerOf(pawnId), borrower);
+        });
+
+        it('Try request cosign with wrong loanManager', async () => {
+            await Helper.tryCatchRevert(
+                () => pawnManager.requestCosign(
+                    user,
+                    Helper.bytes320x,
+                    [],
+                    []
+                ),
+                'The sender its not the LoanManager'
+            );
+        });
+
+        it('Try request cosign with wrong idLoan', async () => {
+            const borrower = user;
+            const creator = accounts[9];
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            const pawnId = await pawnManager.pawnsLength();
+
+            await pawnManager.requestPawnId(
+                loanManager.address,
+                loanId,
+                [], // ERC20 Tokens addresses
+                [], // ERC20 amounts
+                [], // ERC721 Tokens addresses
+                [], // ERC721 ids
+                { from: borrower }
+            );
+
+            const wrongSalt = bn(web3.utils.randomHex(32));
+
+            const wrongLoanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                wrongSalt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                wrongSalt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            await erc20.setBalance(creator, '1');
+            await erc20.approve(loanManager.address, '1', { from: creator });
+
+            await Helper.tryCatchRevert(
+                () => loanManager.lend(
+                    wrongLoanId,
+                    [],
+                    pawnManager.address,
+                    '0',
+                    toHexBytes32(pawnId),
+                    { from: creator }
+                ),
+                'Loan id does not match'
+            );
+        });
+
+        it('Try request cosign with canceled pawn ', async () => {
+            const borrower = user;
+            const creator = accounts[9];
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await loanManager.calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            );
+
+            const pawnId = await pawnManager.pawnsLength();
+
+            await pawnManager.requestPawnId(
+                loanManager.address,
+                loanId,
+                [], // ERC20 Tokens addresses
+                [], // ERC20 amounts
+                [], // ERC721 Tokens addresses
+                [], // ERC721 ids
+                { from: borrower }
+            );
+
+            await erc20.setBalance(creator, '1');
+            await erc20.approve(loanManager.address, '1', { from: creator });
+
+            await pawnManager.cancelPawn(
+                pawnId,
+                beneficiary,
+                false,
+                { from: borrower }
+            );
+
+            await Helper.tryCatchRevert(
+                () => loanManager.lend(
+                    loanId,
+                    [],
+                    pawnManager.address,
+                    '0',
+                    toHexBytes32(pawnId),
+                    { from: creator }
+                ),
+                'The pawn is not pending'
+            );
+        });
+    });
+
+    it('Try send ether to the pawnManager', async () => {
+        await Helper.tryCatchRevert(
+            () => web3.eth.sendTransaction(
+                { from: user, to: pawnManager.address, value: '1' }
+            ),
+            'The sender must be the poach'
+        );
+    });
+
+    it('The cost should be 0', async () => {
+        expect(await pawnManager.cost(Helper.address0x, Helper.bytes320x, [], [])).to.eq.BN('0');
     });
 });
