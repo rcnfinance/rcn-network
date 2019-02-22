@@ -12,7 +12,7 @@ contract IPawnManager {
 
     event RequestedPawn(uint256 _pawnId, bytes32 _loanId, address _creator, address _borrower, ILoanManager _loanManager, uint256 _packageId);
     event StartedPawn(uint256 _pawnId);
-    event CanceledPawn(uint256 _pawnId, address _from, address _to);
+    event CanceledPawn(uint256 _pawnId, address _to);
     event PaidPawn(uint256 _pawnId, address _from);
     event DefaultedPawn(uint256 _pawnId);
 }

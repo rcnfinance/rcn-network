@@ -268,7 +268,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         _transferAsset(pawn.packageId, _to, _asBundle);
 
-        emit CanceledPawn(_pawnId, msg.sender, _to);
+        emit CanceledPawn(_pawnId, _to);
         return true;
     }
 
