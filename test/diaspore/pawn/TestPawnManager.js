@@ -435,27 +435,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                creator,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: creator } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: creator }  // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await loanManager.approveRequest(loanId, { from: borrower });
 
@@ -547,27 +539,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await erc20.setBalance(creator, '1');
             await erc20.approve(loanManager.address, '1', { from: creator });
@@ -603,27 +587,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: creator } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: creator } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await Helper.tryCatchRevert(
                 () => pawnManager.requestPawnId(
@@ -647,27 +623,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: creator } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: creator } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await Helper.tryCatchRevert(
                 () => pawnManager.requestPawnId(
@@ -691,27 +659,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: creator } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: creator } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await pawnManager.requestPawnId(
                 loanManager.address,
@@ -901,27 +861,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                creator,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: creator } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: creator } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await loanManager.approveRequest(loanId, { from: borrower });
 
@@ -956,27 +908,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             const pawnId = await pawnManager.pawnsLength();
 
@@ -1023,27 +967,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             const pawnId = await pawnManager.pawnsLength();
 
@@ -1095,27 +1031,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             const pawnId = await pawnManager.pawnsLength();
 
@@ -1177,27 +1105,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             const pawnId = await pawnManager.pawnsLength();
 
@@ -1243,27 +1163,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await erc20.setBalance(borrower, '1');
             await erc20.approve(loanManager.address, '1', { from: borrower });
@@ -1287,27 +1199,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await Helper.increaseTime((60 * 24 * 7) + 2000);
 
@@ -1321,27 +1225,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await erc20.setBalance(borrower, '1');
             await erc20.approve(loanManager.address, '1', { from: borrower });
@@ -1365,27 +1261,19 @@ contract('TestBundle', function (accounts) {
             const expiration = (await Helper.getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            const loanId = await loanManager.calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            );
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
 
             await erc20.setBalance(borrower, '1');
             await erc20.approve(loanManager.address, '1', { from: borrower });
