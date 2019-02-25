@@ -1131,15 +1131,15 @@ contract('TestBundle', function (accounts) {
                 { from: borrower }
             );
 
-            await erc20.setBalance(creator, '1');
-            await erc20.approve(loanManager.address, '1', { from: creator });
-
             await pawnManager.cancelPawn(
                 pawnId,
                 beneficiary,
                 false,
                 { from: borrower }
             );
+
+            await erc20.setBalance(creator, '1');
+            await erc20.approve(loanManager.address, '1', { from: creator });
 
             await Helper.tryCatchRevert(
                 () => loanManager.lend(
