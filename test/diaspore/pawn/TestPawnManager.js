@@ -1150,7 +1150,7 @@ contract('TestBundle', function (accounts) {
                     toHexBytes32(pawnId),
                     { from: creator }
                 ),
-                'The pawn is take'
+                'LoanManager does not match'
             );
         });
     });
