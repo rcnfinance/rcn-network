@@ -67,6 +67,17 @@ contract('TestBundle', function (accounts) {
         bundle = await Bundle.new();
         poach = await Poach.new();
         pawnManager = await PawnManager.new(loanManager.address, bundle.address, poach.address);
+
+        assert.equal(await pawnManager.loanManager(), loanManager.address);
+        assert.equal(await pawnManager.bundle(), bundle.address);
+        assert.equal(await pawnManager.poach(), poach.address);
+        expect(await pawnManager.pawnsLength()).to.eq.BN('1');
+
+        const pawn = await pawnManager.pawns('0');
+        assert.equal(pawn.owner, Helper.address0x);
+        assert.equal(pawn.loanManager, Helper.address0x);
+        assert.equal(pawn.loanId, Helper.bytes320x);
+        expect(pawn.packageId).to.eq.BN('0');
     });
 
     async function generateERC721 (_erc721, to) {
@@ -956,6 +967,18 @@ contract('TestBundle', function (accounts) {
                 'The pawn is take'
             );
         });
+
+        it('Try cancel a the pawn of id 0', async () => {
+            await Helper.tryCatchRevert(
+                () => pawnManager.cancelPawn(
+                    '0',
+                    beneficiary,
+                    false,
+                    { from: user }
+                ),
+                'Only the owner can cancel the pawn'
+            );
+        });
     });
 
     describe('requestCosign function', function () {
@@ -1020,6 +1043,44 @@ contract('TestBundle', function (accounts) {
                     []
                 ),
                 'The sender its not the LoanManager'
+            );
+        });
+
+        it('Try request cosign with pawnId 0', async () => {
+            const borrower = user;
+            const creator = accounts[9];
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
+
+            await erc20.setBalance(creator, '1');
+            await erc20.approve(loanManager.address, '1', { from: creator });
+
+            await Helper.tryCatchRevert(
+                () => loanManager.lend(
+                    loanId,
+                    [],
+                    pawnManager.address,
+                    '0',
+                    toHexBytes32('0'),
+                    { from: creator }
+                ),
+                'LoanManager does not match'
             );
         });
 
