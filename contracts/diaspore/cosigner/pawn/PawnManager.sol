@@ -400,7 +400,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         Pawn storage pawn = pawns[pawnId];
         // Validate that the pawn wasn't claimed
         require(_ownerOf(pawnId) == pawn.owner, "The pawn is not take");
-        require(pawn.loanId == _loanId, "Pawn don't match loan id");
+        require(pawn.loanId == _loanId, "Loan id don't match");
 
         if (pawn.loanManager.getStatus(_loanId) == STATUS_PAID) {
             // The pawn is paid
@@ -418,7 +418,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
                 emit DefaultedPawn(pawnId);
             } else {
-                revert("Pawn not defaulted/paid");
+                revert("Pawn not defaulted/paid, or not cosgined");
             }
         }
 
