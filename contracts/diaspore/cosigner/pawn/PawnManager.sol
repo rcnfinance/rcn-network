@@ -398,20 +398,20 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function _claim(address _loanManager, bytes32 _loanId, bool _asBundle) internal returns(bool){
         uint256 pawnId = loanToLiability[_loanManager][_loanId];
         Pawn storage pawn = pawns[pawnId];
-        // Validate that the pawn wasn't claimed
-        require(_ownerOf(pawnId) == pawn.owner, "The pawn is not take");
+
+        require(address(pawn.loanManager) == _loanManager, "Loan manager don't match");
         require(pawn.loanId == _loanId, "Loan id don't match");
 
         if (pawn.loanManager.getStatus(_loanId) == STATUS_PAID) {
-            // The pawn is paid
-            require(_isAuthorized(msg.sender, uint256(_loanId)), "Sender not authorized");
+            require(_isAuthorized(msg.sender, pawnId), "Sender not authorized");
 
             _transferAsset(pawn.packageId, msg.sender, _asBundle);
 
             emit PaidPawn(pawnId, msg.sender);
         } else {
             if (isDefaulted(pawn.loanManager, _loanId)) {
-                // The pawn is defaulted
+                require(_ownerOf(pawnId) != address(0), "The pawn is not take");
+
                 require(msg.sender == pawn.loanManager.ownerOf(_loanId), "Sender not lender");
 
                 _transferAsset(pawn.packageId, msg.sender, _asBundle);
