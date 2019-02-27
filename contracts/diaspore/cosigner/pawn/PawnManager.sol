@@ -449,7 +449,10 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function _withdrawAll(uint256 _packageId, address payable _beneficiary) internal returns(bool) {
         (IERC721Base[] memory erc721s, uint256[] memory erc721Ids) = bundle.content(_packageId);
 
-        for (uint256 i = 0; i < erc721s.length; i++) {
+        uint256 i = erc721Ids.length;
+        require(i > 0, "The package its empty");
+
+        for (i--; i > 0; i--) {
             if (erc721s[i] != poach) {
                 // for a ERC721 token
                 bundle.withdraw(_packageId, erc721s[i], erc721Ids[i], _beneficiary);
@@ -458,6 +461,15 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
                 require(poach.withdraw(erc721Ids[i], _beneficiary), "Fail withdraw");
             }
         }
+
+        if (erc721s[0] != poach) {
+            // for a ERC721 token
+            bundle.withdraw(_packageId, erc721s[0], erc721Ids[0], _beneficiary);
+        } else { // for a ERC20 token
+            bundle.withdraw(_packageId, erc721s[0], erc721Ids[0], address(this));
+            require(poach.withdraw(erc721Ids[0], _beneficiary), "Fail withdraw");
+        }
+
         return true;
     }
 }
