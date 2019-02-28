@@ -403,7 +403,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(pawn.loanId == _loanId, "Loan id don't match");
 
         if (pawn.loanManager.getStatus(_loanId) == STATUS_PAID) {
-            require(_isAuthorized(msg.sender, pawnId), "Sender not authorized");
+            require(_isAuthorized(msg.sender, pawnId), "The sender is not authorized");
 
             _transferAsset(pawn.packageId, msg.sender, _asBundle);
 
@@ -412,7 +412,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             if (isDefaulted(pawn.loanManager, _loanId)) {
                 require(_ownerOf(pawnId) != address(0), "The pawn is not take");
 
-                require(msg.sender == pawn.loanManager.ownerOf(_loanId), "Sender not lender");
+                require(msg.sender == pawn.loanManager.ownerOf(_loanId), "The sender is not the lender");
 
                 _transferAsset(pawn.packageId, msg.sender, _asBundle);
 

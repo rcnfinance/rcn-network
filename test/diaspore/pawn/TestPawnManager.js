@@ -1507,6 +1507,64 @@ contract('TestBundle', function (accounts) {
             assert.equal(await bundle.ownerOf(packageId), lender);
         });
 
+        it('Try claim a defaulted pawn without be the lender', async () => {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: insurer }  // Creator
+                ),
+                'Requested'
+            ))._id;
+            await loanManager.approveRequest(loanId, { from: borrower });
+
+            const pawnId = await pawnManager.pawnsLength();
+
+            await pawnManager.requestPawnId(
+                loanManager.address,
+                loanId,
+                [], // ERC20 Tokens addresses
+                [], // ERC20 amounts
+                [], // ERC721 Tokens addresses
+                [], // ERC721 ids
+                { from: insurer }
+            );
+
+            await erc20.setBalance(lender, '1');
+            await erc20.approve(loanManager.address, '1', { from: lender });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                pawnManager.address,
+                '0',
+                toHexBytes32(pawnId),
+                { from: lender }
+            );
+
+            await Helper.increaseTime((60 * 60 * 24 * 7) + 2000);
+
+            await Helper.tryCatchRevert(
+                () => pawnManager.claim(
+                    loanManager.address,
+                    loanId,
+                    [],
+                    { from: borrower }
+                ),
+                'The sender is not the lender'
+            );
+        });
+
         it('Try claim a pawn, and loan its not paid or defaulted', async () => {
             const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1');
@@ -1722,7 +1780,7 @@ contract('TestBundle', function (accounts) {
                     [],
                     { from: borrower }
                 ),
-                'Sender not authorized'
+                'The sender is not authorized'
             );
         });
     });
