@@ -2030,15 +2030,6 @@ contract('TestBundle', function (accounts) {
         });
     });
 
-    it('Try send ether to the pawnManager', async () => {
-        await Helper.tryCatchRevert(
-            () => web3.eth.sendTransaction(
-                { from: creator, to: pawnManager.address, value: '1' }
-            ),
-            'The sender must be the poach'
-        );
-    });
-
     it('The cost should be 0', async () => {
         expect(await pawnManager.cost(Helper.address0x, Helper.bytes320x, [], [])).to.eq.BN('0');
     });
