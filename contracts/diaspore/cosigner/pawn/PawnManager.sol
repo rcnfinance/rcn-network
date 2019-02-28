@@ -50,6 +50,11 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         return pawns.length;
     }
 
+    function setLoanManager(ILoanManager _loanManager) external onlyOwner {
+        loanManager = _loanManager;
+        emit NewLoanManager(_loanManager);
+    }
+
     /**
         @notice Request a pawn to buy a new loan
 

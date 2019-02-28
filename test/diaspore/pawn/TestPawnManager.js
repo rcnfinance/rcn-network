@@ -2039,7 +2039,14 @@ contract('TestBundle', function (accounts) {
 
         const newUrl = 'https://www.testUrl.com/';
 
-        await pawnManager.setUrl(newUrl);
+        await Helper.tryCatchRevert(
+            () => pawnManager.setUrl(
+                newUrl,
+                { from: otherAccount }
+            ),
+            'The owner should be the sender'
+        );
+
         const NewUrl = await Helper.toEvents(
             await pawnManager.setUrl(
                 newUrl,
@@ -2051,5 +2058,33 @@ contract('TestBundle', function (accounts) {
         assert.equal(NewUrl._url, newUrl);
 
         assert.equal(await pawnManager.url(), newUrl);
+    });
+
+    it('setLoanManager function', async () => {
+        assert.equal(await pawnManager.loanManager(), loanManager.address);
+
+        const newLoanManager = await LoanManager.new(debtEngine.address);
+
+        await Helper.tryCatchRevert(
+            () => pawnManager.setLoanManager(
+                newLoanManager.address,
+                { from: otherAccount }
+            ),
+            'The owner should be the sender'
+        );
+
+        const NewLoanManager = await Helper.toEvents(
+            await pawnManager.setLoanManager(
+                newLoanManager.address,
+                { from: owner }
+            ),
+            'NewLoanManager'
+        );
+
+        assert.equal(NewLoanManager._loanManager, newLoanManager.address);
+
+        assert.equal(await pawnManager.loanManager(), newLoanManager.address);
+
+        await pawnManager.setLoanManager(loanManager.address, { from: owner });
     });
 });
