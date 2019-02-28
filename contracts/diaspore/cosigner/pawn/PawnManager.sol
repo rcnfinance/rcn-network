@@ -266,6 +266,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         emit CanceledPawn(_pawnId, _to);
 
+        delete loanToLiability[address(pawn.loanManager)][pawn.loanId];
         delete pawns[_pawnId];
 
         return true;
@@ -421,6 +422,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             }
         }
 
+        delete loanToLiability[address(pawn.loanManager)][pawn.loanId];
         delete pawns[pawnId];
 
         return true;

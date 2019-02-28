@@ -788,6 +788,8 @@ contract('TestBundle', function (accounts) {
             assert.equal(pawn.loanId, Helper.bytes320x);
             expect(pawn.packageId).to.eq.BN('0');
 
+            expect(await pawnManager.loanToLiability(loanManager.address, loanId)).to.eq.BN('0');
+
             assert.equal(await bundle.ownerOf(packageId), beneficiary);
         });
 
@@ -862,6 +864,8 @@ contract('TestBundle', function (accounts) {
             assert.equal(pawn.loanManager, Helper.address0x);
             assert.equal(pawn.loanId, Helper.bytes320x);
             expect(pawn.packageId).to.eq.BN('0');
+
+            expect(await pawnManager.loanToLiability(loanManager.address, loanId)).to.eq.BN('0');
 
             assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
             assert.equal(await poach.ownerOf(pairETHId), pawnManager.address);
@@ -1427,6 +1431,8 @@ contract('TestBundle', function (accounts) {
             assert.equal(pawn.loanId, Helper.bytes320x);
             expect(pawn.packageId).to.eq.BN('0');
 
+            expect(await pawnManager.loanToLiability(loanManager.address, loanId)).to.eq.BN('0');
+
             assert.equal(await bundle.ownerOf(packageId), insurer);
         });
 
@@ -1495,6 +1501,8 @@ contract('TestBundle', function (accounts) {
             assert.equal(pawn.loanManager, Helper.address0x);
             assert.equal(pawn.loanId, Helper.bytes320x);
             expect(pawn.packageId).to.eq.BN('0');
+
+            expect(await pawnManager.loanToLiability(loanManager.address, loanId)).to.eq.BN('0');
 
             assert.equal(await bundle.ownerOf(packageId), lender);
         });
@@ -1803,6 +1811,8 @@ contract('TestBundle', function (accounts) {
             assert.equal(pawn.loanManager, Helper.address0x);
             assert.equal(pawn.loanId, Helper.bytes320x);
             expect(pawn.packageId).to.eq.BN('0');
+
+            expect(await pawnManager.loanToLiability(loanManager.address, loanId)).to.eq.BN('0');
 
             assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
 
