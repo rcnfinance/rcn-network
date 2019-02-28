@@ -1823,6 +1823,153 @@ contract('TestBundle', function (accounts) {
             expect(await getETHBalance(poach.address)).to.eq.BN(dec(prevPoachETHBalance));
             expect(await erc20.balanceOf(poach.address)).to.eq.BN(dec(prevPoachERC20Balance));
         });
+
+        it('Try claim a pawn and withdraw and the pawn its empty', async () => {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
+
+            const pawnId = await pawnManager.pawnsLength();
+
+            await pawnManager.requestPawnId(
+                loanManager.address,
+                loanId,
+                [], // ERC20 Tokens addresses
+                [], // ERC20 amounts
+                [], // ERC721 Tokens addresses
+                [], // ERC721 ids
+                { from: borrower }
+            );
+
+            await erc20.setBalance(borrower, '1');
+            await erc20.approve(loanManager.address, '1', { from: borrower });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                pawnManager.address,
+                '0',
+                toHexBytes32(pawnId),
+                { from: borrower }
+            );
+
+            await erc20.setBalance(borrower, '1');
+            await erc20.approve(debtEngine.address, '1', { from: borrower });
+
+            await debtEngine.pay(
+                loanId,
+                '1',
+                borrower,
+                [],
+                { from: borrower }
+            );
+
+            await Helper.tryCatchRevert(
+                () => pawnManager.claimWithdraw(
+                    loanManager.address,
+                    loanId,
+                    { from: borrower }
+                ),
+                'The package its empty'
+            );
+        });
+
+        it('Try claim two time the same pawn', async () => {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = (await Helper.toEvents(
+                await loanManager.requestLoan(
+                    amount,            // Amount
+                    model.address,     // Model
+                    Helper.address0x,  // Oracle
+                    borrower,          // Borrower
+                    salt,              // salt
+                    expiration,        // Expiration
+                    loanData,          // Loan data
+                    { from: borrower } // Creator
+                ),
+                'Requested'
+            ))._id;
+
+            await erc20.setBalance(borrower, '1');
+            await erc20.approve(pawnManager.address, '1', { from: borrower });
+
+            const erc20s = [ETH, erc20.address];
+            const amounts = ['1', '1'];
+            const assetId = await generateERC721(erc721, borrower);
+
+            const erc721s = [erc721.address];
+            const erc721Ids = [assetId];
+
+            const pawnId = await pawnManager.pawnsLength();
+
+            await pawnManager.requestPawnId(
+                loanManager.address,
+                loanId,
+                erc20s, // ERC20 Tokens addresses
+                amounts, // ERC20 amounts
+                erc721s, // ERC721 Tokens addresses
+                erc721Ids, // ERC721 ids
+                { from: borrower, value: '1' }
+            );
+
+            await erc20.setBalance(borrower, '1');
+            await erc20.approve(loanManager.address, '1', { from: borrower });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                pawnManager.address,
+                '0',
+                toHexBytes32(pawnId),
+                { from: borrower }
+            );
+
+            await erc20.setBalance(borrower, '1');
+            await erc20.approve(debtEngine.address, '1', { from: borrower });
+
+            await debtEngine.pay(
+                loanId,
+                '1',
+                borrower,
+                [],
+                { from: borrower }
+            );
+
+            await pawnManager.claim(
+                loanManager.address,
+                loanId,
+                [],
+                { from: borrower }
+            );
+
+            await Helper.tryCatchRevert(
+                () => pawnManager.claimWithdraw(
+                    loanManager.address,
+                    loanId,
+                    { from: borrower }
+                ),
+                'Loan manager don\'t match'
+            );
+        });
     });
 
     it('Try send ether to the pawnManager', async () => {
