@@ -319,7 +319,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         // and the pawn is still pending
         require(pawn.loanManager == ILoanManager(_loanManager), "LoanManager does not match");
         require(pawn.loanId == _loanId, "Loan id does not match");
-        require(_ownerOf(pawnId) == address(0), "The pawn is take");
 
         // Mint pawn ERC721 Token
         _generate(pawnId, pawn.owner);
