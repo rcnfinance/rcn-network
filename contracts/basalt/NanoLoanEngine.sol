@@ -1,14 +1,14 @@
 /* solium-disable */
 pragma solidity ^0.5.0;
 
-import "../interfaces/Oracle.sol";
-import "../interfaces/Token.sol";
+import "./../interfaces/Oracle.sol";
+import "./../interfaces/Token.sol";
 import "./utils/OwnableBasalt.sol";
-import "../utils/TokenLockable.sol";
+import "./utils/TokenLockable.sol";
 import "./interfaces/CosignerBasalt.sol";
 import "./interfaces/Engine.sol";
 import "./interfaces/ERC721.sol";
-import "../utils/BytesUtils.sol";
+import "./../utils/BytesUtils.sol";
 
 
 contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
