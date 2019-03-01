@@ -36,6 +36,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         address owner;
         ILoanManager loanManager;
         bytes32 loanId;
+        IMechanism mechanism;
         uint256 packageId;
     }
 
@@ -76,6 +77,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function requestPawnId(
         ILoanManager _loanManager,
         bytes32 _loanId,
+        IMechanism mechanism,
         Token[] memory _tokens,
         uint256[] memory _amounts,
         IERC721Base[] memory _erc721s,
@@ -88,7 +90,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
         require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
 
-        return _requestPawn(_loanManager, _loanId, _tokens, _amounts, _erc721s, _erc721Ids);
+        return _requestPawn(_loanManager, _loanId, mechanism, _tokens, _amounts, _erc721s, _erc721Ids);
     }
 
     /**
@@ -125,6 +127,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         uint64 _expiration,
         bytes memory _modelData,
         bytes memory _signature,
+        IMechanism mechanism,
         // ERC20
         Token[] memory _tokens,
         uint256[] memory _amounts,
@@ -144,7 +147,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         require(loanManager.registerApproveRequest(loanId, _signature), "Reject the approve");
 
-        (pawnId, packageId) = _requestPawn(loanManager, loanId, _tokens, _amounts, _erc721s, _erc721Ids);
+        (pawnId, packageId) = _requestPawn(loanManager, loanId, mechanism, _tokens, _amounts, _erc721s, _erc721Ids);
     }
 
     function _requestLoan(
@@ -170,6 +173,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function _requestPawn(
         ILoanManager _loanManager,
         bytes32 _loanId,
+        IMechanism mechanism,
         Token[] memory _tokens,
         uint256[] memory _amounts,
         IERC721Base[] memory _erc721s,
@@ -182,6 +186,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             owner: msg.sender,
             loanManager: loanManager,
             loanId: _loanId,
+            mechanism: mechanism,
             packageId: packageId
         })) - 1;
 
