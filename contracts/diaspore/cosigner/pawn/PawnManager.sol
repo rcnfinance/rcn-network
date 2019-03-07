@@ -509,7 +509,6 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(msg.sender == address(pawns[_pawnId].mechanism), "The sender should be the mechanism of the Pawn");
         (IERC721Base erc721, uint256 pairId) = bundle.aContent(_packageId, _order);
         require(IPoach(address(erc721)) == poach, "The ERC721 its not the IPoach");
-        (Token token, ) = poach.getPair(pairId);
 
         require(poach.withdrawPartial(pairId, msg.sender, _amount), "Fail withdraw");
 
