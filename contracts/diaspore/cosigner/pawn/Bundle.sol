@@ -39,6 +39,14 @@ contract Bundle is ERC721Base, IBundle {
         return (package.erc721s, package.erc721Ids);
     }
 
+    /**
+        @notice Get an specific pair of the content of a package
+    */
+    function aContent(uint256 _packageId, uint256 _order) external view returns (IERC721Base, uint256) {
+        Package memory package = packages[_packageId];
+        return (package.erc721s[_order], package.erc721Ids[_order]);
+    }
+
     // create package
     /**
         @notice Create a empty Package in packages array
