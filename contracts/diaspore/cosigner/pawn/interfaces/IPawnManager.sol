@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./../../../../interfaces/Token.sol";
 import "./../../../interfaces/ILoanManager.sol";
+import "./IMechanism.sol";
 
 
 contract IPawnManager {
@@ -13,7 +14,7 @@ contract IPawnManager {
     event NewUrl(string _url);
     event NewLoanManager(ILoanManager _loanManager);
 
-    event RequestedPawn(uint256 _pawnId, bytes32 _loanId, address _owner, ILoanManager _loanManager, uint256 _packageId);
+    event RequestedPawn(uint256 _pawnId, bytes32 _loanId, IMechanism _mechanism, address _owner, ILoanManager _loanManager, uint256 _packageId);
     event StartedPawn(uint256 _pawnId);
     event CanceledPawn(uint256 _pawnId, address _to);
     event PaidPawn(uint256 _pawnId, address _from);

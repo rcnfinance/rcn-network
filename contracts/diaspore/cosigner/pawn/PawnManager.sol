@@ -7,6 +7,7 @@ import "./../../../interfaces/Token.sol";
 import "./interfaces/IBundle.sol";
 import "./interfaces/IPoach.sol";
 import "./interfaces/IPawnManager.sol";
+import "./interfaces/IMechanism.sol";
 
 import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/Ownable.sol";
@@ -22,6 +23,10 @@ import "./../../../utils/ERC721Base.sol";
     When the loan is resolved (paid, pardoned or defaulted), the pawn with his tokens can be recovered.
 */
 contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable {
+    uint256 private constant I_MODEL = 0;
+    uint256 private constant I_ORACLE = 1;
+    uint256 private constant I_BORROWER = 2;
+
     ILoanManager public loanManager;
     IBundle public bundle;
     IPoach public poach;
@@ -77,7 +82,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function requestPawnId(
         ILoanManager _loanManager,
         bytes32 _loanId,
-        IMechanism mechanism,
+        IMechanism _mechanism,
         Token[] memory _tokens,
         uint256[] memory _amounts,
         IERC721Base[] memory _erc721s,
@@ -90,7 +95,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
         require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
 
-        return _requestPawn(_loanManager, _loanId, mechanism, _tokens, _amounts, _erc721s, _erc721Ids);
+        return _requestPawn(_loanManager, _loanId, _mechanism, _tokens, _amounts, _erc721s, _erc721Ids);
     }
 
     /**
@@ -101,9 +106,10 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
              also length of _erc721s and _erc721Ids
 
         @param _amount  Amount of the loan
-        @param _model  Model of the loan
-        @param _oracle  Oracle of the loan
-        @param _borrower Borrower of the loan
+        @param _addresses array of 3 addreses:
+            0: Model of the loan
+            1: Oracle of the loan
+            2: Borrower of the loan
         @param _salt Salt of the loan
         @param _expiration Expiration of the loan
 
@@ -120,14 +126,12 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     */
     function requestPawn(
         uint128 _amount,
-        address _model,
-        address _oracle,
-        address _borrower,
+        address[3] memory _addresses,
         uint256 _salt,
         uint64 _expiration,
         bytes memory _modelData,
         bytes memory _signature,
-        IMechanism mechanism,
+        IMechanism _mechanism,
         // ERC20
         Token[] memory _tokens,
         uint256[] memory _amounts,
@@ -137,9 +141,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     ) public payable returns (uint256 pawnId, uint256 packageId) {
         bytes32 loanId = _requestLoan(
             _amount,
-            _model,
-            _oracle,
-            _borrower,
+            _addresses,
             _salt,
             _expiration,
             _modelData
@@ -147,23 +149,21 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         require(loanManager.registerApproveRequest(loanId, _signature), "Reject the approve");
 
-        (pawnId, packageId) = _requestPawn(loanManager, loanId, mechanism, _tokens, _amounts, _erc721s, _erc721Ids);
+        (pawnId, packageId) = _requestPawn(loanManager, loanId, _mechanism, _tokens, _amounts, _erc721s, _erc721Ids);
     }
 
     function _requestLoan(
         uint128 _amount,
-        address _model,
-        address _oracle,
-        address _borrower,
+        address[3] memory _addresses,
         uint256 _salt,
         uint64 _expiration,
         bytes memory _modelData
     ) internal returns (bytes32) {
         return loanManager.requestLoan(
             _amount,
-            _model,
-            _oracle,
-            _borrower,
+            _addresses[I_MODEL],
+            _addresses[I_ORACLE],
+            _addresses[I_BORROWER],
             _salt,
             _expiration,
             _modelData
@@ -173,7 +173,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function _requestPawn(
         ILoanManager _loanManager,
         bytes32 _loanId,
-        IMechanism mechanism,
+        IMechanism _mechanism,
         Token[] memory _tokens,
         uint256[] memory _amounts,
         IERC721Base[] memory _erc721s,
@@ -186,7 +186,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             owner: msg.sender,
             loanManager: loanManager,
             loanId: _loanId,
-            mechanism: mechanism,
+            mechanism: _mechanism,
             packageId: packageId
         })) - 1;
 
@@ -195,6 +195,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         emit RequestedPawn(
             pawnId,
             _loanId,
+            _mechanism,
             msg.sender,
             loanManager,
             packageId
@@ -240,7 +241,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             }
 
             poach.approve(address(bundle), poachId);
-            bundle.deposit(packageId, IERC721Base(poach), poachId);
+            bundle.depositApprove(packageId, IERC721Base(poach), poachId);
         }
         require(totEth == msg.value, "The sum of all ETH amounts and msg.value must be equal");
 
