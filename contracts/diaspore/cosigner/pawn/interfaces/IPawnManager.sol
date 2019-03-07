@@ -19,4 +19,7 @@ contract IPawnManager {
     event CanceledPawn(uint256 _pawnId, address _to);
     event PaidPawn(uint256 _pawnId, address _from);
     event DefaultedPawn(uint256 _pawnId);
+
+    event AddedBalance(uint256 _pawnId, uint256 _packageId, uint256 _pairId, uint256 _amount);
+    event TakedBalance(uint256 _pawnId, uint256 _packageId, uint256 _pairId, uint256 _amount);
 }

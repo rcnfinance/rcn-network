@@ -477,4 +477,42 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         return true;
     }
+
+    function addBalance(
+        uint256 _pawnId,
+        uint256 _packageId,
+        uint256 _order,
+        uint256 _amount
+    ) external payable {
+        require(msg.sender == address(pawns[_pawnId].mechanism), "The sender should be the mechanism of the Pawn");
+        (IERC721Base erc721, uint256 pairId) = bundle.aContent(_packageId, _order);
+        require(IPoach(address(erc721)) == poach, "The ERC721 its not the IPoach");
+        (Token token, ) = poach.getPair(pairId);
+
+        if (address(token) != ETH) {
+            require(token.transferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+            require(token.approve(address(poach), _amount), "Error approve tokens");
+            poach.deposit(pairId, _amount);
+        } else {
+            poach.deposit.value(_amount)(pairId, _amount);
+        }
+
+        emit AddedBalance(_pawnId, _packageId, pairId, _amount);
+    }
+
+    function takeBalance(
+        uint256 _pawnId,
+        uint256 _packageId,
+        uint256 _order,
+        uint256 _amount
+    ) external {
+        require(msg.sender == address(pawns[_pawnId].mechanism), "The sender should be the mechanism of the Pawn");
+        (IERC721Base erc721, uint256 pairId) = bundle.aContent(_packageId, _order);
+        require(IPoach(address(erc721)) == poach, "The ERC721 its not the IPoach");
+        (Token token, ) = poach.getPair(pairId);
+
+        require(poach.withdrawPartial(pairId, msg.sender, _amount), "Fail withdraw");
+
+        emit TakedBalance(_pawnId, _packageId, pairId, _amount);
+    }
 }
