@@ -76,6 +76,24 @@ contract Bundle is ERC721Base, IBundle {
     }
 
     /**
+        @notice Deposit a non fungible token on a package and approve the sender
+
+        @param _packageId Index of package in packages array
+        @param _erc721 erc721 address
+        @param _erc721Id erc721 identifier
+
+        @return true If the operation was executed
+    */
+    function depositApprove(
+        uint256 _packageId,
+        IERC721Base _erc721,
+        uint256 _erc721Id
+    ) external returns (bool success) {
+        success = _deposit(_ownerOf(_packageId) == address(0) ? create() : _packageId, _erc721, _erc721Id);
+        _erc721.approve(msg.sender, _erc721Id);
+    }
+
+    /**
         @notice Deposit a batch of non fungible tokens on a package
 
         @dev The length of tokens and ids should be equal
