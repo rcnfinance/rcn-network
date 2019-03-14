@@ -1,13 +1,13 @@
 pragma solidity ^0.5.0;
 
 import "./../../../interfaces/IERC721Base.sol";
+import "./../../../interfaces/Token.sol";
 import "./../../interfaces/Cosigner.sol";
 import "./../../interfaces/ILoanManager.sol";
-import "./../../../interfaces/Token.sol";
 import "./interfaces/IBundle.sol";
 import "./interfaces/IPoach.sol";
 import "./interfaces/IPawnManager.sol";
-import "./interfaces/IMechanism.sol";
+import "./interfaces/IEscrow.sol";
 
 import "./../../../utils/BytesUtils.sol";
 import "./../../../utils/Ownable.sol";
@@ -41,7 +41,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         address owner;
         ILoanManager loanManager;
         bytes32 loanId;
-        IMechanism mechanism;
+        IEscrow escrow;
         uint256 packageId;
     }
 
@@ -50,6 +50,11 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         bundle = _bundle;
         poach = _poach;
         pawns.length++;
+    }
+
+    function getPawn(uint256 _pawnId) external view returns(address, address, bytes32, address, uint256) {
+        Pawn storage pawn = pawns[_pawnId];
+        return (pawn.owner, address(pawn.loanManager), pawn.loanId, address(pawn.escrow), pawn.packageId);
     }
 
     function pawnsLength() external view returns (uint256) {
@@ -82,7 +87,8 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function requestPawnId(
         ILoanManager _loanManager,
         bytes32 _loanId,
-        IMechanism _mechanism,
+        IEscrow _escrow,
+        bytes memory _escrowData,
         Token[] memory _tokens,
         uint256[] memory _amounts,
         IERC721Base[] memory _erc721s,
@@ -95,7 +101,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(msg.sender == borrower || msg.sender == _loanManager.getCreator(_loanId), "The sender should be the borrower or the creator");
         require(loanToLiability[address(_loanManager)][_loanId] == 0, "The liability its taken");
 
-        return _requestPawn(_loanManager, _loanId, _mechanism, _tokens, _amounts, _erc721s, _erc721Ids);
+        return _requestPawn(_loanManager, _loanId, _escrow, _escrowData, _tokens, _amounts, _erc721s, _erc721Ids);
     }
 
     /**
@@ -131,7 +137,8 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         uint64 _expiration,
         bytes memory _modelData,
         bytes memory _signature,
-        IMechanism _mechanism,
+        IEscrow _escrow,
+        bytes memory _escrowData,
         // ERC20
         Token[] memory _tokens,
         uint256[] memory _amounts,
@@ -149,7 +156,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         require(loanManager.registerApproveRequest(loanId, _signature), "Reject the approve");
 
-        (pawnId, packageId) = _requestPawn(loanManager, loanId, _mechanism, _tokens, _amounts, _erc721s, _erc721Ids);
+        (pawnId, packageId) = _requestPawn(loanManager, loanId, _escrow, _escrowData, _tokens, _amounts, _erc721s, _erc721Ids);
     }
 
     function _requestLoan(
@@ -173,7 +180,8 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
     function _requestPawn(
         ILoanManager _loanManager,
         bytes32 _loanId,
-        IMechanism _mechanism,
+        IEscrow _escrow,
+        bytes memory _escrowData,
         Token[] memory _tokens,
         uint256[] memory _amounts,
         IERC721Base[] memory _erc721s,
@@ -186,16 +194,19 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
             owner: msg.sender,
             loanManager: loanManager,
             loanId: _loanId,
-            mechanism: _mechanism,
+            escrow: _escrow,
             packageId: packageId
         })) - 1;
+
+        if(_escrow != IEscrow(0))
+            require(_escrow.request(pawnId, _loanId, _escrowData), "Error creating in escrow");
 
         loanToLiability[address(loanManager)][_loanId] = pawnId;
 
         emit RequestedPawn(
             pawnId,
             _loanId,
-            _mechanism,
+            _escrow,
             msg.sender,
             loanManager,
             packageId
@@ -227,21 +238,21 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         packageId = bundle.create();
         uint256 i;
-        uint256 poachId;
+        uint256 pairId;
         uint256 totEth;
 
         for (; i < tokensLength; i++) {
             if (address(_tokens[i]) != ETH) {
                 require(_tokens[i].transferFrom(msg.sender, address(this), _amounts[i]), "Error pulling tokens");
                 require(_tokens[i].approve(address(poach), _amounts[i]), "Error approve tokens");
-                poachId = poach.create(_tokens[i], _amounts[i]);
+                pairId = poach.create(_tokens[i], _amounts[i]);
             } else {
-                poachId = poach.create.value(_amounts[i])(_tokens[i], _amounts[i]);
+                pairId = poach.create.value(_amounts[i])(_tokens[i], _amounts[i]);
                 totEth += _amounts[i];
             }
 
-            poach.approve(address(bundle), poachId);
-            bundle.depositApprove(packageId, IERC721Base(poach), poachId);
+            poach.approve(address(bundle), pairId);
+            bundle.depositApprove(packageId, IERC721Base(poach), pairId);
         }
         require(totEth == msg.value, "The sum of all ETH amounts and msg.value must be equal");
 
@@ -314,7 +325,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         address _loanManager,
         bytes32 _loanId,
         bytes calldata _data,
-        bytes calldata
+        bytes calldata _auxData
     ) external returns (bool) {
         require(msg.sender == _loanManager, "The sender its not the LoanManager");
         uint256 pawnId = uint256(readBytes32(_data, I_PAWN_ID));
@@ -324,6 +335,9 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         // and the pawn is still pending
         require(pawn.loanManager == ILoanManager(_loanManager), "LoanManager does not match");
         require(pawn.loanId == _loanId, "Loan id does not match");
+
+        if(pawn.escrow != IEscrow(0))
+            require(pawn.escrow.create(pawnId, _loanId, _loanManager, _data, _auxData), "Error creating in escrow");
 
         // Mint pawn ERC721 Token
         _generate(pawnId, pawn.owner);
@@ -484,7 +498,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         uint256 _order,
         uint256 _amount
     ) external payable {
-        require(msg.sender == address(pawns[_pawnId].mechanism), "The sender should be the mechanism of the Pawn");
+        require(msg.sender == address(pawns[_pawnId].escrow), "The sender should be the escrow of the Pawn");
         (IERC721Base erc721, uint256 pairId) = bundle.aContent(_packageId, _order);
         require(IPoach(address(erc721)) == poach, "The ERC721 its not the IPoach");
         (Token token, ) = poach.getPair(pairId);
@@ -506,7 +520,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         uint256 _order,
         uint256 _amount
     ) external {
-        require(msg.sender == address(pawns[_pawnId].mechanism), "The sender should be the mechanism of the Pawn");
+        require(msg.sender == address(pawns[_pawnId].escrow), "The sender should be the escrow of the Pawn");
         (IERC721Base erc721, uint256 pairId) = bundle.aContent(_packageId, _order);
         require(IPoach(address(erc721)) == poach, "The ERC721 its not the IPoach");
 

@@ -131,7 +131,8 @@ contract('TestBundle', function (accounts) {
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     erc20s, // ERC20 Tokens addresses
                     amounts, // ERC20 amounts
                     erc721s, // ERC721 Tokens addresses
@@ -226,7 +227,8 @@ contract('TestBundle', function (accounts) {
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     erc20s, // ERC20 Tokens addresses
                     amounts, // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -247,7 +249,8 @@ contract('TestBundle', function (accounts) {
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     [], // ERC20 Tokens addresses
                     [], // ERC20 amounts
                     erc721s, // ERC721 Tokens addresses
@@ -274,7 +277,8 @@ contract('TestBundle', function (accounts) {
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     [], // ERC20 Tokens addresses
                     [], // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -316,7 +320,8 @@ contract('TestBundle', function (accounts) {
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     erc20s, // ERC20 Tokens addresses
                     amounts, // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -359,7 +364,8 @@ contract('TestBundle', function (accounts) {
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     [], // ERC20 Tokens addresses
                     [], // ERC20 amounts
                     erc721s, // ERC721 Tokens addresses
@@ -399,7 +405,8 @@ contract('TestBundle', function (accounts) {
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     erc20s, // ERC20 Tokens addresses
                     amounts, // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -417,7 +424,8 @@ contract('TestBundle', function (accounts) {
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     erc20s, // ERC20 Tokens addresses
                     amounts, // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -433,12 +441,13 @@ contract('TestBundle', function (accounts) {
             await Helper.tryCatchRevert(
                 () => pawnManager.requestPawn(
                     amount, // Amount
-                    [model.address, Helper.address0x, borrower], // Model, Oracle, Borrowersalt, // Salt
+                    [model.address, Helper.address0x, borrower], // Model, Oracle, Borrower
                     salt, // Salt
                     expiration, // Expiration
                     loanData, // Model data
                     signature, // Signature
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contract
+                    [], // Escrow data
                     erc20s, // ERC20 Tokens addresses
                     amounts, // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -490,7 +499,8 @@ contract('TestBundle', function (accounts) {
                 await pawnManager.requestPawnId(
                     loanManager.address,
                     loanId,
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contracts
+                    [], // Escrow data
                     erc20s, // ERC20 Tokens addresses
                     amounts, // ERC20 amounts
                     erc721s, // ERC721 Tokens addresses
@@ -590,7 +600,8 @@ contract('TestBundle', function (accounts) {
                 () => pawnManager.requestPawnId(
                     loanManager.address,
                     loanId,
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contracts
+                    [], // Escrow data
                     [], // ERC20 Tokens addresses
                     [], // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -625,7 +636,8 @@ contract('TestBundle', function (accounts) {
                 () => pawnManager.requestPawnId(
                     loanManager.address,
                     loanId,
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contracts
+                    [], // Escrow data
                     [], // ERC20 Tokens addresses
                     [], // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -660,7 +672,8 @@ contract('TestBundle', function (accounts) {
                 () => pawnManager.requestPawnId(
                     loanManager.address,
                     loanId,
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contracts
+                    [], // Escrow data
                     [], // ERC20 Tokens addresses
                     [], // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -694,7 +707,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -706,7 +720,8 @@ contract('TestBundle', function (accounts) {
                 () => pawnManager.requestPawnId(
                     loanManager.address,
                     loanId,
-                    Helper.address0x, // Mechanism
+                    Helper.address0x, // Escrow contracts
+                    [], // Escrow data
                     [], // ERC20 Tokens addresses
                     [], // ERC20 amounts
                     [], // ERC721 Tokens addresses
@@ -757,7 +772,8 @@ contract('TestBundle', function (accounts) {
                 expiration, // Expiration
                 loanData, // Model data
                 signature, // Signature
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contract
+                [], // Escrow data
                 erc20s, // ERC20 Tokens addresses
                 amounts, // ERC20 amounts
                 erc721s, // ERC721 Tokens addresses
@@ -830,7 +846,8 @@ contract('TestBundle', function (accounts) {
                 expiration, // Expiration
                 loanData, // Model data
                 signature, // Signature
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contract
+                [], // Escrow data
                 erc20s, // ERC20 Tokens addresses
                 amounts, // ERC20 amounts
                 erc721s, // ERC721 Tokens addresses
@@ -898,7 +915,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -942,7 +960,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1012,7 +1031,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1111,7 +1131,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1188,7 +1209,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 erc721s, // ERC721 Tokens addresses
@@ -1382,7 +1404,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1464,7 +1487,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1535,7 +1559,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1594,7 +1619,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1692,7 +1718,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1748,7 +1775,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1828,7 +1856,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 erc20s, // ERC20 Tokens addresses
                 amounts, // ERC20 amounts
                 erc721s, // ERC721 Tokens addresses
@@ -1914,7 +1943,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 [], // ERC20 Tokens addresses
                 [], // ERC20 amounts
                 [], // ERC721 Tokens addresses
@@ -1990,7 +2020,8 @@ contract('TestBundle', function (accounts) {
             await pawnManager.requestPawnId(
                 loanManager.address,
                 loanId,
-                Helper.address0x, // Mechanism
+                Helper.address0x, // Escrow contracts
+                [], // Escrow data
                 erc20s, // ERC20 Tokens addresses
                 amounts, // ERC20 amounts
                 erc721s, // ERC721 Tokens addresses

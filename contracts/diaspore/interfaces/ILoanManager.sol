@@ -8,6 +8,7 @@ interface ILoanManager {
     function getApproved(bytes32 _id) external view returns (bool);
     function getStatus(bytes32 _id) external view returns (uint256);
     function ownerOf(bytes32 _id) external view returns (address);
+    function getClosingObligation(bytes32 _id) external view returns (uint256);
 
     function cosign(bytes32 _id, uint256 _cost) external returns (bool);
     function safeTransferFrom(address _from, address _to, uint256 _assetId) external;

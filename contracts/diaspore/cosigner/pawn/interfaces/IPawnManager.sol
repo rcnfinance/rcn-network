@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./../../../../interfaces/Token.sol";
 import "./../../../interfaces/ILoanManager.sol";
-import "./IMechanism.sol";
+import "./IEscrow.sol";
 
 
 contract IPawnManager {
@@ -14,7 +14,7 @@ contract IPawnManager {
     event NewUrl(string _url);
     event NewLoanManager(ILoanManager _loanManager);
 
-    event RequestedPawn(uint256 _pawnId, bytes32 _loanId, IMechanism _mechanism, address _owner, ILoanManager _loanManager, uint256 _packageId);
+    event RequestedPawn(uint256 _pawnId, bytes32 _loanId, IEscrow _escrow, address _owner, ILoanManager _loanManager, uint256 _packageId);
     event StartedPawn(uint256 _pawnId);
     event CanceledPawn(uint256 _pawnId, address _to);
     event PaidPawn(uint256 _pawnId, address _from);
@@ -22,4 +22,6 @@ contract IPawnManager {
 
     event AddedBalance(uint256 _pawnId, uint256 _packageId, uint256 _pairId, uint256 _amount);
     event TakedBalance(uint256 _pawnId, uint256 _packageId, uint256 _pairId, uint256 _amount);
+
+    function getPawn(uint256 _pawnId) external view returns(address owner, address loanManager, bytes32 loanId, address escrow, uint256 packageId);
 }
