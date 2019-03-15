@@ -1,5 +1,5 @@
 const TestToken = artifacts.require('./utils/test/TestToken.sol');
-const Poach = artifacts.require('./diaspore/cosigner/pawn/Poach.sol');
+const Pouch = artifacts.require('./diaspore/cosigner/pawn/Pouch.sol');
 
 const Helper = require('./../../Helper.js');
 const BN = web3.utils.BN;
@@ -21,30 +21,30 @@ function dec (number) {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-contract('Poach', function (accounts) {
+contract('Pouch', function (accounts) {
     const creator = accounts[1];
     const depositer = accounts[2];
     const beneficiary = accounts[3];
 
-    let poach;
+    let pouch;
     let token;
 
     async function getETHBalance (account) {
         return bn(await web3.eth.getBalance(account));
     };
 
-    beforeEach('Create Poach and token', async function () {
-        poach = await Poach.new();
+    beforeEach('Create Pouch and token', async function () {
+        pouch = await Pouch.new();
         token = await TestToken.new();
     });
 
     describe('create function', function () {
-        it('Should create a ETH poach', async function () {
-            const id = await poach.totalSupply();
-            const prevETHBal = await getETHBalance(poach.address);
+        it('Should create a ETH pouch', async function () {
+            const id = await pouch.totalSupply();
+            const prevETHBal = await getETHBalance(pouch.address);
 
             const Created = await Helper.toEvents(
-                poach.create(
+                pouch.create(
                     ETH,
                     '0',
                     { from: creator }
@@ -57,23 +57,23 @@ contract('Poach', function (accounts) {
             assert.equal(Created._erc20, ETH);
             expect(Created._amount).to.eq.BN('0');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(prevETHBal);
+            expect(await getETHBalance(pouch.address)).to.eq.BN(prevETHBal);
         });
 
-        it('Should create a ETH poach with balance', async function () {
-            const id = await poach.totalSupply();
-            const prevETHBal = await getETHBalance(poach.address);
+        it('Should create a ETH pouch with balance', async function () {
+            const id = await pouch.totalSupply();
+            const prevETHBal = await getETHBalance(pouch.address);
 
             const Created = await Helper.toEvents(
-                poach.create(
+                pouch.create(
                     ETH,
                     '1',
                     { from: creator, value: '1' }
@@ -86,20 +86,20 @@ contract('Poach', function (accounts) {
             assert.equal(Created._erc20, ETH);
             expect(Created._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('1');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('1');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(inc(prevETHBal));
+            expect(await getETHBalance(pouch.address)).to.eq.BN(inc(prevETHBal));
         });
 
-        it('Try create a ETH poach with balance and dont send value', async function () {
+        it('Try create a ETH pouch with balance and dont send value', async function () {
             await Helper.tryCatchRevert(
-                () => poach.create(
+                () => pouch.create(
                     ETH,
                     '1',
                     { from: creator, value: '0' }
@@ -108,9 +108,9 @@ contract('Poach', function (accounts) {
             );
         });
 
-        it('Try create a ETH poach without balance and send value', async function () {
+        it('Try create a ETH pouch without balance and send value', async function () {
             await Helper.tryCatchRevert(
-                () => poach.create(
+                () => pouch.create(
                     ETH,
                     '0',
                     { from: creator, value: '1' }
@@ -119,9 +119,9 @@ contract('Poach', function (accounts) {
             );
         });
 
-        it('Try create a ETH poach with wrong currency address', async function () {
+        it('Try create a ETH pouch with wrong currency address', async function () {
             await Helper.tryCatchRevert(
-                () => poach.create(
+                () => pouch.create(
                     token.address,
                     '2',
                     { from: creator, value: '2' }
@@ -130,9 +130,9 @@ contract('Poach', function (accounts) {
             );
         });
 
-        it('Try create a ETH poach with different balance and send value', async function () {
+        it('Try create a ETH pouch with different balance and send value', async function () {
             await Helper.tryCatchRevert(
-                () => poach.create(
+                () => pouch.create(
                     ETH,
                     '2',
                     { from: creator, value: '1' }
@@ -141,12 +141,12 @@ contract('Poach', function (accounts) {
             );
         });
 
-        it('Should create a Token poach', async function () {
-            const id = await poach.totalSupply();
-            const prevTokenBal = await token.balanceOf(poach.address);
+        it('Should create a Token pouch', async function () {
+            const id = await pouch.totalSupply();
+            const prevTokenBal = await token.balanceOf(pouch.address);
 
             const Created = await Helper.toEvents(
-                poach.create(
+                pouch.create(
                     token.address,
                     '0',
                     { from: creator }
@@ -159,26 +159,26 @@ contract('Poach', function (accounts) {
             assert.equal(Created._erc20, token.address);
             expect(Created._amount).to.eq.BN('0');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await token.balanceOf(poach.address)).to.eq.BN(prevTokenBal);
+            expect(await token.balanceOf(pouch.address)).to.eq.BN(prevTokenBal);
         });
 
-        it('Should create a Token poach with balance', async function () {
-            const id = await poach.totalSupply();
+        it('Should create a Token pouch with balance', async function () {
+            const id = await pouch.totalSupply();
             await token.setBalance(creator, '1');
-            await token.approve(poach.address, '1', { from: creator });
+            await token.approve(pouch.address, '1', { from: creator });
 
-            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevTokenBal = await token.balanceOf(pouch.address);
 
             const Created = await Helper.toEvents(
-                poach.create(
+                pouch.create(
                     token.address,
                     '1',
                     { from: creator }
@@ -191,20 +191,20 @@ contract('Poach', function (accounts) {
             assert.equal(Created._erc20, token.address);
             expect(Created._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('1');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('1');
 
-            expect(await token.balanceOf(poach.address)).to.eq.BN(inc(prevTokenBal));
+            expect(await token.balanceOf(pouch.address)).to.eq.BN(inc(prevTokenBal));
         });
 
-        it('Try create a Token poach without creator balance', async function () {
+        it('Try create a Token pouch without creator balance', async function () {
             await Helper.tryCatchRevert(
-                () => poach.create(
+                () => pouch.create(
                     token.address,
                     '1',
                     { from: creator }
@@ -215,7 +215,7 @@ contract('Poach', function (accounts) {
 
         it('Try create a Token with addres 0x0', async function () {
             await Helper.tryCatchRevert(
-                () => poach.create(
+                () => pouch.create(
                     Helper.address0x,
                     '0',
                     { from: creator }
@@ -226,14 +226,14 @@ contract('Poach', function (accounts) {
     });
 
     describe('deposit function', function () {
-        it('Should deposit amount in a ETH poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
+        it('Should deposit amount in a ETH pouch', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator });
 
-            const prevETHBal = await getETHBalance(poach.address);
+            const prevETHBal = await getETHBalance(pouch.address);
 
             const Deposit = await Helper.toEvents(
-                poach.deposit(
+                pouch.deposit(
                     id,
                     '1',
                     { from: creator, value: '1' }
@@ -245,25 +245,25 @@ contract('Poach', function (accounts) {
             assert.equal(Deposit._sender, creator);
             expect(Deposit._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('1');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('1');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(inc(prevETHBal));
+            expect(await getETHBalance(pouch.address)).to.eq.BN(inc(prevETHBal));
         });
 
-        it('Should deposit 0 amount in a ETH poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
+        it('Should deposit 0 amount in a ETH pouch', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator });
 
-            const prevETHBal = await getETHBalance(poach.address);
+            const prevETHBal = await getETHBalance(pouch.address);
 
             const Deposit = await Helper.toEvents(
-                poach.deposit(
+                pouch.deposit(
                     id,
                     '0',
                     { from: creator, value: '0' }
@@ -275,27 +275,27 @@ contract('Poach', function (accounts) {
             assert.equal(Deposit._sender, creator);
             expect(Deposit._amount).to.eq.BN('0');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(prevETHBal);
+            expect(await getETHBalance(pouch.address)).to.eq.BN(prevETHBal);
         });
 
-        it('Should deposit amount in a Token poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(token.address, '0', { from: creator });
+        it('Should deposit amount in a Token pouch', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(token.address, '0', { from: creator });
             await token.setBalance(creator, '1');
-            await token.approve(poach.address, '1', { from: creator });
+            await token.approve(pouch.address, '1', { from: creator });
 
-            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevTokenBal = await token.balanceOf(pouch.address);
 
             const Deposit = await Helper.toEvents(
-                poach.deposit(
+                pouch.deposit(
                     id,
                     '1',
                     { from: creator }
@@ -307,25 +307,25 @@ contract('Poach', function (accounts) {
             assert.equal(Deposit._sender, creator);
             expect(Deposit._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('1');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('1');
 
-            expect(await token.balanceOf(poach.address)).to.eq.BN(inc(prevTokenBal));
+            expect(await token.balanceOf(pouch.address)).to.eq.BN(inc(prevTokenBal));
         });
 
-        it('Should deposit 0 amount in a token poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(token.address, '0', { from: creator });
+        it('Should deposit 0 amount in a token pouch', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(token.address, '0', { from: creator });
 
-            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevTokenBal = await token.balanceOf(pouch.address);
 
             const Deposit = await Helper.toEvents(
-                poach.deposit(
+                pouch.deposit(
                     id,
                     '0',
                     { from: creator }
@@ -337,26 +337,26 @@ contract('Poach', function (accounts) {
             assert.equal(Deposit._sender, creator);
             expect(Deposit._amount).to.eq.BN('0');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await token.balanceOf(poach.address)).to.eq.BN(prevTokenBal);
+            expect(await token.balanceOf(pouch.address)).to.eq.BN(prevTokenBal);
         });
 
-        it('Should a third member deposit amount in a ETH poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
-            await poach.setApprovalForAll(depositer, true, { from: creator });
+        it('Should a third member deposit amount in a ETH pouch', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator });
+            await pouch.setApprovalForAll(depositer, true, { from: creator });
 
-            const prevETHBal = await getETHBalance(poach.address);
+            const prevETHBal = await getETHBalance(pouch.address);
 
             const Deposit = await Helper.toEvents(
-                poach.deposit(
+                pouch.deposit(
                     id,
                     '1',
                     { from: depositer, value: '1' }
@@ -368,22 +368,22 @@ contract('Poach', function (accounts) {
             assert.equal(Deposit._sender, depositer);
             expect(Deposit._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('1');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('1');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(inc(prevETHBal));
+            expect(await getETHBalance(pouch.address)).to.eq.BN(inc(prevETHBal));
 
-            await poach.setApprovalForAll(depositer, false, { from: creator });
+            await pouch.setApprovalForAll(depositer, false, { from: creator });
         });
 
-        it('Try deposit in a inexists poach', async function () {
+        it('Try deposit in a inexists pouch', async function () {
             await Helper.tryCatchRevert(
-                () => poach.deposit(
+                () => pouch.deposit(
                     '999999999999999999999',
                     '0',
                     { from: creator }
@@ -394,15 +394,15 @@ contract('Poach', function (accounts) {
     });
 
     describe('withdraw function', function () {
-        it('Should withdraw a ETH poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '1', { from: creator, value: '1' });
+        it('Should withdraw a ETH pouch', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '1', { from: creator, value: '1' });
 
-            const prevETHBal = await getETHBalance(poach.address);
+            const prevETHBal = await getETHBalance(pouch.address);
             const prevBeneficiaryBal = await getETHBalance(beneficiary);
 
             const Withdraw = await Helper.toEvents(
-                poach.withdraw(
+                pouch.withdraw(
                     id,
                     beneficiary,
                     { from: creator }
@@ -415,27 +415,27 @@ contract('Poach', function (accounts) {
             assert.equal(Withdraw._to, beneficiary);
             expect(Withdraw._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(dec(prevETHBal));
+            expect(await getETHBalance(pouch.address)).to.eq.BN(dec(prevETHBal));
             expect(await getETHBalance(beneficiary)).to.eq.BN(inc(prevBeneficiaryBal));
         });
 
-        it('Should withdraw a ETH poach without amount', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator, value: '0' });
+        it('Should withdraw a ETH pouch without amount', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator, value: '0' });
 
-            const prevETHBal = await getETHBalance(poach.address);
+            const prevETHBal = await getETHBalance(pouch.address);
             const prevBeneficiaryBal = await getETHBalance(beneficiary);
 
             const Withdraw = await Helper.toEvents(
-                poach.withdraw(
+                pouch.withdraw(
                     id,
                     beneficiary,
                     { from: creator }
@@ -448,29 +448,29 @@ contract('Poach', function (accounts) {
             assert.equal(Withdraw._to, beneficiary);
             expect(Withdraw._amount).to.eq.BN('0');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(prevETHBal);
+            expect(await getETHBalance(pouch.address)).to.eq.BN(prevETHBal);
             expect(await getETHBalance(beneficiary)).to.eq.BN(prevBeneficiaryBal);
         });
 
-        it('Should withdraw a token poach with amount', async function () {
-            const id = await poach.totalSupply();
+        it('Should withdraw a token pouch with amount', async function () {
+            const id = await pouch.totalSupply();
             await token.setBalance(creator, '1');
-            await token.approve(poach.address, '1', { from: creator });
-            await poach.create(token.address, '1', { from: creator });
+            await token.approve(pouch.address, '1', { from: creator });
+            await pouch.create(token.address, '1', { from: creator });
 
-            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevTokenBal = await token.balanceOf(pouch.address);
             const prevBeneficiaryBal = await token.balanceOf(beneficiary);
 
             const Withdraw = await Helper.toEvents(
-                poach.withdraw(
+                pouch.withdraw(
                     id,
                     beneficiary,
                     { from: creator }
@@ -483,27 +483,27 @@ contract('Poach', function (accounts) {
             assert.equal(Withdraw._to, beneficiary);
             expect(Withdraw._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await token.balanceOf(poach.address)).to.eq.BN(dec(prevTokenBal));
+            expect(await token.balanceOf(pouch.address)).to.eq.BN(dec(prevTokenBal));
             expect(await token.balanceOf(beneficiary)).to.eq.BN(inc(prevBeneficiaryBal));
         });
 
-        it('Should withdraw a token poach without amount', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(token.address, '0', { from: creator });
+        it('Should withdraw a token pouch without amount', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(token.address, '0', { from: creator });
 
-            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevTokenBal = await token.balanceOf(pouch.address);
             const prevBeneficiaryBal = await token.balanceOf(beneficiary);
 
             const Withdraw = await Helper.toEvents(
-                poach.withdraw(
+                pouch.withdraw(
                     id,
                     beneficiary,
                     { from: creator }
@@ -516,24 +516,24 @@ contract('Poach', function (accounts) {
             assert.equal(Withdraw._to, beneficiary);
             expect(Withdraw._amount).to.eq.BN('0');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await token.balanceOf(poach.address)).to.eq.BN(prevTokenBal);
+            expect(await token.balanceOf(pouch.address)).to.eq.BN(prevTokenBal);
             expect(await token.balanceOf(beneficiary)).to.eq.BN(prevBeneficiaryBal);
         });
 
-        it('Try withdraw a poach and send the funds to 0x0 address', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
+        it('Try withdraw a pouch and send the funds to 0x0 address', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator });
 
             await Helper.tryCatchRevert(
-                () => poach.withdraw(
+                () => pouch.withdraw(
                     id,
                     Helper.address0x,
                     { from: creator }
@@ -542,9 +542,9 @@ contract('Poach', function (accounts) {
             );
         });
 
-        it('Try withdraw an inexists poach', async function () {
+        it('Try withdraw an inexists pouch', async function () {
             await Helper.tryCatchRevert(
-                () => poach.withdraw(
+                () => pouch.withdraw(
                     '999999999999999999999999999999999',
                     beneficiary,
                     { from: creator }
@@ -554,11 +554,11 @@ contract('Poach', function (accounts) {
         });
 
         it('Try withdraw a pair with an unauthorized account', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator });
 
             await Helper.tryCatchRevert(
-                () => poach.withdraw(
+                () => pouch.withdraw(
                     id,
                     beneficiary,
                     { from: accounts[9] }
@@ -569,15 +569,15 @@ contract('Poach', function (accounts) {
     });
 
     describe('withdrawPartial function', function () {
-        it('Should withdrawPartial a ETH poach', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '2', { from: creator, value: '2' });
+        it('Should withdrawPartial a ETH pouch', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '2', { from: creator, value: '2' });
 
-            const prevETHBal = await getETHBalance(poach.address);
+            const prevETHBal = await getETHBalance(pouch.address);
             const prevBeneficiaryBal = await getETHBalance(beneficiary);
 
             const Withdraw = await Helper.toEvents(
-                poach.withdrawPartial(
+                pouch.withdrawPartial(
                     id,
                     beneficiary,
                     '1',
@@ -591,27 +591,27 @@ contract('Poach', function (accounts) {
             assert.equal(Withdraw._to, beneficiary);
             expect(Withdraw._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('1');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('1');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(dec(prevETHBal));
+            expect(await getETHBalance(pouch.address)).to.eq.BN(dec(prevETHBal));
             expect(await getETHBalance(beneficiary)).to.eq.BN(inc(prevBeneficiaryBal));
         });
 
-        it('Should withdrawPartial a ETH poach without amount', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator, value: '0' });
+        it('Should withdrawPartial a ETH pouch without amount', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator, value: '0' });
 
-            const prevETHBal = await getETHBalance(poach.address);
+            const prevETHBal = await getETHBalance(pouch.address);
             const prevBeneficiaryBal = await getETHBalance(beneficiary);
 
             const Withdraw = await Helper.toEvents(
-                poach.withdrawPartial(
+                pouch.withdrawPartial(
                     id,
                     beneficiary,
                     '0',
@@ -625,29 +625,29 @@ contract('Poach', function (accounts) {
             assert.equal(Withdraw._to, beneficiary);
             expect(Withdraw._amount).to.eq.BN('0');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], ETH);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, ETH);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(prevETHBal);
+            expect(await getETHBalance(pouch.address)).to.eq.BN(prevETHBal);
             expect(await getETHBalance(beneficiary)).to.eq.BN(prevBeneficiaryBal);
         });
 
-        it('Should withdrawPartial a token poach with amount', async function () {
-            const id = await poach.totalSupply();
+        it('Should withdrawPartial a token pouch with amount', async function () {
+            const id = await pouch.totalSupply();
             await token.setBalance(creator, '2');
-            await token.approve(poach.address, '2', { from: creator });
-            await poach.create(token.address, '2', { from: creator });
+            await token.approve(pouch.address, '2', { from: creator });
+            await pouch.create(token.address, '2', { from: creator });
 
-            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevTokenBal = await token.balanceOf(pouch.address);
             const prevBeneficiaryBal = await token.balanceOf(beneficiary);
 
             const Withdraw = await Helper.toEvents(
-                poach.withdrawPartial(
+                pouch.withdrawPartial(
                     id,
                     beneficiary,
                     '1',
@@ -661,27 +661,27 @@ contract('Poach', function (accounts) {
             assert.equal(Withdraw._to, beneficiary);
             expect(Withdraw._amount).to.eq.BN('1');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('1');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('1');
 
-            expect(await token.balanceOf(poach.address)).to.eq.BN(dec(prevTokenBal));
+            expect(await token.balanceOf(pouch.address)).to.eq.BN(dec(prevTokenBal));
             expect(await token.balanceOf(beneficiary)).to.eq.BN(inc(prevBeneficiaryBal));
         });
 
-        it('Should withdrawPartial a token poach without amount', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(token.address, '0', { from: creator });
+        it('Should withdrawPartial a token pouch without amount', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(token.address, '0', { from: creator });
 
-            const prevTokenBal = await token.balanceOf(poach.address);
+            const prevTokenBal = await token.balanceOf(pouch.address);
             const prevBeneficiaryBal = await token.balanceOf(beneficiary);
 
             const Withdraw = await Helper.toEvents(
-                poach.withdrawPartial(
+                pouch.withdrawPartial(
                     id,
                     beneficiary,
                     '0',
@@ -695,24 +695,24 @@ contract('Poach', function (accounts) {
             assert.equal(Withdraw._to, beneficiary);
             expect(Withdraw._amount).to.eq.BN('0');
 
-            let pair = await poach.getPair(id);
+            let pair = await pouch.getPair(id);
             assert.equal(pair[0], token.address);
             expect(pair[1]).to.eq.BN('0');
 
-            pair = await poach.poaches(id);
+            pair = await pouch.pouches(id);
             assert.equal(pair.token, token.address);
             expect(pair.balance).to.eq.BN('0');
 
-            expect(await token.balanceOf(poach.address)).to.eq.BN(prevTokenBal);
+            expect(await token.balanceOf(pouch.address)).to.eq.BN(prevTokenBal);
             expect(await token.balanceOf(beneficiary)).to.eq.BN(prevBeneficiaryBal);
         });
 
-        it('Try withdrawPartial a poach and send the funds to 0x0 address', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
+        it('Try withdrawPartial a pouch and send the funds to 0x0 address', async function () {
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator });
 
             await Helper.tryCatchRevert(
-                () => poach.withdrawPartial(
+                () => pouch.withdrawPartial(
                     id,
                     Helper.address0x,
                     '0',
@@ -722,9 +722,9 @@ contract('Poach', function (accounts) {
             );
         });
 
-        it('Try withdrawPartial an inexists poach', async function () {
+        it('Try withdrawPartial an inexists pouch', async function () {
             await Helper.tryCatchRevert(
-                () => poach.withdrawPartial(
+                () => pouch.withdrawPartial(
                     '999999999999999999999999999999999',
                     beneficiary,
                     '0',
@@ -735,11 +735,11 @@ contract('Poach', function (accounts) {
         });
 
         it('Try withdrawPartial a pair with an unauthorized account', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator });
 
             await Helper.tryCatchRevert(
-                () => poach.withdrawPartial(
+                () => pouch.withdrawPartial(
                     id,
                     beneficiary,
                     '0',
@@ -750,30 +750,30 @@ contract('Poach', function (accounts) {
         });
 
         it('Try make an underflow', async function () {
-            const id = await poach.totalSupply();
-            await poach.create(ETH, '0', { from: creator });
+            const id = await pouch.totalSupply();
+            await pouch.create(ETH, '0', { from: creator });
 
             await Helper.tryCatchRevert(
-                () => poach.withdrawPartial(
+                () => pouch.withdrawPartial(
                     id,
                     beneficiary,
                     '1',
                     { from: creator }
                 ),
-                'The balance of poach its to low'
+                'The balance of pouch its to low'
             );
 
-            const id2 = await poach.totalSupply();
-            await poach.create(token.address, '0', { from: creator });
+            const id2 = await pouch.totalSupply();
+            await pouch.create(token.address, '0', { from: creator });
 
             await Helper.tryCatchRevert(
-                () => poach.withdrawPartial(
+                () => pouch.withdrawPartial(
                     id2,
                     beneficiary,
                     '1',
                     { from: creator }
                 ),
-                'The balance of poach its to low'
+                'The balance of pouch its to low'
             );
         });
     });

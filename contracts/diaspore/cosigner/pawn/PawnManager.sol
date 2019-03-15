@@ -5,7 +5,7 @@ import "./../../../interfaces/Token.sol";
 import "./../../interfaces/Cosigner.sol";
 import "./../../interfaces/ILoanManager.sol";
 import "./interfaces/IBundle.sol";
-import "./interfaces/IPoach.sol";
+import "./interfaces/IPouch.sol";
 import "./interfaces/IPawnManager.sol";
 import "./interfaces/IEscrow.sol";
 
@@ -29,7 +29,7 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
     ILoanManager public loanManager;
     IBundle public bundle;
-    IPoach public poach;
+    IPouch public pouch;
     string internal _url;
 
     // Relates loanManager address to loanId to pawnId
@@ -45,10 +45,10 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         uint256 packageId;
     }
 
-    constructor(ILoanManager _loanManager, IBundle _bundle, IPoach _poach) public ERC721Base("Pawn manager", "PM") {
+    constructor(ILoanManager _loanManager, IBundle _bundle, IPouch _pouch) public ERC721Base("Pawn manager", "PM") {
         loanManager = _loanManager;
         bundle = _bundle;
-        poach = _poach;
+        pouch = _pouch;
         pawns.length++;
     }
 
@@ -238,21 +238,21 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
 
         packageId = bundle.create();
         uint256 i;
-        uint256 pairId;
+        uint256 pouchId;
         uint256 totEth;
 
         for (; i < tokensLength; i++) {
             if (address(_tokens[i]) != ETH) {
                 require(_tokens[i].transferFrom(msg.sender, address(this), _amounts[i]), "Error pulling tokens");
-                require(_tokens[i].approve(address(poach), _amounts[i]), "Error approve tokens");
-                pairId = poach.create(_tokens[i], _amounts[i]);
+                require(_tokens[i].approve(address(pouch), _amounts[i]), "Error approve tokens");
+                pouchId = pouch.create(_tokens[i], _amounts[i]);
             } else {
-                pairId = poach.create.value(_amounts[i])(_tokens[i], _amounts[i]);
+                pouchId = pouch.create.value(_amounts[i])(_tokens[i], _amounts[i]);
                 totEth += _amounts[i];
             }
 
-            poach.approve(address(bundle), pairId);
-            bundle.depositApprove(packageId, IERC721Base(poach), pairId);
+            pouch.approve(address(bundle), pouchId);
+            bundle.deposit(packageId, IERC721Base(pouch), pouchId);
         }
         require(totEth == msg.value, "The sum of all ETH amounts and msg.value must be equal");
 
@@ -472,21 +472,21 @@ contract PawnManager is Cosigner, ERC721Base, IPawnManager, BytesUtils, Ownable 
         require(i > 0, "The package its empty");
 
         for (i--; i > 0; i--) {
-            if (erc721s[i] != poach) {
+            if (erc721s[i] != pouch) {
                 // for a ERC721 token
                 bundle.withdraw(_packageId, erc721s[i], erc721Ids[i], _beneficiary);
             } else { // for a ERC20 token
                 bundle.withdraw(_packageId, erc721s[i], erc721Ids[i], address(this));
-                require(poach.withdraw(erc721Ids[i], _beneficiary), "Fail withdraw");
+                require(pouch.withdraw(erc721Ids[i], _beneficiary), "Fail withdraw");
             }
         }
 
-        if (erc721s[0] != poach) {
+        if (erc721s[0] != pouch) {
             // for a ERC721 token
             bundle.withdraw(_packageId, erc721s[0], erc721Ids[0], _beneficiary);
         } else { // for a ERC20 token
             bundle.withdraw(_packageId, erc721s[0], erc721Ids[0], address(this));
-            require(poach.withdraw(erc721Ids[0], _beneficiary), "Fail withdraw");
+            require(pouch.withdraw(erc721Ids[0], _beneficiary), "Fail withdraw");
         }
 
         return true;
