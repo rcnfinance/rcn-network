@@ -7,7 +7,7 @@ const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
 
 const PawnManager = artifacts.require('./diaspore/cosigner/pawn/PawnManager.sol');
 const Bundle = artifacts.require('./diaspore/cosigner/pawn/Bundle.sol');
-const Poach = artifacts.require('./diaspore/cosigner/pawn/Poach.sol');
+const Pouch = artifacts.require('./diaspore/cosigner/pawn/Pouch.sol');
 
 const Helper = require('./../../Helper.js');
 
@@ -50,7 +50,7 @@ contract('TestBundle', function (accounts) {
     let debtEngine;
     let pawnManager;
     let bundle;
-    let poach;
+    let pouch;
     let erc721;
     let erc20;
 
@@ -69,12 +69,12 @@ contract('TestBundle', function (accounts) {
         await model.setEngine(debtEngine.address);
 
         bundle = await Bundle.new();
-        poach = await Poach.new();
-        pawnManager = await PawnManager.new(loanManager.address, bundle.address, poach.address);
+        pouch = await Pouch.new();
+        pawnManager = await PawnManager.new(loanManager.address, bundle.address, pouch.address);
 
         assert.equal(await pawnManager.loanManager(), loanManager.address);
         assert.equal(await pawnManager.bundle(), bundle.address);
-        assert.equal(await pawnManager.poach(), poach.address);
+        assert.equal(await pawnManager.pouch(), pouch.address);
         expect(await pawnManager.pawnsLength()).to.eq.BN('1');
 
         const pawn = await pawnManager.pawns('0');
@@ -172,25 +172,25 @@ contract('TestBundle', function (accounts) {
 
             const content = await bundle.content(packageId);
 
-            assert.equal(content[ERC721S][0], poach.address);
-            const pairETHId = (await poach.poachesLength()).sub(bn('2'));
+            assert.equal(content[ERC721S][0], pouch.address);
+            const pairETHId = (await pouch.pouchesLength()).sub(bn('2'));
             expect(content[ERC721IDS][0]).to.eq.BN(pairETHId);
-            const pairETH = await poach.poaches(pairETHId);
+            const pairETH = await pouch.pouches(pairETHId);
             assert.equal(pairETH.token, ETH);
             expect(pairETH.balance).to.eq.BN(amounts[0]);
 
-            assert.equal(content[ERC721S][1], poach.address);
-            const pairERC20Id = dec(await poach.poachesLength());
+            assert.equal(content[ERC721S][1], pouch.address);
+            const pairERC20Id = dec(await pouch.pouchesLength());
             expect(content[ERC721IDS][1]).to.eq.BN(pairERC20Id);
-            const pairERC20 = await poach.poaches(pairERC20Id);
+            const pairERC20 = await pouch.pouches(pairERC20Id);
             assert.equal(pairERC20.token, erc20.address);
             expect(pairERC20.balance).to.eq.BN(amounts[1]);
 
             assert.equal(content[ERC721S][2], erc721.address);
             expect(content[ERC721IDS][2]).to.eq.BN(assetId);
 
-            assert.equal(await poach.ownerOf(pairETHId), bundle.address);
-            assert.equal(await poach.ownerOf(pairERC20Id), bundle.address);
+            assert.equal(await pouch.ownerOf(pairETHId), bundle.address);
+            assert.equal(await pouch.ownerOf(pairERC20Id), bundle.address);
             assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
 
             expect(await pawnManager.loanToLiability(loanManager.address, loanId)).to.eq.BN(pawnId);
@@ -376,7 +376,7 @@ contract('TestBundle', function (accounts) {
             );
         });
 
-        it('Try request a pawn with poach in ETH and send diferrent ETH value', async () => {
+        it('Try request a pawn with pouch in ETH and send diferrent ETH value', async () => {
             const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1');
             const expiration = (await Helper.getBlockTime()) + 1000;
@@ -538,25 +538,25 @@ contract('TestBundle', function (accounts) {
 
             const content = await bundle.content(packageId);
 
-            assert.equal(content[ERC721S][0], poach.address);
-            const pairETHId = (await poach.poachesLength()).sub(bn('2'));
+            assert.equal(content[ERC721S][0], pouch.address);
+            const pairETHId = (await pouch.pouchesLength()).sub(bn('2'));
             expect(content[ERC721IDS][0]).to.eq.BN(pairETHId);
-            const pairETH = await poach.poaches(pairETHId);
+            const pairETH = await pouch.pouches(pairETHId);
             assert.equal(pairETH.token, ETH);
             expect(pairETH.balance).to.eq.BN(amounts[0]);
 
-            assert.equal(content[ERC721S][1], poach.address);
-            const pairERC20Id = dec(await poach.poachesLength());
+            assert.equal(content[ERC721S][1], pouch.address);
+            const pairERC20Id = dec(await pouch.pouchesLength());
             expect(content[ERC721IDS][1]).to.eq.BN(pairERC20Id);
-            const pairERC20 = await poach.poaches(pairERC20Id);
+            const pairERC20 = await pouch.pouches(pairERC20Id);
             assert.equal(pairERC20.token, erc20.address);
             expect(pairERC20.balance).to.eq.BN(amounts[1]);
 
             assert.equal(content[ERC721S][2], erc721.address);
             expect(content[ERC721IDS][2]).to.eq.BN(assetId);
 
-            assert.equal(await poach.ownerOf(pairETHId), bundle.address);
-            assert.equal(await poach.ownerOf(pairERC20Id), bundle.address);
+            assert.equal(await pouch.ownerOf(pairETHId), bundle.address);
+            assert.equal(await pouch.ownerOf(pairERC20Id), bundle.address);
             assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
 
             expect(await pawnManager.loanToLiability(loanManager.address, loanId)).to.eq.BN(pawnId);
@@ -824,8 +824,8 @@ contract('TestBundle', function (accounts) {
             const pawnId = await pawnManager.pawnsLength();
             const packageId = await bundle.packagesLength();
 
-            const pairETHId = await poach.poachesLength();
-            const pairERC20Id = inc(await poach.poachesLength());
+            const pairETHId = await pouch.pouchesLength();
+            const pairERC20Id = inc(await pouch.pouchesLength());
 
             await pawnManager.requestPawn(
                 amount, // Amount
@@ -868,8 +868,8 @@ contract('TestBundle', function (accounts) {
             expect(await pawnManager.loanToLiability(loanManager.address, loanId)).to.eq.BN('0');
 
             assert.equal(await bundle.ownerOf(packageId), pawnManager.address);
-            assert.equal(await poach.ownerOf(pairETHId), pawnManager.address);
-            assert.equal(await poach.ownerOf(pairERC20Id), pawnManager.address);
+            assert.equal(await pouch.ownerOf(pairETHId), pawnManager.address);
+            assert.equal(await pouch.ownerOf(pairERC20Id), pawnManager.address);
 
             expect(await getETHBalance(beneficiary)).to.eq.BN(inc(prevBeneficiaryETH));
             expect(await erc20.balanceOf(beneficiary)).to.eq.BN(inc(prevBeneficiaryERC20));
@@ -1855,8 +1855,8 @@ contract('TestBundle', function (accounts) {
             const prevBorrowerETHBalance = await getETHBalance(borrower);
             const prevBorrowerERC20Balance = await erc20.balanceOf(borrower);
 
-            const prevPoachETHBalance = await getETHBalance(poach.address);
-            const prevPoachERC20Balance = await erc20.balanceOf(poach.address);
+            const prevPouchETHBalance = await getETHBalance(pouch.address);
+            const prevPouchERC20Balance = await erc20.balanceOf(pouch.address);
 
             const gasCost = (await pawnManager.claimWithdraw(
                 loanManager.address,
@@ -1878,8 +1878,8 @@ contract('TestBundle', function (accounts) {
             expect(await getETHBalance(borrower)).to.eq.BN(inc(prevBorrowerETHBalance).sub(bn(gasCost.toString())));
             expect(await erc20.balanceOf(borrower)).to.eq.BN(inc(prevBorrowerERC20Balance));
 
-            expect(await getETHBalance(poach.address)).to.eq.BN(dec(prevPoachETHBalance));
-            expect(await erc20.balanceOf(poach.address)).to.eq.BN(dec(prevPoachERC20Balance));
+            expect(await getETHBalance(pouch.address)).to.eq.BN(dec(prevPouchETHBalance));
+            expect(await erc20.balanceOf(pouch.address)).to.eq.BN(dec(prevPouchERC20Balance));
         });
 
         it('Try claim a pawn and withdraw and the pawn its empty', async () => {

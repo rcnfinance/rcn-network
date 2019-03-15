@@ -4,7 +4,7 @@ import "./../../../../interfaces/Token.sol";
 import "./../../../../interfaces/IERC721Base.sol";
 
 
-contract IPoach is IERC721Base {
+contract IPouch is IERC721Base {
     address constant internal ETH = address(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
     event Created(uint256 _pairId, address _owner, Token _erc20, uint256 _amount);

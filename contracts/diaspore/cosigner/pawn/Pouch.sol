@@ -1,12 +1,12 @@
 pragma solidity ^0.5.0;
 
 import "./../../../interfaces/Token.sol";
-import "./interfaces/IPoach.sol";
+import "./interfaces/IPouch.sol";
 
 import "./../../../utils/ERC721Base.sol";
 
 
-contract Poach is ERC721Base, IPoach {
+contract Pouch is ERC721Base, IPouch {
     using SafeMath for uint256;
 
     struct Pair {
@@ -14,30 +14,30 @@ contract Poach is ERC721Base, IPoach {
         uint256 balance;
     }
 
-    Pair[] public poaches;
+    Pair[] public pouches;
 
-    constructor() public ERC721Base("ERC20 ETH Poach", "EEP") { }
+    constructor() public ERC721Base("ERC20 ETH Pouch", "EEP") { }
 
     function canDeposit(uint256 _packageId) external view returns (bool) {
         return _isAuthorized(msg.sender, _packageId);
     }
 
-    function poachesLength() external view returns (uint256) {
-        return poaches.length;
+    function pouchesLength() external view returns (uint256) {
+        return pouches.length;
     }
 
     function getPair(uint256 _id) external view returns(Token, uint256) {
-        Pair storage pair = poaches[_id];
+        Pair storage pair = pouches[_id];
         return (pair.token, pair.balance);
     }
 
     /**
-        @notice Create a pair and push into the poaches array
+        @notice Create a pair and push into the pouches array
 
         @param _token Token address (ERC20)
         @param _amount Token amount
 
-        @return _id Index of pair in the poaches array
+        @return _id Index of pair in the pouches array
     */
     function create(
         Token _token,
@@ -45,7 +45,7 @@ contract Poach is ERC721Base, IPoach {
     ) external payable returns (uint256 _id) {
         _deposit(_token, _amount);
 
-        _id = poaches.push(Pair(_token, _amount)) - 1;
+        _id = pouches.push(Pair(_token, _amount)) - 1;
 
         _generate(_id, msg.sender);
 
@@ -57,7 +57,7 @@ contract Poach is ERC721Base, IPoach {
 
         @dev If the currency its ether and the destiny its a contract, execute the payable deposit()
 
-        @param _id Index of pair in poaches array
+        @param _id Index of pair in pouches array
         @param _amount Token amount
 
         @return true If the operation was executed
@@ -66,7 +66,7 @@ contract Poach is ERC721Base, IPoach {
         uint256 _id,
         uint256 _amount
     ) external payable onlyAuthorized(_id) returns (bool) {
-        Pair storage pair = poaches[_id];
+        Pair storage pair = pouches[_id];
         _deposit(pair.token, _amount);
 
         pair.balance += _amount;
@@ -79,7 +79,7 @@ contract Poach is ERC721Base, IPoach {
     /**
         @notice Withdraw all funds of a pair
 
-        @param _id Index of pair in poaches array
+        @param _id Index of pair in pouches array
         @param _to The beneficiary of returned funds
 
         @return true If the operation was executed
@@ -89,7 +89,7 @@ contract Poach is ERC721Base, IPoach {
         address payable _to
     ) external onlyAuthorized(_id) returns (bool) {
         require(_to != address(0), "_to should not be 0x0");
-        Pair storage pair = poaches[_id];
+        Pair storage pair = pouches[_id];
 
         uint256 balance = pair.balance;
 
@@ -108,7 +108,7 @@ contract Poach is ERC721Base, IPoach {
     /**
         @notice Withdraw a partial amount of funds of a pair
 
-        @param _id Index of pair in poaches array
+        @param _id Index of pair in pouches array
         @param _to The beneficiary of returned funds
         @param _amount The amount of returned funds
 
@@ -120,9 +120,9 @@ contract Poach is ERC721Base, IPoach {
         uint256 _amount
     ) external onlyAuthorized(_id) returns (bool) {
         require(_to != address(0), "_to should not be 0x0");
-        Pair storage pair = poaches[_id];
+        Pair storage pair = pouches[_id];
 
-        require(pair.balance >= _amount, "The balance of poach its to low");
+        require(pair.balance >= _amount, "The balance of pouch its to low");
         pair.balance -= _amount;
 
         if (pair.token != Token(ETH))
