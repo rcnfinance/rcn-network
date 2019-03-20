@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.6;
 
 import "../../contracts/utils/SafeMath.sol";
 
