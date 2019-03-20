@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./RpSafeMath.sol";
 import "./OwnableBasalt.sol";
-import "../../../interfaces/Token.sol";
+import "../../../interfaces/IERC20.sol";
 
 
 contract TokenLockable is RpSafeMath, OwnableBasalt {
@@ -15,7 +15,7 @@ contract TokenLockable is RpSafeMath, OwnableBasalt {
         @param to Destination of the tokens
         @param amount Amount to withdraw
     */
-    function withdrawTokens(Token token, address to, uint256 amount) public onlyOwner returns (bool) {
+    function withdrawTokens(IERC20 token, address to, uint256 amount) public onlyOwner returns (bool) {
         require(safeSubtract(token.balanceOf(address(this)), lockedTokens[address(token)]) >= amount);
         require(to != address(0));
         return token.transfer(to, amount);

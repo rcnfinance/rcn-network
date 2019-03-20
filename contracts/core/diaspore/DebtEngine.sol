@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "../../interfaces/Token.sol";
+import "../../interfaces/IERC20.sol";
 import "./interfaces/Model.sol";
 import "./interfaces/RateOracle.sol";
 import "../../utils/IsContract.sol";
@@ -83,7 +83,7 @@ contract DebtEngine is ERC721Base, Ownable {
         bytes _callData
     );
 
-    Token public token;
+    IERC20 public token;
 
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
@@ -97,7 +97,7 @@ contract DebtEngine is ERC721Base, Ownable {
     }
 
     constructor (
-        Token _token
+        IERC20 _token
     ) public ERC721Base("RCN Debt Record", "RDR") {
         token = _token;
 

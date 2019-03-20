@@ -1,8 +1,8 @@
 /* solium-disable */
 pragma solidity ^0.5.0;
 
+import "../../interfaces/IERC20.sol";
 import "./interfaces/Oracle.sol";
-import "../../interfaces/Token.sol";
 import "./utils/OwnableBasalt.sol";
 import "./utils/TokenLockable.sol";
 import "../../interfaces/Cosigner.sol";
@@ -117,7 +117,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
         return keccak256(bytes(loans[index].metadata));
     }
 
-    Token public rcn;
+    IERC20 public rcn;
     bool public deprecated;
 
     event CreatedLoan(uint _index, address _borrower, address _creator);
@@ -127,7 +127,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
     event PartialPayment(uint _index, address _sender, address _from, uint256 _amount);
     event TotalPayment(uint _index);
 
-    constructor (Token _rcn) public {
+    constructor (IERC20 _rcn) public {
         owner = msg.sender;
         rcn = _rcn;
         // The loan 0 is a Invalid loan

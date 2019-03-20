@@ -16,7 +16,7 @@ contract LoanManager is BytesUtils {
     using SafeMath for uint256;
 
     DebtEngine public debtEngine;
-    Token public token;
+    IERC20 public token;
 
     bytes32[] public directory;
     mapping(bytes32 => Request) public requests;

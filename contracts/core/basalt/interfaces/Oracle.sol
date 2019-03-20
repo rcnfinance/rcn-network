@@ -1,7 +1,6 @@
 pragma solidity ^0.5.0;
 
 import "../utils/OwnableBasalt.sol";
-import "../../../interfaces/Token.sol";
 
 
 /**

@@ -4,7 +4,7 @@ pragma solidity ^0.5.0;
 import "../../contracts/interfaces/Cosigner.sol";
 import "../../contracts/utils/BytesUtils.sol";
 import "../../contracts/core/basalt/interfaces/Engine.sol";
-import "../../contracts/interfaces/Token.sol";
+import "../../contracts/interfaces/IERC20.sol";
 
 
 contract TestCosigner is Cosigner, BytesUtils {
@@ -17,9 +17,9 @@ contract TestCosigner is Cosigner, BytesUtils {
     uint256 public customCost;
     bytes32 public customData = keccak256("custom_data");
 
-    Token public token;
+    IERC20 public token;
 
-    constructor(Token _token) public {
+    constructor(IERC20 _token) public {
         token = _token;
     }
 
