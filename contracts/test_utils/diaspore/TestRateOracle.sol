@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
 
-import "./../../interfaces/RateOracle.sol";
-import "../../../../commons/ERC165.sol";
-import "../../../../utils/BytesUtils.sol";
+import "../../core/diaspore/interfaces/RateOracle.sol";
+import "../../commons/ERC165.sol";
+import "../../utils/BytesUtils.sol";
 
 
 contract TestRateOracle is BytesUtils, ERC165, RateOracle {

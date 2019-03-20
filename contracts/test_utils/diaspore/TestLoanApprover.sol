@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
 
-import "./../../interfaces/LoanApprover.sol";
-import "../../../../commons/ERC165.sol";
-import "../../../../utils/BytesUtils.sol";
+import "../../core/diaspore/interfaces/LoanApprover.sol";
+import "../../commons/ERC165.sol";
+import "../../utils/BytesUtils.sol";
 
 
 contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
