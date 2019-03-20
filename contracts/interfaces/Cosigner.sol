@@ -1,7 +1,5 @@
 pragma solidity ^0.5.0;
 
-import "../basalt/interfaces/Engine.sol";
-
 
 /**
     @dev Defines the interface of a standard RCN cosigner.
@@ -45,7 +43,7 @@ contract Cosigner {
         @return true if the cosigner accepts the liability
     */
     function requestCosign(
-        Engine engine,
+        address engine,
         uint256 index,
         bytes memory data,
         bytes memory oracleData
