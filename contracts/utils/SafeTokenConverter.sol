@@ -16,7 +16,7 @@ library SafeTokenConverter {
         IERC721 _toToken,
         uint256 _fromAmount,
         uint256 _minReturn
-    ) external returns (uint256 amount) {
+    ) internal returns (uint256 amount) {
         require(_fromToken.approve(_converter, _fromAmount));
         uint256 prevToBalance = _toToken.balanceOf(address(this));
 
@@ -38,7 +38,7 @@ library SafeTokenConverter {
         IERC721 _toToken,
         uint256 _maxPull,
         uint256 _return
-    ) external returns (uint256 sold) {
+    ) internal returns (uint256 sold) {
         require(_fromToken.approve(_converter, _maxPull));
 
         uint256 prevFromBalance = _fromToken.balanceOf(address(this));
