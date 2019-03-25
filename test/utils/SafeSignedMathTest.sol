@@ -43,5 +43,8 @@ contract SafeSignedMathTest {
         Assert.equal(int256(10).muldiv(20, 5), 40, "");
         Assert.equal(int256(10).muldiv(10, 3), 33, "");
         Assert.equal(int256(20).muldiv(10, 3), 66, "");
+        Assert.equal(int256(30).muldiv(30, 31), 29, "");
+        Assert.equal(int256(30).muldiv(32, 31), 30, "");
+        Assert.equal(int256(32).muldiv(32, 31), 33, "");
     }
 }

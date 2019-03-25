@@ -55,10 +55,6 @@ library SafeSignedMath {
 
     function muldiv(int256 _a, int256 _b, int256 _c) internal pure returns (int256 result) {
         require(_c != 0, "div by zero");
-        int256 ac = _a / _c;
-        int256 bc = _b / _c;
-        int256 cac = bc.mul(_a % _c);
-        int256 cbc = ac.mul(_b % _c);
-        return (_c.mul(ac).mul(bc)).add(cac).add(cbc);
+        return _a.mul(_b) / _c;
     }
 }
