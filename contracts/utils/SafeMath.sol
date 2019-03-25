@@ -18,4 +18,9 @@ library SafeMath {
         require((x == 0)||(z/x == y), "Mult overflow");
         return z;
     }
+
+    function div(uint256 x, uint256 y) internal pure returns (uint256) {
+        require(y != 0, "Div by zero");
+        return x / y;
+    }
 }
