@@ -12,12 +12,12 @@ library SafeTokenConverter {
 
     function safeConvertFrom(
         TokenConverter _converter,
-        IERC721 _fromToken,
-        IERC721 _toToken,
+        IERC20 _fromToken,
+        IERC20 _toToken,
         uint256 _fromAmount,
         uint256 _minReturn
     ) internal returns (uint256 amount) {
-        require(_fromToken.approve(_converter, _fromAmount));
+        require(_fromToken.approve(address(_converter), _fromAmount));
         uint256 prevToBalance = _toToken.balanceOf(address(this));
 
         amount = _converter.convertFrom(
@@ -27,19 +27,19 @@ library SafeTokenConverter {
             _minReturn
         );
 
-        require(_fromToken.clearApprove());
+        require(_fromToken.clearApprove(address(_converter)));
         require(amount >= _minReturn);
         require(amount <= _toToken.balanceOf(address(this)).sub(prevToBalance));
     }
 
     function safeConvertTo(
         TokenConverter _converter,
-        IERC721 _fromToken,
-        IERC721 _toToken,
+        IERC20 _fromToken,
+        IERC20 _toToken,
         uint256 _maxPull,
         uint256 _return
     ) internal returns (uint256 sold) {
-        require(_fromToken.approve(_converter, _maxPull));
+        require(_fromToken.approve(address(_converter), _maxPull));
 
         uint256 prevFromBalance = _fromToken.balanceOf(address(this));
         uint256 prevToBalance = _toToken.balanceOf(address(this));
@@ -51,7 +51,7 @@ library SafeTokenConverter {
             _return
         );
 
-        require(_fromToken.clearApprove());
+        require(_fromToken.clearApprove(address(_converter)));
         require(_maxPull >= sold);
         require(_return <= _toToken.balanceOf(address(this)).sub(prevToBalance));
         require(sold == prevFromBalance.sub(_fromToken.balanceOf(address(this))));
