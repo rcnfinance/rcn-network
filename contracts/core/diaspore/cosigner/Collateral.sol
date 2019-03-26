@@ -47,13 +47,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     string private iurl;
 
-    enum Status {
-        Pending,
-        Started
-    }
-
     struct Entry {
-        Status status;
         uint32 liquidationRatio;
         LoanManager loanManager;
         TokenConverter converter;
@@ -74,7 +68,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         id = entries.push(
             Entry(
-                Status.Pending,
                 _liquidationRatio,
                 _loanManager,
                 _converter,
@@ -155,7 +148,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(address(loanManager) == msg.sender, "Not the loan manager");
 
         // Save liability ID
-        liabilities[address(loanManager)][_loanId] = id; 
+        liabilities[address(loanManager)][_loanId] = id;
 
         // Cosign
         require(loanManager.cosign(uint256(_loanId), 0), "Error performing cosign");
@@ -170,7 +163,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     ) external returns (bool) {
         uint256 id = liabilities[_loanManager][_loanId];
         LoanManager loanManager = LoanManager(_loanManager);
-        
+
         _runDuePayment(
             id,
             loanManager,
