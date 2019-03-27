@@ -1,13 +1,14 @@
 /* solium-disable */
 pragma solidity ^0.5.6;
 
-import "../../contracts/interfaces/Cosigner.sol";
-import "../../contracts/utils/BytesUtils.sol";
-import "../../contracts/core/basalt/interfaces/Engine.sol";
-import "../../contracts/interfaces/IERC20.sol";
+import "../core/basalt/interfaces/CosignerBasalt.sol";
+import "../utils/BytesUtils.sol";
+import "../core/basalt/interfaces/Engine.sol";
+import "../interfaces/IERC20.sol";
+import "../core/diaspore/LoanManager.sol";
 
 
-contract TestCosigner is Cosigner, BytesUtils {
+contract TestCosigner is CosignerBasalt, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
     bytes public data = buildData(keccak256("test_oracle"), dummyCost);
     bytes public noCosignData = buildData(keccak256("return_true_no_cosign"), 0);
@@ -43,43 +44,81 @@ contract TestCosigner is Cosigner, BytesUtils {
         }
     }
 
+    function url() public view returns (string memory) {
+        return "";
+    }
+
+    // Basalt Cosigner
     function cost(
         address,
         uint256,
-        bytes memory data,
+        bytes memory _data,
         bytes memory
     ) public view returns (uint256) {
-        return uint256(readBytes32(data, 1));
+        return uint256(readBytes32(_data, 1));
     }
 
     function requestCosign(
-        address engine,
-        uint256 index,
-        bytes memory data,
+        address _engine,
+        uint256 _index,
+        bytes memory _data,
         bytes memory
     ) public returns (bool) {
-        if (readBytes32(data, 0) == keccak256("custom_data")) {
-            require(Engine(engine).cosign(uint256(customId), customCost));
+        if (readBytes32(_data, 0) == keccak256("custom_data")) {
+            require(Engine(_engine).cosign(uint256(customId), customCost));
             customId = 0x0;
             customCost = 0;
             return true;
         }
 
-        if (readBytes32(data, 0) == keccak256("test_oracle")) {
-            require(Engine(engine).cosign(index, uint256(readBytes32(data, 1))));
+        if (readBytes32(_data, 0) == keccak256("test_oracle")) {
+            require(Engine(_engine).cosign(_index, uint256(readBytes32(_data, 1))));
             return true;
         }
 
-        if (readBytes32(data, 0) == keccak256("return_true_no_cosign")) {
+        if (readBytes32(_data, 0) == keccak256("return_true_no_cosign")) {
             return true;
         }
-    }
-
-    function url() public view returns (string memory) {
-        return "";
     }
 
     function claim(address, uint256, bytes memory) public returns (bool) {
+        return false;
+    }
+
+    // Diaspore Cosigner
+    function cost(
+        address,
+        bytes32,
+        bytes calldata _data,
+        bytes calldata
+    ) external view returns (uint256) {
+        return uint256(readBytes32(_data, 1));
+    }
+
+    function requestCosign(
+        address _engine,
+        bytes32 _index,
+        bytes calldata _data,
+        bytes calldata
+    ) external returns (bool) {
+        if (readBytes32(_data, 0) == keccak256("custom_data")) {
+            require(LoanManager(_engine).cosign(customId, customCost));
+            customId = 0x0;
+            customCost = 0;
+            return true;
+        }
+
+        if (readBytes32(_data, 0) == keccak256("test_oracle")) {
+            require(LoanManager(_engine).cosign(_index, uint256(readBytes32(_data, 1))));
+            return true;
+        }
+
+        if (readBytes32(_data, 0) == keccak256("return_true_no_cosign")) {
+            return true;
+        }
+    }
+
+    function claim(address, bytes32, bytes calldata) external returns (bool) {
         return false;
     }
 }

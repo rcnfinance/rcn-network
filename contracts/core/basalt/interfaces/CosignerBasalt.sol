@@ -14,13 +14,13 @@ pragma solidity ^0.5.6;
     should be able to call the "claim" method to receive the benefit; the cosigner can define aditional requirements to
     call this method, like the transfer of the ownership of the loan.
 */
-contract Cosigner {
+contract CosignerBasalt {
     uint256 public constant VERSION = 2;
 
     /**
         @return the url of the endpoint that exposes the insurance offers.
     */
-    function url() external view returns (string memory);
+    function url() public view returns (string memory);
 
     /**
         @dev Retrieves the cost of a given insurance, this amount should be exact.
@@ -28,12 +28,12 @@ contract Cosigner {
         @return the cost of the cosign, in RCN wei
     */
     function cost(
-        address _engine,
-        bytes32 _id,
-        bytes calldata _data,
-        bytes calldata _oracleData
+        address engine,
+        uint256 index,
+        bytes memory data,
+        bytes memory oracleData
     )
-        external view returns (uint256);
+        public view returns (uint256);
 
     /**
         @dev The engine calls this method for confirmation of the conditions, if the cosigner accepts the liability of
@@ -43,12 +43,12 @@ contract Cosigner {
         @return true if the cosigner accepts the liability
     */
     function requestCosign(
-        address _engine,
-        bytes32 _id,
-        bytes calldata _data,
-        bytes calldata _oracleData
+        address engine,
+        uint256 index,
+        bytes memory data,
+        bytes memory oracleData
     )
-        external returns (bool);
+        public returns (bool);
 
     /**
         @dev Claims the benefit of the insurance if the loan is defaulted, this method should be only calleable by the
@@ -56,10 +56,5 @@ contract Cosigner {
 
         @return true if the claim was done correctly.
     */
-    function claim(
-        address _engine,
-        bytes32 _id,
-        bytes calldata _oracleData
-    )
-        external returns (bool);
+    function claim(address engine, uint256 index, bytes memory oracleData) public returns (bool);
 }

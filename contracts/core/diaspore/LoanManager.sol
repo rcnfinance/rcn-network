@@ -364,7 +364,7 @@ contract LoanManager is BytesUtils {
             require(
                 Cosigner(_cosigner).requestCosign(
                     address(this),
-                    uint256(_id),
+                    _id,
                     _cosignerData,
                     _oracleData
                 ),
@@ -402,8 +402,8 @@ contract LoanManager is BytesUtils {
         return true;
     }
 
-    function cosign(uint256 _id, uint256 _cost) external returns (bool) {
-        Request storage request = requests[bytes32(_id)];
+    function cosign(bytes32 _id, uint256 _cost) external returns (bool) {
+        Request storage request = requests[_id];
         require(request.position == 0, "Request cosigned is invalid");
         require(request.cosigner != address(0), "Cosigner 0x0 is not valid");
         require(request.expiration > now, "Request is expired");
@@ -411,9 +411,9 @@ contract LoanManager is BytesUtils {
         request.cosigner = msg.sender;
         if (_cost != 0){
             require(request.salt >= _cost, "Cosigner cost exceeded");
-            require(token.transferFrom(debtEngine.ownerOf(_id), msg.sender, _cost), "Error paying cosigner");
+            require(token.transferFrom(debtEngine.ownerOf(uint256(_id)), msg.sender, _cost), "Error paying cosigner");
         }
-        emit Cosigned(bytes32(_id), msg.sender, _cost);
+        emit Cosigned(_id, msg.sender, _cost);
         return true;
     }
 
@@ -540,7 +540,7 @@ contract LoanManager is BytesUtils {
         // Call the cosigner
         if (_cosigner != address(0)) {
             request.cosigner = address(uint256(_cosigner) + 2);
-            require(Cosigner(_cosigner).requestCosign(address(this), uint256(id), _cosignerData, _oracleData), "Cosign method returned false");
+            require(Cosigner(_cosigner).requestCosign(address(this), id, _cosignerData, _oracleData), "Cosign method returned false");
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
             request.salt = uint256(read(_requestData, O_SALT, L_SALT));
         }
