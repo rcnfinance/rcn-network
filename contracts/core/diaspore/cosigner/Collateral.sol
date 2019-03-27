@@ -198,31 +198,31 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             IERC20 token = _loanManager.token();
 
             // Use collateral to buy tokens
-            // TODO: Handle not enought collateral
-            entry.amount = entry.amount.sub(
-                entry.converter.safeConvertTo(
-                    entry.token,
-                    token,
-                    entry.amount,
-                    obligation
-                )
+            (uint256 bought, uint256 sold) = entry.converter.safeConverterToMax(
+                entry.token,
+                token,
+                entry.amount,
+                obligation
             );
+
+            uint256 tokensToPay = Math.min(bought, obligationToken);
+            entry.amount = entry.amount.sub(sold);
 
             // Pay loan
             (, uint256 paidTokens) = _loanManager.safePayToken(
                 _loanId,
-                obligationToken,
+                tokensToPay,
                 address(this),
                 _oracleData
             );
 
-            if (paidTokens < obligationToken) {
+            if (paidTokens < tokensToPay) {
                 // Buy back extra collateral
                 entry.amount = entry.amount.add(
                     entry.converter.safeConvertFrom(
                         token,
                         entry.token,
-                        obligationToken - paidTokens,
+                        tokensToPay - paidTokens,
                         0
                     )
                 );
@@ -251,31 +251,31 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
             // Buy required tokens
             // and substract from total collateral
-            // TODO: Handle not enought collateral
-            entry.amount = entry.amount.sub(
-                entry.converter.safeConvertTo(
-                    entry.token,
-                    token,
-                    entry.amount,
-                    tokenPayRequired
-                )
+            (uint256 bought, uint256 sold) = entry.converter.safeConverterToMax(
+                entry.token,
+                token,
+                entry.amount,
+                tokenPayRequired
             );
+
+            uint256 tokensToPay = Math.min(bought, tokenPayRequired);
+            entry.amount = entry.amount.sub(sold);
 
             // Pay loan
             (, uint256 paidTokens) = _loanManager.safePayToken(
                 _loanId,
-                tokenPayRequired,
+                tokensToPay,
                 address(this),
                 _oracleData
             );
 
-            if (paidTokens < tokenPayRequired) {
+            if (paidTokens < tokensToPay) {
                 // Buy back extra collateral
                 entry.amount = entry.amount.add(
                     entry.converter.safeConvertFrom(
                         token,
                         entry.token,
-                        tokenPayRequired - paidTokens,
+                        tokensToPay - paidTokens,
                         0
                     )
                 );
