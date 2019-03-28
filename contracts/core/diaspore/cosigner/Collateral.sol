@@ -164,122 +164,85 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 id = liabilities[_loanManager][_loanId];
         LoanManager loanManager = LoanManager(_loanManager);
 
-        _runDuePayment(
-            id,
-            loanManager,
-            _loanId,
-            _oracleData
-        );
-
-        _runMarginCall(
-            id,
-            loanManager,
-            _loanId,
-            _oracleData
-        );
-    }
-
-    function _runDuePayment(
-        uint256 _id,
-        LoanManager _loanManager,
-        bytes32 _loanId,
-        bytes memory _oracleData
-    ) internal {
         Model model = _loanManager.getModel(_loanId);
         uint256 dueTime = model.getDueTime(_loanId);
         if (block.timestamp >= dueTime) {
+            // Run payment of loan, use collateral to buy tokens
             (uint256 obligation,) = model.getObligation(_loanId, uint64(dueTime));
             uint256 obligationToken = _loanManager.amountToToken(_loanId, _oracleData, obligation);
-
-            // Load collateral entry
-            Entry storage entry = entries[_id];
-
-            // Load loan token
-            IERC20 token = _loanManager.token();
-
-            // Use collateral to buy tokens
-            (uint256 bought, uint256 sold) = entry.converter.safeConverterToMax(
-                entry.token,
-                token,
-                entry.amount,
-                obligation
-            );
-
-            uint256 tokensToPay = Math.min(bought, obligationToken);
-            entry.amount = entry.amount.sub(sold);
-
-            // Pay loan
-            (, uint256 paidTokens) = _loanManager.safePayToken(
+            _convertPay(
+                _id,
+                _loanManager,
                 _loanId,
-                tokensToPay,
-                address(this),
+                obligation,
+                obligationToken,
                 _oracleData
             );
-
-            if (paidTokens < tokensToPay) {
-                // Buy back extra collateral
-                entry.amount = entry.amount.add(
-                    entry.converter.safeConvertFrom(
-                        token,
-                        entry.token,
-                        tokensToPay - paidTokens,
-                        0
-                    )
-                );
-            }
         }
-    }
 
-    function _runMarginCall(
-        uint256 _id,
-        LoanManager _loanManager,
-        bytes32 _loanId,
-        bytes memory _oracleData
-    ) internal {
         // Read oracle
         (uint256 rateTokens, uint256 rateEquivalent) = _loanManager.readOracle(_loanId, _oracleData);
-
         // Pay tokens
         uint256 tokenPayRequired = tokensToPay(_id, rateTokens, rateEquivalent);
 
         if (tokenPayRequired > 0) {
-            // Load collateral entry
-            Entry storage entry = entries[_id];
-
-            // Load loan token
-            IERC20 token = _loanManager.token();
-
-            // Buy required tokens
+            // Run margin call, buy required tokens
             // and substract from total collateral
-            (uint256 bought, uint256 sold) = entry.converter.safeConverterToMax(
-                entry.token,
-                token,
-                entry.amount,
-                tokenPayRequired
-            );
-
-            uint256 tokensToPay = Math.min(bought, tokenPayRequired);
-            entry.amount = entry.amount.sub(sold);
-
-            // Pay loan
-            (, uint256 paidTokens) = _loanManager.safePayToken(
+            _convertPay(
+                _id,
+                _loanManager,
                 _loanId,
-                tokensToPay,
-                address(this),
+                tokenPayRequired,
+                tokenPayRequired,
                 _oracleData
             );
+        }
+    }
 
-            if (paidTokens < tokensToPay) {
-                // Buy back extra collateral
-                entry.amount = entry.amount.add(
-                    entry.converter.safeConvertFrom(
-                        token,
-                        entry.token,
-                        tokensToPay - paidTokens,
-                        0
-                    )
-                );
-            }
+    function _convertPay(
+        uint256 _id,
+        LoanManager _loanManager,
+        bytes32 _loanId,
+        uint256 _collateralReturn,
+        uint256 _tokenReturn,
+        bytes memory _oracleData
+    ) internal {
+        // Load collateral entry
+        Entry storage entry = entries[_id];
+
+        // Load loan token
+        IERC20 token = _loanManager.token();
+
+        // Use collateral to buy tokens
+        (uint256 bought, uint256 sold) = entry.converter.safeConverterToMax(
+            entry.token,
+            token,
+            entry.amount,
+            _collateralReturn
+        );
+
+        uint256 tokensToPay = Math.min(bought, _tokenReturn);
+
+        entry.amount = entry.amount.sub(sold);
+
+        // Pay loan
+        (, uint256 paidTokens) = _loanManager.safePayToken(
+            _loanId,
+            tokensToPay,
+            address(this),
+            _oracleData
+        );
+
+        if (paidTokens < tokensToPay) {
+            // Buy back extra collateral
+            entry.amount = entry.amount.add(
+                entry.converter.safeConvertFrom(
+                    token,
+                    entry.token,
+                    tokensToPay - paidTokens,
+                    0
+                )
+            );
         }
     }
 
