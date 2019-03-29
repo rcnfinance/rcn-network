@@ -56,6 +56,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 amount;
     }
 
+    constructor() public ERC721Base("RCN Collateral Cosigner", "RCC") { }
+
     function create(
         LoanManager _loanManager,
         bytes32 _loanId,
