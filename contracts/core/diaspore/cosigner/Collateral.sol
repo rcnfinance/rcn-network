@@ -87,7 +87,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         emit Created(
             id,
             address(_loanManager),
-            _loanId,
+            bytes32(_loanId),
             address(_token),
             _amount,
             address(_converter),
@@ -125,10 +125,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function cost(
         address,
-        bytes32,
-        bytes calldata,
-        bytes calldata
-    ) external view returns (uint256) {
+        uint256,
+        bytes memory,
+        bytes memory
+    ) public view returns (uint256) {
         return 0;
     }
 
@@ -138,47 +138,47 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function requestCosign(
         address,
-        bytes32 _loanId,
-        bytes calldata _data,
-        bytes calldata
-    ) external returns (bool) {
+        uint256 _loanId,
+        bytes memory _data,
+        bytes memory
+    ) public returns (bool) {
         // Load id and entry
         uint256 id = abi.decode(_data, (uint256));
         Entry storage entry = entries[id];
 
         // Validate call from loan manager
         LoanManager loanManager = entry.loanManager;
-        require(entry.loanId == _loanId, "Wrong loan id");
+        require(entry.loanId == bytes32(_loanId), "Wrong loan id");
         require(address(loanManager) == msg.sender, "Not the loan manager");
 
         // Save liability ID
-        liabilities[address(loanManager)][_loanId] = id;
+        liabilities[address(loanManager)][bytes32(_loanId)] = id;
 
         // Cosign
-        require(loanManager.cosign(uint256(_loanId), 0), "Error performing cosign");
+        require(loanManager.cosign(_loanId, 0), "Error performing cosign");
 
         emit Started(id);
     }
 
     function claim(
         address _loanManager,
-        bytes32 _loanId,
-        bytes calldata _oracleData
-    ) external returns (bool) {
-        uint256 id = liabilities[_loanManager][_loanId];
+        uint256 _loanId,
+        bytes memory _oracleData
+    ) public returns (bool) {
+        uint256 id = liabilities[_loanManager][bytes32(_loanId)];
         LoanManager loanManager = LoanManager(_loanManager);
 
         _runDuePayment(
             id,
             loanManager,
-            _loanId,
+            bytes32(_loanId),
             _oracleData
         );
 
         _runMarginCall(
             id,
             loanManager,
-            _loanId,
+            bytes32(_loanId),
             _oracleData
         );
     }
@@ -241,7 +241,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         bytes memory _oracleData
     ) internal {
         // Read oracle
-        (uint256 rateTokens, uint256 rateEquivalent) = _loanManager.readOracle(_loanId, _oracleData);
+        (uint256 rateTokens, uint256 rateEquivalent) = _loanManager.readOracle(bytes32(_loanId), _oracleData);
 
         // Pay tokens
         uint256 tokenPayRequired = tokensToPay(_id, rateTokens, rateEquivalent);
@@ -267,7 +267,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
             // Pay loan
             (, uint256 paidTokens) = _loanManager.safePayToken(
-                _loanId,
+                bytes32(_loanId),
                 tokenPayRequired,
                 address(this),
                 _oracleData
