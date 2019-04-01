@@ -165,19 +165,20 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _loanId,
         bytes memory _oracleData
     ) public returns (bool) {
-        uint256 id = liabilities[_loanManager][bytes32(_loanId)];
+        bytes32 loanId = bytes32(_loanId);
+        uint256 id = liabilities[_loanManager][loanId];
         LoanManager loanManager = LoanManager(_loanManager);
 
-        Model model = _loanManager.getModel(_loanId);
-        uint256 dueTime = model.getDueTime(_loanId);
+        Model model = Model(loanManager.getModel(_loanId));
+        uint256 dueTime = model.getDueTime(loanId);
         if (block.timestamp >= dueTime) {
             // Run payment of loan, use collateral to buy tokens
-            (uint256 obligation,) = model.getObligation(_loanId, uint64(dueTime));
-            uint256 obligationToken = _loanManager.amountToToken(_loanId, _oracleData, obligation);
+            (uint256 obligation,) = model.getObligation(loanId, uint64(dueTime));
+            uint256 obligationToken = loanManager.amountToToken(loanId, _oracleData, obligation);
             _convertPay(
-                _id,
-                _loanManager,
-                _loanId,
+                id,
+                loanManager,
+                loanId,
                 obligation,
                 obligationToken,
                 _oracleData
@@ -185,17 +186,17 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
 
         // Read oracle
-        (uint256 rateTokens, uint256 rateEquivalent) = _loanManager.readOracle(_loanId, _oracleData);
+        (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(loanId, _oracleData);
         // Pay tokens
-        uint256 tokenPayRequired = tokensToPay(_id, rateTokens, rateEquivalent);
+        uint256 tokenPayRequired = tokensToPay(id, rateTokens, rateEquivalent);
 
         if (tokenPayRequired > 0) {
             // Run margin call, buy required tokens
             // and substract from total collateral
             _convertPay(
-                _id,
-                _loanManager,
-                _loanId,
+                id,
+                loanManager,
+                loanId,
                 tokenPayRequired,
                 tokenPayRequired,
                 _oracleData
