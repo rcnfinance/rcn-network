@@ -87,7 +87,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         emit Created(
             id,
             address(_loanManager),
-            bytes32(_loanId),
+            _loanId,
             address(_token),
             _amount,
             address(_converter),
