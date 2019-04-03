@@ -17,6 +17,9 @@ import "../interfaces/IERC20.sol";
 * Since versions of Solidity 0.4.22 the EVM has a new opcode, called RETURNDATASIZE.
 * This opcode stores the size of the returned data of an external call. The code checks the size of the return value
 * after an external call and reverts the transaction in case the return data is shorter than expected
+*
+* Source: https://github.com/nachomazzara/SafeERC20/blob/master/contracts/libs/SafeERC20.sol
+* Author: Ignacio Mazzara
 */
 library SafeERC20 {
     /**
