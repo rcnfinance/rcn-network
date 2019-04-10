@@ -90,7 +90,7 @@ library SafeTokenConverter {
                 );
             }
 
-            require(_maxPull >= sold);
+            require(_maxPull >= sold, "Should not pull more than the _maxPull");
         } else {
             sold = _converter.safeConvertTo(
                 _fromToken,
