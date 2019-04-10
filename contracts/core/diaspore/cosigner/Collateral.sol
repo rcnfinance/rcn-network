@@ -349,6 +349,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         return entries[_id].amount.toInt256().muldiv(delta, ratio);
     }
 
+    // 2 for callateralInTokens, 3 for collateralRatio, 3 for deltaRatio
+    uint256 private constant ROUND_OFF_ERROR = 8;
+
     function collateralToPay(
         uint256 _id,
         uint256 _rateTokens,
@@ -363,12 +366,15 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
 
         return Math.min(
-            cwithdraw.abs().toUint256().mult(2),
+            cwithdraw < 0 ? cwithdraw.abs().toUint256().add(ROUND_OFF_ERROR).mult(BASE).div(entry.liquidationRatio-BASE) : 0,
             Math.min(
                 entry.amount,
-                valueTokensToCollateral(
-                    _id,
-                    debt
+                debt.mult(10**18).div(
+                    entry.converter.getReturn(
+                        entry.loanManager.token(),
+                        entry.token,
+                        10 ** 18
+                    )
                 )
             )
         );
