@@ -158,6 +158,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(loanManager.cosign(_loanId, 0), "Error performing cosign");
 
         emit Started(id);
+
+        return true;
     }
 
     function claim(
