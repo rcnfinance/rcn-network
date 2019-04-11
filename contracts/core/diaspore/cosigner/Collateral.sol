@@ -377,8 +377,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 entry.amount,
                 debt.mult(10**18).div(
                     entry.converter.getReturn(
-                        entry.loanManager.token(),
                         entry.token,
+                        entry.loanManager.token(),
                         10 ** 18
                     )
                 )
