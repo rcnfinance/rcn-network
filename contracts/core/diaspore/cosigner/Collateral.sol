@@ -185,6 +185,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 obligationToken,
                 _oracleData
             );
+
+            return true;
         }
 
         // Read oracle
@@ -203,6 +205,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 tokenPayRequired,
                 _oracleData
             );
+
+            return true;
         }
     }
 
