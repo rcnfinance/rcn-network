@@ -53,7 +53,7 @@ contract TestConverter {
         uint256 _maxPull,
         uint256 _return
     ) external returns (uint256 sold) {
-        sold =  (_return * WEI) / _getReturn(_fromToken, _toToken, WEI);
+        sold = (_return * WEI) / _getReturn(_fromToken, _toToken, WEI);
         require(_fromToken.safeTransferFrom(msg.sender, address(this), sold), "Error pulling tokens");
         require(_toToken.safeTransfer(msg.sender, _return), "Error pulling tokens");
         emit ConvertTo(_return, sold);
