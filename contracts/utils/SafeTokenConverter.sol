@@ -18,7 +18,7 @@ library SafeTokenConverter {
         uint256 _fromAmount,
         uint256 _minReturn
     ) internal returns (uint256 amount) {
-        require(_fromToken.approve(address(_converter), _fromAmount));
+        require(_fromToken.approve(address(_converter), _fromAmount), "Fail approve");
         uint256 prevToBalance = _toToken.balanceOf(address(this));
 
         amount = _converter.convertFrom(
@@ -28,9 +28,9 @@ library SafeTokenConverter {
             _minReturn
         );
 
-        require(_fromToken.clearApprove(address(_converter)));
-        require(amount >= _minReturn);
-        require(amount <= _toToken.balanceOf(address(this)).sub(prevToBalance));
+        require(_fromToken.clearApprove(address(_converter)), "Fail clearApprove");
+        require(amount >= _minReturn, "Should not return less than the _minReturn");
+        require(amount <= _toToken.balanceOf(address(this)).sub(prevToBalance), "The return its low");
     }
 
     function safeConvertTo(
@@ -40,7 +40,7 @@ library SafeTokenConverter {
         uint256 _maxPull,
         uint256 _return
     ) internal returns (uint256 sold) {
-        require(_fromToken.approve(address(_converter), _maxPull));
+        require(_fromToken.approve(address(_converter), _maxPull), "Fail approve");
 
         uint256 prevFromBalance = _fromToken.balanceOf(address(this));
         uint256 prevToBalance = _toToken.balanceOf(address(this));
@@ -52,10 +52,10 @@ library SafeTokenConverter {
             _return
         );
 
-        require(_fromToken.clearApprove(address(_converter)));
-        require(_maxPull >= sold);
-        require(_return <= _toToken.balanceOf(address(this)).sub(prevToBalance));
-        require(sold == prevFromBalance.sub(_fromToken.balanceOf(address(this))));
+        require(_fromToken.clearApprove(address(_converter)), "Fail clearApprove");
+        require(_maxPull >= sold, "Should not pull more than the _maxPull");
+        require(_return <= _toToken.balanceOf(address(this)).sub(prevToBalance), "The return should be less than the transfer amount");
+        require(sold == prevFromBalance.sub(_fromToken.balanceOf(address(this))), "The sold and the transfer amount should be equal");
     }
 
     function safeConverterToMax(
