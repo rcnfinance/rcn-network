@@ -15,7 +15,15 @@ function bn (number) {
     return new BN(number);
 }
 
+const WEI = bn('10').pow(bn('18'));
+const BASE = bn('10000');
+const ROUND_OFF_ERROR = bn('8');
+
 contract('Test Collateral cosigner Diaspore', function (accounts) {
+    const owner = accounts[1];
+    const creator = accounts[2];
+    const borrower = accounts[3];
+
     let rcn;
     let auxToken;
     let loanManager;
@@ -32,14 +40,14 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     }
 
     before('Create constracts', async function () {
-        rcn = await TestToken.new();
-        debtEngine = await DebtEngine.new(rcn.address);
-        loanManager = await LoanManager.new(debtEngine.address);
-        model = await TestModel.new();
-        await model.setEngine(debtEngine.address);
-        collateral = await Collateral.new();
-        auxToken = await TestToken.new();
-        converter = await TestConverter.new();
+        rcn = await TestToken.new({ from: owner });
+        debtEngine = await DebtEngine.new(rcn.address, { from: owner });
+        loanManager = await LoanManager.new(debtEngine.address, { from: owner });
+        model = await TestModel.new({ from: owner });
+        await model.setEngine(debtEngine.address, { from: owner });
+        collateral = await Collateral.new({ from: owner });
+        auxToken = await TestToken.new({ from: owner });
+        converter = await TestConverter.new({ from: owner });
     });
 
     describe('Function create', function () {
@@ -206,10 +214,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     return x.cmp(y) === -1 ? x : y;
                 }
 
-                const WEI = bn('10').pow(bn('18'));
-                const BASE = bn('10000');
-                const ROUND_OFF_ERROR = bn('8');
-
                 ratioLimit = bn(ratioLimit.toString());
                 debtRCN = bn(debtRCN.toString());
                 collateralAmount = bn(collateralAmount.toString());
@@ -287,7 +291,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
                 expect(await converter.getReturn(auxToken.address, rcn.address, collateralAmount)).to.eq.BN(collateralInToken);
 
-                expect(await collateral.callateralInTokens(collateralId)).to.eq.BN(collateralInToken);
+                expect(await collateral.collateralInTokens(collateralId)).to.eq.BN(collateralInToken);
                 expect(await collateral.valueCollateralToTokens(collateralId, collateralAmount)).to.eq.BN(collateralInToken);
 
                 const _collateralRatio = await collateral.collateralRatio(collateralId, bn('0'), bn('0'));
@@ -316,7 +320,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 const _newCollateral = (await collateral.entries(collateralId)).amount;
                 expect(_newCollateral).to.eq.BN(newCollateral);
 
-                const _newCollateralInToken = await collateral.callateralInTokens(collateralId);
+                const _newCollateralInToken = await collateral.collateralInTokens(collateralId);
                 expect(_newCollateralInToken).to.eq.BN(newCollateralInToken);
 
                 if (newDebt.isZero()) {
@@ -373,5 +377,305 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             ),
             'The owner should be the sender'
         );
+    });
+
+    it('The cost should be 0', async function () {
+        expect(await collateral.cost(
+            Helper.address0x,
+            0,
+            [],
+            []
+        )).to.eq.BN(0);
+    });
+
+    it('Function valueCollateralToTokens, valueTokensToCollateral and collateralInTokens', async function () {
+        const loanAmount = bn('100');
+        const collateralAmount = bn('100');
+        const ratioLimit = bn('15000');
+
+        const expiration = (await Helper.getBlockTime()) + 100;
+        const loanId = await getId(loanManager.requestLoan(
+            loanAmount,           // Amount
+            model.address,     // Model
+            Helper.address0x,  // Oracle
+            borrower,          // Borrower
+            bn(web3.utils.randomHex(32)), // salt
+            expiration, // Expiration
+            await model.encodeData(loanAmount, expiration), // Loan data
+            { from: borrower } // Creator
+        ));
+        const collateralId = await collateral.getEntriesLength();
+
+        await auxToken.setBalance(creator, collateralAmount);
+        await auxToken.approve(collateral.address, collateralAmount, { from: creator });
+
+        await collateral.create(
+            loanManager.address,
+            loanId,
+            auxToken.address,
+            collateralAmount,
+            converter.address,
+            ratioLimit,
+            { from: creator }
+        );
+
+        await converter.setRate(auxToken.address, rcn.address, bn('2').mul(WEI));
+        await converter.setRate(rcn.address, auxToken.address, bn('5').mul(WEI).div(bn('10')));
+
+        expect(await collateral.collateralInTokens(
+            collateralId
+        )).to.eq.BN(200);
+
+        expect(await collateral.valueCollateralToTokens(
+            collateralId,
+            0
+        )).to.eq.BN(0);
+
+        expect(await collateral.valueTokensToCollateral(
+            collateralId,
+            0
+        )).to.eq.BN(0);
+
+        expect(await collateral.valueCollateralToTokens(
+            collateralId,
+            200
+        )).to.eq.BN(400);
+
+        expect(await collateral.valueTokensToCollateral(
+            collateralId,
+            400
+        )).to.eq.BN(200);
+
+        const collateralId2 = await collateral.getEntriesLength();
+
+        await rcn.setBalance(creator, collateralAmount);
+        await rcn.approve(collateral.address, collateralAmount, { from: creator });
+
+        await collateral.create(
+            loanManager.address,
+            loanId,
+            rcn.address,
+            collateralAmount,
+            converter.address,
+            ratioLimit,
+            { from: creator }
+        );
+
+        expect(await collateral.valueCollateralToTokens(
+            collateralId2,
+            200
+        )).to.eq.BN(200);
+
+        expect(await collateral.valueTokensToCollateral(
+            collateralId2,
+            200
+        )).to.eq.BN(200);
+
+        await converter.setRate(auxToken.address, rcn.address, 0);
+        await converter.setRate(rcn.address, auxToken.address, 0);
+    });
+
+    it('Function debtInTokens, collateralRatio and canWithdraw', async function () {
+        const loanAmount = bn('100');
+        const collateralAmount = bn('100');
+        const ratioLimit = bn('15000');
+
+        const expiration = (await Helper.getBlockTime()) + 100;
+        const loanId = await getId(loanManager.requestLoan(
+            loanAmount,           // Amount
+            model.address,     // Model
+            Helper.address0x,  // Oracle
+            borrower,          // Borrower
+            bn(web3.utils.randomHex(32)), // salt
+            expiration, // Expiration
+            await model.encodeData(loanAmount, expiration), // Loan data
+            { from: borrower } // Creator
+        ));
+        const collateralId = await collateral.getEntriesLength();
+
+        await rcn.setBalance(creator, collateralAmount);
+        await rcn.approve(collateral.address, collateralAmount, { from: creator });
+
+        await collateral.create(
+            loanManager.address,
+            loanId,
+            rcn.address,
+            collateralAmount,
+            converter.address,
+            ratioLimit,
+            { from: creator }
+        );
+
+        await rcn.setBalance(creator, loanAmount);
+        await rcn.approve(loanManager.address, loanAmount, { from: creator });
+
+        await loanManager.lend(
+            loanId,
+            [],
+            collateral.address,
+            bn('0'),
+            Helper.toBytes32(collateralId),
+            { from: creator }
+        );
+
+        expect(await collateral.debtInTokens(
+            collateralId,
+            bn('0'),
+            bn('0')
+        )).to.eq.BN(loanAmount);
+
+        let calcCollateralRatio = collateralAmount.mul(BASE).div(loanAmount);
+        expect(await collateral.collateralRatio(
+            collateralId,
+            bn('0'),
+            bn('0')
+        )).to.eq.BN(calcCollateralRatio);
+
+        let calcDeltaRatio = calcCollateralRatio.sub(ratioLimit);
+        expect(await collateral.deltaRatio(
+            collateralId,
+            bn('0'),
+            bn('0')
+        )).to.eq.BN(calcDeltaRatio);
+
+        let calcCanWithdraw = collateralAmount.mul(calcDeltaRatio).div(calcCollateralRatio);
+        expect(await collateral.canWithdraw(
+            collateralId,
+            bn('0'),
+            bn('0')
+        )).to.eq.BN(calcCanWithdraw);
+
+        const rateTokens = bn('2').mul(WEI);
+        const rateEquivalent = WEI;
+
+        const calcDebtInTokens = rateTokens.mul(loanAmount).div(rateEquivalent);
+        expect(await collateral.debtInTokens(
+            collateralId,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(calcDebtInTokens);
+
+        calcCollateralRatio = collateralAmount.mul(BASE).div(calcDebtInTokens);
+        expect(await collateral.collateralRatio(
+            collateralId,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(calcCollateralRatio);
+
+        calcDeltaRatio = calcCollateralRatio.sub(ratioLimit);
+        expect(await collateral.deltaRatio(
+            collateralId,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(calcCollateralRatio.sub(ratioLimit));
+
+        calcCanWithdraw = collateralAmount.mul(calcDeltaRatio).div(calcCollateralRatio);
+        expect(await collateral.canWithdraw(
+            collateralId,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(calcCanWithdraw);
+    });
+
+    it('Function debtInTokens, collateralRatio and canWithdraw', async function () {
+        const loanAmount = bn('100');
+        const collateralAmount = bn('100');
+        const ratioLimit = bn('15000');
+
+        const expiration = (await Helper.getBlockTime()) + 100;
+        const loanId = await getId(loanManager.requestLoan(
+            loanAmount,           // Amount
+            model.address,     // Model
+            Helper.address0x,  // Oracle
+            borrower,          // Borrower
+            bn(web3.utils.randomHex(32)), // salt
+            expiration, // Expiration
+            await model.encodeData(loanAmount, expiration), // Loan data
+            { from: borrower } // Creator
+        ));
+        const collateralId = await collateral.getEntriesLength();
+
+        await rcn.setBalance(creator, collateralAmount);
+        await rcn.approve(collateral.address, collateralAmount, { from: creator });
+
+        await collateral.create(
+            loanManager.address,
+            loanId,
+            rcn.address,
+            collateralAmount,
+            converter.address,
+            ratioLimit,
+            { from: creator }
+        );
+
+        await rcn.setBalance(creator, loanAmount);
+        await rcn.approve(loanManager.address, loanAmount, { from: creator });
+
+        await loanManager.lend(
+            loanId,
+            [],
+            collateral.address,
+            bn('0'),
+            Helper.toBytes32(collateralId),
+            { from: creator }
+        );
+
+        expect(await collateral.debtInTokens(
+            collateralId,
+            bn('0'),
+            bn('0')
+        )).to.eq.BN(loanAmount);
+
+        let calcCollateralRatio = collateralAmount.mul(BASE).div(loanAmount);
+        expect(await collateral.collateralRatio(
+            collateralId,
+            bn('0'),
+            bn('0')
+        )).to.eq.BN(calcCollateralRatio);
+
+        let calcDeltaRatio = calcCollateralRatio.sub(ratioLimit);
+        expect(await collateral.deltaRatio(
+            collateralId,
+            bn('0'),
+            bn('0')
+        )).to.eq.BN(calcDeltaRatio);
+
+        let calcCanWithdraw = collateralAmount.mul(calcDeltaRatio).div(calcCollateralRatio);
+        expect(await collateral.canWithdraw(
+            collateralId,
+            bn('0'),
+            bn('0')
+        )).to.eq.BN(calcCanWithdraw);
+
+        const rateTokens = bn('2').mul(WEI);
+        const rateEquivalent = WEI;
+
+        const calcDebtInTokens = rateTokens.mul(loanAmount).div(rateEquivalent);
+        expect(await collateral.debtInTokens(
+            collateralId,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(calcDebtInTokens);
+
+        calcCollateralRatio = collateralAmount.mul(BASE).div(calcDebtInTokens);
+        expect(await collateral.collateralRatio(
+            collateralId,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(calcCollateralRatio);
+
+        calcDeltaRatio = calcCollateralRatio.sub(ratioLimit);
+        expect(await collateral.deltaRatio(
+            collateralId,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(calcCollateralRatio.sub(ratioLimit));
+
+        calcCanWithdraw = collateralAmount.mul(calcDeltaRatio).div(calcCollateralRatio);
+        expect(await collateral.canWithdraw(
+            collateralId,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(calcCanWithdraw);
     });
 });
