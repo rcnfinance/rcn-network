@@ -42,6 +42,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event Started(uint256 indexed _id);
     event Redeemed(uint256 indexed _id);
 
+    event SetUrl(string _url);
+
     Entry[] public entries;
     mapping(address => mapping(bytes32 => uint256)) public liabilities;
 
@@ -121,6 +123,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function setUrl(string calldata _url) external onlyOwner {
         iurl = _url;
+        emit SetUrl(_url);
     }
 
     function cost(

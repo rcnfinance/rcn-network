@@ -351,4 +351,27 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             };
         };
     });
+
+    it('Set new url', async function () {
+        const url = 'test.com';
+
+        const SetUrl = await Helper.toEvents(
+            collateral.setUrl(
+                url,
+                { from: owner }
+            ),
+            'SetUrl'
+        );
+
+        assert.equal(SetUrl._url, url);
+        assert.equal(await collateral.url(), url);
+
+        await Helper.tryCatchRevert(
+            () => collateral.setUrl(
+                url,
+                { from: creator }
+            ),
+            'The owner should be the sender'
+        );
+    });
 });
