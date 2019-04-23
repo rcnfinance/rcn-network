@@ -13,8 +13,8 @@ contract TestConverter is TokenConverter {
     mapping(address => mapping(address => uint256)) public fromToRate;
     uint256 constant private WEI = 10**18;
 
-    event ConvertFrom(IERC20 _fromToken, IERC20 _toToken, uint256 _fromAmount, uint256 _amount, uint256 _rate);
-    event ConvertTo(IERC20 _fromToken, IERC20 _toToken, uint256 _return, uint256 _sold, uint256 _rate);
+    event ConvertFrom(IERC20 _fromToken, IERC20 _toToken, uint256 _fromAmount, uint256 _toAmount, uint256 _rate);
+    event ConvertTo(IERC20 _fromToken, IERC20 _toToken, uint256 _fromAmount, uint256 _toAmount, uint256 _rate);
     event SetRate(address _fromToken, address _toToken, uint256 _rate);
 
     function setRate(
@@ -38,35 +38,37 @@ contract TestConverter is TokenConverter {
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 _fromAmount
-    ) internal view returns (uint256 amount, uint256 rate) {
+    ) internal view returns (uint256 toAmount, uint256 rate) {
         rate = fromToRate[address(_fromToken)][address(_toToken)];
-        amount = (rate * _fromAmount) / WEI;
+        require(rate != 0, "The rate should not be 0");
+        toAmount = (rate * _fromAmount) / WEI;
     }
 
     function convertFrom(
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 _fromAmount,
-        uint256 _minReturn
+        uint256
     ) external returns (uint256) {
-        (uint256 amount, uint256 rate) = _getReturn(_fromToken, _toToken, _fromAmount);
+        (uint256 toAmount, uint256 rate) = _getReturn(_fromToken, _toToken, _fromAmount);
         require(_fromToken.safeTransferFrom(msg.sender, address(this), _fromAmount), "Error pulling tokens");
-        require(_toToken.safeTransfer(msg.sender, amount), "Error pulling tokens");
-        emit ConvertFrom(_fromToken, _toToken, _fromAmount, amount, rate);
-        return amount;
+        require(_toToken.safeTransfer(msg.sender, toAmount), "Error pulling tokens");
+        emit ConvertFrom(_fromToken, _toToken, _fromAmount, toAmount, rate);
+        return toAmount;
     }
 
     function convertTo(
         IERC20 _fromToken,
         IERC20 _toToken,
-        uint256 _maxPull,
-        uint256 _return
+        uint256,
+        uint256 _toAmount
     ) external returns (uint256) {
-        (uint256 sold, uint256 rate) = _getReturn(_toToken, _fromToken, _return);
-        //sold = (_return * WEI) / amount;
-        require(_fromToken.safeTransferFrom(msg.sender, address(this), sold), "Error pulling tokens");
-        require(_toToken.safeTransfer(msg.sender, _return), "Error pulling tokens");
-        emit ConvertTo(_fromToken, _toToken, _return, sold, rate);
-        return sold;
+        uint256 rate = fromToRate[address(_fromToken)][address(_toToken)];
+        uint256 fromAmount = (_toAmount * WEI) / rate;
+
+        require(_fromToken.safeTransferFrom(msg.sender, address(this), fromAmount), "Error pulling tokens");
+        require(_toToken.safeTransfer(msg.sender, _toAmount), "Error pulling tokens");
+        emit ConvertTo(_fromToken, _toToken, fromAmount, _toAmount, rate);
+        return fromAmount;
     }
 }
