@@ -170,7 +170,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         address _loanManager,
         uint256 _loanId,
         bytes memory _oracleData
-    ) public returns (bool) {
+    ) public returns (bool change) {
         bytes32 loanId = bytes32(_loanId);
         uint256 id = liabilities[_loanManager][loanId];
         LoanManager loanManager = LoanManager(_loanManager);
@@ -190,7 +190,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 _oracleData
             );
 
-            return true;
+            change = true;
         }
 
         // Read oracle
