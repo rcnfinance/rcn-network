@@ -338,6 +338,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _rateTokens,
         uint256 _rateEquivalent
     ) public view returns (uint256) {
+        uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
+        if (debt == 0) {
+            return 0;
+        }
+
         return collateralInTokens(_id).multdivceil(BASE, debt);
     }
 
@@ -354,8 +359,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _rateTokens,
         uint256 _rateEquivalent
     ) public view returns (int256) {
-        int256 delta = deltaRatio(_id, _rateTokens, _rateEquivalent);
         int256 ratio = collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256();
+        int256 collateral = entries[_id].amount.toInt256();
+        if (ratio == 0) {
+            return collateral;
+        }
+        int256 delta = deltaRatio(_id, _rateTokens, _rateEquivalent);
         return collateral.muldivceil(delta, ratio);
     }
 
