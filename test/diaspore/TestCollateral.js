@@ -17,7 +17,6 @@ function bn (number) {
 
 const WEI = bn('10').pow(bn('18'));
 const BASE = bn('10000');
-const ROUND_OFF_ERROR = bn('8');
 
 contract('Test Collateral cosigner Diaspore', function (accounts) {
     const owner = accounts[1];
@@ -57,7 +56,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const salt = bn('2');
             const amount = bn('1000');
             const collateralAmount = bn('1000');
-            const liquidationRatio = bn('150');
+            const liquidationRatio = bn('15000');
             const expiration = (await Helper.getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
@@ -119,7 +118,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const salt = bn('3');
             const amount = bn('1000');
             const collateralAmount = bn('0');
-            const liquidationRatio = bn('150');
+            const liquidationRatio = bn('15000');
             const expiration = (await Helper.getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
@@ -160,7 +159,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const salt = bn('4');
             const amount = bn('1000');
             const collateralAmount = bn('1');
-            const liquidationRatio = bn('150');
+            const liquidationRatio = bn('15000');
             const expiration = (await Helper.getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
@@ -192,13 +191,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
 
     describe('Functional test', function () {
-        it('Test C0', cTest(10000, 310, 930, 0.40));
+        it('Test C0', cTest(11000, 310, 930, 0.40));
         // it('Test C1', cTest(15000, 200, 600, 0.45));
         // it('Test C2', cTest(15000, 310, 930, 0.45));
-        it('Test C3', cTest(5000, 310, 930, 0.466));
+        // it('Test C3', cTest(15000, 310, 930, 0.466));
         it('Test C4', cTest(15000, 200, 600, 0.5));
         it('Test C5', cTest(15000, 300, 600, 0.5));
-        it('Test C6', cTest(90000, 200, 600, 0.5));
+        // it('Test C6', cTest(90000, 200, 600, 0.5));
         it('Test C7', cTest(15000, 310, 600, 0.5));
         it('Test C8', cTest(15000, 200, 201, 1));
         it('Test C9', cTest(15000, 200, 200, 1));
@@ -210,38 +209,55 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
         function cTest (ratioLimit, debtRCN, collateralAmount, collateralToTokenRate) {
             return async () => {
-                function min (x, y) {
-                    return x.cmp(y) === -1 ? x : y;
+                function min (x, y, z) {
+                    if (x.cmp(y) === -1 && x.cmp(z) === -1) {
+                        return x;
+                    } else {
+                        return y.cmp(z) === -1 ? y : x;
+                    }
+                }
+
+                function divceil (x, y) {
+                    if (x.mod(y).cmp(bn('0')) === 0) {
+                        return x.div(y);
+                    } else {
+                        return x.div(y).add(bn('1'));
+                    }
                 }
 
                 ratioLimit = bn(ratioLimit.toString());
                 debtRCN = bn(debtRCN.toString());
                 collateralAmount = bn(collateralAmount.toString());
+
+                const tokenToCollateralRate = bn(Math.round(10000 / collateralToTokenRate).toString()).mul(WEI).div(BASE);
+                await converter.setRate(rcn.address, auxToken.address, tokenToCollateralRate);
+
                 collateralToTokenRate = bn((collateralToTokenRate * 10000).toString()).mul(WEI).div(BASE);
                 await converter.setRate(auxToken.address, rcn.address, collateralToTokenRate);
 
                 const collateralInToken = await converter.getReturn(auxToken.address, rcn.address, collateralAmount);
-                const collateralRatio = collateralInToken.mul(BASE).div(debtRCN);
+                const collateralRatio = divceil(collateralInToken.mul(BASE), debtRCN);
                 const deltaRatio = collateralRatio.sub(ratioLimit);
-                const canWithdraw = collateralAmount.mul(deltaRatio).div(collateralRatio);
-                const requiredCollateralPay = min(
-                    min(
-                        canWithdraw.isNeg() ? canWithdraw.abs().add(ROUND_OFF_ERROR).mul(BASE).div(ratioLimit.sub(BASE)) : bn('0'),
-                        collateralAmount
-                    ),
-                    debtRCN.mul(WEI).div(
-                        await converter.getReturn(
-                            auxToken.address,
-                            rcn.address,
-                            WEI
-                        )
-                    )
-                );
+                const canWithdraw = divceil(collateralAmount.mul(deltaRatio), collateralRatio);
+
+                async function calcRequiredCollateralPay () {
+                    if (canWithdraw.cmp(bn('0')) === -1) {
+                        return min(
+                            divceil(canWithdraw.abs().mul(BASE), ratioLimit.sub(BASE)),
+                            collateralAmount,
+                            await converter.getReturn(rcn.address, auxToken.address, debtRCN)
+                        );
+                    } else {
+                        return bn('0');
+                    }
+                };
+                const requiredCollateralPay = await calcRequiredCollateralPay();
+
                 const requiredTokenPay = await converter.getReturn(auxToken.address, rcn.address, requiredCollateralPay);
                 const newDebt = debtRCN.sub(requiredTokenPay);
                 const newCollateral = collateralAmount.sub(requiredCollateralPay);
                 const newCollateralInToken = collateralInToken.sub(requiredTokenPay);
-                const newCollateralRatio = newDebt.isZero() ? null : newCollateralInToken.mul(BASE).div(newDebt);
+                const newCollateralRatio = newDebt.isZero() ? null : divceil(newCollateralInToken.mul(BASE), newDebt);
                 const collateralized = newCollateralRatio === null ? true : newCollateralRatio.cmp(ratioLimit) !== -1;
 
                 const creator = accounts[1];
@@ -295,6 +311,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 expect(await collateral.valueCollateralToTokens(collateralId, collateralAmount)).to.eq.BN(collateralInToken);
 
                 const _collateralRatio = await collateral.collateralRatio(collateralId, bn('0'), bn('0'));
+
                 expect(_collateralRatio).to.eq.BN(collateralRatio);
 
                 const _deltaRatio = await collateral.deltaRatio(collateralId, bn('0'), bn('0'));

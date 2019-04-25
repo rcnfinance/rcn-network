@@ -70,6 +70,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         TokenConverter _converter,
         uint32 _liquidationRatio
     ) external returns (uint256 id) {
+        require(_liquidationRatio > BASE, "The liquidation ratio should be up than 100%");
         require(_loanManager.getStatus(_loanId) == 0, "Loan request should be open");
 
         id = entries.push(
@@ -169,7 +170,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         address _loanManager,
         uint256 _loanId,
         bytes memory _oracleData
-    ) public returns (bool) {
+    ) public returns (bool change) {
         bytes32 loanId = bytes32(_loanId);
         uint256 id = liabilities[_loanManager][loanId];
         LoanManager loanManager = LoanManager(_loanManager);
@@ -189,7 +190,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 _oracleData
             );
 
-            return true;
+            change = true;
         }
 
         // Read oracle
@@ -328,7 +329,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if (_rateTokens == 0 && _rateEquivalent == 0) {
             return debt;
         } else {
-            return _rateTokens.mult(debt).div(_rateEquivalent);
+            return _rateTokens.multdivceil(debt, _rateEquivalent);
         }
     }
 
@@ -337,7 +338,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _rateTokens,
         uint256 _rateEquivalent
     ) public view returns (uint256) {
-        return collateralInTokens(_id).mult(BASE).div(debtInTokens(_id, _rateTokens, _rateEquivalent));
+        uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
+        if (debt == 0) {
+            return 0;
+        }
+
+        return collateralInTokens(_id).multdivceil(BASE, debt);
     }
 
     function deltaRatio(
@@ -353,13 +359,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _rateTokens,
         uint256 _rateEquivalent
     ) public view returns (int256) {
-        int256 delta = deltaRatio(_id, _rateTokens, _rateEquivalent);
         int256 ratio = collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256();
-        return entries[_id].amount.toInt256().muldiv(delta, ratio);
+        int256 collateral = entries[_id].amount.toInt256();
+        if (ratio == 0) {
+            return collateral;
+        }
+        int256 delta = deltaRatio(_id, _rateTokens, _rateEquivalent);
+        return collateral.muldivceil(delta, ratio);
     }
-
-    // 2 for collateralInTokens, 3 for collateralRatio, 3 for deltaRatio
-    uint256 private constant ROUND_OFF_ERROR = 8;
 
     function collateralToPay(
         uint256 _id,
@@ -375,18 +382,17 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
 
         return Math.min(
-            cwithdraw < 0 ? cwithdraw.abs().toUint256().add(ROUND_OFF_ERROR).mult(BASE).div(entry.liquidationRatio-BASE) : 0,
-            Math.min(
-                entry.amount,
-                debt.mult(10**18).div(
-                    entry.converter.getReturn(
-                        entry.token,
-                        entry.loanManager.token(),
-                        10 ** 18
-                    )
-                )
-            )
+            _collateralRequiredToBalance(cwithdraw, entry.liquidationRatio),
+            entry.amount,
+            valueTokensToCollateral(_id, debt)//todo venta
         );
+    }
+
+    function _collateralRequiredToBalance(
+        int256 _cwithdraw,
+        uint256 _ratio
+    ) internal view returns(uint256) {
+        return _cwithdraw.abs().toUint256().multdivceil(BASE, _ratio - BASE);
     }
 
     function tokensToPay(
