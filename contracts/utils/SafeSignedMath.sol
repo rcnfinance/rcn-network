@@ -58,12 +58,11 @@ library SafeSignedMath {
         return _a.mul(_b) / _c;
     }
 
-    function divceil(int256 _a, int256 _b) internal pure returns (int256) {
+    function divceil(int256 _a, int256 _b) internal pure returns (int256 _c) {
         require(_b != 0, "div by zero");
-        if (_a % _b == 0) {
-            return _a / _b;
-        } else {
-            return (_a / _b).add(1);
+        _c = _a / _b;
+        if (_a % _b != 0) {
+            return _c + 1;
         }
     }
 
