@@ -210,7 +210,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 _oracleData
             );
 
-            return true;
+            change = true;
         }
     }
 
