@@ -22,6 +22,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     const owner = accounts[1];
     const creator = accounts[2];
     const borrower = accounts[3];
+    const depositer = accounts[4];
 
     let rcn;
     let auxToken;
@@ -184,6 +185,115 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     Helper.address0x,
                     liquidationRatio,
                     { from: creator }
+                ),
+                'Error pulling tokens'
+            );
+        });
+    });
+
+    describe('Function deposit', function () {
+        it('Should deposit an amount in a collateral', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const liquidationRatio = bn('15000');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                0,
+                Helper.address0x,
+                liquidationRatio,
+                { from: creator }
+            );
+
+            const depositAmount = bn('10000');
+
+            await auxToken.setBalance(depositer, depositAmount);
+            await auxToken.approve(collateral.address, depositAmount, { from: depositer });
+
+            const prevAuxTokenBal = await auxToken.balanceOf(collateral.address);
+
+            const Deposited = await Helper.toEvents(
+                collateral.deposit(
+                    collateralId,
+                    depositAmount,
+                    { from: depositer }
+                ),
+                'Deposited'
+            );
+
+            expect(Deposited._id).to.eq.BN(collateralId);
+            expect(Deposited._amount).to.eq.BN(depositAmount);
+
+            const entry = await collateral.entries(collateralId);
+            expect(entry.liquidationRatio).to.eq.BN(liquidationRatio);
+            assert.equal(entry.loanManager, loanManager.address);
+            assert.equal(entry.converter, Helper.address0x);
+            assert.equal(entry.token, auxToken.address);
+            assert.equal(entry.loanId, loanId);
+            expect(entry.amount).to.eq.BN(depositAmount);
+
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevAuxTokenBal.add(depositAmount));
+            assert.equal(await collateral.ownerOf(collateralId), creator);
+        });
+
+        it('Try deposit an amount in a collateral without approval of the token collateral', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const liquidationRatio = bn('15000');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                0,
+                Helper.address0x,
+                liquidationRatio,
+                { from: creator }
+            );
+
+            const depositAmount = bn('10000');
+
+            await auxToken.setBalance(depositer, depositAmount);
+
+            await Helper.tryCatchRevert(
+                () => collateral.deposit(
+                    collateralId,
+                    depositAmount,
+                    { from: depositer }
                 ),
                 'Error pulling tokens'
             );

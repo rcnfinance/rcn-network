@@ -38,6 +38,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         address _converter,
         uint32 _liquidationRatio
     );
+    event Deposited(uint256 indexed _id, uint256 _amount);
 
     event Started(uint256 indexed _id);
     event Redeemed(uint256 indexed _id);
@@ -96,6 +97,18 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             address(_converter),
             _liquidationRatio
         );
+    }
+
+    function deposit(
+        uint256 _id,
+        uint256 _amount
+    ) external {
+        Entry storage entry = entries[_id];
+        require(entry.token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+
+        entry.amount = entry.amount.add(_amount);
+
+        emit Deposited(_id, _amount);
     }
 
     function redeem(
