@@ -52,9 +52,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
     describe('Function create', function () {
         it('Should create a new collateral', async function () {
-            const creator = accounts[1];
-            const borrower = accounts[2];
-            const salt = bn('2');
+            const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1000');
             const collateralAmount = bn('1000');
             const liquidationRatio = bn('15000');
@@ -114,9 +112,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         });
 
         it('Try create a new collateral with a closed loan', async function () {
-            const creator = accounts[1];
-            const borrower = accounts[2];
-            const salt = bn('3');
+            const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1000');
             const collateralAmount = bn('0');
             const liquidationRatio = bn('15000');
@@ -155,9 +151,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         });
 
         it('Try create a new collateral without approval of the token collateral', async function () {
-            const creator = accounts[1];
-            const borrower = accounts[2];
-            const salt = bn('4');
+            const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1000');
             const collateralAmount = bn('1');
             const liquidationRatio = bn('15000');
@@ -370,8 +364,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 const newCollateralRatio = newDebt.isZero() ? null : divceil(newCollateralInToken.mul(BASE), newDebt);
                 const collateralized = newCollateralRatio === null ? true : newCollateralRatio.cmp(ratioLimit) !== -1;
 
-                const creator = accounts[1];
-                const borrower = accounts[2];
                 const salt = bn(web3.utils.randomHex(32));
                 const loanDuration = 100;
                 const expiration = (await Helper.getBlockTime()) + loanDuration;
