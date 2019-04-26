@@ -1,10 +1,4 @@
 module.exports = {
-    solc: {
-        optimizer: {
-            enabled: true,
-            runs: 200,
-        },
-    },
     networks: {
         coverage: {
             host: 'localhost',
@@ -19,5 +13,17 @@ module.exports = {
             network_id: '*', // eslint-disable-line camelcase
         },
     },
-
+    compilers: {
+        solc: {
+            version: '0.5.6',
+            docker: false,
+            settings: {
+                optimizer: {
+                    enabled: true,
+                    runs: 200,
+                },
+                evmVersion: 'constantinople',
+            },
+        },
+    },
 };

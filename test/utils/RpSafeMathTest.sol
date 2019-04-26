@@ -1,9 +1,9 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.6;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
-import "../../contracts/basalt/utils/RpSafeMath.sol";
+import "../../contracts/core/basalt/utils/RpSafeMath.sol";
 
 
 contract RpSafeMathMock is RpSafeMath {

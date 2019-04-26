@@ -1,6 +1,4 @@
-pragma solidity ^0.5.0;
-
-import "../basalt/interfaces/Engine.sol";
+pragma solidity ^0.5.6;
 
 
 /**
@@ -45,7 +43,7 @@ contract Cosigner {
         @return true if the cosigner accepts the liability
     */
     function requestCosign(
-        Engine engine,
+        address engine,
         uint256 index,
         bytes memory data,
         bytes memory oracleData
