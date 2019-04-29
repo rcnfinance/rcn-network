@@ -34,7 +34,6 @@ contract SafeMathTest {
 
         Assert.isFalse(success, "Call should fail");
 
-
         (success,) = address(safeMath).call(
             abi.encodeWithSelector(
                 safeMath.add.selector,
