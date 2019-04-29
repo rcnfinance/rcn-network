@@ -4,87 +4,131 @@ import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/SafeMath.sol";
-
-
-contract SafeMathMock {
-    using SafeMath for uint256;
-    function add(uint256 a, uint256 b) external returns (uint256 c) {
-        c = a.add(b);
-    }
-
-    function sub(uint256 a, uint256 b) external returns (uint256 c) {
-        c = a.sub(b);
-    }
-
-    function mult(uint256 a, uint256 b) external returns (uint256 c) {
-        c = a.mult(b);
-    }
-}
+import "../../contracts/test_utils/SafeMathMock.sol";
 
 
 contract SafeMathTest {
+    using SafeMath for uint256;
+
     SafeMathMock safeMath;
 
     constructor() public {
         safeMath = new SafeMathMock();
     }
 
-    function testCatchAddOverflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
-            address(safeMath),
+    function testAdd() external {
+        Assert.equal(uint256(0).add(0), 0, "");
+        Assert.equal(uint256(1).add(0), 1, "");
+        Assert.equal(uint256(0).add(1), 1, "");
+        Assert.equal(uint256(1).add(1), 2, "");
+
+        // Overflow tests
+        bool success;
+        (success,) = address(safeMath).call(
             abi.encodeWithSelector(
                 safeMath.add.selector,
-                uint256(2) ** uint256(255),
-                uint256(2) ** uint256(255)
+                2 ** 255,
+                2 ** 255
             )
         );
 
-        Assert.equal(success, 0, "Call should fail");
+        Assert.isFalse(success, "Call should fail");
+
+
+        (success,) = address(safeMath).call(
+            abi.encodeWithSelector(
+                safeMath.add.selector,
+                0 - 1,
+                1
+            )
+        );
+
+        Assert.isFalse(success, "Call should fail");
     }
 
-    function testCatchSubUnderflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
-            address(safeMath),
+    function testSub() external {
+        Assert.equal(uint256(0).sub(0), 0, "");
+        Assert.equal(uint256(1).sub(0), 1, "");
+        Assert.equal(uint256(1).sub(1), 0, "");
+
+        // Underflow tests
+        bool success;
+        (success,) = address(safeMath).call(
             abi.encodeWithSelector(
                 safeMath.sub.selector,
-                uint256(2),
-                uint256(3)
+                0,
+                1
             )
         );
 
-        Assert.equal(success, 0, "Call should fail");
+        Assert.isFalse(success, "Call should fail");
     }
 
-    function testCatchMultOverflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
-            address(safeMath),
+    function testMult() external {
+        Assert.equal(uint256(0).mult(1234), 0, "");
+        Assert.equal(uint256(1234).mult(0), 0, "");
+        Assert.equal(uint256(0).mult(0), 0, "");
+        Assert.equal(uint256(20).mult(10), 200, "");
+        Assert.equal(uint256(10).mult(20), 200, "");
+
+        // Overflow tests
+        bool success;
+        (success,) = address(safeMath).call(
             abi.encodeWithSelector(
                 safeMath.mult.selector,
-                uint256(2) ** uint256(255),
-                uint256(2)
+                0 - 1,
+                0 - 1
             )
         );
 
-        Assert.equal(success, 0, "Call should fail");
+        Assert.isFalse(success, "Call should fail");
     }
 
-    function _safeCall(
-        address _contract,
-        bytes memory _data
-    ) internal returns (uint256 success, bytes32 result) {
-        assembly {
-            let x := mload(0x40)
-            success := call(
-                            gas,                 // Send almost all gas
-                            _contract,            // To addr
-                            0,                    // Send ETH
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
+    function testDiv() external {
+        Assert.equal(uint256(0).div(1234), 0, "");
+        Assert.equal(uint256(10).div(3), 3, "");
+        Assert.equal(uint256(10).div(10), 1, "");
 
-            result := mload(x)
-        }
+        // Zero div tests
+        bool success;
+        (success,) = address(safeMath).call(
+            abi.encodeWithSelector(
+                safeMath.div.selector,
+                0,
+                0
+            )
+        );
+
+        Assert.isFalse(success, "Call should fail");
+    }
+
+    function testDivCeil() external {
+        Assert.equal(uint256(0).divceil(1234), 0, "");
+        Assert.equal(uint256(10).divceil(3), 4, "");
+        Assert.equal(uint256(10).divceil(10), 1, "");
+
+        // Zero div tests
+        bool success;
+        (success,) = address(safeMath).call(
+            abi.encodeWithSelector(
+                safeMath.divceil.selector,
+                0,
+                0
+            )
+        );
+
+        Assert.isFalse(success, "Call should fail");
+    }
+
+    function testMultDivCeil() external {
+        Assert.equal(uint256(0).multdivceil(20, 3), 0, "");
+        Assert.equal(uint256(20).multdivceil(0, 3), 0, "");
+        Assert.equal(uint256(34).multdivceil(13, 3), 148, "");
+        Assert.equal(uint256(10).multdivceil(20, 5), 40, "");
+        Assert.equal(uint256(10).multdivceil(10, 3), 34, "");
+        Assert.equal(uint256(20).multdivceil(10, 3), 67, "");
+        Assert.equal(uint256(30).multdivceil(30, 31), 30, "");
+        Assert.equal(uint256(30).multdivceil(32, 31), 31, "");
+        Assert.equal(uint256(32).multdivceil(32, 31), 34, "");
     }
 }
