@@ -41,6 +41,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event Deposited(uint256 indexed _id, uint256 _amount);
 
     event Started(uint256 indexed _id);
+
+    event CancelDebt(uint256 indexed _id, uint256 _obligation, uint256 _obligationInToken);
+    event CollateralBalance(uint256 indexed _id, uint256 _tokenPayRequired);
+    event ConvertPay(uint256 _toAmount, uint256 _fromAmount, bytes _oracleData);
+    event Rebuy(uint256 _toAmount, uint256 _fromAmount);
+
     event Redeemed(uint256 indexed _id);
 
     event SetUrl(string _url);
@@ -204,6 +210,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 _oracleData
             );
 
+            emit CancelDebt(id, obligation, obligationToken);
+
             change = true;
         }
 
@@ -223,6 +231,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 tokenPayRequired,
                 _oracleData
             );
+
+            emit CollateralBalance(id, tokenPayRequired);
 
             change = true;
         }
@@ -262,16 +272,19 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _oracleData
         );
 
+        emit ConvertPay(bought, sold, _oracleData);
+
         if (paidTokens < tokensToPay) {
             // Buy back extra collateral
-            entry.amount = entry.amount.add(
-                entry.converter.safeConvertFrom(
-                    token,
-                    entry.token,
-                    tokensToPay - paidTokens,
-                    0
-                )
+            sold = tokensToPay - paidTokens;
+            bought = entry.converter.safeConvertFrom(
+                token,
+                entry.token,
+                sold,
+                0
             );
+            entry.amount = entry.amount.add(bought);
+            emit Rebuy(bought, sold);
         }
     }
 
