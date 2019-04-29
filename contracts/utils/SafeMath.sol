@@ -14,8 +14,12 @@ library SafeMath {
     }
 
     function mult(uint256 x, uint256 y) internal pure returns (uint256) {
+        if (x == 0) {
+            return 0;
+        }
+
         uint256 z = x * y;
-        require((x == 0)||(z/x == y), "Mult overflow");
+        require(z/x == y, "Mult overflow");
         return z;
     }
 }
