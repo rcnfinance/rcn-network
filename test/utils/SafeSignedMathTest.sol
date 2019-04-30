@@ -123,6 +123,7 @@ contract SafeSignedMathTest {
             abi.encodeWithSelector(
                 safeSignedMath.muldiv.selector,
                 int256(0),
+                int256(0),
                 int256(0)
             )
         );
