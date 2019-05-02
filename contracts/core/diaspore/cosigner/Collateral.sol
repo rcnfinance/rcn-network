@@ -77,7 +77,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         TokenConverter _converter,
         uint32 _liquidationRatio
     ) external returns (uint256 id) {
-        require(_liquidationRatio > BASE, "The liquidation ratio should be grater than BASE");
+        require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
         require(_loanManager.getStatus(_loanId) == 0, "Loan request should be open");
 
         id = entries.push(

@@ -112,6 +112,45 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(await collateral.ownerOf(collateralId), creator);
         });
 
+        it('Try create a new collateral with a low liquidation ratio', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const collateralAmount = bn('0');
+            const liquidationRatio = bn('10000');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            await rcn.setBalance(creator, amount);
+            await rcn.approve(loanManager.address, amount, { from: creator });
+
+            await loanManager.lend(loanId, [], Helper.address0x, '0', [], { from: creator });
+
+            await Helper.tryCatchRevert(
+                () => collateral.create(
+                    loanManager.address,
+                    loanId,
+                    auxToken.address,
+                    collateralAmount,
+                    Helper.address0x,
+                    liquidationRatio,
+                    { from: creator }
+                ),
+                'The liquidation ratio should be greater than BASE'
+            );
+        });
+
         it('Try create a new collateral with a closed loan', async function () {
             const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1000');
