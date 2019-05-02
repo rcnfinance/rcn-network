@@ -2,8 +2,6 @@ pragma solidity ^0.5.6;
 
 
 library SafeCast {
-    using SafeCast for uint256;
-
     function toUint128(uint256 _a) internal pure returns (uint128) {
         require(_a < 2 ** 128, "cast overflow");
         return uint128(_a);
