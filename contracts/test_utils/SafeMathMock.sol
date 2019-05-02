@@ -2,6 +2,7 @@ pragma solidity ^0.5.6;
 
 import "../utils/SafeMath.sol";
 
+
 contract SafeMathMock {
     using SafeMath for uint256;
 
