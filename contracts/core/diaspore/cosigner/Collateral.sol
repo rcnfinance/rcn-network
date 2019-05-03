@@ -308,6 +308,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     // Collateral methods
+
+    /**
+        @param _id The index of entry, inside od entries array
+        @param _amount The amount in collateral Token
+
+        @return The _amount valuate in loanManager Token
+    */
     function valueCollateralToTokens(
         uint256 _id,
         uint256 _amount
@@ -332,6 +339,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
     }
 
+    /**
+        @param _id The index of entry, inside od entries array
+        @param _amount The amount in loanManager Token
+
+        @return The _amount valuate in collateral Token
+    */
     function valueTokensToCollateral(
         uint256 _id,
         uint256 _amount
@@ -356,12 +369,22 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
     }
 
+    /**
+        @param _id The index of entry, inside od entries array
+
+        @return The _amount of the entry valuate in collateral Token
+    */
     function collateralInTokens(
         uint256 _id
     ) public view returns (uint256) {
         return valueCollateralToTokens(_id, entries[_id].amount);
     }
 
+    /**
+        @param _id The index of entry, inside od entries array
+
+        @return The _amount of the debt valuate in loanManager Token
+    */
     function debtInTokens(
         uint256 _id,
         uint256 _rateTokens,
@@ -379,6 +402,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
     }
 
+    /**
+        @param _id The index of entry, inside od entries array
+
+        @return The ratio of the collateral vs the debt
+    */
     function collateralRatio(
         uint256 _id,
         uint256 _rateTokens,
@@ -392,6 +420,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         return collateralInTokens(_id).multdivceil(BASE, debt);
     }
 
+    /**
+        @param _id The index of entry, inside od entries array
+
+        @return The liquidation ratio minus collateral ratio
+    */
     function deltaRatio(
         uint256 _id,
         uint256 _rateTokens,
