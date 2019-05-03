@@ -619,7 +619,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 { from: creator }
             );
 
-            await model.setErrorFlag(loanId, 3, { from: owner });
+            await model.setErrorFlag(loanId, 4, { from: owner });
 
             await Helper.tryCatchRevert(
                 () => collateral.redeem(
