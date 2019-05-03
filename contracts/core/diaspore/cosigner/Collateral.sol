@@ -38,6 +38,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         address _converter,
         uint32 _liquidationRatio
     );
+
     event Deposited(uint256 indexed _id, uint256 _amount);
 
     event Started(uint256 indexed _id);
@@ -48,6 +49,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event Rebuy(uint256 _toAmount, uint256 _fromAmount);
 
     event Redeemed(uint256 indexed _id);
+    event EmergencyRedeemed(uint256 indexed _id, address _to);
 
     event SetUrl(string _url);
 
@@ -127,7 +129,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry storage entry = entries[_id];
         uint256 status = entry.loanManager.getStatus(entry.loanId);
 
-        // TODO Status ERROR
         require(status == 0 || status == 2, "Loan not request or paid");
         require(entry.token.safeTransfer(msg.sender, entry.amount), "Error sending tokens");
 
@@ -136,6 +137,24 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         delete entries[_id]; // TODO: Find best way to delete
 
         emit Redeemed(_id);
+    }
+
+    function emergencyRedeem(
+        uint256 _id,
+        address _to
+    ) external onlyOwner {
+        // Validate if the collateral can be redemed
+        Entry storage entry = entries[_id];
+        uint256 status = entry.loanManager.getStatus(entry.loanId);
+
+        require(status == 4, "Loan is not in error");
+        require(entry.token.safeTransfer(_to, entry.amount), "Error sending tokens");
+
+        // Destroy ERC721 collateral token
+        delete liabilities[address(entry.loanManager)][entry.loanId];
+        delete entries[_id]; // TODO: Find best way to delete
+
+        emit EmergencyRedeemed(_id, _to);
     }
 
     // ///
