@@ -94,7 +94,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             expect(Created._id).to.eq.BN(collateralId);
             assert.equal(Created._manager, loanManager.address);
-            assert.equal(Created._loanId, loanId);
+            assert.equal(Created._debtId, loanId);
             assert.equal(Created._token, auxToken.address);
             expect(Created._amount).to.eq.BN(collateralAmount);
             assert.equal(Created._converter, Helper.address0x);
@@ -105,7 +105,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.loanManager, loanManager.address);
             assert.equal(entry.converter, Helper.address0x);
             assert.equal(entry.token, auxToken.address);
-            assert.equal(entry.loanId, loanId);
+            assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevAuxTokenBal.add(collateralAmount));
@@ -186,7 +186,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     liquidationRatio,
                     { from: creator }
                 ),
-                'Loan request should be open'
+                'Debt request should be open'
             );
         });
 
@@ -281,7 +281,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.loanManager, loanManager.address);
             assert.equal(entry.converter, Helper.address0x);
             assert.equal(entry.token, auxToken.address);
-            assert.equal(entry.loanId, loanId);
+            assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(depositAmount);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevAuxTokenBal.add(depositAmount));
@@ -388,7 +388,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.loanManager, Helper.address0x);
             assert.equal(entry.converter, Helper.address0x);
             assert.equal(entry.token, Helper.address0x);
-            assert.equal(entry.loanId, Helper.bytes320x);
+            assert.equal(entry.debtId, Helper.bytes320x);
             expect(entry.amount).to.eq.BN(0);
 
             expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(0);
@@ -474,7 +474,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.loanManager, Helper.address0x);
             assert.equal(entry.converter, Helper.address0x);
             assert.equal(entry.token, Helper.address0x);
-            assert.equal(entry.loanId, Helper.bytes320x);
+            assert.equal(entry.debtId, Helper.bytes320x);
             expect(entry.amount).to.eq.BN(0);
 
             expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(0);
@@ -572,7 +572,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     collateralId,
                     { from: creator }
                 ),
-                'Loan not request or paid'
+                'Debt not request or paid'
             );
         });
 
@@ -626,7 +626,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     collateralId,
                     { from: creator }
                 ),
-                'Loan not request or paid'
+                'Debt not request or paid'
             );
         });
     });
@@ -701,7 +701,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.loanManager, Helper.address0x);
             assert.equal(entry.converter, Helper.address0x);
             assert.equal(entry.token, Helper.address0x);
-            assert.equal(entry.loanId, Helper.bytes320x);
+            assert.equal(entry.debtId, Helper.bytes320x);
             expect(entry.amount).to.eq.BN(0);
 
             expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(0);
@@ -801,7 +801,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     creator,
                     { from: owner }
                 ),
-                'Loan is not in error'
+                'Debt is not in error'
             );
         });
     });
@@ -891,7 +891,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.loanManager, loanManager.address);
             assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
-            assert.equal(entry.loanId, loanId);
+            assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(amount));
 
             expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
@@ -984,7 +984,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.loanManager, loanManager.address);
             assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
-            assert.equal(entry.loanId, loanId);
+            assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(equilibrateAmount));
 
             expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
