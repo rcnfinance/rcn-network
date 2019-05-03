@@ -40,6 +40,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     );
 
     event Deposited(uint256 indexed _id, uint256 _amount);
+    event Withdrawed(uint256 indexed _id, address _to, uint256 _amount);
 
     event Started(uint256 indexed _id);
 
@@ -117,6 +118,29 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         entry.amount = entry.amount.add(_amount);
 
         emit Deposited(_id, _amount);
+    }
+
+    function withdraw(
+        uint256 _id,
+        address _to,
+        uint256 _amount,
+        bytes calldata   _oracleData
+    ) external {
+        // Validate ownership of collateral
+        require(_isAuthorized(msg.sender, _id), "Sender not authorized");
+
+        Entry storage entry = entries[_id];
+
+        // Read oracle
+        (uint256 rateTokens, uint256 rateEquivalent) = entry.loanManager.readOracle(entry.debtId, _oracleData);
+
+        require(_amount.toInt256() < canWithdraw(_id, rateTokens, rateEquivalent), "Dont have collateral to withdraw");
+
+        require(entry.token.safeTransfer(_to, _amount), "Error sending tokens");
+
+        entry.amount = entry.amount.sub(_amount);
+
+        emit Withdrawed(_id, _to, _amount);
     }
 
     function redeem(
