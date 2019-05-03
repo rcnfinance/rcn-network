@@ -98,7 +98,7 @@ contract SafeCastTest {
         bool success;
         (success,) = address(safeCast).call(
             abi.encodeWithSelector(
-                safeCast.toUint256.selector,
+                safeCast.toInt256.selector,
                 int256(minInt256)
             )
         );
@@ -107,7 +107,7 @@ contract SafeCastTest {
 
         (success,) = address(safeCast).call(
             abi.encodeWithSelector(
-                safeCast.toUint256.selector,
+                safeCast.toInt256.selector,
                 int256(signedOneInt256)
             )
         );
@@ -116,7 +116,7 @@ contract SafeCastTest {
 
         (success,) = address(safeCast).call(
             abi.encodeWithSelector(
-                safeCast.toUint256.selector,
+                safeCast.toInt256.selector,
                 int256(-25648)
             )
         );
