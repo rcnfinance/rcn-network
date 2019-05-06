@@ -334,6 +334,179 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         });
     });
 
+    describe('Function withdraw', function () {
+        it('Should withdraw an amount of an entry', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const collateralAmount = bn('6542');
+            const liquidationRatio = bn('15000');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await auxToken.setBalance(creator, collateralAmount);
+            await auxToken.approve(collateral.address, collateralAmount, { from: creator });
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                collateralAmount,
+                Helper.address0x,
+                liquidationRatio,
+                { from: creator }
+            );
+
+            const withdrawAmount = bn('1000');
+
+            const prevCollateralBal = await auxToken.balanceOf(collateral.address);
+            const prevLenderBal = await auxToken.balanceOf(lender);
+
+            const Withdrawed = await Helper.toEvents(
+                collateral.withdraw(
+                    collateralId,
+                    lender,
+                    withdrawAmount,
+                    [],
+                    { from: creator }
+                ),
+                'Withdrawed'
+            );
+
+            expect(Withdrawed._id).to.eq.BN(collateralId);
+            assert.equal(Withdrawed._to, lender);
+            expect(Withdrawed._amount).to.eq.BN(withdrawAmount);
+
+            const entry = await collateral.entries(collateralId);
+            expect(entry.liquidationRatio).to.eq.BN(15000);
+            assert.equal(entry.loanManager, loanManager.address);
+            assert.equal(entry.converter, Helper.address0x);
+            assert.equal(entry.token, auxToken.address);
+            assert.equal(entry.debtId, loanId);
+            expect(entry.amount).to.eq.BN(collateralAmount.sub(withdrawAmount));
+
+            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(withdrawAmount));
+            expect(await auxToken.balanceOf(lender)).to.eq.BN(prevLenderBal.add(withdrawAmount));
+            assert.equal(await collateral.ownerOf(collateralId), creator);
+        });
+
+        it('Try withdraw an entry without have collateral balance', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const liquidationRatio = bn('15000');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                0,
+                Helper.address0x,
+                liquidationRatio,
+                { from: creator }
+            );
+
+            await Helper.tryCatchRevert(
+                () => collateral.withdraw(
+                    collateralId,
+                    lender,
+                    bn('2').pow(bn(bn('127'))),
+                    [],
+                    { from: creator }
+                ),
+                'Dont have collateral to withdraw'
+            );
+
+            await Helper.tryCatchRevert(
+                () => collateral.withdraw(
+                    collateralId,
+                    lender,
+                    bn('1'),
+                    [],
+                    { from: creator }
+                ),
+                'Dont have collateral to withdraw'
+            );
+        });
+
+        it('Try withdraw an entry without be an authorized', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const collateralAmount = bn('6542');
+            const liquidationRatio = bn('15000');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await auxToken.setBalance(creator, collateralAmount);
+            await auxToken.approve(collateral.address, collateralAmount, { from: creator });
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                collateralAmount,
+                Helper.address0x,
+                liquidationRatio,
+                { from: creator }
+            );
+
+            await Helper.tryCatchRevert(
+                () => collateral.withdraw(
+                    collateralId,
+                    lender,
+                    bn('0'),
+                    [],
+                    { from: lender }
+                ),
+                'Sender not authorized'
+            );
+        });
+    });
+
     describe('Function redeem', function () {
         it('Should redeem an entry with a not request loan', async function () {
             const salt = bn(web3.utils.randomHex(32));
