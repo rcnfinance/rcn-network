@@ -334,7 +334,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     // Collateral methods
 
     /**
-        @param _id The index of entry, inside od entries array
+        @param _id The index of entry, inside of entries array
         @param _amount The amount in collateral Token
 
         @return The _amount valuate in loanManager Token
@@ -364,7 +364,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _id The index of entry, inside od entries array
+        @param _id The index of entry, inside of entries array
         @param _amount The amount in loanManager Token
 
         @return The _amount valuate in collateral Token
@@ -394,7 +394,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _id The index of entry, inside od entries array
+        @param _id The index of entry, inside of entries array
 
         @return The _amount of the entry valuate in collateral Token
     */
@@ -405,7 +405,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _id The index of entry, inside od entries array
+        @param _id The index of entry, inside of entries array
 
         @return The _amount of the debt valuate in loanManager Token
     */
@@ -427,7 +427,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _id The index of entry, inside od entries array
+        @param _id The index of entry, inside of entries array
 
         @return The ratio of the collateral vs the debt
     */
@@ -445,9 +445,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _id The index of entry, inside od entries array
+        @param _id The index of entry, inside of entries array
 
-        @return The liquidation ratio minus collateral ratio
+        @return The collateral ratio minus the liquidation ratio
     */
     function deltaRatio(
         uint256 _id,
