@@ -398,8 +398,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(withdrawAmount));
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
-
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(withdrawAmount));
             expect(await auxToken.balanceOf(lender)).to.eq.BN(prevLenderBal.add(withdrawAmount));
             assert.equal(await collateral.ownerOf(collateralId), creator);
@@ -1162,6 +1160,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(equilibrateAmount));
             assert.equal(await collateral.ownerOf(collateralId), creator);
+
+            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
 
             expect(await model.getClosingObligation(loanId)).to.eq.BN(amount.sub(equilibrateAmount));
             assert.isTrue((await model.getStatus.call(loanId)).toString() === '1');
