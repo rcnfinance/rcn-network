@@ -1160,8 +1160,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(equilibrateAmount));
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
-
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(equilibrateAmount));
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
