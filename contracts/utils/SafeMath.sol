@@ -2,6 +2,8 @@ pragma solidity ^0.5.6;
 
 
 library SafeMath {
+    using SafeMath for uint256;
+
     function add(uint256 x, uint256 y) internal pure returns (uint256) {
         uint256 z = x + y;
         require(z >= x, "Add overflow");
@@ -22,5 +24,17 @@ library SafeMath {
     function div(uint256 x, uint256 y) internal pure returns (uint256) {
         require(y != 0, "Div by zero");
         return x / y;
+    }
+
+    function divceil(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        require(y != 0, "Div by zero");
+        z = x / y;
+        if (x % y != 0) {
+            return z + 1;
+        }
+    }
+
+    function multdivceil(uint256 x, uint256 y, uint256 z) internal pure returns (uint256) {
+        return x.mult(y).divceil(z);
     }
 }
