@@ -134,7 +134,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // Read oracle
         (uint256 rateTokens, uint256 rateEquivalent) = entry.loanManager.readOracle(entry.debtId, _oracleData);
 
-        require(_amount.toInt256() < canWithdraw(_id, rateTokens, rateEquivalent), "Dont have collateral to withdraw");
+        require(_amount.toInt256() =< canWithdraw(_id, rateTokens, rateEquivalent), "Dont have collateral to withdraw");
 
         require(entry.token.safeTransfer(_to, _amount), "Error sending tokens");
 
