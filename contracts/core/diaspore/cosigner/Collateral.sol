@@ -441,7 +441,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             return 0;
         }
 
-        return collateralInTokens(_id).multdivceil(BASE, debt);
+        return collateralInTokens(_id).mult(BASE).div(debt);
     }
 
     /**
