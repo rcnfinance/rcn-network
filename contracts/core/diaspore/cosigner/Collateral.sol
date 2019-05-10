@@ -44,10 +44,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event Started(uint256 indexed _id);
 
-    event CancelDebt(uint256 indexed _id, uint256 _obligation, uint256 _obligationInToken);
+    event CancelDebt(uint256 indexed _id, uint256 _obligationInToken);
     event CollateralBalance(uint256 indexed _id, uint256 _tokenPayRequired);
-    event ConvertPay(uint256 _toAmount, uint256 _fromAmount, bytes _oracleData);
-    event Rebuy(uint256 _toAmount, uint256 _fromAmount);
+    event ConvertPay(uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
+    event Rebuy(uint256 _fromAmount, uint256 _toAmount);
 
     event Redeemed(uint256 indexed _id);
     event EmergencyRedeemed(uint256 indexed _id, address _to);
@@ -244,16 +244,16 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             // Run payment of debt, use collateral to buy tokens
             (uint256 obligation,) = model.getObligation(debtId, uint64(dueTime));
             uint256 obligationToken = loanManager.amountToToken(debtId, _oracleData, obligation);
+
             _convertPay(
                 id,
                 loanManager,
                 debtId,
-                obligation,
                 obligationToken,
                 _oracleData
             );
 
-            emit CancelDebt(id, obligation, obligationToken);
+            emit CancelDebt(id, obligationToken);
 
             change = true;
         }
@@ -271,7 +271,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 loanManager,
                 debtId,
                 tokenPayRequired,
-                tokenPayRequired,
                 _oracleData
             );
 
@@ -285,8 +284,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _id,
         LoanManager _loanManager,
         bytes32 _debtId,
-        uint256 _collateralReturn,
-        uint256 _tokenReturn,
+        uint256 _tokenPayRequired,
         bytes memory _oracleData
     ) internal {
         // Load collateral entry
@@ -300,10 +298,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entry.token,
             token,
             entry.amount,
-            _collateralReturn
+            _tokenPayRequired
         );
 
-        uint256 tokensToPay = Math.min(bought, _tokenReturn);
+        uint256 tokensToPay = Math.min(bought, _tokenPayRequired);
 
         entry.amount = entry.amount.sub(sold);
 
@@ -315,7 +313,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _oracleData
         );
 
-        emit ConvertPay(bought, sold, _oracleData);
+        emit ConvertPay(sold, bought, _oracleData);
 
         if (paidTokens < tokensToPay) {
             // Buy back extra collateral
@@ -327,7 +325,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 0
             );
             entry.amount = entry.amount.add(bought);
-            emit Rebuy(bought, sold);
+            emit Rebuy(sold, bought);
         }
     }
 
@@ -441,7 +439,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             return 0;
         }
 
-        return collateralInTokens(_id).multdivceil(BASE, debt);
+        return collateralInTokens(_id).mult(BASE).div(debt);
     }
 
     /**
