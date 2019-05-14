@@ -6,8 +6,8 @@ import "../../commons/Ownable.sol";
 contract Registry is Ownable {
 
     struct Entry  {
-        address storedAddress;
         bool saved;
+        address storedAddress;
     }
     
     mapping (bytes32 => Entry) public storedAddresses;
