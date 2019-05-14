@@ -14,7 +14,7 @@ contract Registry is Ownable {
     string[] public keys;
 
     event NewAddress(string _nameKey, address indexed _newAddress);
-    event ChangedAddress(string _nameKey, address indexed _oldAddress, address indexed _newAddress);
+    event ChangeAddress(string _nameKey, address indexed _oldAddress, address indexed _newAddress);
 
     /**
      * @notice Gets the entry
@@ -57,9 +57,9 @@ contract Registry is Ownable {
      */
     function changeAddress(string calldata _nameKey, address _newAddress) external onlyOwner {
         bytes32 key = keccak256(bytes(_nameKey));
-        require(storedAddresses[key].saved, "The key already exist in addresses mapping");
+        require(storedAddresses[key].saved, "The key does not exist in the address mapping");
         storedAddresses[key].storedAddress = _newAddress;
-        emit ChangedAddress(_nameKey, storedAddresses[key].storedAddress, _newAddress);
+        emit ChangeAddress(_nameKey, storedAddresses[key].storedAddress, _newAddress);
     }
 
 }
