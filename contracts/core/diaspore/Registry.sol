@@ -46,7 +46,7 @@ contract Registry is Ownable {
         bytes32 key = keccak256(bytes(_nameKey));
         require(!storedAddresses[key].saved, "The key exist in addresses mapping");
         keys.push(_nameKey);
-        storedAddresses[key] = Entry(_newAddress, true);
+        storedAddresses[key] = Entry(true, _newAddress);
         emit NewAddress(_nameKey, _newAddress);
     }
 
