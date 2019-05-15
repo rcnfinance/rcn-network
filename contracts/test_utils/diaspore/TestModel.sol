@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.6;
+pragma solidity ^0.5.7;
 
 import "../../commons/ERC165.sol";
 import "../../commons/Ownable.sol";
