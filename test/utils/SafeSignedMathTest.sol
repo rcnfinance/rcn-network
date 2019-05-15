@@ -52,7 +52,6 @@ contract SafeSignedMathTest {
         Assert.equal(int256(-123).sub(0), -123, "");
 
         // Underflow tests
-        int256 aux = int256((2 ** 128) - 1) - int256(1);
         bool success;
         (success,) = address(safeSignedMath).call(
             abi.encodeWithSelector(
