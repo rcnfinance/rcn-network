@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.7;
+pragma solidity ^0.5.8;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";

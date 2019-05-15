@@ -1,4 +1,4 @@
-pragma solidity ^0.5.7;
+pragma solidity ^0.5.8;
 
 import "../utils/SafeMath.sol";
 import "./ERC165.sol";
