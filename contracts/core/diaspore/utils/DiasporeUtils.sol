@@ -18,14 +18,18 @@ library DiasporeUtils {
         bytes32 _id,
         bytes memory _oracleData,
         uint256 _amount
-    ) internal returns (uint256) {
+    ) internal returns (uint256 amountInToken) {
         RateOracle oracle = RateOracle(_manager.getOracle(_id));
 
         if (address(oracle) == address(0)) {
             return _amount;
         } else {
             (uint256 tokens, uint256 equivalent) = oracle.readSample(_oracleData);
-            return (tokens * _amount).divceil(equivalent);
+            amountInToken = tokens * _amount;
+            if (amountInToken % equivalent == 0)
+                amountInToken = amountInToken / equivalent;
+            else
+                amountInToken = (amountInToken / equivalent) + 1;
         }
     }
 
