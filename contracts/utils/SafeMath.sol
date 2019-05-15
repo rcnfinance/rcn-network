@@ -26,15 +26,8 @@ library SafeMath {
         return x / y;
     }
 
-    function divceil(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        require(y != 0, "Div by zero");
-        z = x / y;
-        if (x % y != 0) {
-            return z + 1;
-        }
-    }
-
-    function multdivceil(uint256 x, uint256 y, uint256 z) internal pure returns (uint256) {
-        return x.mult(y).divceil(z);
+    function multdiv(uint256 x, uint256 y, uint256 z) internal pure returns (uint256) {
+        require(z != 0, "div by zero");
+        return x.mult(y) / z;
     }
 }

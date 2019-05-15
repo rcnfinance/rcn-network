@@ -22,11 +22,7 @@ contract SafeMathMock {
         c = a.div(b);
     }
 
-    function divceil(uint256 a, uint256 b) external returns (uint256 c) {
-        c = a.divceil(b);
-    }
-
-    function multdivceil(uint256 a, uint256 b, uint256 c) external returns (uint256 d) {
-        d = a.multdivceil(b, c);
+    function multdiv(uint256 a, uint256 b, uint256 c) external returns (uint256 d) {
+        d = a.multdiv(b, c);
     }
 }

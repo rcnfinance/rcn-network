@@ -101,33 +101,27 @@ contract SafeMathTest {
         Assert.isFalse(success, "Call should fail");
     }
 
-    function testDivCeil() external {
-        Assert.equal(uint256(0).divceil(1234), 0, "");
-        Assert.equal(uint256(10).divceil(3), 4, "");
-        Assert.equal(uint256(10).divceil(10), 1, "");
+    function testMultDiv() external {
+        Assert.equal(uint256(0).multdiv(20, 3), 0, "");
+        Assert.equal(uint256(20).multdiv(0, 3), 0, "");
+        Assert.equal(uint256(34).multdiv(13, 3), 147, "");
+        Assert.equal(uint256(10).multdiv(20, 5), 40, "");
+        Assert.equal(uint256(10).multdiv(10, 3), 33, "");
+        Assert.equal(uint256(20).multdiv(10, 3), 66, "");
+        Assert.equal(uint256(30).multdiv(30, 31), 29, "");
+        Assert.equal(uint256(30).multdiv(32, 31), 30, "");
+        Assert.equal(uint256(32).multdiv(32, 31), 33, "");
 
         // Zero div tests
         bool success;
         (success,) = address(safeMath).call(
             abi.encodeWithSelector(
-                safeMath.divceil.selector,
+                safeMath.div.selector,
                 0,
                 0
             )
         );
 
         Assert.isFalse(success, "Call should fail");
-    }
-
-    function testMultDivCeil() external {
-        Assert.equal(uint256(0).multdivceil(20, 3), 0, "");
-        Assert.equal(uint256(20).multdivceil(0, 3), 0, "");
-        Assert.equal(uint256(34).multdivceil(13, 3), 148, "");
-        Assert.equal(uint256(10).multdivceil(20, 5), 40, "");
-        Assert.equal(uint256(10).multdivceil(10, 3), 34, "");
-        Assert.equal(uint256(20).multdivceil(10, 3), 67, "");
-        Assert.equal(uint256(30).multdivceil(30, 31), 30, "");
-        Assert.equal(uint256(30).multdivceil(32, 31), 31, "");
-        Assert.equal(uint256(32).multdivceil(32, 31), 34, "");
     }
 }
