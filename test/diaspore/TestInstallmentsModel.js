@@ -877,4 +877,27 @@ contract('Installments model', function (accounts) {
         const modelId = 0x00000000000000496e7374616c6c6d656e74734d6f64656c204120302e302e32;
         assert.equal(await model.modelId(), modelId);
     });
+
+    function tableTest(data) {
+        return async function() {
+            const dateColumn = 1;
+            const installmendDebt = 3;
+
+            var clock = 0;
+
+            for (row in data) {
+                // Parse date to unix timestamp
+                const unixDate = new Date(row[dateColumn]).getTime() / 1000;
+
+                // If clock is not initialized, start with first date
+                if (clock === 0) {
+                    clock = unixDate;
+                } else {
+                    // Advance time and update clock
+                    await Helper.increaseTime(unixDate - clock);
+                    clock = unixDate;
+                }
+            }
+        }
+    }
 });
