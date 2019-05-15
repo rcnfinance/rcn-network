@@ -36,7 +36,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         address _token,
         uint256 _amount,
         address _converter,
-        uint32 _liquidationRatio
+        uint32 _liquidationRatio,
+        uint32 _balanceRatio
     );
 
     event Deposited(uint256 indexed _id, uint256 _amount);
@@ -61,6 +62,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     struct Entry {
         uint32 liquidationRatio;
+        uint32 balanceRatio;
         LoanManager loanManager;
         TokenConverter converter;
         IERC20 token;
@@ -78,14 +80,17 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         IERC20 _token,
         uint256 _amount,
         TokenConverter _converter,
-        uint32 _liquidationRatio
+        uint32 _liquidationRatio,
+        uint32 _balanceRatio
     ) external returns (uint256 id) {
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
+        require(_balanceRatio > _liquidationRatio, "The balance ratio should be greater than liquidation ratio");
         require(_loanManager.getStatus(_debtId) == 0, "Debt request should be open");
 
         id = entries.push(
             Entry(
                 _liquidationRatio,
+                _balanceRatio,
                 _loanManager,
                 _converter,
                 _token,
@@ -104,7 +109,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             address(_token),
             _amount,
             address(_converter),
-            _liquidationRatio
+            _liquidationRatio,
+            _balanceRatio
         );
     }
 
@@ -331,6 +337,118 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     // Collateral methods
 
+    function tokensToPay(
+        uint256 _id,
+        uint256 _rateTokens,
+        uint256 _rateEquivalent
+    ) public view returns (uint256) {
+        return valueCollateralToTokens(
+            _id,
+            collateralToPay(
+                _id,
+                _rateTokens,
+                _rateEquivalent
+            )
+        );
+    }
+
+    function collateralToPay(
+        uint256 _id,
+        uint256 _rateTokens,
+        uint256 _rateEquivalent
+    ) public view returns (uint256) {
+        int256 cwithdraw = canWithdraw(_id, _rateTokens, _rateEquivalent);
+        if (cwithdraw >= 0) {
+            return 0;
+        }
+
+        Entry storage entry = entries[_id];
+        uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
+        return Math.min(
+            _collateralRequiredToBalance(cwithdraw, entry.balanceRatio),
+            entry.amount,
+            valueTokensToCollateral(_id, debt)
+        );
+    }
+
+    function _collateralRequiredToBalance(
+        int256 _cwithdraw,
+        uint256 _ratio
+    ) internal view returns(uint256) {
+        return _cwithdraw.abs().toUint256().multdiv(BASE, _ratio - BASE);
+    }
+
+    function canWithdraw(
+        uint256 _id,
+        uint256 _rateTokens,
+        uint256 _rateEquivalent
+    ) public view returns (int256) {
+        int256 ratio = collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256();
+        int256 collateral = entries[_id].amount.toInt256();
+
+        if (ratio == 0) {
+            return collateral;
+        }
+        int256 delta = balanceDeltaRatio(_id, _rateTokens, _rateEquivalent);
+
+        return collateral.muldiv(delta, ratio);
+    }
+
+    /**
+        @param _id The index of entry, inside of entries array
+
+        @return The collateral ratio minus the liquidation ratio
+    */
+    function liquidationDeltaRatio(
+        uint256 _id,
+        uint256 _rateTokens,
+        uint256 _rateEquivalent
+    ) public view returns (int256) {
+        return collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256().sub(uint256(entries[_id].liquidationRatio).toInt256());
+    }
+
+    /**
+        @param _id The index of entry, inside of entries array
+
+        @return The collateral ratio minus the balance ratio
+    */
+    function balanceDeltaRatio(
+        uint256 _id,
+        uint256 _rateTokens,
+        uint256 _rateEquivalent
+    ) public view returns (int256) {
+        return collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256().sub(uint256(entries[_id].balanceRatio).toInt256());
+    }
+
+    /**
+        @param _id The index of entry, inside of entries array
+
+        @return The ratio of the collateral vs the debt
+    */
+    function collateralRatio(
+        uint256 _id,
+        uint256 _rateTokens,
+        uint256 _rateEquivalent
+    ) public view returns (uint256) {
+        uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
+        if (debt == 0) {
+            return 0;
+        }
+
+        return collateralInTokens(_id).multdiv(BASE, debt);
+    }
+
+    /**
+        @param _id The index of entry, inside of entries array
+
+        @return The _amount of the entry valuate in collateral Token
+    */
+    function collateralInTokens(
+        uint256 _id
+    ) public view returns (uint256) {
+        return valueCollateralToTokens(_id, entries[_id].amount);
+    }
+
     /**
         @param _id The index of entry, inside of entries array
         @param _amount The amount in collateral Token
@@ -394,17 +512,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     /**
         @param _id The index of entry, inside of entries array
 
-        @return The _amount of the entry valuate in collateral Token
-    */
-    function collateralInTokens(
-        uint256 _id
-    ) public view returns (uint256) {
-        return valueCollateralToTokens(_id, entries[_id].amount);
-    }
-
-    /**
-        @param _id The index of entry, inside of entries array
-
         @return The _amount of the debt valuate in loanManager Token
     */
     function debtInTokens(
@@ -420,94 +527,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if (_rateTokens == 0 && _rateEquivalent == 0) {
             return debt;
         } else {
-            return _rateTokens.multdivceil(debt, _rateEquivalent);
+            return debt.multdiv(_rateTokens, _rateEquivalent);
         }
-    }
-
-    /**
-        @param _id The index of entry, inside of entries array
-
-        @return The ratio of the collateral vs the debt
-    */
-    function collateralRatio(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public view returns (uint256) {
-        uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
-        if (debt == 0) {
-            return 0;
-        }
-
-        return collateralInTokens(_id).mult(BASE).div(debt);
-    }
-
-    /**
-        @param _id The index of entry, inside of entries array
-
-        @return The collateral ratio minus the liquidation ratio
-    */
-    function deltaRatio(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public view returns (int256) {
-        return collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256().sub(uint256(entries[_id].liquidationRatio).toInt256());
-    }
-
-    function canWithdraw(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public view returns (int256) {
-        int256 ratio = collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256();
-        int256 collateral = entries[_id].amount.toInt256();
-        if (ratio == 0) {
-            return collateral;
-        }
-        int256 delta = deltaRatio(_id, _rateTokens, _rateEquivalent);
-        return collateral.muldivceil(delta, ratio);
-    }
-
-    function collateralToPay(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public view returns (uint256) {
-        int256 cwithdraw = canWithdraw(_id, _rateTokens, _rateEquivalent);
-        if (cwithdraw >= 0) {
-            return 0;
-        }
-
-        Entry storage entry = entries[_id];
-        uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
-
-        return Math.min(
-            _collateralRequiredToBalance(cwithdraw, entry.liquidationRatio),
-            entry.amount,
-            valueTokensToCollateral(_id, debt)//todo venta
-        );
-    }
-
-    function _collateralRequiredToBalance(
-        int256 _cwithdraw,
-        uint256 _ratio
-    ) internal view returns(uint256) {
-        return _cwithdraw.abs().toUint256().multdivceil(BASE, _ratio - BASE);
-    }
-
-    function tokensToPay(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public view returns (uint256) {
-        return valueCollateralToTokens(
-            _id,
-            collateralToPay(
-                _id,
-                _rateTokens,
-                _rateEquivalent
-            )
-        );
     }
 }
