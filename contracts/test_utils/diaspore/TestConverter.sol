@@ -41,7 +41,7 @@ contract TestConverter is TokenConverter {
     ) internal view returns (uint256 toAmount, uint256 rate) {
         rate = fromToRate[address(_fromToken)][address(_toToken)];
         require(rate != 0, "The rate should not be 0");
-        toAmount = (rate * _fromAmount) / WEI;
+        toAmount = rate * _fromAmount / WEI;
     }
 
     function convertFrom(
@@ -64,11 +64,16 @@ contract TestConverter is TokenConverter {
         uint256 _toAmount
     ) external returns (uint256) {
         uint256 rate = fromToRate[address(_fromToken)][address(_toToken)];
-        uint256 fromAmount = (_toAmount * WEI) / rate;
+        uint256 fromAmount = divceil(_toAmount * WEI, rate);
 
         require(_fromToken.safeTransferFrom(msg.sender, address(this), fromAmount), "Error pulling tokens");
         require(_toToken.safeTransfer(msg.sender, _toAmount), "Error pulling tokens");
         emit ConvertTo(_fromToken, _toToken, fromAmount, _toAmount, rate);
         return fromAmount;
+    }
+
+    function divceil(uint256 x, uint256 y) internal pure returns(uint256 z) {
+        z = x / y;
+        z = x % y == 0 ? z : z + 1;
     }
 }
