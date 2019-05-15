@@ -45,6 +45,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event Started(uint256 indexed _id);
 
+    event PayOffDebt(uint256 indexed _id, uint256 _closingObligationToken);
     event CancelDebt(uint256 indexed _id, uint256 _obligationInToken);
     event CollateralBalance(uint256 indexed _id, uint256 _tokenPayRequired);
     event ConvertPay(uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
@@ -185,6 +186,30 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         delete entries[_id]; // TODO: Find best way to delete
 
         emit EmergencyRedeemed(_id, _to);
+    }
+
+    function payOffDebt(
+        uint256 _id
+    ) external {
+        require(_isAuthorized(msg.sender, _id), "The sender its not authorized");
+        Entry storage entry = entries[_id];
+        bytes32 debtId = entry.debtId;
+        LoanManager loanManager = entry.loanManager;
+
+        Model model = Model(loanManager.getModel(_debtId));
+
+        uint256 closingObligation = model.getClosingObligation(debtId);
+        uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, obligation);
+
+        _convertPay(
+            id,
+            loanManager,
+            debtId,
+            closingObligationToken,
+            _oracleData
+        );
+
+        emit PayOffDebt(id, closingObligationToken);
     }
 
     // ///
