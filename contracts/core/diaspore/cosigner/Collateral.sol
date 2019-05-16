@@ -189,27 +189,27 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     function payOffDebt(
-        uint256 _id
+        uint256 _id,
+        bytes calldata _oracleData
     ) external {
         require(_isAuthorized(msg.sender, _id), "The sender its not authorized");
         Entry storage entry = entries[_id];
         bytes32 debtId = entry.debtId;
         LoanManager loanManager = entry.loanManager;
-
-        Model model = Model(loanManager.getModel(_debtId));
+        Model model = Model(loanManager.getModel(uint256(debtId)));
 
         uint256 closingObligation = model.getClosingObligation(debtId);
-        uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, obligation);
+        uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
 
         _convertPay(
-            id,
+            _id,
             loanManager,
             debtId,
             closingObligationToken,
             _oracleData
         );
 
-        emit PayOffDebt(id, closingObligationToken);
+        emit PayOffDebt(_id, closingObligationToken);
     }
 
     // ///
