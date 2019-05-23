@@ -51,8 +51,8 @@
     "ganache-cli": "^6.4.3",
     "ganache-cli-coverage": "agusx1211/ganache-cli#coverage",
     "solidity-coverage": "rotcivegaf/solidity-coverage",
-    "truffle": "^5.0.0",
     "solium": "^1.2.4",
+    "truffle": "5.0.12",
     "truffle-hdwallet-provider": "0.0.5",
     "web3": "^1.0.0-beta.36"
   }
