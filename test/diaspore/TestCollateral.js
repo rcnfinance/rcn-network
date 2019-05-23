@@ -2158,32 +2158,65 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
 
     describe('Functional test', function () {
-        // Debt in Token, collateral in Token
-        it('Test 0.0', cTest(1, 1, 12000, 15000, 1000, 1100, 1));
-        it('Test 0.1', cTest(1, 1, 15000, 20000, 1000, 1100, 1));
-        it('Test 0.2', cTest(1, 1, 15000, 20000, 9000000, 11000000, 1));
-        it('Test 0.3', cTest(1, 1, 15000, 20000, 600, 600, 1));
-        it('Test 0.4', cTest(1, 1, 12345, 23456, 300, 200, 1));
-        // Debt in Token
-        it('Test 1.0', cTest(1, 1, 15000, 20000, 200, 450, 2));
-        it('Test 1.1', cTest(1, 1, 15000, 20000, 200, 600, 0.45));
-        it('Test 1.2', cTest(1, 1, 15000, 20000, 300, 600, 0.50));
-        it('Test 1.3', cTest(1, 1, 90000, 100000, 2000, 6000, 0.50));
-        it('Test 1.4', cTest(1, 1, 15000, 20000, 200, 201, 2.00));
-        it('Test 1.5', cTest(1, 1, 15000, 20000, 310, 600, 0.50));
-        it('Test 1.6', cTest(1, 1, 15000, 20000, 310, 930, 2.00));
-        it('Test 1.7', cTest(1, 1, 15000, 20000, 310, 930, 0.40));
-        // Collateral in Token
-        it('Test 2.0', cTest(5, 1, 12345, 15678, 100, 600, 1.00));
-        it('Test 2.1', cTest(1, 2, 17110, 20000, 1200, 600, 1.00));
-        it('Test 2.2', cTest(2, 7, 16500, 20000, 100, 600, 1.00));
-        it('Test 2.3', cTest(1, 2, 11000, 20000, 100, 600, 1.00));
-        it('Test 2.4', cTest(1, 2, 11000, 20000, 1000, 100, 1.00));
+        const ratesMsg = [
+            'Debt in Token, debt Token and collateral Token are the same',
+            'Debt in Token, debt Token and collateral Token are different',
+            'Debt use oracle, debt Token and collateral Token are the same',
+            'Debt use oracle, debt Token and collateral Token are different',
+        ];
+        const paths = [
+            'collateral require to balance',
+            'entry amount',
+            'debt amount',
+        ];
 
-        it('Test 3.0', cTest(1, 2, 11000, 20000, 1000, 100, 0.50));
-        it('Test 3.1', cTest(1, 4, 11000, 20000, 4000, 1500, 1.50));
-        it('Test 3.2', cTest(1, 2, 11000, 20000, 1000, 1000, 0.50));
-        it('Test 3.3', cTest(4, 1, 11000, 20000, 1500, 8000, 1.50));
+        it('Test 0: ' + ratesMsg[0] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 12000, 15000, 1000, 1100, 1));
+        it('Test 1: ' + ratesMsg[0] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 15000, 20000, 1000, 1100, 1));
+        it('Test 2: ' + ratesMsg[0] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 15000, 20000, 9000000, 11000000, 1));
+        it('Test 3: ' + ratesMsg[0] + ', ' + 'Path: ' + paths[2],
+            cTest(1, 1, 15000, 20000, 600, 600, 1));
+        it('Test 4: ' + ratesMsg[0] + ', ' + 'Path: ' + paths[1],
+            cTest(1, 1, 12345, 23456, 300, 200, 1));
+        // Debt in Token
+        it('Test 5: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 15000, 20000, 200, 450, 2));
+        it('Test 6: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 15000, 20000, 200, 600, 0.45));
+        it('Test 7: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[2],
+            cTest(1, 1, 15000, 20000, 300, 600, 0.50));
+        it('Test 8: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 90000, 100000, 2000, 6000, 0.50));
+        it('Test 9: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 15000, 20000, 200, 201, 2.00));
+        it('Test 10: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[1],
+            cTest(1, 1, 15000, 20000, 310, 600, 0.50));
+        it('Test 11: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 15000, 20000, 310, 930, 2.00));
+        it('Test 12: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 1, 15000, 20000, 310, 930, 0.40));
+        // Collateral in Token
+        it('Test 13: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
+            cTest(5, 1, 12345, 15678, 100, 600, 1.00));
+        it('Test 14: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[2],
+            cTest(1, 2, 17110, 20000, 1200, 600, 1.00));
+        it('Test 15: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
+            cTest(2, 7, 16500, 20000, 100, 600, 1.00));
+        it('Test 16: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 2, 11000, 20000, 100, 600, 1.00));
+        it('Test 17: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[1],
+            cTest(1, 2, 11000, 20000, 1000, 100, 1.00));
+
+        it('Test 18: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[1],
+            cTest(1, 2, 11000, 20000, 1000, 100, 0.50));
+        it('Test 19: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[0],
+            cTest(1, 4, 11000, 20000, 4000, 1500, 1.50));
+        it('Test 20: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[2],
+            cTest(1, 2, 11000, 20000, 1000, 1000, 0.50));
+        it('Test 21: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[0],
+            cTest(4, 1, 11000, 20000, 1500, 8000, 1.50));
 
         // Converter error: When the collateral calculate collateralToPay, use valueTokensToCollateral and the Converter
         //      maybe return a different value
