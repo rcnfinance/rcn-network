@@ -332,7 +332,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         LoanManager _loanManager,
         uint256 _grossTokenPayRequired
     ) internal returns(uint256) {
-        if ( _entry.margincallBurnFee != 0 || _entry.margincallBurnFee != 0 ) {
+        if ( _entry.margincallBurnFee != 0 || _entry.margincallRewardFee != 0 ) {
             IERC20 debtToken = _loanManager.token();
 
             uint256 burned = _takeFee(_entry, debtToken, _grossTokenPayRequired, _entry.margincallBurnFee, address(debtToken));
@@ -349,7 +349,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         LoanManager _loanManager,
         uint256 _grossTokenObligation
     ) internal returns(uint256) {
-        if ( _entry.payDebtBurnFee != 0 || _entry.payDebtBurnFee != 0 ) {
+        if ( _entry.payDebtBurnFee != 0 || _entry.payDebtRewardFee != 0 ) {
             IERC20 debtToken = _loanManager.token();
 
             uint256 burned = _takeFee(_entry, debtToken, _grossTokenObligation, _entry.payDebtBurnFee, address(debtToken));

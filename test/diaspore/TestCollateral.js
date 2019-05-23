@@ -1759,14 +1759,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const balanceRatio = bn('20000');
             const payDebtBurnFee = bn('654');
             const payDebtRewardFee = bn('789');
-            const margincallBurnFee = bn('666');
-            const margincallRewardFee = bn('334');
-            const totalMargincallFee = margincallBurnFee.add(margincallRewardFee);
+            const margincallBurnFee = bn('0');
+            const margincallRewardFee = bn('1000');
             const equilibrateAmountInCollateral = bn('7700359');
             const equilibrateAmountInToken = equilibrateAmountInCollateral.mul(bn('2'));
-            const burnedCollateral = equilibrateAmountInCollateral.mul(margincallBurnFee).div(BASE);
             const rewardedCollateral = equilibrateAmountInCollateral.mul(margincallRewardFee).div(BASE);
-            const totalFeeCollateral = burnedCollateral.add(rewardedCollateral);
             const loanDuration = 1000;
             const expiration = (await Helper.getBlockTime()) + loanDuration;
 
@@ -1855,7 +1852,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(ConvertPay._oracleData, oracleData);
 
             const TakeMargincallFee = events[2];
-            expect(TakeMargincallFee._burned).to.eq.BN(burnedCollateral);
+            expect(TakeMargincallFee._burned).to.eq.BN(0);
             expect(TakeMargincallFee._rewarded).to.eq.BN(rewardedCollateral);
 
             const entry = await collateral.entries(collateralId);
@@ -1869,11 +1866,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
-            expect(entry.amount).to.eq.BN(collateralAmount.sub(equilibrateAmountInCollateral.add(totalFeeCollateral)));
+            expect(entry.amount).to.eq.BN(collateralAmount.sub(equilibrateAmountInCollateral.add(rewardedCollateral)));
 
-            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(equilibrateAmountInCollateral.add(totalFeeCollateral)));
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(equilibrateAmountInCollateral.add(rewardedCollateral)));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(rewardedCollateral));
-            expect(await auxToken.balanceOf(rcn.address)).to.eq.BN(prevRCNBal.add(burnedCollateral));
+            expect(await auxToken.balanceOf(rcn.address)).to.eq.BN(prevRCNBal);
 
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
@@ -1887,7 +1884,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateralId,
                 tokens,
                 equivalent
-            )).gte(balanceRatio.sub(totalMargincallFee)));
+            )).gte(balanceRatio.sub(rewardedCollateral)));
         });
 
         it('Should claim an entry and pay the loan, with a debt with oracle and fee', async function () {
