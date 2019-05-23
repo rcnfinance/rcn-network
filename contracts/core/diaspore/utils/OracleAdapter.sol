@@ -1,4 +1,4 @@
-pragma solidity ^0.5.6;
+pragma solidity ^0.5.8;
 
 import "./../interfaces/RateOracle.sol";
 import "../../../commons/ERC165.sol";

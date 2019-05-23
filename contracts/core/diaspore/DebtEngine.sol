@@ -1,4 +1,4 @@
-pragma solidity ^0.5.6;
+pragma solidity ^0.5.8;
 
 import "../../interfaces/IERC20.sol";
 import "./interfaces/Model.sol";
