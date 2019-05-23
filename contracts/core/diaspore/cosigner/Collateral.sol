@@ -340,7 +340,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
             emit TakeMargincallFee(burned, rewarded);
 
-            return burned + rewarded;// TODO TEST overflow
+            return burned + rewarded;
         }
     }
 
@@ -357,7 +357,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
             emit TakeDebtFee(burned, rewarded);
 
-            return burned + rewarded;// TODO TEST overflow
+            return burned + rewarded;
         }
     }
 
@@ -373,7 +373,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
 
         uint256 takeFee = _fee.mult(_grossTokenObligation) / BASE;
-        // TODO CHECK REENTRANCY
         takeFeeInColl = _entry.converter.getReturn(_debtToken, _entry.token, takeFee);
 
         require(_entry.token.safeTransfer(_to, takeFeeInColl), "Error sending tokens");
