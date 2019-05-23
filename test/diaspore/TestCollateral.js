@@ -1281,6 +1281,327 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         });
     });
 
+    describe('Function payOffDebt', function () {
+        it('Should pay off a debt', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const collateralAmount = bn('6542');
+            const liquidationRatio = bn('15000');
+            const balanceRatio = bn('20000');
+            const loanDuration = 1000;
+            const expiration = (await Helper.getBlockTime()) + loanDuration;
+
+            await converter.setRate(auxToken.address, rcn.address, WEI);
+            await converter.setRate(rcn.address, auxToken.address, WEI);
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await auxToken.setBalance(creator, collateralAmount);
+            await auxToken.approve(collateral.address, collateralAmount, { from: creator });
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                collateralAmount,
+                converter.address,
+                liquidationRatio,
+                balanceRatio,
+                { from: creator }
+            );
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                collateral.address,
+                bn('0'),
+                Helper.toBytes32(collateralId),
+                { from: lender }
+            );
+
+            const closingObligation = await loanManager.getClosingObligation(loanId);
+            await rcn.setBalance(converter.address, closingObligation);
+
+            const prevCollateralBal = await auxToken.balanceOf(collateral.address);
+
+            const events = await Helper.toEvents(
+                collateral.payOffDebt(
+                    collateralId,
+                    [],
+                    { from: creator }
+                ),
+                'PayOffDebt',
+                'ConvertPay'
+            );
+
+            const PayOffDebt = events[0];
+            expect(PayOffDebt._id).to.eq.BN(collateralId);
+            expect(PayOffDebt._closingObligationToken).to.eq.BN(amount);
+
+            const ConvertPay = events[1];
+            expect(ConvertPay._fromAmount).to.eq.BN(amount);
+            expect(ConvertPay._toAmount).to.eq.BN(amount);
+            assert.equal(ConvertPay._oracleData, null);
+
+            const entry = await collateral.entries(collateralId);
+            expect(entry.liquidationRatio).to.eq.BN(liquidationRatio);
+            expect(entry.balanceRatio).to.eq.BN(balanceRatio);
+            assert.equal(entry.loanManager, loanManager.address);
+            assert.equal(entry.converter, converter.address);
+            assert.equal(entry.token, auxToken.address);
+            assert.equal(entry.debtId, loanId);
+            expect(entry.amount).to.eq.BN(collateralAmount.sub(amount));
+
+            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(amount));
+            assert.equal(await collateral.ownerOf(collateralId), creator);
+
+            expect(await model.getClosingObligation(loanId)).to.eq.BN(0);
+            assert.isTrue((await model.getStatus.call(loanId)).toString() === '2');
+        });
+
+        it('Should pay off a debt with oracle', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const collateralAmount = bn('6542');
+            const liquidationRatio = bn('15000');
+            const balanceRatio = bn('20000');
+            const loanDuration = 1000;
+            const expiration = (await Helper.getBlockTime()) + loanDuration;
+
+            // 1 collateral token = 2 token
+            await converter.setRate(auxToken.address, rcn.address, WEI.mul(bn('2')));
+            await converter.setRate(rcn.address, auxToken.address, WEI.div(bn('2')));
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                oracle.address,    // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await auxToken.setBalance(creator, collateralAmount);
+            await auxToken.approve(collateral.address, collateralAmount, { from: creator });
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                collateralAmount,
+                converter.address,
+                liquidationRatio,
+                balanceRatio,
+                { from: creator }
+            );
+
+            // 0.82711175222132156792 debt currency = 1.23333566612312 token
+            const tokens = bn('123333566612312000000');
+            const equivalent = bn('82711175222132156792');
+
+            const amountInToken = divceil(amount.mul(tokens), equivalent);
+
+            await rcn.setBalance(lender, amountInToken);
+            await rcn.approve(loanManager.address, amountInToken, { from: lender });
+
+            const oracleData = await oracle.encodeRate(tokens, equivalent);
+
+            await loanManager.lend(
+                loanId,
+                oracleData,
+                collateral.address,
+                bn('0'),
+                Helper.toBytes32(collateralId),
+                { from: lender }
+            );
+
+            const closingObligation = await loanManager.getClosingObligation(loanId);
+            const closingObligationInToken = divceil(closingObligation.mul(tokens), equivalent);
+            await rcn.setBalance(converter.address, closingObligationInToken);
+
+            const prevCollateralBal = await auxToken.balanceOf(collateral.address);
+
+            const events = await Helper.toEvents(
+                collateral.payOffDebt(
+                    collateralId,
+                    oracleData,
+                    { from: creator }
+                ),
+                'PayOffDebt',
+                'ConvertPay'
+            );
+
+            const PayOffDebt = events[0];
+            expect(PayOffDebt._id).to.eq.BN(collateralId);
+            expect(PayOffDebt._closingObligationToken).to.eq.BN(amountInToken);
+
+            const ConvertPay = events[1];
+            expect(ConvertPay._fromAmount).to.eq.BN(closingObligationInToken.div(bn('2')));
+            expect(ConvertPay._toAmount).to.eq.BN(closingObligationInToken);
+            assert.equal(ConvertPay._oracleData, oracleData);
+
+            const entry = await collateral.entries(collateralId);
+            expect(entry.liquidationRatio).to.eq.BN(liquidationRatio);
+            expect(entry.balanceRatio).to.eq.BN(balanceRatio);
+            assert.equal(entry.loanManager, loanManager.address);
+            assert.equal(entry.converter, converter.address);
+            assert.equal(entry.token, auxToken.address);
+            assert.equal(entry.debtId, loanId);
+            expect(entry.amount).to.eq.BN(collateralAmount.sub(closingObligationInToken.div(bn('2'))));
+
+            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(closingObligationInToken.div(bn('2'))));
+            assert.equal(await collateral.ownerOf(collateralId), creator);
+
+            expect(await model.getClosingObligation(loanId)).to.eq.BN(0);
+            assert.isTrue((await model.getStatus.call(loanId)).toString() === '2');
+        });
+
+        it('Try pay off a debt without authorization', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const collateralAmount = bn('6542');
+            const liquidationRatio = bn('15000');
+            const balanceRatio = bn('20000');
+            const loanDuration = 1000;
+            const expiration = (await Helper.getBlockTime()) + loanDuration;
+
+            // 1 collateral token = 2 token
+            await converter.setRate(auxToken.address, rcn.address, WEI.mul(bn('2')));
+            await converter.setRate(rcn.address, auxToken.address, WEI.div(bn('2')));
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await auxToken.setBalance(creator, collateralAmount);
+            await auxToken.approve(collateral.address, collateralAmount, { from: creator });
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                collateralAmount,
+                converter.address,
+                liquidationRatio,
+                balanceRatio,
+                { from: creator }
+            );
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+
+            await loanManager.lend(
+                loanId,
+                [],
+                collateral.address,
+                bn('0'),
+                Helper.toBytes32(collateralId),
+                { from: lender }
+            );
+
+            const closingObligation = await loanManager.getClosingObligation(loanId);
+            await rcn.setBalance(converter.address, closingObligation);
+
+            await Helper.tryCatchRevert(
+                () => collateral.payOffDebt(
+                    collateralId,
+                    [],
+                    { from: lender }
+                ),
+                'The sender its not authorized'
+            );
+        });
+
+        it('Try pay off a debt and the debt not exists', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const collateralAmount = bn('6542');
+            const liquidationRatio = bn('15000');
+            const balanceRatio = bn('20000');
+            const loanDuration = 1000;
+            const expiration = (await Helper.getBlockTime()) + loanDuration;
+
+            // 1 collateral token = 2 token
+            await converter.setRate(auxToken.address, rcn.address, WEI.mul(bn('2')));
+            await converter.setRate(rcn.address, auxToken.address, WEI.div(bn('2')));
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                oracle.address,    // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await auxToken.setBalance(creator, collateralAmount);
+            await auxToken.approve(collateral.address, collateralAmount, { from: creator });
+
+            await collateral.create(
+                loanManager.address,
+                loanId,
+                auxToken.address,
+                collateralAmount,
+                converter.address,
+                liquidationRatio,
+                balanceRatio,
+                { from: creator }
+            );
+
+            await Helper.tryCatchRevert(
+                () => collateral.payOffDebt(
+                    collateralId,
+                    [],
+                    { from: creator }
+                ),
+                'Reading bytes out of bounds'
+            );
+        });
+    });
+
     describe('Function claim', function () {
         it('Should claim an entry and pay the loan', async function () {
             const salt = bn(web3.utils.randomHex(32));
