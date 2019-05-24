@@ -229,10 +229,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
 
         _convertPay(
-            _id,
-            loanManager,
-            debtId,
+            entry,
             closingObligationToken,
+            0,
             _oracleData
         );
 
@@ -308,8 +307,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
             _convertPay(
                 entry,
-                loanManager,
-                debtId,
                 obligationToken,
                 _takeDebtFee(entry, loanManager, obligationToken),
                 _oracleData
@@ -327,8 +324,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             // and substract from total collateral
             _convertPay(
                 entry,
-                loanManager,
-                debtId,
                 tokenPayRequired,
                 _takeMargincallFee(entry, loanManager, tokenPayRequired),
                 _oracleData
@@ -405,14 +400,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function _convertPay(
         Entry storage _entry,
-        LoanManager _loanManager,
-        bytes32 _debtId,
         uint256 _tokenPayRequired,
         uint256 _feeAmount,
         bytes memory _oracleData
     ) internal {
         // Load debt token
-        IERC20 token = _loanManager.token();
+        IERC20 token = _entry.loanManager.token();
 
         // Use collateral to buy tokens
         (uint256 bought, uint256 sold) = _entry.converter.safeConverterToMax(
@@ -425,8 +418,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 tokensToPay = Math.min(bought, _tokenPayRequired);
 
         // Pay debt
-        (, uint256 paidTokens) = _loanManager.safePayToken(
-            _debtId,
+        (, uint256 paidTokens) = _entry.loanManager.safePayToken(
+            _entry.debtId,
             tokensToPay,
             address(this),
             _oracleData
@@ -482,7 +475,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
         uint256 fee = uint256(entry.margincallBurnFee + entry.margincallRewardFee);
         return Math.min(
-            // Equilibrate the balance (the collateral should be more than the debt)
+            // The collateral required to equilibrate the balance (the collateral should be more than the debt)
             _collateralRequiredToBalance(cwithdraw, entry.balanceRatio).mult(BASE + fee) / BASE,
             // Pay all collateral amount (the collateral should be less than the debt)
             entry.amount.mult(BASE - fee) / BASE,
@@ -494,7 +487,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function _collateralRequiredToBalance(
         int256 _cwithdraw,
         uint256 _ratio
-    ) internal view returns(uint256) {
+    ) internal pure returns(uint256) {
         return _cwithdraw.abs().toUint256().mult(BASE) / (_ratio - BASE);
     }
 

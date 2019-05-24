@@ -1320,6 +1320,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 converter.address,
                 liquidationRatio,
                 balanceRatio,
+                0,
+                0,
+                0,
+                0,
                 { from: creator }
             );
 
@@ -1416,6 +1420,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 converter.address,
                 liquidationRatio,
                 balanceRatio,
+                0,
+                0,
+                0,
+                0,
                 { from: creator }
             );
 
@@ -1521,6 +1529,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 converter.address,
                 liquidationRatio,
                 balanceRatio,
+                0,
+                0,
+                0,
+                0,
                 { from: creator }
             );
 
@@ -1588,6 +1600,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 converter.address,
                 liquidationRatio,
                 balanceRatio,
+                0,
+                0,
+                0,
+                0,
                 { from: creator }
             );
 

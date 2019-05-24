@@ -73,7 +73,7 @@ library DiasporeUtils {
     function getModel(
         LoanManager _manager,
         bytes32 _id
-    ) internal returns (Model model) {
+    ) internal view returns (Model model) {
         (,,model,,) = _manager.debtEngine().debts(_id);
     }
 }
