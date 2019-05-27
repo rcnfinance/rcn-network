@@ -305,6 +305,62 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
         });
 
+        it('Try create a new collateral with a higth margincallFee', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+
+            const expiration = (await Helper.getBlockTime()) + 1000;
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            await Helper.tryCatchRevert(
+                () => collateral.create(
+                    loanManager.address, // loanManager
+                    loanId, // debtId
+                    auxToken.address, // token
+                    bn('0'), // amount
+                    converter.address, // converter
+                    bn('15000'), // liquidationRatio
+                    bn('20000'), // balanceRatio
+                    bn('0'), // payDebtBurnFee
+                    bn('0'), // payDebtRewardFee
+                    BASE.div(bn('2')), // margincallBurnFee
+                    BASE.div(bn('2')), // margincallRewardFee
+                    { from: creator }
+                ),
+                'MargincallFee should be less than BASE'
+            );
+
+            await Helper.tryCatchRevert(
+                () => collateral.create(
+                    loanManager.address, // loanManager
+                    loanId, // debtId
+                    auxToken.address, // token
+                    bn('0'), // amount
+                    converter.address, // converter
+                    bn('15000'), // liquidationRatio
+                    bn('20000'), // balanceRatio
+                    bn('0'), // margincallBurnFee
+                    bn('0'), // margincallRewardFee
+                    bn('2').pow(bn('32')).sub(bn('1')), // payDebtBurnFee
+                    bn('2').pow(bn('32')).sub(bn('1')), // payDebtRewardFee
+                    { from: creator }
+                ),
+                'MargincallFee should be less than BASE'
+            );
+        });
+
         it('Try create a new collateral with a closed loan', async function () {
             const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1000');
