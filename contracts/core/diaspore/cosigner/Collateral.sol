@@ -183,36 +183,38 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // Validate ownership of collateral
         require(_isAuthorized(msg.sender, _id), "Sender not authorized");
 
-        // Validate if the collateral can be redemed
-        Entry storage entry = entries[_id];
-        uint256 status = entry.loanManager.getStatus(entry.debtId);
-
-        require(status == 0 || status == 2, "Debt not request or paid");
-        require(entry.token.safeTransfer(msg.sender, entry.amount), "Error sending tokens");
-
-        // Destroy ERC721 collateral token
-        delete liabilities[address(entry.loanManager)][entry.debtId];
-        delete entries[_id]; // TODO: Find best way to delete
-
-        emit Redeemed(_id);
+        _redeem(_id, msg.sender, false);
     }
 
     function emergencyRedeem(
         uint256 _id,
         address _to
     ) external onlyOwner {
-        // Validate if the collateral can be redemed
+        _redeem(_id, _to, true);
+    }
+
+    function _redeem(
+        uint256 _id,
+        address _to,
+        bool _emergency
+    ) internal {
         Entry storage entry = entries[_id];
+
         uint256 status = entry.loanManager.getStatus(entry.debtId);
 
-        require(status == 4, "Debt is not in error");
+        if (_emergency) {
+            require(status == 4, "Debt is not in error");
+            emit EmergencyRedeemed(_id, _to);
+        } else {
+            require(status == 0 || status == 2, "Debt not request or paid");
+            emit Redeemed(_id);
+        }
+
         require(entry.token.safeTransfer(_to, entry.amount), "Error sending tokens");
 
         // Destroy ERC721 collateral token
         delete liabilities[address(entry.loanManager)][entry.debtId];
         delete entries[_id]; // TODO: Find best way to delete
-
-        emit EmergencyRedeemed(_id, _to);
     }
 
     function payOffDebt(
