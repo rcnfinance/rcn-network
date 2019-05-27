@@ -340,7 +340,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(request.open, true, 'The request should be open');
             assert.equal(await loanManager.getApproved(id), false, 'The request should not be approved');
             assert.equal(request.approved, false, 'The request should not be approved');
-            expect(request.position).to.eq.BN('0', 'The loan its not approved');
             expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
             expect(request.expiration).to.eq.BN(expiration);
             assert.equal(await loanManager.getCurrency(id), 0x0);
@@ -572,9 +571,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await loanManager.getApproved(id), true, 'The request should be approved');
             assert.equal(request.approved, true, 'The request should be approved');
 
-            expect(request.position).to.eq.BN((await loanManager.getDirectoryLength()).sub(bn('1')), 'The request position should be the last position of directory array');
-            assert.equal(await loanManager.directory(request.position), id, 'The request should be in directory');
-
             assert.equal(request.open, true, 'The request should be open');
             expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
             expect(request.expiration).to.eq.BN(expiration);
@@ -640,8 +636,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const request = await loanManager.requests(id);
             assert.equal(request.approved, true, 'The request should be approved');
-            expect(request.position).to.eq.BN((await loanManager.getDirectory()).indexOf(id), 'The loan its not approved');
-            assert.equal(await loanManager.directory(request.position), id);
         });
 
         it('Try approve a request without being the borrower', async function () {
@@ -705,8 +699,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             ));
 
-            const dlength = await loanManager.getDirectoryLength();
-
             // Sign loan id
             const signature = await web3.eth.sign(id, borrower);
 
@@ -725,12 +717,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await loanManager.getApproved(id), true);
 
             const request = await loanManager.requests(id);
-            expect(request.position).to.eq.BN((await loanManager.getDirectoryLength()).sub(bn('1')));
             assert.equal(request.approved, true);
 
             // Should add the entry to the directory
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength.add(bn('1')));
-            assert.equal(await loanManager.directory(dlength), id);
         });
 
         it('Should ignore approve with wrong borrower signature', async function () {
@@ -753,8 +742,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             ));
 
-            const dlength = await loanManager.getDirectoryLength();
-
             // Sign loan id
             const signature = await web3.eth.sign(Helper.toBytes32(accounts[3]), borrower);
 
@@ -766,14 +753,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await loanManager.getApproved(id), false);
 
             const request = await loanManager.requests(id);
-            expect(request.position).to.eq.BN('0');
             assert.equal(request.approved, false);
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);
-
-            // Should not add the entry to the directory
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength);
         });
 
         it('Should ignore a second approve using registerApprove', async function () {
@@ -795,8 +778,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData,         // Loan data
                 { from: creator } // Creator
             ));
-
-            const dlength = await loanManager.getDirectoryLength();
 
             // Sign loan id
             const signature = await web3.eth.sign(id, borrower);
@@ -824,8 +805,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.notOk(event2);
 
             // Should add the entry to the directory once
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength.add(bn('1')));
-            assert.equal(await loanManager.directory(dlength), id);
         });
 
         it('Should register approve using the borrower callback', async function () {
@@ -848,8 +827,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             ));
 
-            const dlength = await loanManager.getDirectoryLength();
-
             // Set expected id
             await loanApprover.setExpectedApprove(id);
 
@@ -863,10 +840,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.equal(event.args._id, id);
-
-            // Should add the entry to the directory
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength.add(bn('1')));
-            assert.equal(await loanManager.directory(dlength), id);
         });
 
         it('Should ignore approve if borrower callback reverts', async function () {
@@ -889,8 +862,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             ));
 
-            const dlength = await loanManager.getDirectoryLength();
-
             await loanApprover.setErrorBehavior(0);
 
             const receipt = await loanManager.registerApproveRequest(
@@ -902,9 +873,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);
-
-            // Should not add the entry to the directory
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength);
         });
 
         it('Should ignore approve if borrower callback returns false', async function () {
@@ -927,8 +895,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             ));
 
-            const dlength = await loanManager.getDirectoryLength();
-
             await loanApprover.setErrorBehavior(1);
 
             const receipt = await loanManager.registerApproveRequest(
@@ -940,9 +906,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);
-
-            // Should not add the entry to the directory
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength);
         });
 
         it('Should ignore approve if borrower callback returns wrong value', async function () {
@@ -965,8 +928,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             ));
 
-            const dlength = await loanManager.getDirectoryLength();
-
             await loanApprover.setErrorBehavior(2);
 
             const receipt = await loanManager.registerApproveRequest(
@@ -978,9 +939,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);
-
-            // Should not add the entry to the directory
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength);
         });
 
         it('Should ignore a second approve using registerApprove and callbacks', async function () {
@@ -1002,8 +960,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 loanData,         // Loan data
                 { from: creator } // Creator
             ));
-
-            const dlength = await loanManager.getDirectoryLength();
 
             await loanApprover.setExpectedApprove(id);
             const Approved = await Helper.toEvents(
@@ -1027,10 +983,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const event2 = receipt2.logs.find(l => l.event === 'Approved');
             assert.notOk(event2);
-
-            // Should add the entry to the directory once
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength.add(bn('1')));
-            assert.equal(await loanManager.directory(dlength), id);
         });
 
         it('Should not call callback if the borrower contract does not implements loan approver', async function () {
@@ -1053,8 +1005,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: creator } // Creator
             ));
 
-            const dlength = await loanManager.getDirectoryLength();
-
             const receipt = await loanManager.registerApproveRequest(
                 id,
                 [],
@@ -1064,9 +1014,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const event = receipt.logs.find(l => l.event === 'Approved');
             assert.notOk(event);
-
-            // Should not add the entry to the directory
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength);
         });
     });
 
@@ -1103,7 +1050,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
-            const prevDirLength = await loanManager.getDirectoryLength();
 
             const lent = await Helper.toEvents(
                 loanManager.lend(
@@ -1136,8 +1082,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
 
             const request = await loanManager.requests(id);
-            expect(request.position).to.eq.BN('0');
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(prevDirLength.sub(bn('1')));
         });
 
         it('Cosigner should fail if charges when limit is set to 0', async function () {
@@ -1564,44 +1508,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
         });
 
-        it('Try Cosign function the request with bad position', async function () {
-            const borrower = accounts[2];
-            const salt = bn('1998');
-            const amount = bn('90880');
-            const expiration = (await Helper.getBlockTime()) + 100;
-            const loanData = await model.encodeData(amount, expiration);
-
-            const id = await calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,
-                model.address,
-                Helper.address0x,
-                borrower,
-                salt,
-                expiration,
-                loanData,
-                { from: borrower }
-            );
-
-            await Helper.tryCatchRevert(
-                () => loanManager.cosign(
-                    id,
-                    0
-                ),
-                'Request cosigned is invalid'
-            );
-        });
-
         it('Try lend a loan with cosigner cost very high', async function () {
             const borrower = accounts[2];
             const lender = accounts[3];
@@ -1903,7 +1809,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const request = await loanManager.requests(id);
             assert.equal(request.open, false);
             assert.equal(request.approved, false);
-            expect(request.position).to.eq.BN('0');
             expect(request.expiration).to.eq.BN('0');
             expect(request.amount).to.eq.BN('0');
             assert.equal(request.cosigner, Helper.address0x);
@@ -1946,8 +1851,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: borrower }
             );
 
-            const dlength = await loanManager.getDirectoryLength();
-
             const canceled = await Helper.toEvents(
                 loanManager.cancel(
                     id,
@@ -1956,15 +1859,12 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 'Canceled'
             );
 
-            expect(await loanManager.getDirectoryLength()).to.eq.BN(dlength.sub(bn('1')));
-
             assert.equal(canceled._id, id);
             assert.equal(canceled._canceler, borrower);
 
             const request = await loanManager.requests(id);
             assert.equal(request.open, false);
             assert.equal(request.approved, false);
-            expect(request.position).to.eq.BN('0');
             expect(request.expiration).to.eq.BN('0');
             expect(request.amount).to.eq.BN('0');
             assert.equal(request.cosigner, Helper.address0x);
@@ -2125,7 +2025,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const request = await loanManager.requests(id);
             assert.equal(request.open, false, 'The request should not be open');
             assert.equal(request.approved, true, 'The request should be approved');
-            expect(request.position).to.eq.BN('0', 'The loan its not approved');
             expect(request.expiration).to.eq.BN(expiration);
             assert.equal(await loanManager.getCurrency(id), 0x0);
             expect(request.amount).to.eq.BN(amount);
@@ -2701,7 +2600,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const request = await loanManager.requests(id);
             assert.equal(request.open, false, 'The request should not be open');
             assert.equal(request.approved, true, 'The request should be approved');
-            expect(request.position).to.eq.BN('0', 'The loan its not approved');
             expect(request.expiration).to.eq.BN(expiration);
             assert.equal(request.oracle, oracle.address);
             expect(request.amount).to.eq.BN(amountETH);
