@@ -113,6 +113,13 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return abi.encodePacked(_cuota, _interestRate, _installments, _duration, _timeUnit);
     }
 
+    /**
+        @dev Before create the debt the data should be validate with call _validate function
+
+        @param id Index of the debt
+        @param data Array of bytes parameters, used to create a debt
+            * look in _decodeData function documentation for more info
+    */
     function create(bytes32 id, bytes calldata data) external onlyEngine returns (bool) {
         require(configs[id].cuota == 0, "Entry already exist");
 
@@ -136,6 +143,20 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return true;
     }
 
+    /**
+        @notice Pay loan
+
+        Does a payment of a given debt, before performing the payment the accumulated
+            interest is computed and added to the total pending amount.
+
+        If the paid pending amount equals zero, the debt changes status to "paid" and
+            it is considered closed.
+
+        @param id Index of the debt
+        @param amount Amount to pay
+
+        @return toPay if the payment was executed successfully
+    */
     function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 real) {
         Config storage config = configs[id];
         State storage state = states[id];
@@ -302,6 +323,13 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         });
     }
 
+    /**
+        @notice Updates the debt accumulated interests up to the current Unix time.
+
+        @param id Index of the debt
+
+        @return true If the interest was updated
+    */
     function run(bytes32 id) external returns (bool) {
         Config storage config = configs[id];
         return _advanceClock(id, uint64(now) - config.lentTime);
@@ -379,6 +407,14 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         (,, installments,,) = _decodeData(_data);
     }
 
+    /**
+        @notice Updates the debt accumulated interests up to the _target
+
+        @param id Index of the debt
+        @param _target Timestamp target to advance the clock
+
+        @return true If the interest was updated
+    */
     function _advanceClock(bytes32 id, uint256 _target) internal returns (bool) {
         Config storage config = configs[id];
         State storage state = states[id];
@@ -539,6 +575,15 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return uint128(installment < installments ? installment * cuota : installments * cuota);
     }
 
+    /**
+        Use to validate a debt
+        To more information of params look in config struct documentation
+
+        @dev Validate the debt parameters
+            The _cuota, _installments, _timeUnit should not be 0
+            The _interestRate should be grater or equal than _timeUnit
+            The _installmentDuration should be grater than _timeUnit
+    */
     function _validate(
         uint256 _cuota,
         uint256 _interestRate,
