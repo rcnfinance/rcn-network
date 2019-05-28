@@ -16,12 +16,18 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         _registerInterface(MODEL_DESCRIPTOR_INTERFACE);
     }
 
-    address public engine;
+    address public engine; // The DebtEngine contract
     address private altDescriptor;
 
     mapping(bytes32 => Config) public configs;
     mapping(bytes32 => State) public states;
 
+    // L_DATA =
+    //      16 bytes to uint128 cuota +
+    //      32 bytes to uint256 interestRate +
+    //      3 bytes to uint24 installments +
+    //      5 bytes to uint40 duration +
+    //      4 bytes to uint32 timeUnit
     uint256 public constant L_DATA = 16 + 32 + 3 + 5 + 4;
 
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
@@ -36,17 +42,25 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     event _setPaidBase(bytes32 _id, uint128 _paidBase);
     event _setInterest(bytes32 _id, uint128 _interest);
 
+    /**
+        The Config struct be use to storage the constants of a debt,
+            this constants not be overwrite
+    */
     struct Config {
-        uint24 installments;
-        uint32 timeUnit;
-        uint40 duration;
-        uint64 lentTime;
-        uint128 cuota;
-        uint256 interestRate;
+        uint24 installments; // The installments of the debt
+        uint32 timeUnit; // The minimum unit for which interest is added
+        uint40 duration; // The duration of each installment
+        uint64 lentTime; // The timestamp in which a debt was created
+        uint128 cuota; // The amount in WEI of each installment
+        uint256 interestRate; // The interest rate is defined as a denominator of 10 000 000
     }
 
+    /**
+        The State struct be use to storage the variables of a debt
+    */
     struct State {
-        uint8 status;
+        uint8 status; // Status of the debt, can is 0 if the debt is ongoing or not exist and
+                      //    can be STATUS_PAID if the debt is fully paid
         uint64 clock;
         uint64 lastPayment;
         uint128 paid;
@@ -54,6 +68,9 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint128 interest;
     }
 
+    /**
+        Use in create(), addPaid(), addDebt() functions
+    */
     modifier onlyEngine {
         require(msg.sender == engine, "Only engine allowed");
         _;
@@ -69,6 +86,11 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return _descriptor == address(0) ? address(this) : _descriptor;
     }
 
+    /**
+        Setter of engine, used in onlyEngine modifier
+
+        @param _engine DebtEngine address
+    */
     function setEngine(address _engine) external onlyOwner returns (bool) {
         engine = _engine;
         emit _setEngine(_engine);
@@ -195,6 +217,11 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return _advanceClock(id, targetClock);
     }
 
+    /**
+        @param _target Target address
+
+        @return if the target is the operator of the model
+    */
     function isOperator(address _target) external view returns (bool) {
         return engine == _target;
     }
@@ -280,6 +307,15 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return _advanceClock(id, uint64(now) - config.lentTime);
     }
 
+    /**
+        @dev Look in _validate function documentation for more information
+
+        @param data Array of bytes parameters, used to create a debt
+            * look in _decodeData function documentation for more information
+
+        @return True if can validate the data
+            revert if cant validate the data
+    */
     function validate(bytes calldata data) external view returns (bool) {
         (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _decodeData(data);
         _validate(cuota, interestRate, installments, duration, timeUnit);
@@ -499,6 +535,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 cuota
     ) internal pure returns (uint256 base) {
         uint256 installment = clock / duration;
+        // min(installment, installments) * cuota
         return uint128(installment < installments ? installment * cuota : installments * cuota);
     }
 
@@ -518,6 +555,21 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         require(_timeUnit > 0, "Time unit can'be 0");
     }
 
+    /**
+        @notice Decode bytes array and returns the parameters of a debt
+
+        @dev The length of data should be L_DATA (the sum of the length of the debt parameters in bytes)
+
+        @param _data Index of the debt
+            from-to bytes
+            0 -16: cuota
+            16-48: interestRate
+            48-51: installments
+            51-56: duration
+            56-60: timeUnit
+
+        @return Look in config struct documentation for more information
+    */
     function _decodeData(
         bytes memory _data
     ) internal pure returns (uint128, uint256, uint24, uint40, uint32) {
