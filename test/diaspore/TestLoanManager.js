@@ -1080,8 +1080,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
             assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
-
-            const request = await loanManager.requests(id);
         });
 
         it('Cosigner should fail if charges when limit is set to 0', async function () {
