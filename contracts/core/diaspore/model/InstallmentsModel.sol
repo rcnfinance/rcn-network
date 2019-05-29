@@ -61,11 +61,12 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     struct State {
         uint8 status; // Status of the debt, can is 0 if the debt is ongoing or not exist and
                       //    can be STATUS_PAID if the debt is fully paid
-        uint64 clock;
-        uint64 lastPayment;
-        uint128 paid;
-        uint128 paidBase;
-        uint128 interest;
+        uint64 clock; // Storage the timestamp of last interest calculate
+        uint64 lastPayment; // The timestamp of the last payment, which the clock was able
+                            //    to advance, look in addPaid function
+        uint128 paid; // Accumulator of payment, cuota + interest
+        uint128 paidBase; // Accumulator of cuota payments, without interest
+        uint128 interest; // Accumulator of interest amount
     }
 
     /**
