@@ -155,7 +155,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         @param id Index of the debt
         @param amount Amount to pay
 
-        @return toPay if the payment was executed successfully
+        @return Total paid amount
     */
     function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 real) {
         Config storage config = configs[id];
