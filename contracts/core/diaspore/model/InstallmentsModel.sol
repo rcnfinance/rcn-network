@@ -511,7 +511,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     ) internal pure {
         require(_cuota > 0, "Cuota can't be 0");
         require(_installments > 0, "Installments can't be 0");
-        require(_timeUnit > 0, "Time unit can'be 0");
+        require(_timeUnit > 0, "Time unit can't be 0");
 
         require(_timeUnit <= _installmentDuration, "Time unit can't be lower than installment duration");
         require(_timeUnit < _interestRate, "Interest rate by time unit is too low");
