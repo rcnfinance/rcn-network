@@ -350,7 +350,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 clock = state.clock;
         if (clock < _target) {
             (uint256 newInterest, uint256 newClock) = _runAdvanceClock({
-                _clock: state.clock,
+                _clock: clock,
                 _timeUnit: config.timeUnit,
                 _interest: state.interest,
                 _duration: config.duration,
