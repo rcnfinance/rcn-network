@@ -468,14 +468,15 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _rateTokens,
         uint256 _rateEquivalent
     ) public view returns (uint256) {
-        int256 cwithdraw = canWithdraw(_id, _rateTokens, _rateEquivalent);
-        if (cwithdraw >= 0) {
+        if (liquidationDeltaRatio(_id, _rateTokens, _rateEquivalent) >= 0) {
             return 0;
         }
 
         Entry storage entry = entries[_id];
         uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
         uint256 fee = uint256(entry.margincallBurnFee + entry.margincallRewardFee);
+        int256 cwithdraw = canWithdraw(_id, _rateTokens, _rateEquivalent);
+
         return Math.min(
             // The collateral required to equilibrate the balance (the collateral should be more than the debt)
             _collateralRequiredToBalance(cwithdraw, entry.balanceRatio).mult(BASE + fee) / BASE,

@@ -2647,7 +2647,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 const canWithdraw = collateralAmount.mul(balanceDeltaRatio).div(collateralRatio);
 
                 async function calcRequiredCollateralPay () {
-                    if (canWithdraw.lt(bn('0'))) {
+                    if (liquidationDeltaRatio.lt(bn('0'))) {
                         return min(
                             // Collateral require to balance
                             canWithdraw.abs().mul(BASE).div(balanceRatioLimit.sub(BASE)),
