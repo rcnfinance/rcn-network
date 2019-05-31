@@ -83,19 +83,26 @@ contract DebtEngine is ERC721Base, Ownable {
         bytes _callData
     );
 
+    // This Token(ERC20) works like the fuel of our engine,
+    //    when lend or pay a debt use this Token
     IERC20 public token;
-
+    // The array to storage the debs
     mapping(bytes32 => Debt) public debts;
+    // Used in create function, increment every create
     mapping(address => uint256) public nonces;
 
     struct Debt {
-        bool error;
-        uint128 balance;
-        Model model;
+        bool error; // Used to mark a debt in ERROR status
+        uint128 balance; // Balance of the debt
+        Model model; // Model of the debt
         address creator;
-        address oracle;
+        address oracle; // Oracle of the debt, if is address(0) the debt is in Token
+                        //      in other case the debt use the oracle to get the rate
     }
 
+    /**
+        @notice Set the Token
+    */
     constructor (
         IERC20 _token
     ) public ERC721Base("RCN Debt Record", "RDR") {
@@ -105,17 +112,38 @@ contract DebtEngine is ERC721Base, Ownable {
         require(address(_token).isContract(), "Token should be a contract");
     }
 
+    /**
+        @notice Set provider, look in ERC721Base
+
+        @dev Only the owner can use this function
+    */
     function setURIProvider(URIProvider _provider) external onlyOwner {
         _setURIProvider(_provider);
     }
 
+    /**
+        @notice Create a debt
+
+        @dev Hash (uint8(1), address(this), msg.sender, nonce) to make the id
+
+        @param _model Model of the debt
+        @param _owner Owner of the ERC721 and the debt
+        @param _oracle Oracle of the debt, if is address(0) the debt is in Token
+                        in other case the debt use the oracle to get the rate
+        @param _data Array of bytes parameters, send to the Model contract with
+                        the create function
+
+        @return The id if the debt
+    */
     function create(
         Model _model,
         address _owner,
         address _oracle,
         bytes calldata _data
     ) external returns (bytes32 id) {
+        // Increment the nonce of the sender
         uint256 nonce = nonces[msg.sender]++;
+        // Calculate the id of the debt
         id = keccak256(
             abi.encodePacked(
                 uint8(1),
@@ -124,7 +152,7 @@ contract DebtEngine is ERC721Base, Ownable {
                 nonce
             )
         );
-
+        // Add the debt to the debts array
         debts[id] = Debt({
             error: false,
             balance: 0,
@@ -132,8 +160,9 @@ contract DebtEngine is ERC721Base, Ownable {
             model: _model,
             oracle: _oracle
         });
-
+        // Generate the ERC721
         _generate(uint256(id), _owner);
+        // Execute the create function of the model
         require(_model.create(id, _data), "Error creating debt in model");
 
         emit Created({
@@ -143,6 +172,21 @@ contract DebtEngine is ERC721Base, Ownable {
         });
     }
 
+    /**
+        @notice Create a debt
+
+        @dev Hash (uint8(2), address(this), msg.sender, _model, _oracle, _salt, _data) to make the id
+
+        @param _model Model of the debt
+        @param _owner Owner of the ERC721 and the debt
+        @param _oracle Oracle of the debt, if is address(0) the debt is in Token
+                        in other case the debt use the oracle to get the rate
+        @param _salt Add entropy to the hash id
+        @param _data Array of bytes parameters, send to the Model contract with
+                        the create function
+
+        @return The id if the debt
+    */
     function create2(
         Model _model,
         address _owner,
@@ -150,6 +194,7 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _salt,
         bytes calldata _data
     ) external returns (bytes32 id) {
+        // Calculate the id of the debt
         id = keccak256(
             abi.encodePacked(
                 uint8(2),
@@ -161,7 +206,7 @@ contract DebtEngine is ERC721Base, Ownable {
                 _data
             )
         );
-
+        // Add the debt to the debts array
         debts[id] = Debt({
             error: false,
             balance: 0,
@@ -169,8 +214,9 @@ contract DebtEngine is ERC721Base, Ownable {
             model: _model,
             oracle: _oracle
         });
-
+        // Generate the ERC721
         _generate(uint256(id), _owner);
+        // Execute the create function of the model
         require(_model.create(id, _data), "Error creating debt in model");
 
         emit Created2({
@@ -180,6 +226,21 @@ contract DebtEngine is ERC721Base, Ownable {
         });
     }
 
+    /**
+        @notice Create a debt
+
+        @dev Hash (uint8(3), address(this), msg.sender, _salt) to make the id
+
+        @param _model Model of the debt
+        @param _owner Owner of the ERC721 and the debt
+        @param _oracle Oracle of the debt, if is address(0) the debt is in Token
+                        in other case the debt use the oracle to get the rate
+        @param _salt Add entropy to the hash id
+        @param _data Array of bytes parameters, send to the Model contract with
+                        the create function
+
+        @return The id if the debt
+    */
     function create3(
         Model _model,
         address _owner,
@@ -187,6 +248,7 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _salt,
         bytes calldata _data
     ) external returns (bytes32 id) {
+        // Calculate the id of the debt
         id = keccak256(
             abi.encodePacked(
                 uint8(3),
@@ -195,7 +257,7 @@ contract DebtEngine is ERC721Base, Ownable {
                 _salt
             )
         );
-
+        // Add the debt to the debts array
         debts[id] = Debt({
             error: false,
             balance: 0,
@@ -203,8 +265,9 @@ contract DebtEngine is ERC721Base, Ownable {
             model: _model,
             oracle: _oracle
         });
-
+        // Generate the ERC721
         _generate(uint256(id), _owner);
+        // Execute the create function of the model
         require(_model.create(id, _data), "Error creating debt in model");
 
         emit Created3({
