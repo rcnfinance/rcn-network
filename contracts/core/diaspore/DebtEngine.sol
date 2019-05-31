@@ -277,6 +277,9 @@ contract DebtEngine is ERC721Base, Ownable {
         });
     }
 
+    /**
+        @notice Getter of id when use create function
+    */
     function buildId(
         address _creator,
         uint256 _nonce
@@ -291,6 +294,9 @@ contract DebtEngine is ERC721Base, Ownable {
         );
     }
 
+    /**
+        @notice Getter of id when use create2 function
+    */
     function buildId2(
         address _creator,
         address _model,
@@ -311,6 +317,9 @@ contract DebtEngine is ERC721Base, Ownable {
         );
     }
 
+    /**
+        @notice Getter of id when use create3 function
+    */
     function buildId3(
         address _creator,
         uint256 _salt
