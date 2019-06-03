@@ -562,7 +562,7 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _tokens,
         uint256 _equivalent
     ) internal pure returns (uint256) {
-        require(_equivalent != 0, "Oracle provided invalid rate");
+        require(_tokens != 0 && _equivalent != 0, "Oracle provided invalid rate");
         return _amount.mult(_equivalent) / _tokens;
     }
 
