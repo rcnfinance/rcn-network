@@ -95,7 +95,7 @@ contract DebtEngine is ERC721Base, Ownable {
         bool error; // Used to mark a debt in ERROR status
         uint128 balance; // Balance of the debt
         Model model; // Model of the debt
-        address creator;
+        address creator; // The sender of the create, create2, create3 functions
         address oracle; // Oracle of the debt, if is address(0) the debt is in Token
                         //      in other case the debt use the oracle to get the rate
     }
@@ -334,6 +334,18 @@ contract DebtEngine is ERC721Base, Ownable {
         );
     }
 
+    /**
+        @notice Pay a debt
+
+        @dev The contract takes the funds from the sender but the really payer is the _origin
+
+        @param _id Index of the debt
+        @param _amount The maximum amount of the payment, valued in the currency of the debt
+        @param _origin The originator of the payment
+        @param _oracleData Data of oracle to change the currency of debt to the Token
+
+        @return How much was really paid valued in the currency of the debt and in the token
+    */
     function pay(
         bytes32 _id,
         uint256 _amount,
@@ -344,18 +356,20 @@ contract DebtEngine is ERC721Base, Ownable {
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
         require(paid <= _amount, "Paid can't be more than requested");
-
+        // Get the oracle
         RateOracle oracle = RateOracle(debt.oracle);
-        if (address(oracle) != address(0)) {
-            // Convert
+
+        if (address(oracle) != address(0)) { // Debt in currency
+            // Read oracle
             (uint256 tokens, uint256 equivalent) = oracle.readSample(_oracleData);
             emit ReadedOracle(_id, tokens, equivalent);
+            // Convert the paid amount from currency of debt to Token
             paidToken = _toToken(paid, tokens, equivalent);
-        } else {
+        } else { // Debt in the Token
             paidToken = paid;
         }
 
-        // Pull tokens from payer
+        // Pull tokens from payer(sender)
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
 
         // Add balance to the debt
@@ -375,6 +389,18 @@ contract DebtEngine is ERC721Base, Ownable {
         });
     }
 
+    /**
+        @notice Pay a debt with token
+
+        @dev The contract takes the funds from the sender but the really payer is the _origin
+
+        @param _id Index of the debt
+        @param _amount The amount of the payment, valued in the Token
+        @param _origin The originator of the payment
+        @param _oracleData Data of oracle to change the currency of debt to the Token
+
+        @return How much was really paid valued in the currency of the debt and in the token
+    */
     function payToken(
         bytes32 id,
         uint256 amount,
@@ -382,7 +408,7 @@ contract DebtEngine is ERC721Base, Ownable {
         bytes calldata oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[id];
-        // Read storage
+        // Get the oracle
         RateOracle oracle = RateOracle(debt.oracle);
 
         uint256 equivalent;
@@ -390,11 +416,13 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 available;
 
         // Get available <currency> amount
-        if (address(oracle) != address(0)) {
+        if (address(oracle) != address(0)) { // Debt in currency
+            // Read oracle
             (tokens, equivalent) = oracle.readSample(oracleData);
             emit ReadedOracle(id, tokens, equivalent);
+            // Convert the paid amount from Token to currency of debt
             available = _fromToken(amount, tokens, equivalent);
-        } else {
+        } else { // Debt in the Token
             available = amount;
         }
 
@@ -403,10 +431,11 @@ contract DebtEngine is ERC721Base, Ownable {
         require(paid <= available, "Paid can't exceed available");
 
         // Convert back to required pull amount
-        if (address(oracle) != address(0)) {
+        if (address(oracle) != address(0)) { // Debt in currency
+            // Convert the paid amount from currency of debt to Token
             paidToken = _toToken(paid, tokens, equivalent);
             require(paidToken <= amount, "Paid can't exceed requested");
-        } else {
+        } else { // Debt in the Token
             paidToken = paid;
         }
 
@@ -444,6 +473,7 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 tokens;
         uint256 equivalent;
         if (_oracle != address(0)) {
+            // Read oracle
             (tokens, equivalent) = RateOracle(_oracle).readSample(_oracleData);
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
@@ -478,7 +508,8 @@ contract DebtEngine is ERC721Base, Ownable {
 
         uint256 tokens;
         uint256 equivalent;
-        if (_oracle != address(0)) {
+        if (_oracle != address(0)) {// Read oracle
+            // Read oracle
             (tokens, equivalent) = RateOracle(_oracle).readSample(_oracleData);
             emit ReadedOracleBatch(_oracle, count, tokens, equivalent);
         }
