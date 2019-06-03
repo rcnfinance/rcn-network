@@ -71,10 +71,6 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Create migrations folder
-            - run:
-                name: Create migrations folder
-                command: mkdir migrations
             # Start ganache
             - run:
                 name: Start ganache instance
@@ -102,10 +98,6 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Create migrations folder
-            - run:
-                name: Create migrations folder
-                command: mkdir migrations
             # Replace build target to byzantium
             # Solidity coverage is not compatible with constantinople
             - run:
