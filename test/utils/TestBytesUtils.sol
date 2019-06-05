@@ -102,33 +102,8 @@ contract TestBytesUtils {
         bytesUtils = new TestBytesUtilsMock();
     }
 
-    function buildData(bytes32 a, bytes32 b, bytes32 c, bytes32 d) internal returns (bytes memory o) {
-        assembly {
-            let size := 128
-            o := mload(0x40)
-            mstore(0x40, add(o, and(add(add(size, 0x20), 0x1f), not(0x1f))))
-            mstore(o, size)
-            mstore(add(o, 32), a)
-            mstore(add(o, 64), b)
-            mstore(add(o, 96), c)
-            mstore(add(o, 128), d)
-        }
-    }
-
-    function buildData(bytes32 a, bytes32 b, bytes4 c) internal returns (bytes memory o) {
-        assembly {
-            let size := 68
-            o := mload(0x40)
-            mstore(0x40, add(o, and(add(add(size, 0x20), 0x1f), not(0x1f))))
-            mstore(o, size)
-            mstore(add(o, 32), a)
-            mstore(add(o, 64), b)
-            mstore(add(o, 96), c)
-        }
-    }
-
     function testReadBytes() external {
-        bytes memory testData = buildData(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
+        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
         Assert.equal(bytesUtils.pReadBytes32(testData, 0), bytes32(uint256(123)), "Read index 0, uint256");
         Assert.equal(bytesUtils.pReadBytes32(testData, 1), bytes32(uint256(address(this))), "Read index 1, address");
         Assert.equal(bytesUtils.pReadBytes32(testData, 2), keccak256("test"), "Read index 2, bytes32");
@@ -137,7 +112,7 @@ contract TestBytesUtils {
 
     function testReadNonBytesMemory() external {
         TestThrowProxy throwProxy = new TestThrowProxy(address(bytesUtils));
-        bytes memory testData = buildData(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
+        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
 
         // Test read index 4 (invalid)
         TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 4);
@@ -150,7 +125,7 @@ contract TestBytesUtils {
 
     function testInvalidLengthBytes() external {
         TestThrowProxy throwProxy = new TestThrowProxy(address(bytesUtils));
-        bytes memory testData = buildData(bytes32(uint256(123)), bytes32(uint256(address(this))), bytes4(keccak256("test")));
+        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(address(this))), bytes4(keccak256("test")));
 
         // Reading 0 & 1 items should work
         Assert.equal(bytesUtils.pReadBytes32(testData, 0), bytes32(uint256(123)), "Read index 0, uint256");
@@ -162,7 +137,7 @@ contract TestBytesUtils {
     }
 
     function testReadOffset() external {
-        bytes memory testData = buildData(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
+        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
         Assert.equal(bytesUtils.pRead(testData, 0, 32), bytes32(uint256(123)), "Read index 0, uint256");
         Assert.equal(bytesUtils.pRead(testData, 32, 32), bytes32(uint256(address(this))), "Read index 1, address");
         Assert.equal(bytesUtils.pRead(testData, 64, 32), keccak256("test"), "Read index 2, bytes32");
