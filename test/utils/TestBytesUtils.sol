@@ -6,12 +6,12 @@ import "truffle/DeployedAddresses.sol";
 import "../../contracts/utils/BytesUtils.sol";
 
 
-interface BytesUtilsInterface {
+interface TestBytesUtilsInterface {
     function pReadBytes32(bytes calldata data, uint256 index) external;
 }
 
 
-contract TestBytesUtils is BytesUtils {
+contract TestBytesUtilsMock is BytesUtils {
     function pReadBytes32(bytes memory data, uint256 index) public returns (bytes32) {
         return readBytes32(data, index);
     }
@@ -73,8 +73,9 @@ contract TestBytesUtils is BytesUtils {
     }
 }
 
+
 // Proxy contract for testing throws
-contract ThrowProxy {
+contract TestThrowProxy {
     address public target;
     bytes data;
 
@@ -93,11 +94,12 @@ contract ThrowProxy {
     }
 }
 
-contract BytesUtilsTest {
-    TestBytesUtils bytesUtils;
+
+contract TestBytesUtils {
+    TestBytesUtilsMock bytesUtils;
 
     function beforeAll() external {
-        bytesUtils = new TestBytesUtils();
+        bytesUtils = new TestBytesUtilsMock();
     }
 
     function buildData(bytes32 a, bytes32 b, bytes32 c, bytes32 d) internal returns (bytes memory o) {
@@ -134,20 +136,20 @@ contract BytesUtilsTest {
     }
 
     function testReadNonBytesMemory() external {
-        ThrowProxy throwProxy = new ThrowProxy(address(bytesUtils));
+        TestThrowProxy throwProxy = new TestThrowProxy(address(bytesUtils));
         bytes memory testData = buildData(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
 
         // Test read index 4 (invalid)
-        BytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 4);
+        TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 4);
         Assert.isFalse(throwProxy.execute.gas(200000)(), "Read index 4 should fail, it's not inside bytes array");
 
         // Test read index 0 of empty bytes (invalid)
-        BytesUtilsInterface(address(throwProxy)).pReadBytes32(new bytes(0), 0);
+        TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(new bytes(0), 0);
         Assert.isFalse(throwProxy.execute.gas(200000)(), "Read index 0 should fail, it's not inside bytes array");
     }
 
     function testInvalidLengthBytes() external {
-        ThrowProxy throwProxy = new ThrowProxy(address(bytesUtils));
+        TestThrowProxy throwProxy = new TestThrowProxy(address(bytesUtils));
         bytes memory testData = buildData(bytes32(uint256(123)), bytes32(uint256(address(this))), bytes4(keccak256("test")));
 
         // Reading 0 & 1 items should work
@@ -155,7 +157,7 @@ contract BytesUtilsTest {
         Assert.equal(bytesUtils.pReadBytes32(testData, 1), bytes32(uint256(address(this))), "Read index 1, address");
 
         // Reading index 2 should fail, the word has less than 32 bytes
-        BytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 2);
+        TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 2);
         Assert.isFalse(throwProxy.execute.gas(200000)(), "Reading index 3 should fail, the word has less than 32 bytes");
     }
 
