@@ -104,6 +104,13 @@ contract ERC721Base is ERC165 {
         return _allTokens;
     }
 
+    /**
+     * @dev Gets the total of assets of the owner
+     *      Warning: this method can consume all the gas of the transaction, it should not be
+     *               called from another contract, it should only be used in external calls
+     * @param _owner the address of owner
+     * @return an array with total assets of owner
+     */
     function assetsOf(address _owner) external view returns (uint256[] memory) {
         return _assetsOf[_owner];
     }
