@@ -294,7 +294,25 @@ contract LoanManager is BytesUtils {
             if (borrower.isContract() && borrower.implementsMethod(0x76ba6009)) {
                 approved = _requestContractApprove(_id, borrower);
             } else {
-                if (borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _signature)) {
+                bytes32 _hash = keccak256(
+                    abi.encodePacked(
+                        address(this),
+                        _id,
+                        "sign approve request"
+                    )
+                );
+
+                address signer = ecrecovery(
+                    keccak256(
+                        abi.encodePacked(
+                            "\x19Ethereum Signed Message:\n32",
+                            _hash
+                        )
+                    ),
+                    _signature
+                );
+
+                if (borrower == signer) {
                     emit ApprovedBySignature(_id);
                     approved = true;
                 }
@@ -573,6 +591,7 @@ contract LoanManager is BytesUtils {
         bytes32 expected = _id ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
         address borrower = address(uint256(read(_requestData, O_BORROWER, L_BORROWER)));
         address creator = address(uint256(read(_requestData, O_CREATOR, L_CREATOR)));
+        bytes32 _hash;
 
         if (borrower.isContract()) {
             require(
@@ -582,8 +601,15 @@ contract LoanManager is BytesUtils {
 
             emit BorrowerByCallback(_id);
         } else {
+            _hash = keccak256(
+                abi.encodePacked(
+                    address(this),
+                    _id,
+                    "sign settle lend as borrower"
+                )
+            );
             require(
-                borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _borrowerSig),
+                borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash)), _borrowerSig),
                 "Invalid borrower signature"
             );
 
@@ -599,8 +625,15 @@ contract LoanManager is BytesUtils {
 
                 emit CreatorByCallback(_id);
             } else {
+                _hash = keccak256(
+                    abi.encodePacked(
+                        address(this),
+                        _id,
+                        "sign settle lend as creator"
+                    )
+                );
                 require(
-                    creator == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _id)), _creatorSig),
+                    creator == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash)), _creatorSig),
                     "Invalid creator signature"
                 );
 
