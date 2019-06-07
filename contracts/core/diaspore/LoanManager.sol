@@ -394,6 +394,7 @@ contract LoanManager is BytesUtils {
 
         delete request.loanData;
         delete requests[_id];
+        canceledSettles[_id] = true;
 
         emit Canceled(_id, msg.sender);
 
