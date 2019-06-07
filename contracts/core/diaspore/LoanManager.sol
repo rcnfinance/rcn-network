@@ -57,7 +57,7 @@ contract LoanManager is BytesUtils {
         debtEngine = _debtEngine;
         token = debtEngine.token();
         require(address(token) != address(0), "Error loading token");
-        directory.length++;
+        directory.length++; // Cant overflow
     }
 
     function getDirectory() external view returns (bytes32[] memory) { return directory; }
@@ -237,7 +237,7 @@ contract LoanManager is BytesUtils {
         }
 
         if (approved) {
-            requests[id].position = uint64(directory.push(id) - 1);
+            requests[id].position = uint64(directory.push(id) - 1); // Cant underflow
             emit Approved(id);
         }
     }
@@ -276,7 +276,7 @@ contract LoanManager is BytesUtils {
         Request storage request = requests[_id];
         require(msg.sender == request.borrower, "Only borrower can approve");
         if (!request.approved) {
-            request.position = uint64(directory.push(_id) - 1);
+            request.position = uint64(directory.push(_id) - 1); // Cant underflow
             request.approved = true;
             emit Approved(_id);
         }
@@ -303,7 +303,7 @@ contract LoanManager is BytesUtils {
 
         // Check request.approved again, protect against reentrancy
         if (approved && !request.approved) {
-            request.position = uint64(directory.push(_id) - 1);
+            request.position = uint64(directory.push(_id) - 1); // Cant underflow
             request.approved = true;
             emit Approved(_id);
         }
@@ -348,7 +348,7 @@ contract LoanManager is BytesUtils {
         );
 
         // Remove directory entry
-        bytes32 last = directory[directory.length - 1];
+        bytes32 last = directory[directory.length - 1]; // Cant underflow, the length of directory its 1 as minimum
         requests[last].position = request.position;
         directory[request.position] = last;
         request.position = 0;
@@ -357,7 +357,7 @@ contract LoanManager is BytesUtils {
         // Call the cosigner
         if (_cosigner != address(0)) {
             uint256 auxSalt = request.salt;
-            request.cosigner = address(uint256(_cosigner) + 2);
+            request.cosigner = address(uint256(_cosigner) + 2); // Cant overflow
             request.salt = _cosignerLimit; // Risky ?
             require(
                 Cosigner(_cosigner).requestCosign(
@@ -386,10 +386,10 @@ contract LoanManager is BytesUtils {
 
         if (request.approved){
             // Remove directory entry
-            bytes32 last = directory[directory.length - 1];
+            bytes32 last = directory[directory.length - 1]; // Cant underflow, the length of directory its 1 as minimum
             requests[last].position = request.position;
             directory[request.position] = last;
-            directory.length--;
+            directory.length--; // Cant underflow, the length of directory its 1 as minimum
         }
 
         delete request.loanData;
@@ -405,7 +405,7 @@ contract LoanManager is BytesUtils {
         require(request.position == 0, "Request cosigned is invalid");
         require(request.cosigner != address(0), "Cosigner 0x0 is not valid");
         require(request.expiration > now, "Request is expired");
-        require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
+        require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid"); // Cant overflow
         request.cosigner = msg.sender;
         if (_cost != 0){
             require(request.salt >= _cost, "Cosigner cost exceeded");
@@ -537,7 +537,7 @@ contract LoanManager is BytesUtils {
 
         // Call the cosigner
         if (_cosigner != address(0)) {
-            request.cosigner = address(uint256(_cosigner) + 2);
+            request.cosigner = address(uint256(_cosigner) + 2); // Cant overflow
             require(Cosigner(_cosigner).requestCosign(address(this), uint256(id), _cosignerData, _oracleData), "Cosign method returned false");
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
             request.salt = uint256(read(_requestData, O_SALT, L_SALT));

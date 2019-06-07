@@ -115,7 +115,7 @@ contract DebtEngine is ERC721Base, Ownable {
         address _oracle,
         bytes calldata _data
     ) external returns (bytes32 id) {
-        uint256 nonce = nonces[msg.sender]++;
+        uint256 nonce = nonces[msg.sender]++; // Overflow when a user create (2**256)-1 debts
         id = keccak256(
             abi.encodePacked(
                 uint8(1),
@@ -679,7 +679,7 @@ contract DebtEngine is ERC721Base, Ownable {
         address _contract,
         bytes memory _data
     ) internal view returns (uint256 success, bytes32 result) {
-        uint256 _gas = (block.gaslimit * 80) / 100;
+        uint256 _gas = (block.gaslimit * 80) / 100; // Cant overflow, the gas limit * 80 is lower than (2**256)-1
         _gas = gasleft() < _gas ? gasleft() : _gas;
         assembly {
             let x := mload(0x40)
@@ -700,7 +700,7 @@ contract DebtEngine is ERC721Base, Ownable {
         address _contract,
         bytes memory _data
     ) internal returns (uint256 success, bytes32 result) {
-        uint256 _gas = (block.gaslimit * 80) / 100;
+        uint256 _gas = (block.gaslimit * 80) / 100; // Cant overflow, the gas limit * 80 is lower than (2**256)-1
         _gas = gasleft() < _gas ? gasleft() : _gas;
         assembly {
             let x := mload(0x40)
