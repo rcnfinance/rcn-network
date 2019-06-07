@@ -296,7 +296,6 @@ contract LoanManager is BytesUtils {
             } else {
                 bytes32 _hash = keccak256(
                     abi.encodePacked(
-                        address(this),
                         _id,
                         "sign approve request"
                     )
@@ -603,7 +602,6 @@ contract LoanManager is BytesUtils {
         } else {
             _hash = keccak256(
                 abi.encodePacked(
-                    address(this),
                     _id,
                     "sign settle lend as borrower"
                 )
@@ -627,7 +625,6 @@ contract LoanManager is BytesUtils {
             } else {
                 _hash = keccak256(
                     abi.encodePacked(
-                        address(this),
                         _id,
                         "sign settle lend as creator"
                     )

@@ -129,7 +129,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
     function calcSignature (_id, _message) {
         return web3.utils.soliditySha3(
-            { t: 'address', v: loanManager.address },
             { t: 'bytes32', v: _id },
             { t: 'string', v: _message }
         );
@@ -2609,7 +2608,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
         it('SettleLend a loan should be fail if the model create return a diferent id', async function () {
             function calcSignature (_loanManager, _id, _message) {
                 return web3.utils.soliditySha3(
-                    { t: 'address', v: _loanManager },
                     { t: 'bytes32', v: _id },
                     { t: 'string', v: _message }
                 );
