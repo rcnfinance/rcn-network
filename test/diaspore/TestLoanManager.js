@@ -526,6 +526,65 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
         });
 
+        it('Try request again a canceled request', async function () {
+            const borrower = accounts[2];
+            const creator = accounts[4];
+            const salt = bn('33422');
+            const amount = bn('4555');
+            const expiration = (await Helper.getBlockTime()) + 1700;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const id = await calcId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData
+            );
+
+            await loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                salt,
+                expiration,
+                loanData,
+                { from: creator }
+            );
+
+            // Sign loan id
+            const signature = await web3.eth.sign(id, borrower);
+
+            await loanManager.registerApproveRequest(
+                id,
+                signature,
+                { from: creator }
+            );
+
+            await loanManager.cancel(
+                id,
+                { from: borrower }
+            );
+
+            await Helper.tryCatchRevert(
+                () => loanManager.requestLoan(
+                    amount,
+                    model.address,
+                    Helper.address0x,
+                    borrower,
+                    salt,
+                    expiration,
+                    loanData,
+                    { from: creator }
+                ),
+                'The debt was canceled'
+            );
+        });
+
         it('Should create a loan using requestLoan with the same borrower and creator', async function () {
             const borrower = accounts[2];
             const salt = bn('1');
@@ -1914,6 +1973,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(request.salt).to.eq.BN('0');
             assert.equal(request.loanData, null);
 
+            assert.isTrue(await loanManager.canceledSettles(id));
             assert.equal(await loanManager.getLoanData(id), null);
         });
 
@@ -1975,6 +2035,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(request.salt).to.eq.BN('0');
             assert.equal(request.loanData, null);
 
+            assert.isTrue(await loanManager.canceledSettles(id));
             assert.equal(await loanManager.getLoanData(id), null);
         });
 
