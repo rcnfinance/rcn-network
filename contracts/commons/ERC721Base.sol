@@ -265,7 +265,7 @@ contract ERC721Base is ERC165 {
     // Internal Operations
     //
 
-    function _addAssetTo(address _to, uint256 _assetId) internal {
+    function _addAssetTo(address _to, uint256 _assetId) private {
         // Store asset owner
         _holderOf[_assetId] = _to;
 
@@ -278,7 +278,7 @@ contract ERC721Base is ERC165 {
         _allTokens.push(_assetId);
     }
 
-    function _transferAsset(address _from, address _to, uint256 _assetId) internal {
+    function _transferAsset(address _from, address _to, uint256 _assetId) private {
         uint256 assetIndex = _indexOfAsset[_assetId];
         uint256 lastAssetIndex = _balanceOf(_from).sub(1);
 
@@ -303,7 +303,7 @@ contract ERC721Base is ERC165 {
         _indexOfAsset[_assetId] = length;
     }
 
-    function _clearApproval(address _holder, uint256 _assetId) internal {
+    function _clearApproval(address _holder, uint256 _assetId) private {
         if (_approval[_assetId] != address(0)) {
             _approval[_assetId] = address(0);
             emit Approval(_holder, address(0), _assetId);
