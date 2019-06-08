@@ -971,7 +971,7 @@ contract('Installments model', function (accounts) {
             () => model.validate(
                 data
             ),
-            'Time unit can\'t be lower than installment duration'
+            'Time unit must be lower or equal than installment duration'
         );
 
         // a data with timeUnit equal to interestRate
