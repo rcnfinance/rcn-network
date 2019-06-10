@@ -509,7 +509,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         require(installments > 0, "Installments can't be 0");
         require(timeUnit > 0, "Time unit can't be 0");
 
-        require(timeUnit <= installments, "Time unit must be lower or equal than installment duration");
+        require(timeUnit <= duration, "Time unit must be lower or equal than installment duration");
         require(timeUnit < interestRate, "Interest rate by time unit is too low");
     }
 
