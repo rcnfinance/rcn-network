@@ -436,8 +436,8 @@ contract ERC721Base is ERC165 {
 
         if (_doCheck && _to.isContract()) {
             // Call dest contract
-            uint256 success;
-            bytes32 result;
+            bool success;
+            bytes4 result;
             // Perform check with the new safe call
             // onERC721Received(address,address,uint256,bytes)
             (success, result) = _noThrowCall(
@@ -451,7 +451,7 @@ contract ERC721Base is ERC165 {
                 )
             );
 
-            if (success != 1 || result != ERC721_RECEIVED) {
+            if (!success || result != ERC721_RECEIVED) {
                 // Try legacy safe call
                 // onERC721Received(address,uint256,bytes)
                 (success, result) = _noThrowCall(
@@ -465,7 +465,7 @@ contract ERC721Base is ERC165 {
                 );
 
                 require(
-                    success == 1 && result == ERC721_RECEIVED_LEGACY,
+                    success && result == ERC721_RECEIVED_LEGACY,
                     "Contract rejected the token"
                 );
             }
@@ -478,24 +478,21 @@ contract ERC721Base is ERC165 {
     // Utilities
     //
 
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
+     * relaxing the requirement on the return value
+     * @param _contract The contract that receives the ERC721
+     * @param _data The call data
+     * @return True if the call not reverts and the result of the call
+     */
     function _noThrowCall(
         address _contract,
         bytes memory _data
-    ) internal returns (uint256 success, bytes32 result) {
-        assembly {
-            let x := mload(0x40)
+    ) internal returns (bool success, bytes4 result) {
+        bytes memory returndata;
+        (success, returndata) = _contract.call(_data);
 
-            success := call(
-                            gas,                  // Send all gas
-                            _contract,            // To addr
-                            0,                    // Send ETH
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
-
-            result := mload(x)
-        }
+        if (returndata.length > 0)
+            result = abi.decode(returndata, (bytes4));
     }
 }
