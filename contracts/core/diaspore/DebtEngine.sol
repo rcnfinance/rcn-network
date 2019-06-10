@@ -394,10 +394,10 @@ contract DebtEngine is ERC721Base, Ownable {
 
         @dev The contract takes the funds from the sender but the really payer is the _origin
 
-        @param _id Index of the debt
-        @param _amount The amount of the payment, valued in the Token
-        @param _origin The originator of the payment
-        @param _oracleData Data of oracle to change the currency of debt to the Token
+        @param id Index of the debt
+        @param amount The amount of the payment, valued in the Token
+        @param origin The originator of the payment
+        @param oracleData Data of oracle to change the currency of debt to the Token
 
         @return How much was really paid valued in the currency of the debt and in the token
     */
