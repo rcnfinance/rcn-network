@@ -489,10 +489,10 @@ contract ERC721Base is ERC165 {
         address _contract,
         bytes memory _data
     ) internal returns (bool success, bytes4 result) {
-        bytes memory returndata;
-        (success, returndata) = _contract.call(_data);
+        bytes memory returnData;
+        (success, returnData) = _contract.call(_data);
 
-        if (returndata.length > 0)
-            result = abi.decode(returndata, (bytes4));
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (bytes4));
     }
 }
