@@ -35,7 +35,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return event.args._id;
     }
 
-    async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
+    async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data, _callback = Helper.address0x) {
         const _two = '0x02';
         const controlId = await loanManager.calcId(
             _amount,
@@ -43,6 +43,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             _creator,
             model.address,
             _oracle,
+            _callback,
             _salt,
             _expiration,
             _data
@@ -52,6 +53,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             _amount,
             _borrower,
             _creator,
+            _callback,
             _salt,
             _expiration
         );
@@ -61,6 +63,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { t: 'uint128', v: _amount },
                 { t: 'address', v: _borrower },
                 { t: 'address', v: _creator },
+                { t: 'address', v: _callback },
                 { t: 'uint256', v: _salt },
                 { t: 'uint64', v: _expiration }
             )
@@ -81,13 +84,24 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return id;
     }
 
-    async function calcSettleId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data) {
+    async function calcSettleId(
+        _amount,
+        _borrower,
+        _creator,
+        _model,
+        _oracle,
+        _salt,
+        _expiration,
+        _data,
+        _callback = Helper.address0x
+    ) {
         const _two = '0x02';
         const encodeData = await loanManager.encodeRequest(
             _amount,
             _model,
             _oracle,
             _borrower,
+            _callback,
             _salt,
             _expiration,
             _creator,
@@ -98,6 +112,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             _amount,
             _borrower,
             _creator,
+            _callback,
             _salt,
             _expiration
         );
@@ -107,6 +122,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { t: 'uint128', v: _amount },
                 { t: 'address', v: _borrower },
                 { t: 'address', v: _creator },
+                { t: 'address', v: _callback },
                 { t: 'uint256', v: _salt },
                 { t: 'uint64', v: _expiration }
             )
@@ -186,8 +202,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                oracle.address,  // Oracle
+                oracle.address,   // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -204,8 +221,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 await oracle.encodeRate(bn('1'), bn('1')),
                 cosigner.address,
-                '0',
+                '0x',
                 await cosigner.customData(),
+                '0x',
                 { from: lender }
             );
 
@@ -264,6 +282,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 amount,
                 borrower,
                 creator,
+                Helper.address0x,
                 salt,
                 expiration
             );
@@ -273,6 +292,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -318,6 +338,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     model.address,    // Model
                     Helper.address0x, // Oracle
                     borrower,         // Borrower
+                    Helper.address0x, // Callback
                     salt,             // salt
                     expiration,       // Expiration
                     loanData,         // Loan data
@@ -378,6 +399,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -389,6 +411,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -412,6 +435,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     model.address,
                     Helper.address0x,
                     borrower,
+                    Helper.address0x,
                     salt,
                     expiration,
                     loanData,
@@ -437,6 +461,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 model.address,
                 Helper.address0x,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData
@@ -447,6 +472,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -462,6 +488,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     Helper.address0x,
                     '0',
+                    [],
                     [],
                     { from: lender }
                 ),
@@ -483,6 +510,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     model.address,
                     Helper.address0x,
                     borrower,
+                    Helper.address0x,
                     salt,
                     expiration,
                     loanData,
@@ -505,6 +533,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -517,6 +546,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     model.address,
                     Helper.address0x,
                     borrower,
+                    Helper.address0x,
                     salt,
                     expiration,
                     loanData,
@@ -550,6 +580,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -576,6 +607,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     model.address,
                     Helper.address0x,
                     borrower,
+                    Helper.address0x,
                     salt,
                     expiration,
                     loanData,
@@ -609,6 +641,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     model.address,     // Model
                     Helper.address0x,  // Oracle
                     borrower,          // Borrower
+                    Helper.address0x,  // Callback
                     salt,              // salt
                     expiration,        // Expiration
                     loanData,          // Loan data
@@ -682,6 +715,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -727,6 +761,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -758,6 +793,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -806,6 +842,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -849,6 +886,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -901,6 +939,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -942,6 +981,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -980,6 +1020,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -1018,6 +1059,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -1056,6 +1098,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -1106,6 +1149,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 Helper.address0x, // Oracle
                 borrower,         // Borrower
+                Helper.address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -1154,6 +1198,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1169,8 +1214,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     id,                 // Index
                     [],                 // OracleData
                     Helper.address0x,   // Cosigner
-                    '0', // Cosigner limit
+                    '0',                // Cosigner limit
                     [],                 // Cosigner data
+                    [],                 // Callback data
                     { from: lender }    // Owner/Lender
                 ),
                 'Lent'
@@ -1223,6 +1269,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1239,8 +1286,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     id,
                     [],
                     cosigner.address,   // Cosigner
-                    '0', // Cosigner limit
+                    '0',                // Cosigner limit
                     id0x0Data,          // Cosigner data
+                    [],                 // Callback data
                     { from: lender }
                 ),
                 'Cosigner cost exceeded'
@@ -1276,6 +1324,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1291,6 +1340,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     Helper.address0x,
                     '0',
+                    [],
                     [],
                     { from: lender }
                 ),
@@ -1322,6 +1372,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1341,6 +1392,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     Helper.address0x,
                     '0',
+                    [],
                     [],
                     { from: lender }
                 ),
@@ -1371,6 +1423,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1383,6 +1436,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     Helper.address0x,
                     '0',
+                    [],
                     [],
                     { from: accounts[9] }
                 ),
@@ -1414,6 +1468,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1427,8 +1482,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,                 // Index
                 [],                 // OracleData
                 Helper.address0x,   // Cosigner
-                '0', // Cosigner limit
+                '0',                // Cosigner limit
                 [],                 // Cosigner data
+                [],                 // Callback data
                 { from: lender }    // Owner/Lender
             );
 
@@ -1438,6 +1494,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     Helper.address0x,
                     '0',
+                    [],
                     [],
                     { from: lender }
                 ),
@@ -1477,6 +1534,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 oracle.address,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1491,6 +1549,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 oracleData,
                 Helper.address0x,
                 '0',
+                [],
                 [],
                 { from: lender }
             );
@@ -1533,6 +1592,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1550,6 +1610,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     cosigner.address,   // Cosigner
                     cosignerCost,       // Cosigner limit
                     data,               // Cosigner data
+                    [],                 // Callback data
                     { from: lender }
                 ),
                 'Cosigned'
@@ -1595,6 +1656,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1613,6 +1675,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     cosigner.address,   // Cosigner
                     '0',                // Cosigner limit
                     id0x0Data,          // Cosigner data
+                    [],                 // Callback data
                     { from: lender }
                 ),
                 'Cosigner 0x0 is not valid'
@@ -1646,6 +1709,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1685,6 +1749,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1701,8 +1766,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     id,
                     [],
                     cosigner.address,   // Cosigner
-                    bn('1'), // Cosigner limit
+                    bn('1'),            // Cosigner limit
                     maxCostData,        // Cosigner data
+                    [],                 // Callback data
                     { from: lender }
                 ),
                 'Cosigner cost exceeded'
@@ -1737,6 +1803,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1752,8 +1819,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     id,
                     [],
                     cosigner.address,   // Cosigner
-                    '0', // Cosigner limit
+                    '0',                // Cosigner limit
                     badData,            // Cosigner data
+                    [],                 // Callback data
                     { from: lender }
                 ),
                 'Cosign method returned false'
@@ -1788,6 +1856,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1803,6 +1872,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     accounts[8],        // Address as cosigner
                     '0',
+                    [],
                     [],
                     { from: lender }
                 ),
@@ -1837,6 +1907,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1852,8 +1923,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     id,
                     [],
                     cosigner.address,   // Cosigner
-                    '0', // Cosigner limit
+                    '0',                // Cosigner limit
                     noCosignData,       // Cosigner data
+                    [],                 // Callback data
                     { from: lender }
                 ),
                 'Cosigner didn\'t callback'
@@ -1890,6 +1962,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1907,6 +1980,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     cosigner.address,   // Cosigner
                     MAX_UINT256,        // Cosigner limit
                     data,               // Cosigner data
+                    [],                 // Callback data
                     { from: lender }
                 ),
                 'Error paying cosigner'
@@ -1943,6 +2017,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -2000,6 +2075,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -2064,6 +2140,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -2103,6 +2180,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 loanData,
@@ -2117,6 +2195,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 Helper.address0x,
                 '0',
+                [],
                 [],
                 { from: lender }
             );
@@ -2170,6 +2249,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'SettledLend'
@@ -2239,6 +2319,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     [],
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'CreatorByCallback',
@@ -2292,6 +2373,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     [],
+                    [],
                     { from: lender }
                 ),
                 'Borrower contract rejected the loan'
@@ -2341,6 +2423,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     [],
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'Creator contract rejected the loan'
@@ -2390,6 +2473,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     [],
+                    [],
                     { from: lender }
                 ),
                 'BorrowerByCallback',
@@ -2437,6 +2521,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     loanData,
                     Helper.address0x,
                     '0',
+                    [],
                     [],
                     [],
                     [],
@@ -2498,6 +2583,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'Settle was canceled'
@@ -2553,6 +2639,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'Settle was canceled'
@@ -2600,6 +2687,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     [],
                     creatorSig,
+                    [],
                     [],
                     { from: lender }
                 ),
@@ -2649,6 +2737,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     [],
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'Invalid creator signature'
@@ -2676,6 +2765,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 Helper.address0x,
                 borrower,
+                Helper.address0x,
                 salt,
                 expiration,
                 creator,
@@ -2701,6 +2791,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'Error creating debt registry'
@@ -2752,6 +2843,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 oracleData,
                 creatorSig,
                 borrowerSig,
+                [],
                 { from: lender }
             );
 
@@ -2817,6 +2909,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'Loan request is expired'
@@ -2865,6 +2958,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'Error sending tokens to borrower'
@@ -2912,6 +3006,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 [],
                 creatorSig,
                 borrowerSig,
+                [],
                 { from: lender }
             );
 
@@ -2925,6 +3020,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSig,
                     borrowerSig,
+                    [],
                     { from: lender }
                 ),
                 'Request already exist'
@@ -2976,6 +3072,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSigSL,
                     borrowerSigSL,
+                    [],
                     { from: lender }
                 ),
                 'Cosigned'
@@ -3036,6 +3133,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSigSL,
                     borrowerSigSL,
+                    [],
                     { from: lender }
                 ),
                 'Cosigner 0x0 is not valid'
@@ -3088,6 +3186,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSigSL,
                     borrowerSigSL,
+                    [],
                     { from: lender }
                 ),
                 'Cosigner cost exceeded'
@@ -3139,6 +3238,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSigSL,
                     borrowerSigSL,
+                    [],
                     { from: lender }
                 ),
                 'Cosign method returned false'
@@ -3189,6 +3289,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSigSL,
                     borrowerSigSL,
+                    [],
                     { from: lender }
                 ),
                 ''
@@ -3239,6 +3340,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSigSL,
                     borrowerSigSL,
+                    [],
                     { from: lender }
                 ),
                 'Cosigner didn\'t callback'
@@ -3292,6 +3394,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     creatorSigSL,
                     borrowerSigSL,
+                    [],
                     { from: lender }
                 ),
                 'Error paying cosigner'

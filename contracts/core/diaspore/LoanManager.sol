@@ -403,7 +403,10 @@ contract LoanManager is BytesUtils {
         }
 
         // Call the loan callback
-        require(LoanCallback(request.callback).onLent(_id, _callbackData), "Rejected by loan callback");
+        address callback = request.callback;
+        if (callback != address(0)) {
+            require(LoanCallback(callback).onLent(_id, _callbackData), "Rejected by loan callback");
+        }
 
         return true;
     }
@@ -469,8 +472,6 @@ contract LoanManager is BytesUtils {
     uint256 private constant L_CREATOR = 20;
     uint256 private constant O_CALLBACK = O_CREATOR + L_CREATOR;
     uint256 private constant L_CALLBACK = 20;
-
-    uint256 private constant L_TOTAL = O_CREATOR + L_CREATOR;
 
     function encodeRequest(
         uint128 _amount,
@@ -585,11 +586,10 @@ contract LoanManager is BytesUtils {
         }
 
         // Call the loan callback
-        require(
-            LoanCallback(
-                address(uint256(read(_requestData, O_CALLBACK, L_CALLBACK))
-            )
-        ).onLent(id, _callbackData), "Rejected by loan callback");
+        address callback = address(uint256(read(_requestData, O_CALLBACK, L_CALLBACK)));
+        if (callback != address(0)) {
+            require(LoanCallback(callback).onLent(id, _callbackData), "Rejected by loan callback");
+        }
     }
 
     function settleCancel(
@@ -693,14 +693,14 @@ contract LoanManager is BytesUtils {
             address borrower,
             uint256 salt,
             uint64 expiration,
-            address creator,
+            address creator
         ) = _decodeSettle(_requestData);
 
         innerSalt = _buildInternalSalt(
             amount,
             borrower,
             creator,
-            address(uint256(read(_loanData, O_CALLBACK, L_CALLBACK))),
+            address(uint256(read(_requestData, O_CALLBACK, L_CALLBACK))),
             salt,
             expiration
         );
@@ -745,8 +745,7 @@ contract LoanManager is BytesUtils {
         address borrower,
         uint256 salt,
         uint64 expiration,
-        address creator,
-        address callback
+        address creator
     ) {
         (
             bytes32 _amount,
@@ -764,7 +763,6 @@ contract LoanManager is BytesUtils {
         salt = uint256(_salt);
         expiration = uint64(uint256(_expiration));
         creator = address(uint256(read(_data, O_CREATOR, L_CREATOR)));
-        callback = address(uint256(read(_data, O_CALLBACK, L_CALLBACK)));
     }
 
     function ecrecovery(bytes32 _hash, bytes memory _sig) internal pure returns (address) {
