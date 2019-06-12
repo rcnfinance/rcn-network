@@ -77,11 +77,17 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         _;
     }
 
+    /**
+        Getter of version of model in bytes32
+    */
     function modelId() external view returns (bytes32) {
         // InstallmentsModel A 0.0.2
         return bytes32(0x00000000000000496e7374616c6c6d656e74734d6f64656c204120302e302e32);
     }
 
+    /**
+        Getter the address of the descriptor
+    */
     function descriptor() external view returns (address) {
         address _descriptor = altDescriptor;
         return _descriptor == address(0) ? address(this) : _descriptor;
@@ -89,6 +95,8 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     /**
         Setter of engine, used in onlyEngine modifier
+
+        @dev Only the owner of the contract can use this function
 
         @param _engine DebtEngine address
     */
@@ -98,6 +106,13 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return true;
     }
 
+    /**
+        Setter of altDescriptor, used to describe the model, should implements the ModelDescriptor interface
+
+        @dev Only the owner of the contract can use this function
+
+        @param _descriptor Descriptor address
+    */
     function setDescriptor(address _descriptor) external onlyOwner returns (bool) {
         altDescriptor = _descriptor;
         emit _setDescriptor(_descriptor);
@@ -116,6 +131,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     /**
         @dev Before create the debt the data should be validate with call _validate function
+            Only the engine can use this function
 
         @param id Index of the debt
         @param data Array of bytes parameters, used to create a debt
@@ -152,6 +168,8 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
         If the paid pending amount equals zero, the debt changes status to "paid" and
             it is considered closed.
+
+        @dev Only the engine can use this function
 
         @param id Index of the debt
         @param amount Amount to pay
@@ -224,10 +242,25 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         }
     }
 
+    /**
+        Always revert, its not implemented
+
+        @dev Only the engine can use this function
+    */
     function addDebt(bytes32 id, uint256 amount) external onlyEngine returns (bool) {
         revert("Not implemented!");
     }
 
+    /**
+        @notice Advance a clock to a target clock
+
+        @dev Used when the clock cant advance in a addPaid or run, because this methods consumed all gas
+
+        @param id Index of the debt
+        @param target Timestamp target to advance the clock
+
+        @return If the fix clock can execute
+    */
     function fixClock(bytes32 id, uint64 target) external returns (bool) {
         require(target <= now, "Forbidden advance clock into the future");
         Config storage config = configs[id];
@@ -304,6 +337,15 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return (debt > paid ? debt - paid : 0, defined);
     }
 
+    /**
+        @param _clock The state.clock(always the same)
+        @param _targetClock Timestamp target
+        @param _prevInterest The state.interest(always the same)
+        @param _config A config of a loan
+        @param _state A State of a loan
+
+        @return TODO
+    */
     function _simRunClock(
         uint256 _clock,
         uint256 _targetClock,
@@ -483,6 +525,19 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return debt > paid ? debt - paid : 0;
     }
 
+    /**
+        @param _clock The state.clock(always the same)
+        @param _timeUnit The config.timeUnit(always the same)
+        @param _interest The state.interest(always the same)
+        @param _duration The config.duration(always the same)
+        @param _cuota The config.cuota(always the same)
+        @param _installments The config.installments(always the same)
+        @param _paidBase The state.paidBase(always the same)
+        @param _interestRate The config.interestRate(always the same)
+        @param _targetClock Timestamp target to advance the clock
+
+        @return TODO
+    */
     function _runAdvanceClock(
         uint256 _clock,
         uint256 _timeUnit,
@@ -533,6 +588,14 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         } while (clock < _targetClock);
     }
 
+    /**
+        @param _targetDelta TODO
+        @param _clock The state.clock(always the same)
+        @param _duration The config.duration(always the same)
+        @param _installments The config.installments(always the same)
+
+        @return TODO
+    */
     function _calcDelta(
         uint256 _targetDelta,
         uint256 _clock,
@@ -549,6 +612,18 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         }
     }
 
+    /**
+        @param _clock The state.clock(always the same)
+        @param _timeUnit The config.timeUnit(always the same)
+        @param _duration The config.duration(always the same)
+        @param _installments The config.installments(always the same)
+        @param _cuota The config.cuota(always the same)
+        @param _paidBase The state.paidBase(always the same)
+        @param _delta TODO
+        @param _interestRate The config.interestRate(always the same)
+
+        @return TODO
+    */
     function _newInterest(
         uint256 _clock,
         uint256 _timeUnit,
@@ -565,6 +640,14 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return newInterest;
     }
 
+    /**
+        @param clock TODO
+        @param duration The config.duration(always the same)
+        @param installments The config.installmens(always the same)
+        @param cuota The config.cuota(always the same)
+
+        @return The baseDebt of the sent clock
+    */
     function _baseDebt(
         uint256 clock,
         uint256 duration,
