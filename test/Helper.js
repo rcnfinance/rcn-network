@@ -63,7 +63,16 @@ module.exports.isRevertErrorMessage = (error) => {
 };
 
 module.exports.getBlockTime = async () => {
-    return (await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp;
+    const block = await web3.eth.getBlock(await web3.eth.getBlockNumber());
+    return block.timestamp;
+};
+
+module.exports.getTxTime = async (tx) => {
+   if (tx instanceof Promise)
+      tx = await tx;
+   const blockNumber = tx.receipt.blockNumber;
+   const block = await web3.eth.getBlock(blockNumber);
+   return block.timestamp;
 };
 
 module.exports.assertThrow = async (promise) => {
@@ -125,23 +134,26 @@ module.exports.searchEvent = (tx, eventName) => {
     return event[0];
 };
 
-module.exports.toEvents = async (promise, ...events) => {
-    const logs = (await promise).logs;
+module.exports.toEvents = async (tx, ...events) => {
+   if (tx instanceof Promise)
+      tx = await tx;
 
-    let eventObjs = [].concat.apply(
-        [], events.map(
-            event => logs.filter(
-                log => log.event === event
-            )
-        )
-    );
+   const logs = tx.logs;
 
-    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
-        console.warn('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
-        assert.fail();
-    }
-    eventObjs = eventObjs.map(x => x.args);
-    return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
+   let eventObjs = [].concat.apply(
+      [], events.map(
+         event => logs.filter(
+            log => log.event === event
+         )
+      )
+   );
+
+   if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
+      console.warn('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
+      assert.fail();
+   }
+   eventObjs = eventObjs.map(x => x.args);
+   return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
 };
 
 module.exports.eventNotEmitted = async (receipt, eventName) => {

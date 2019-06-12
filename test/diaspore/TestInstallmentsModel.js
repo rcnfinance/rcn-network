@@ -8,6 +8,9 @@ const expect = require('chai')
     .expect;
 
 function bn (number) {
+    if (number instanceof Number) {
+        number = number.toString();
+    }
     return new BN(number);
 }
 
@@ -35,10 +38,12 @@ contract('Installments model test', function (accounts) {
 
     it('Function setEngine', async function () {
         const auxModel = await InstallmentsDebtModel.new({ from: owner });
+        const engine = web3.utils.toChecksumAddress(web3.utils.randomHex(20));
 
         assert.equal(await auxModel.engine(), Helper.address0x);
-
-        const engine = web3.utils.toChecksumAddress(web3.utils.randomHex(20));
+        assert.isTrue(await auxModel.isOperator(Helper.address0x));
+        assert.isFalse(await auxModel.isOperator(owner));
+        assert.isFalse(await auxModel.isOperator(engine));
 
         const _setEngine = await Helper.toEvents(
             auxModel.setEngine(
@@ -50,6 +55,8 @@ contract('Installments model test', function (accounts) {
         assert.equal(_setEngine._engine, engine);
 
         assert.equal(await auxModel.engine(), engine);
+        assert.isTrue(await auxModel.isOperator(engine));
+        assert.isFalse(await auxModel.isOperator(owner));
     });
 
     it('Function validate', async function () {
@@ -164,6 +171,54 @@ contract('Installments model test', function (accounts) {
         );
     });
 
+    it('Function getDueTime', async function () {
+        const id = web3.utils.randomHex(32);
+        const data = await model.encodeData(
+            110, // cuota
+            Helper.toInterestRate(240), // interestRate
+            10, // installments
+            secInMonth, // duration
+            1 // timeUnit
+        );
+
+        expect(await model.getDueTime(id)).to.eq.BN(0);
+
+        const lentTime = bn(await Helper.getTxTime(model.create(id, data, { from: accountEngine })));
+
+        let dueTime = bn(secInMonth).add(lentTime);
+        expect(await model.getDueTime(id)).to.eq.BN(dueTime);
+
+        const lastPayment = bn(secInMonth * 2);
+        await Helper.increaseTime(5 * secInDay);
+        await model.addPaid(id, 110, { from: accountEngine });
+
+        dueTime = lastPayment.sub(lastPayment.mod(bn(secInMonth))).add(lentTime);
+        expect(await model.getDueTime(id)).to.eq.BN(dueTime);
+    });
+
+    it('Function getObligation', async function () {
+        const id = web3.utils.randomHex(32);
+        const data = await model.encodeData(
+            110, // cuota
+            Helper.toInterestRate(240), // interestRate
+            10, // installments
+            secInMonth, // duration
+            1 // timeUnit
+        );
+
+        const lentTime = await Helper.getTxTime(model.create(id, data, { from: accountEngine }));
+
+        let obligation = await model.getObligation(id, 0);
+        expect(obligation[0]).to.eq.BN(0);
+        assert.isTrue(obligation[1]);
+
+        obligation = await model.getObligation(id, lentTime + secInMonth);
+        expect(obligation[0]).to.eq.BN(110);
+        assert.isTrue(obligation[1]);
+
+        // TODO FINISH
+    });
+
     it('Function modelId', async function () {
         const nameModel = 'InstallmentsModel A 0.0.2';
         const calcModelId = web3.utils.toTwosComplement(web3.utils.asciiToHex(nameModel));
@@ -171,6 +226,17 @@ contract('Installments model test', function (accounts) {
 
         const modelId = 0x00000000000000496e7374616c6c6d656e74734d6f64656c204120302e302e32;
         assert.equal(await model.modelId(), modelId);
+    });
+
+    it('Function addDebt must always revert', async function () {
+        await Helper.tryCatchRevert(
+            () => model.addDebt(
+                web3.utils.randomHex(20),
+                0,
+                { from: accountEngine }
+            ),
+            'Not implemented!'
+        );
     });
 
     describe('Functions onlyOwner', function () {
@@ -226,6 +292,36 @@ contract('Installments model test', function (accounts) {
                     { from: creator }
                 ),
                 'Only engine allowed'
+            );
+        });
+    });
+
+    describe('Functions getStatus', function () {
+        it('Get status of a loan', async function () {
+            const id = web3.utils.randomHex(32);
+            const data = await model.encodeData(
+                110, // cuota
+                Helper.toInterestRate(240), // interestRate
+                10, // installments
+                secInMonth, // duration
+                1 // timeUnit
+            );
+
+            await model.create(id, data, { from: accountEngine });
+
+            expect(await model.getStatus(id)).to.eq.BN(1); // Ongoing status
+
+            await model.addPaid(id, 110 * 10, { from: accountEngine });
+
+            expect(await model.getStatus(id)).to.eq.BN(2); // Ongoing status
+        });
+
+        it('Try get status of inexists loan', async function () {
+            await Helper.tryCatchRevert(
+                () => model.getStatus(
+                    web3.utils.randomHex(32)
+                ),
+                'The registry does not exist'
             );
         });
     });
@@ -287,12 +383,15 @@ contract('Installments model test', function (accounts) {
                 timeUnit
             );
 
+            const createTx = await model.create(
+                id,
+                data,
+                { from: accountEngine }
+            );
+            const createdTime = bn(await Helper.getTxTime(createTx));
+
             const events = await Helper.toEvents(
-                model.create(
-                    id,
-                    data,
-                    { from: accountEngine }
-                ),
+                createTx,
                 'Created',
                 '_setClock'
             );
@@ -304,16 +403,30 @@ contract('Installments model test', function (accounts) {
             assert.equal(_setClock._id, id);
             assert.equal(_setClock._to, secInMonth);
 
+            expect(await model.getFrequency(id)).to.eq.BN(duration);
+            expect(await model.getInstallments(id)).to.eq.BN(installments);
+            expect(await model.getPaid(id)).to.eq.BN(0);
+            expect(await model.getStatus(id)).to.eq.BN(1); // Ongoing status
+            const finalTime = createdTime.add(duration.mul(installments));
+            expect(await model.getFinalTime(id)).to.eq.BN(finalTime);
+            const dueTime = duration.add(createdTime);
+            expect(await model.getDueTime(id)).to.eq.BN(dueTime);
+
             const configs = await model.configs(id);
             expect(configs.installments).to.eq.BN(installments);
             expect(configs.timeUnit).to.eq.BN(timeUnit);
             expect(configs.duration).to.eq.BN(duration);
-            expect(configs.lentTime).to.eq.BN(bn(await Helper.getBlockTime()));
+            expect(configs.lentTime).to.eq.BN(createdTime);
             expect(configs.cuota).to.eq.BN(cuota);
             expect(configs.interestRate).to.eq.BN(interestRate);
 
             const states = await model.states(id);
+            expect(states.status).to.eq.BN(0);
             expect(states.clock).to.eq.BN(duration);
+            expect(states.lastPayment).to.eq.BN(0);
+            expect(states.paid).to.eq.BN(0);
+            expect(states.paidBase).to.eq.BN(0);
+            expect(states.interest).to.eq.BN(0);
         });
 
         it('Try create two loans with the same id', async function () {
@@ -335,6 +448,63 @@ contract('Installments model test', function (accounts) {
                 ),
                 'Entry already exist'
             );
+        });
+    });
+
+    describe('Functions addPaid', function () {
+        // TODO FINISH
+        it('AddPaid to a loan', async function () {
+            const id = web3.utils.randomHex(32);
+            const data = await model.encodeData(
+                110, // cuota
+                Helper.toInterestRate(240), // interestRate
+                10, // installments
+                secInMonth, // duration
+                1 // timeUnit
+            );
+
+            await model.create(id, data, { from: accountEngine });
+
+            const prevConfigs = await model.configs(id);
+            const prevStates = await model.states(id);
+            const paidAmount = 1;
+
+            const events = await Helper.toEvents(
+                model.addPaid(
+                    id,
+                    paidAmount,
+                    { from: accountEngine },
+                ),
+                '_setPaidBase',
+                'AddedPaid'
+            );
+
+            const Created = events[0];
+            assert.equal(Created._id, id);
+            expect(Created._paidBase).to.eq.BN(1);
+
+            const _setClock = events[1];
+            assert.equal(_setClock._id, id);
+            expect(_setClock._paid).to.eq.BN(1);
+
+            expect(await model.getPaid(id)).to.eq.BN(paidAmount);
+
+            const configs = await model.configs(id);
+            expect(configs.installments).to.eq.BN(prevConfigs.installments);
+            expect(configs.timeUnit).to.eq.BN(prevConfigs.timeUnit);
+            expect(configs.duration).to.eq.BN(prevConfigs.duration);
+            expect(configs.lentTime).to.eq.BN(prevConfigs.lentTime);
+            expect(configs.cuota).to.eq.BN(prevConfigs.cuota);
+            expect(configs.interestRate).to.eq.BN(prevConfigs.interestRate);
+
+            const states = await model.states(id);
+            expect(states.status).to.eq.BN(prevStates.status);
+            expect(states.clock).to.eq.BN(prevStates.clock);
+            expect(states.lastPayment).to.eq.BN(prevStates.clock);
+            expect(states.paid).to.eq.BN(paidAmount);
+            expect(states.paidBase).to.eq.BN(paidAmount);
+            expect(states.clock).to.eq.BN(prevStates.clock);
+            expect(states.interest).to.eq.BN(prevStates.interest);
         });
     });
 
