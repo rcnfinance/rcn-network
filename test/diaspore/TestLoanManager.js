@@ -84,7 +84,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return id;
     }
 
-    async function calcSettleId(
+    async function calcSettleId (
         _amount,
         _borrower,
         _creator,
