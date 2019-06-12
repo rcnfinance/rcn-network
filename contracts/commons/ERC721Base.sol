@@ -436,11 +436,9 @@ contract ERC721Base is ERC165 {
 
         if (_doCheck && _to.isContract()) {
             // Call dest contract
-            bool success;
-            bytes4 result;
             // Perform check with the new safe call
             // onERC721Received(address,address,uint256,bytes)
-            (success, result) = _noThrowCall(
+            (bool success, bytes4 result) = _noThrowCall(
                 _to,
                 abi.encodeWithSelector(
                     ERC721_RECEIVED,
