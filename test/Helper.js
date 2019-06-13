@@ -1,6 +1,7 @@
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
+module.exports.STATUS_REQUEST = '0';
 module.exports.STATUS_ONGOING = '1';
 module.exports.STATUS_PAID = '2';
 module.exports.STATUS_ERROR = '4';

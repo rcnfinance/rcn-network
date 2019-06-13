@@ -6,6 +6,7 @@ const TestDebtEngine = artifacts.require('./diaspore/utils/test/TestDebtEngine.s
 const TestCosigner = artifacts.require('./utils/test/TestCosigner.sol');
 const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
 const TestLoanApprover = artifacts.require('./diaspore/utils/test/TestLoanApprover.sol');
+const TestLoanCallback = artifacts.require('./diaspore/utils/test/TestLoanCallback.sol');
 
 const Helper = require('../Helper.js');
 const BN = web3.utils.BN;
@@ -3510,6 +3511,440 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ),
                 'Only borrower or creator can cancel a settle'
             );
+        });
+    });
+    describe('Loan callback', function () {
+        it('Should call loan callback', async function () {
+            const callback = await TestLoanCallback.new();
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('99123');
+            const amount = bn('30');
+            const expiration = (await Helper.getBlockTime()) + 900;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const id = await calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            await loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                callback.address,
+                salt,
+                expiration,
+                loanData,
+                { from: borrower }
+            );
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+
+            await callback.setRequireId(id);
+
+            const lent = await Helper.toEvents(
+                loanManager.lend(
+                    id,                 // Index
+                    [],                 // OracleData
+                    Helper.address0x,   // Cosigner
+                    '0',                // Cosigner limit
+                    [],                 // Cosigner data
+                    [],                 // Callback data
+                    { from: lender }    // Owner/Lender
+                ),
+                'Lent'
+            );
+
+            assert.equal(lent._id, id);
+            assert.equal(lent._lender, lender);
+            expect(lent._tokens).to.eq.BN(amount);
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+
+            assert.equal(await callback.caller(), loanManager.address);
+        });
+        it('Should send callback data to callback', async function () {
+            const callback = await TestLoanCallback.new();
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('99123');
+            const amount = bn('30');
+            const expiration = (await Helper.getBlockTime()) + 900;
+            const loanData = await model.encodeData(amount, expiration);
+            const callbackData = web3.utils.randomHex(120);
+
+            const id = await calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            await loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                callback.address,
+                salt,
+                expiration,
+                loanData,
+                { from: borrower }
+            );
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+
+            await callback.setRequireId(id);
+            await callback.setRequireData(callbackData);
+
+            const lent = await Helper.toEvents(
+                loanManager.lend(
+                    id,                 // Index
+                    [],                 // OracleData
+                    Helper.address0x,   // Cosigner
+                    '0',                // Cosigner limit
+                    [],                 // Cosigner data
+                    callbackData,       // Callback data
+                    { from: lender }    // Owner/Lender
+                ),
+                'Lent'
+            );
+
+            assert.equal(lent._id, id);
+            assert.equal(lent._lender, lender);
+            expect(lent._tokens).to.eq.BN(amount);
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+
+            assert.equal(await callback.caller(), loanManager.address);
+        });
+        it('Should fail if callback returns false', async function () {
+            const callback = await TestLoanCallback.new();
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('99123');
+            const amount = bn('30');
+            const expiration = (await Helper.getBlockTime()) + 900;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const id = await calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            await loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                callback.address,
+                salt,
+                expiration,
+                loanData,
+                { from: borrower }
+            );
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+
+            await callback.setRequireId(id);
+            await callback.setReturn(false);
+
+            await Helper.tryCatchRevert(
+                () => loanManager.lend(
+                    id,                 // Index
+                    [],                 // OracleData
+                    Helper.address0x,   // Cosigner
+                    '0',                // Cosigner limit
+                    [],                 // Cosigner data
+                    [],                 // Callback data
+                    { from: lender }    // Owner/Lender
+                ), 'Rejected by loan callback'
+            );
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            assert.equal(await callback.caller(), Helper.address0x);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+        });
+        it('Should fail if callback reverts', async function () {
+            const callback = await TestLoanCallback.new();
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('99123');
+            const amount = bn('30');
+            const expiration = (await Helper.getBlockTime()) + 900;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const id = await calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            await loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                callback.address,
+                salt,
+                expiration,
+                loanData,
+                { from: borrower }
+            );
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+
+            await callback.setRequireId(id);
+
+            await Helper.tryCatchRevert(
+                () => loanManager.lend(
+                    id,                 // Index
+                    [],                 // OracleData
+                    Helper.address0x,   // Cosigner
+                    '0',                // Cosigner limit
+                    [],                 // Cosigner data
+                    ['0x01'],           // Callback data
+                    { from: lender }    // Owner/Lender
+                ), 'callback: wrong data'
+            );
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            assert.equal(await callback.caller(), Helper.address0x);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+        });
+        it('Should call loan callback on settleLend', async function () {
+            const creator = accounts[1];
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('2763');
+            const amount = bn('3320');
+            const expiration = (await Helper.getBlockTime()) + 7400;
+            const loanData = await model.encodeData(amount, expiration);
+            const callback = await TestLoanCallback.new();
+
+            const encodeData = await calcSettleId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            const settleData = encodeData[0];
+            const id = encodeData[1];
+
+            const creatorSig = await web3.eth.sign(id, creator);
+            const borrowerSig = await web3.eth.sign(id, borrower);
+
+            await rcn.setBalance(lender, amount.mul(bn('2')));
+            await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
+
+            await callback.setRequireId(id);
+
+            await loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                '0',
+                [],
+                [],
+                creatorSig,
+                borrowerSig,
+                [],
+                { from: lender }
+            );
+
+            assert.equal(await callback.caller(), loanManager.address);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+        });
+        it('Should send callback data to callback on settleLend', async function () {
+            const creator = accounts[1];
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('2763');
+            const amount = bn('3320');
+            const expiration = (await Helper.getBlockTime()) + 7400;
+            const loanData = await model.encodeData(amount, expiration);
+            const callback = await TestLoanCallback.new();
+            const callbackdata = web3.utils.randomHex(260);
+
+            const encodeData = await calcSettleId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            const settleData = encodeData[0];
+            const id = encodeData[1];
+
+            const creatorSig = await web3.eth.sign(id, creator);
+            const borrowerSig = await web3.eth.sign(id, borrower);
+
+            await rcn.setBalance(lender, amount.mul(bn('2')));
+            await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
+
+            await callback.setRequireId(id);
+            await callback.setRequireData(callbackdata);
+
+            await loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                '0',
+                [],
+                [],
+                creatorSig,
+                borrowerSig,
+                callbackdata,
+                { from: lender }
+            );
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+            assert.equal(await callback.caller(), loanManager.address);
+        });
+        it('Should fail if callback returns false on settleLend', async function () {
+            const creator = accounts[1];
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('2763');
+            const amount = bn('3320');
+            const expiration = (await Helper.getBlockTime()) + 7400;
+            const loanData = await model.encodeData(amount, expiration);
+            const callback = await TestLoanCallback.new();
+
+            const encodeData = await calcSettleId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            const settleData = encodeData[0];
+            const id = encodeData[1];
+
+            const creatorSig = await web3.eth.sign(id, creator);
+            const borrowerSig = await web3.eth.sign(id, borrower);
+
+            await rcn.setBalance(lender, amount.mul(bn('2')));
+            await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
+
+            await callback.setRequireId(id);
+            await callback.setReturn(false);
+
+            await Helper.tryCatchRevert(
+                () => loanManager.settleLend(
+                    settleData,
+                    loanData,
+                    Helper.address0x,
+                    '0',
+                    [],
+                    [],
+                    creatorSig,
+                    borrowerSig,
+                    [],
+                    { from: lender }
+                ), 'Rejected by loan callback'
+            );
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            assert.equal(await loanManager.getCallback(id), Helper.address0x);
+        });
+        it('Should fail if callback reverts on settleLend', async function () {
+            const creator = accounts[1];
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('2763');
+            const amount = bn('3320');
+            const expiration = (await Helper.getBlockTime()) + 7400;
+            const loanData = await model.encodeData(amount, expiration);
+            const callback = await TestLoanCallback.new();
+
+            const encodeData = await calcSettleId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            const settleData = encodeData[0];
+            const id = encodeData[1];
+
+            const creatorSig = await web3.eth.sign(id, creator);
+            const borrowerSig = await web3.eth.sign(id, borrower);
+
+            await rcn.setBalance(lender, amount.mul(bn('2')));
+            await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
+
+            await Helper.tryCatchRevert(
+                () => loanManager.settleLend(
+                    settleData,
+                    loanData,
+                    Helper.address0x,
+                    '0',
+                    [],
+                    [],
+                    creatorSig,
+                    borrowerSig,
+                    [],
+                    { from: lender }
+                ), 'callback: wrong id'
+            );
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            assert.equal(await loanManager.getCallback(id), Helper.address0x);
         });
     });
 });

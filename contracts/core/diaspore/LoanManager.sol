@@ -113,6 +113,8 @@ contract LoanManager is BytesUtils {
         return debtEngine.ownerOf(uint256(_id));
     }
 
+    function getCallback(bytes32 _id) external view returns (address) { return requests[_id].callback; }
+
     struct Request {
         bool open;
         bool approved;
