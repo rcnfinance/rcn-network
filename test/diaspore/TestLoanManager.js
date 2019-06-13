@@ -3946,5 +3946,223 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
             assert.equal(await loanManager.getCallback(id), Helper.address0x);
         });
+        it('Should limit gas usage on callback', async function() {
+            const callback = await TestLoanCallback.new();
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('991231');
+            const amount = bn('30');
+            const expiration = (await Helper.getBlockTime()) + 900;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const id = await calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            await loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                callback.address,
+                salt,
+                expiration,
+                loanData,
+                { from: borrower }
+            );
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+
+            await callback.setRequireId(id);
+            await callback.setBurnGas(300001);
+
+            await Helper.tryCatchRevert(
+                () => loanManager.lend(
+                    id,                 // Index
+                    [],                 // OracleData
+                    Helper.address0x,   // Cosigner
+                    '0',                // Cosigner limit
+                    [],                 // Cosigner data
+                    [],                 // Callback data
+                    { from: lender }    // Owner/Lender
+                ), 'Returned error: VM Exception while processing transaction: revert', ''
+            );
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            assert.equal(await callback.caller(), Helper.address0x);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+        });
+        it('Should limit gas usage on callback using settleLend', async function() {
+            const creator = accounts[1];
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('2763');
+            const amount = bn('3320');
+            const expiration = (await Helper.getBlockTime()) + 7400;
+            const loanData = await model.encodeData(amount, expiration);
+            const callback = await TestLoanCallback.new();
+
+            const encodeData = await calcSettleId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            const settleData = encodeData[0];
+            const id = encodeData[1];
+
+            const creatorSig = await web3.eth.sign(id, creator);
+            const borrowerSig = await web3.eth.sign(id, borrower);
+
+            await rcn.setBalance(lender, amount.mul(bn('2')));
+            await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
+
+            await callback.setRequireId(id);
+            await callback.setBurnGas(300001);
+
+            await Helper.tryCatchRevert(
+                () => loanManager.settleLend(
+                    settleData,
+                    loanData,
+                    Helper.address0x,
+                    '0',
+                    [],
+                    [],
+                    creatorSig,
+                    borrowerSig,
+                    [],
+                    { from: lender }
+                ), 'Returned error: VM Exception while processing transaction: revert', ''
+            );
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            assert.equal(await loanManager.getCallback(id), Helper.address0x);
+        });
+        it('Should allow low gas usage on callback', async function() {
+            const callback = await TestLoanCallback.new();
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('99123');
+            const amount = bn('30');
+            const expiration = (await Helper.getBlockTime()) + 900;
+            const loanData = await model.encodeData(amount, expiration);
+
+            const id = await calcId(
+                amount,
+                borrower,
+                borrower,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            await loanManager.requestLoan(
+                amount,
+                model.address,
+                Helper.address0x,
+                borrower,
+                callback.address,
+                salt,
+                expiration,
+                loanData,
+                { from: borrower }
+            );
+
+            await rcn.setBalance(lender, amount);
+            await rcn.approve(loanManager.address, amount, { from: lender });
+
+            await callback.setRequireId(id);
+            await callback.setBurnGas(250000);
+
+            const lent = await Helper.toEvents(
+                loanManager.lend(
+                    id,                 // Index
+                    [],                 // OracleData
+                    Helper.address0x,   // Cosigner
+                    '0',                // Cosigner limit
+                    [],                 // Cosigner data
+                    [],                 // Callback data
+                    { from: lender }    // Owner/Lender
+                ),
+                'Lent'
+            );
+
+            assert.equal(lent._id, id);
+            assert.equal(lent._lender, lender);
+            expect(lent._tokens).to.eq.BN(amount);
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+
+            assert.equal(await callback.caller(), loanManager.address);
+        });
+        it('Should allow low gas usage on callback using settleLend', async function() {
+            const creator = accounts[1];
+            const borrower = accounts[2];
+            const lender = accounts[3];
+            const salt = bn('2763');
+            const amount = bn('3320');
+            const expiration = (await Helper.getBlockTime()) + 7400;
+            const loanData = await model.encodeData(amount, expiration);
+            const callback = await TestLoanCallback.new();
+
+            const encodeData = await calcSettleId(
+                amount,
+                borrower,
+                creator,
+                model.address,
+                Helper.address0x,
+                salt,
+                expiration,
+                loanData,
+                callback.address
+            );
+
+            const settleData = encodeData[0];
+            const id = encodeData[1];
+
+            const creatorSig = await web3.eth.sign(id, creator);
+            const borrowerSig = await web3.eth.sign(id, borrower);
+
+            await rcn.setBalance(lender, amount.mul(bn('2')));
+            await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
+
+            await callback.setRequireId(id);
+            await callback.setBurnGas(250000);
+
+            await loanManager.settleLend(
+                settleData,
+                loanData,
+                Helper.address0x,
+                '0',
+                [],
+                [],
+                creatorSig,
+                borrowerSig,
+                [],
+                { from: lender }
+            );
+
+            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            assert.equal(await loanManager.getCallback(id), callback.address);
+            assert.equal(await callback.caller(), loanManager.address);
+        });
     });
 });

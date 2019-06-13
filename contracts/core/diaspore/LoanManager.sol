@@ -16,6 +16,8 @@ contract LoanManager is BytesUtils {
     using IsContract for address;
     using SafeMath for uint256;
 
+    uint256 public constant GAS_CALLBACK = 300000;
+
     DebtEngine public debtEngine;
     IERC20 public token;
 
@@ -407,7 +409,7 @@ contract LoanManager is BytesUtils {
         // Call the loan callback
         address callback = request.callback;
         if (callback != address(0)) {
-            require(LoanCallback(callback).onLent(_id, _callbackData), "Rejected by loan callback");
+            require(LoanCallback(callback).onLent.gas(GAS_CALLBACK)(_id, _callbackData), "Rejected by loan callback");
         }
 
         return true;
@@ -590,7 +592,7 @@ contract LoanManager is BytesUtils {
         // Call the loan callback
         address callback = address(uint256(read(_requestData, O_CALLBACK, L_CALLBACK)));
         if (callback != address(0)) {
-            require(LoanCallback(callback).onLent(id, _callbackData), "Rejected by loan callback");
+            require(LoanCallback(callback).onLent.gas(GAS_CALLBACK)(id, _callbackData), "Rejected by loan callback");
         }
     }
 
