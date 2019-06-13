@@ -350,7 +350,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 clock = state.clock;
         if (clock < _target) {
             (uint256 newInterest, uint256 newClock) = _runAdvanceClock({
-                _clock: state.clock,
+                _clock: clock,
                 _timeUnit: config.timeUnit,
                 _interest: state.interest,
                 _duration: config.duration,
@@ -510,12 +510,11 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 _timeUnit
     ) internal pure {
         require(_cuota > 0, "Cuota can't be 0");
-        require(_interestRate > 0, "Interest rate can't be 0");
         require(_installments > 0, "Installments can't be 0");
-        require(_installmentDuration > 0, "Installment duration can't be 0");
-        require(_timeUnit <= _installmentDuration, "Time unit can't be lower than installment duration");
-        require(_interestRate > _timeUnit, "Interest rate by time unit is too low");
-        require(_timeUnit > 0, "Time unit can'be 0");
+        require(_timeUnit > 0, "Time unit can't be 0");
+
+        require(_timeUnit <= _installmentDuration, "Time unit must be lower or equal than installment duration");
+        require(_timeUnit < _interestRate, "Interest rate by time unit is too low");
     }
 
     function _decodeData(

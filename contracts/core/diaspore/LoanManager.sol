@@ -200,6 +200,8 @@ contract LoanManager is BytesUtils {
             )
         );
 
+        require(!canceledSettles[id], "The debt was canceled");
+
         require(requests[id].borrower == address(0), "Request already exist");
 
         bool approved = msg.sender == _borrower;
@@ -368,6 +370,7 @@ contract LoanManager is BytesUtils {
 
         delete request.loanData;
         delete requests[_id];
+        canceledSettles[_id] = true;
 
         emit Canceled(_id, msg.sender);
 
