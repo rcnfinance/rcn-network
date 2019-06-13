@@ -114,6 +114,7 @@ jobs:
             # Start test-rpc
             - run:
                 name: Start testrpc instance
+                no_output_timeout: 30m
                 command: node_modules/ganache-cli-coverage/cli.js --emitFreeLogs true --gasLimit 0xfffffffffffff --allowUnlimitedContractSize true
                 background: true
             # Run coverage
@@ -121,6 +122,7 @@ jobs:
                 name: solidity-coverage
                 environment:
                   SOLIDITY_COVERAGE: true
+                no_output_timeout: 30m
                 command: node_modules/.bin/solidity-coverage
             # Upload results
             - run:
