@@ -18,7 +18,6 @@ contract LoanManager is BytesUtils {
     DebtEngine public debtEngine;
     IERC20 public token;
 
-    bytes32[] public directory;
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
 
@@ -57,12 +56,7 @@ contract LoanManager is BytesUtils {
         debtEngine = _debtEngine;
         token = debtEngine.token();
         require(address(token) != address(0), "Error loading token");
-        directory.length++;
     }
-
-    function getDirectory() external view returns (bytes32[] memory) { return directory; }
-
-    function getDirectoryLength() external view returns (uint256) { return directory.length; }
 
     // uint256 getters(legacy)
     function getBorrower(uint256 _id) external view returns (address) { return requests[bytes32(_id)].borrower; }
@@ -113,7 +107,6 @@ contract LoanManager is BytesUtils {
     struct Request {
         bool open;
         bool approved;
-        uint64 position;
         uint64 expiration;
         uint128 amount;
         address cosigner;
@@ -216,7 +209,6 @@ contract LoanManager is BytesUtils {
         requests[id] = Request({
             open: true,
             approved: approved,
-            position: 0,
             cosigner: address(0),
             amount: _amount,
             model: _model,
@@ -239,7 +231,6 @@ contract LoanManager is BytesUtils {
         }
 
         if (approved) {
-            requests[id].position = uint64(directory.push(id) - 1);
             emit Approved(id);
         }
     }
@@ -278,7 +269,6 @@ contract LoanManager is BytesUtils {
         Request storage request = requests[_id];
         require(msg.sender == request.borrower, "Only borrower can approve");
         if (!request.approved) {
-            request.position = uint64(directory.push(_id) - 1);
             request.approved = true;
             emit Approved(_id);
         }
@@ -305,7 +295,6 @@ contract LoanManager is BytesUtils {
 
         // Check request.approved again, protect against reentrancy
         if (approved && !request.approved) {
-            request.position = uint64(directory.push(_id) - 1);
             request.approved = true;
             emit Approved(_id);
         }
@@ -349,13 +338,6 @@ contract LoanManager is BytesUtils {
             "Error creating the debt"
         );
 
-        // Remove directory entry
-        bytes32 last = directory[directory.length - 1];
-        requests[last].position = request.position;
-        directory[request.position] = last;
-        request.position = 0;
-        directory.length--;
-
         // Call the cosigner
         if (_cosigner != address(0)) {
             uint256 auxSalt = request.salt;
@@ -386,14 +368,6 @@ contract LoanManager is BytesUtils {
             "Only borrower or creator can cancel a request"
         );
 
-        if (request.approved){
-            // Remove directory entry
-            bytes32 last = directory[directory.length - 1];
-            requests[last].position = request.position;
-            directory[request.position] = last;
-            directory.length--;
-        }
-
         delete request.loanData;
         delete requests[_id];
         canceledSettles[_id] = true;
@@ -405,7 +379,6 @@ contract LoanManager is BytesUtils {
 
     function cosign(uint256 _id, uint256 _cost) external returns (bool) {
         Request storage request = requests[bytes32(_id)];
-        require(request.position == 0, "Request cosigned is invalid");
         require(request.cosigner != address(0), "Cosigner 0x0 is not valid");
         require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
@@ -532,7 +505,6 @@ contract LoanManager is BytesUtils {
             borrower: address(uint256(read(_requestData, O_BORROWER, L_BORROWER))),
             salt: _cosigner != address(0) ? _maxCosignerCost : uint256(read(_requestData, O_SALT, L_SALT)),
             loanData: _loanData,
-            position: 0,
             expiration: uint64(uint256(read(_requestData, O_EXPIRATION, L_EXPIRATION)))
         });
 
