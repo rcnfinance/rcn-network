@@ -3894,7 +3894,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'Rejected by loan callback'
             );
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            expect(await loanManager.getStatus(id)).to.not.eq.BN(Helper.STATUS_ONGOING);
             assert.equal(await loanManager.getCallback(id), Helper.address0x);
         });
         it('Should fail if callback reverts on settleLend', async function () {
@@ -3943,10 +3943,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'callback: wrong id'
             );
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            expect(await loanManager.getStatus(id)).to.not.eq.BN(Helper.STATUS_ONGOING);
             assert.equal(await loanManager.getCallback(id), Helper.address0x);
         });
-        it('Should limit gas usage on callback', async function() {
+        it('Should limit gas usage on callback', async function () {
             const callback = await TestLoanCallback.new();
             const borrower = accounts[2];
             const lender = accounts[3];
@@ -4001,7 +4001,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await callback.caller(), Helper.address0x);
             assert.equal(await loanManager.getCallback(id), callback.address);
         });
-        it('Should limit gas usage on callback using settleLend', async function() {
+        it('Should limit gas usage on callback using settleLend', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const lender = accounts[3];
@@ -4050,10 +4050,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'Returned error: VM Exception while processing transaction: revert', ''
             );
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
+            expect(await loanManager.getStatus(id)).to.not.eq.BN(Helper.STATUS_ONGOING);
             assert.equal(await loanManager.getCallback(id), Helper.address0x);
         });
-        it('Should allow low gas usage on callback', async function() {
+        it('Should allow low gas usage on callback', async function () {
             const callback = await TestLoanCallback.new();
             const borrower = accounts[2];
             const lender = accounts[3];
@@ -4113,7 +4113,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             assert.equal(await callback.caller(), loanManager.address);
         });
-        it('Should allow low gas usage on callback using settleLend', async function() {
+        it('Should allow low gas usage on callback using settleLend', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const lender = accounts[3];
