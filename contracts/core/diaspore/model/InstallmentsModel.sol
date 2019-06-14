@@ -190,7 +190,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         State storage state = states[id];
         uint64 lentTime = config.lentTime;
         require(lentTime < target, "Clock can't go negative");
-        uint64 targetClock = target - lentTime;
+        uint64 targetClock = target - lentTime; // Check underflow in the previous require
         require(targetClock > state.clock, "Clock is ahead of target");
         return _advanceClock(id, targetClock);
     }
