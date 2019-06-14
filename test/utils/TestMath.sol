@@ -6,7 +6,7 @@ import "truffle/DeployedAddresses.sol";
 import "../../contracts/utils/Math.sol";
 
 
-contract MathTest {
+contract TestMath {
     using Math for int256;
     using Math for uint256;
 
