@@ -36,6 +36,92 @@ contract('Installments model test', function (accounts) {
         await model.setEngine(accountEngine, { from: owner });
     });
 
+    async function _getClosingObligation (id) {
+        const config = await model.configs(id);
+        const state = await model.states(id);
+        const currentClock = bn(await Helper.getBlockTime()).sub(config.lentTime);
+
+        let interest;
+        if (state.clock.gte(currentClock)) {
+            interest = state.interest;
+        } else {
+            interest = (await _runAdvanceClock(id, currentClock)).interest;
+        }
+
+        const debt = config.cuota.mul(config.installments).add(interest);
+        return debt.gt(state.paid) ? debt.sub(state.paid) : bn(0);
+    }
+
+    async function getObligation (id, timestamp) {
+        timestamp = bn(timestamp);
+        const config = await model.configs(id);
+        const state = await model.states(id);
+
+        if (timestamp.lt(config.lentTime)) {
+            return { amount: bn(0), defined: true };
+        }
+
+        const currentClock = timestamp.sub(config.lentTime);
+
+        const base = await _baseDebt(id, currentClock);
+
+        let interest = state.interest;
+        let defined = true;
+
+        if (state.clock.lt(currentClock)) {
+            interest = (await _runAdvanceClock(id, currentClock)).interest;
+            defined = state.interest.eq(interest);
+        }
+
+        const debt = base.add(interest);
+        return { amount: debt.gt(state.paid) ? debt.sub(state.paid) : bn(0), defined: defined };
+    }
+
+    async function _runAdvanceClock (id, targetClock) {
+        const config = await model.configs(id);
+        const state = await model.states(id);
+
+        // Advance clock to lentTime if never advanced before
+        let clock = state.clock;
+        let interest = state.interest;
+
+        let delta;
+        let installmentCompleted;
+
+        do {
+            const targetDelta = targetClock.sub(clock);
+
+            const nextInstallmentDelta = config.duration.sub(state.clock.mod(config.duration));
+            if (nextInstallmentDelta.lte(targetDelta) && state.clock.div(config.duration).lt(config.installments)) {
+                delta = nextInstallmentDelta;
+                installmentCompleted = true;
+            } else {
+                delta = targetDelta;
+                installmentCompleted = false;
+            }
+
+            const runningDebt = (await _baseDebt(id, targetDelta)).sub(state.paidBase);
+            const dividend = bn(100000).mul(delta.div(config.timeUnit)).mul(runningDebt);
+            const divisor = config.interestRate.div(config.timeUnit);
+            const newInterest = dividend.div(divisor);
+
+            if (installmentCompleted || newInterest.gt(bn(0))) {
+                clock = clock.add(delta);
+                interest = interest.add(newInterest);
+            } else {
+                break;
+            }
+        } while (clock.lt(targetClock));
+
+        return { interest: interest, clock: clock };
+    }
+
+    async function _baseDebt (id, clock) {
+        const config = await model.configs(id);
+        const installment = clock.div(config.duration);
+        return installment.lt(config.installments) ? installment.mul(config.cuota) : config.installments.mul(config.cuota);
+    }
+
     it('Function setEngine', async function () {
         const auxModel = await InstallmentsDebtModel.new({ from: owner });
         const engine = web3.utils.toChecksumAddress(web3.utils.randomHex(20));
@@ -198,8 +284,9 @@ contract('Installments model test', function (accounts) {
 
     it('Function getObligation', async function () {
         const id = web3.utils.randomHex(32);
+        const cuota = bn(110);
         const data = await model.encodeData(
-            110, // cuota
+            cuota, // cuota
             Helper.toInterestRate(240), // interestRate
             10, // installments
             secInMonth, // duration
@@ -209,14 +296,76 @@ contract('Installments model test', function (accounts) {
         const lentTime = await Helper.getTxTime(model.create(id, data, { from: accountEngine }));
 
         let obligation = await model.getObligation(id, 0);
-        expect(obligation[0]).to.eq.BN(0);
+        let calculateObligation = await getObligation(id, 0);
+        expect(obligation[0]).to.eq.BN(calculateObligation.amount);
+        assert.equal(obligation[1], calculateObligation.defined);
         assert.isTrue(obligation[1]);
 
         obligation = await model.getObligation(id, lentTime + secInMonth);
-        expect(obligation[0]).to.eq.BN(110);
+        calculateObligation = await getObligation(id, lentTime + secInMonth);
+        expect(obligation[0]).to.eq.BN(calculateObligation.amount);
+        assert.equal(obligation[1], calculateObligation.defined);
         assert.isTrue(obligation[1]);
 
-        // TODO FINISH
+        obligation = await model.getObligation(id, lentTime + secInMonth * 2);
+        calculateObligation = await getObligation(id, lentTime + secInMonth * 2);
+        expect(obligation[0]).to.eq.BN(calculateObligation.amount);
+        assert.equal(obligation[1], calculateObligation.defined);
+        assert.isFalse(obligation[1]);
+
+        await Helper.increaseTime(secInMonth);
+
+        obligation = await model.getObligation(id, lentTime + secInMonth * 2);
+        calculateObligation = await getObligation(id, lentTime + secInMonth * 2);
+        expect(obligation[0]).to.eq.BN(calculateObligation.amount);
+        assert.equal(obligation[1], calculateObligation.defined);
+        assert.isFalse(obligation[1]);
+
+        await model.addPaid(id, calculateObligation.amount, { from: accountEngine });
+
+        obligation = await model.getObligation(id, lentTime + secInMonth * 2);
+        calculateObligation = await getObligation(id, lentTime + secInMonth * 2);
+        expect(obligation[0]).to.eq.BN(calculateObligation.amount);
+        assert.equal(obligation[1], calculateObligation.defined);
+        assert.isTrue(obligation[1]);
+
+        await model.addPaid(id, cuota.mul(bn(10)), { from: accountEngine });
+
+        obligation = await model.getObligation(id, lentTime + secInMonth * 2);
+        calculateObligation = await getObligation(id, lentTime + secInMonth * 2);
+        expect(obligation[0]).to.eq.BN(calculateObligation.amount);
+        assert.equal(obligation[1], calculateObligation.defined);
+        assert.isTrue(obligation[1]);
+    });
+
+    it('Function _getClosingObligation, getClosingObligation and getEstimateObligation', async function () {
+        const id = web3.utils.randomHex(32);
+        const cuota = bn(110);
+        const data = await model.encodeData(
+            cuota, // cuota
+            Helper.toInterestRate(240), // interestRate
+            10, // installments
+            secInMonth, // duration
+            1 // timeUnit
+        );
+
+        await model.create(id, data, { from: accountEngine });
+        // clock >= currentClock
+        let calculateObligation = await _getClosingObligation(id);
+        expect(await model.getClosingObligation(id)).to.eq.BN(calculateObligation);
+        expect(await model.getEstimateObligation(id)).to.eq.BN(calculateObligation);
+
+        await Helper.increaseTime(secInMonth * 2);
+        // clock < currentClock
+        calculateObligation = await _getClosingObligation(id);
+        expect(await model.getClosingObligation(id)).to.eq.BN(calculateObligation);
+        expect(await model.getEstimateObligation(id)).to.eq.BN(calculateObligation);
+
+        // pay getClosingObligation
+        await model.addPaid(id, await model.getClosingObligation(id), { from: accountEngine });
+        calculateObligation = await _getClosingObligation(id);
+        expect(await model.getClosingObligation(id)).to.eq.BN(calculateObligation);
+        expect(await model.getEstimateObligation(id)).to.eq.BN(calculateObligation);
     });
 
     it('Function modelId', async function () {
@@ -349,12 +498,14 @@ contract('Installments model test', function (accounts) {
 
         it('It should provide information with the descriptor', async function () {
             const data = await model.encodeData(
-                99963,
-                Helper.toInterestRate(35 * 1.5),
-                12,
-                secInMonth,
-                1
+                99963, // cuota
+                Helper.toInterestRate(35 * 1.5), // interestRate
+                12, // installments
+                secInMonth, // duration
+                1 // timeUnit
             );
+
+            expect(await model.simTotalObligation(data)).to.eq.BN(99963 * 12);
 
             const descriptor = await ModelDescriptor.at(await model.descriptor());
 
@@ -367,7 +518,7 @@ contract('Installments model test', function (accounts) {
         });
     });
 
-    describe('Functions create', function () {
+    describe('Function create', function () {
         it('Create a loan', async function () {
             const id = web3.utils.randomHex(32);
             const cuota = bn(110);
@@ -376,11 +527,11 @@ contract('Installments model test', function (accounts) {
             const duration = bn(secInMonth);
             const timeUnit = bn(1);
             const data = await model.encodeData(
-                cuota,
-                interestRate,
-                installments,
-                duration,
-                timeUnit
+                cuota, // cuota
+                interestRate, // interestRate
+                installments, // installments
+                duration, // duration
+                timeUnit // timeUnit
             );
 
             const createTx = await model.create(
@@ -432,11 +583,11 @@ contract('Installments model test', function (accounts) {
         it('Try create two loans with the same id', async function () {
             const id = web3.utils.randomHex(32);
             const data = await model.encodeData(
-                110,
-                Helper.toInterestRate(240),
-                10,
-                secInMonth,
-                1
+                110, // cuota
+                Helper.toInterestRate(240), // interestRate
+                10, // installments
+                secInMonth, // duration
+                1 // timeUnit
             );
             await model.create(id, data, { from: accountEngine });
 
@@ -451,7 +602,7 @@ contract('Installments model test', function (accounts) {
         });
     });
 
-    describe('Functions addPaid', function () {
+    describe('Function addPaid', function () {
         // TODO FINISH
         it('AddPaid to a loan', async function () {
             const id = web3.utils.randomHex(32);
@@ -508,14 +659,18 @@ contract('Installments model test', function (accounts) {
         });
     });
 
+    describe('Function fixClock, run, _advanceClock', function () {
+        // TODO FINISH
+    });
+
     it('Test pay debt in advance, partially', async function () {
         const id = Helper.toBytes32(6);
         const data = await model.encodeData(
-            110,
-            Helper.toInterestRate(240),
-            10,
-            secInMonth,
-            1
+            110, // cuota
+            Helper.toInterestRate(240), // interestRate
+            10, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         assert.isTrue(await model.validate(data), 'Registry data should be valid');
@@ -537,11 +692,11 @@ contract('Installments model test', function (accounts) {
     it('Test pay in advance', async function () {
         const id = Helper.toBytes32(3);
         const data = await model.encodeData(
-            110,
-            Helper.toInterestRate(240),
-            10,
-            secInMonth,
-            1
+            110, // cuota
+            Helper.toInterestRate(240), // interestRate
+            10, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -554,13 +709,12 @@ contract('Installments model test', function (accounts) {
     it('Test pay single installment', async function () {
         const id = Helper.toBytes32(2);
         const data = await model.encodeData(
-            web3.utils.toWei('110'),
-            Helper.toInterestRate(20),
-            1,
-            secInYear,
-            1
+            web3.utils.toWei('110'), // cuota
+            Helper.toInterestRate(20), // interestRate
+            1, // installments
+            secInYear, // duration
+            1 // timeUnit
         );
-
         await model.create(id, data, { from: accountEngine });
 
         expect((await model.getObligation(id, await Helper.getBlockTime()))[0]).to.eq.BN('0', 'First obligation should be 0');
@@ -577,11 +731,11 @@ contract('Installments model test', function (accounts) {
     it('It should handle a loan with more than a installment', async function () {
         const id = Helper.toBytes32(900);
         const data = await model.encodeData(
-            300,
-            Helper.toInterestRate(240),
-            3,
-            secInMonth,
-            secInDay
+            300, // cuota
+            Helper.toInterestRate(240), // interestRate
+            3, // installments
+            secInMonth, // duration
+            secInDay // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -617,11 +771,11 @@ contract('Installments model test', function (accounts) {
     it('It should handle a loan with more than a installment in advance, totally', async function () {
         const id = Helper.toBytes32(901);
         const data = await model.encodeData(
-            110,
-            Helper.toInterestRate(240),
-            10,
-            secInMonth,
-            1
+            110, // cuota
+            Helper.toInterestRate(240), // interestRate
+            10, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -642,11 +796,11 @@ contract('Installments model test', function (accounts) {
     it('It should handle a loan with more than a installment in advance, partially', async function () {
         const id = Helper.toBytes32(902);
         const data = await model.encodeData(
-            110,
-            Helper.toInterestRate(240),
-            10,
-            secInMonth,
-            secInDay
+            110, // cuota
+            Helper.toInterestRate(240), // interestRate
+            10, // installments
+            secInMonth, // duration
+            secInDay // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -681,11 +835,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 1', async function () {
         const id = Helper.toBytes32(904);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            secInDay
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            secInDay // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -752,11 +906,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 1 - alt run', async function () {
         const id = Helper.toBytes32(905);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -823,11 +977,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 1 - alt run 2', async function () {
         const id = Helper.toBytes32(906);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            secInDay
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            secInDay // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -893,11 +1047,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 3', async function () {
         const id = Helper.toBytes32(907);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            secInDay
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            secInDay // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -948,11 +1102,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 3 - alt run 1', async function () {
         const id = Helper.toBytes32(908);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1007,11 +1161,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 3 - alt run 2', async function () {
         const id = Helper.toBytes32(909);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1068,11 +1222,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 4', async function () {
         const id = Helper.toBytes32(910);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1105,11 +1259,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 4 - alt run 1', async function () {
         const id = Helper.toBytes32(911);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1142,11 +1296,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 4 - alt run 2', async function () {
         const id = Helper.toBytes32(912);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1179,11 +1333,11 @@ contract('Installments model test', function (accounts) {
     it('It should calculate the interest like the test doc test 4 - alt run 3', async function () {
         const id = Helper.toBytes32(1913);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1219,11 +1373,11 @@ contract('Installments model test', function (accounts) {
     it('fixclock should fail if called ahead of current time', async function () {
         const id = Helper.toBytes32(1914);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1240,11 +1394,11 @@ contract('Installments model test', function (accounts) {
     it('fixclock should fail if called before lend clock', async function () {
         const id = Helper.toBytes32(1915);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1261,11 +1415,11 @@ contract('Installments model test', function (accounts) {
     it('fixclock should fail if called before current clock', async function () {
         const id = Helper.toBytes32(1919);
         const data = await model.encodeData(
-            99963,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            1
+            99963, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            1 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
@@ -1282,11 +1436,11 @@ contract('Installments model test', function (accounts) {
     it('Should ignored periods of time under the time unit', async function () {
         const id = Helper.toBytes32(913);
         const data = await model.encodeData(
-            10000,
-            Helper.toInterestRate(35 * 1.5),
-            12,
-            secInMonth,
-            secInDay * 2
+            10000, // cuota
+            Helper.toInterestRate(35 * 1.5), // interestRate
+            12, // installments
+            secInMonth, // duration
+            secInDay * 2 // timeUnit
         );
 
         await model.create(id, data, { from: accountEngine });
