@@ -4,16 +4,44 @@ import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/SafeMath.sol";
-import "../../contracts/test_utils/SafeMathMock.sol";
 
 
-contract SafeMathTest {
+contract TestSafeMathMock {
     using SafeMath for uint256;
 
-    SafeMathMock safeMath;
+    function add(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.add(b);
+    }
+
+    function sub(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.sub(b);
+    }
+
+    function mult(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.mult(b);
+    }
+
+    function div(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.div(b);
+    }
+
+    function divceil(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.divceil(b);
+    }
+
+    function multdivceil(uint256 a, uint256 b, uint256 c) external returns (uint256 d) {
+        d = a.multdivceil(b, c);
+    }
+}
+
+
+contract TestSafeMath {
+    using SafeMath for uint256;
+
+    TestSafeMathMock safeMath;
 
     constructor() public {
-        safeMath = new SafeMathMock();
+        safeMath = new TestSafeMathMock();
     }
 
     function testAdd() external {

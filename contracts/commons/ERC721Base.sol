@@ -100,10 +100,23 @@ contract ERC721Base is ERC165 {
 
     uint256[] private _allTokens;
 
+    /**
+     * @dev Gets the total of assets stored by the contract
+     *      Warning: this method can consume all the gas of the transaction, it should not be
+     *               called from another contract, it should only be used in external calls
+     * @return an array with total assets
+     */
     function allTokens() external view returns (uint256[] memory) {
         return _allTokens;
     }
 
+    /**
+     * @dev Gets the total of assets of the owner
+     *      Warning: this method can consume all the gas of the transaction, it should not be
+     *               called from another contract, it should only be used in external calls
+     * @param _owner the address of owner
+     * @return an array with total assets of owner
+     */
     function assetsOf(address _owner) external view returns (uint256[] memory) {
         return _assetsOf[_owner];
     }
@@ -265,7 +278,7 @@ contract ERC721Base is ERC165 {
     // Internal Operations
     //
 
-    function _addAssetTo(address _to, uint256 _assetId) internal {
+    function _addAssetTo(address _to, uint256 _assetId) private {
         // Store asset owner
         _holderOf[_assetId] = _to;
 
@@ -278,7 +291,7 @@ contract ERC721Base is ERC165 {
         _allTokens.push(_assetId);
     }
 
-    function _transferAsset(address _from, address _to, uint256 _assetId) internal {
+    function _transferAsset(address _from, address _to, uint256 _assetId) private {
         uint256 assetIndex = _indexOfAsset[_assetId];
         uint256 lastAssetIndex = _balanceOf(_from).sub(1);
 
@@ -303,7 +316,7 @@ contract ERC721Base is ERC165 {
         _indexOfAsset[_assetId] = length;
     }
 
-    function _clearApproval(address _holder, uint256 _assetId) internal {
+    function _clearApproval(address _holder, uint256 _assetId) private {
         if (_approval[_assetId] != address(0)) {
             _approval[_assetId] = address(0);
             emit Approval(_holder, address(0), _assetId);

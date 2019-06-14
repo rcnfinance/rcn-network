@@ -877,4 +877,139 @@ contract('Installments model', function (accounts) {
         const modelId = 0x00000000000000496e7374616c6c6d656e74734d6f64656c204120302e302e32;
         assert.equal(await model.modelId(), modelId);
     });
+
+    it('Test validate function', async function () {
+        let data;
+
+        data = await model.encodeData(
+            1, // cuota
+            2, // interestRate
+            1, // installments
+            1, // duration
+            1 // timeUnit
+        );
+        assert.isTrue(await model.validate(data));
+
+        // Try validate:
+        // a wrong data length
+        data = await model.encodeData(
+            1, // cuota
+            2, // interestRate
+            1, // installments
+            1, // duration
+            1 // timeUnit
+        );
+
+        await Helper.tryCatchRevert(
+            () => model.validate(
+                data.slice(0, -2)
+            ),
+            'Invalid data length'
+        );
+
+        await Helper.tryCatchRevert(
+            () => model.validate(
+                data + '00'
+            ),
+            'Invalid data length'
+        );
+
+        // a data with cuota equal 0
+        data = await model.encodeData(
+            0, // cuota
+            2, // interestRate
+            1, // installments
+            1, // duration
+            1 // timeUnit
+        );
+        await Helper.tryCatchRevert(
+            () => model.validate(
+                data
+            ),
+            'Cuota can\'t be 0'
+        );
+
+        // a data with installments equal 0
+        data = await model.encodeData(
+            1, // cuota
+            2, // interestRate
+            0, // installments
+            1, // duration
+            1 // timeUnit
+        );
+        await Helper.tryCatchRevert(
+            () => model.validate(
+                data
+            ),
+            'Installments can\'t be 0'
+        );
+
+        // a data with timeUnit equal 0
+        data = await model.encodeData(
+            1, // cuota
+            2, // interestRate
+            1, // installments
+            1, // duration
+            0 // timeUnit
+        );
+        await Helper.tryCatchRevert(
+            () => model.validate(
+                data
+            ),
+            'Time unit can\'t be 0'
+        );
+
+        // a data with timeUnit lower than duration
+        data = await model.encodeData(
+            1, // cuota
+            2, // interestRate
+            1, // installments
+            0, // duration
+            1 // timeUnit
+        );
+        await Helper.tryCatchRevert(
+            () => model.validate(
+                data
+            ),
+            'Time unit must be lower or equal than installment duration'
+        );
+
+        // a data with timeUnit equal to interestRate
+        data = await model.encodeData(
+            1, // cuota
+            1, // interestRate
+            1, // installments
+            1, // duration
+            1 // timeUnit
+        );
+        await Helper.tryCatchRevert(
+            () => model.validate(
+                data
+            ),
+            'Interest rate by time unit is too low'
+        );
+    });
+
+    it('Try run and fixClock an inexists debt', async function () {
+        const id = web3.utils.randomHex(32);
+        const now = await Helper.getBlockTime();
+
+        await Helper.assertThrow(model.run(id));
+
+        await Helper.tryCatchRevert(
+            () => model.fixClock(
+                id,
+                0
+            ),
+            'Clock can\'t go negative'
+        );
+
+        await Helper.tryCatchRevert(
+            () => model.fixClock(
+                id,
+                now + 9999
+            ),
+            'Forbidden advance clock into the future'
+        );
+    });
 });

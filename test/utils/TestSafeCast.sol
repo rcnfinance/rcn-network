@@ -4,14 +4,31 @@ import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/SafeCast.sol";
-import "../../contracts/test_utils/SafeCastMock.sol";
 
 
-contract SafeCastTest {
+contract TestSafeCastMock {
     using SafeCast for uint256;
     using SafeCast for int256;
 
-    SafeCastMock safeCast;
+    function toUint128(uint256 x) external returns (uint128) {
+        return x.toUint128();
+    }
+
+    function toUint256(int256 x) external returns (uint256) {
+        return x.toUint256();
+    }
+
+    function toInt256(uint256 x) external returns (int256) {
+        return x.toInt256();
+    }
+}
+
+
+contract TestSafeCast {
+    using SafeCast for uint256;
+    using SafeCast for int256;
+
+    TestSafeCastMock safeCast;
 
     bytes32 minUint256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     bytes32 maxUint256 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
@@ -25,7 +42,7 @@ contract SafeCastTest {
     bytes32 maxInt256 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
     constructor() public {
-        safeCast = new SafeCastMock();
+        safeCast = new TestSafeCastMock();
     }
 
     function testToUint128() external {

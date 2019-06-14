@@ -4,16 +4,52 @@ import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/SafeSignedMath.sol";
-import "../../contracts/test_utils/SafeSignedMathMock.sol";
 
 
-contract SafeSignedMathTest {
+contract TestSafeSignedMathMock {
     using SafeSignedMath for int256;
 
-    SafeSignedMathMock safeSignedMath;
+    function abs(int256 x) external returns (int256) {
+        return x.abs();
+    }
+
+    function add(int256 x, int256 y) external returns (int256) {
+        return x.add(y);
+    }
+
+    function sub(int256 x, int256 y) external returns (int256) {
+        return x.sub(y);
+    }
+
+    function mul(int256 x, int256 y) external returns (int256) {
+        return x.mul(y);
+    }
+
+    function div(int256 x, int256 y) external returns (int256) {
+        return x.div(y);
+    }
+
+    function muldiv(int256 x, int256 y, int256 z) external returns (int256) {
+        return x.muldiv(y, z);
+    }
+
+    function divceil(int256 x, int256 y) external returns (int256) {
+        return x.divceil(y);
+    }
+
+    function muldivceil(int256 x, int256 y, int256 z) external returns (int256) {
+        return x.muldivceil(y, z);
+    }
+}
+
+
+contract TestSafeSignedMath {
+    using SafeSignedMath for int256;
+
+    TestSafeSignedMathMock safeSignedMath;
 
     constructor() public {
-        safeSignedMath = new SafeSignedMathMock();
+        safeSignedMath = new TestSafeSignedMathMock();
     }
 
     function testAbs() external {
