@@ -971,7 +971,7 @@ contract('Installments model', function (accounts) {
             () => model.validate(
                 data
             ),
-            'Time unit can\'t be lower than installment duration'
+            'Time unit must be lower or equal than installment duration'
         );
 
         // a data with timeUnit equal to interestRate
@@ -987,6 +987,29 @@ contract('Installments model', function (accounts) {
                 data
             ),
             'Interest rate by time unit is too low'
+        );
+    });
+
+    it('Try run and fixClock an inexists debt', async function () {
+        const id = web3.utils.randomHex(32);
+        const now = await Helper.getBlockTime();
+
+        await Helper.assertThrow(model.run(id));
+
+        await Helper.tryCatchRevert(
+            () => model.fixClock(
+                id,
+                0
+            ),
+            'Clock can\'t go negative'
+        );
+
+        await Helper.tryCatchRevert(
+            () => model.fixClock(
+                id,
+                now + 9999
+            ),
+            'Forbidden advance clock into the future'
         );
     });
 });
