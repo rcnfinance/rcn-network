@@ -32,14 +32,6 @@ contract TestSafeSignedMathMock {
     function muldiv(int256 x, int256 y, int256 z) external returns (int256) {
         return x.muldiv(y, z);
     }
-
-    function divceil(int256 x, int256 y) external returns (int256) {
-        return x.divceil(y);
-    }
-
-    function muldivceil(int256 x, int256 y, int256 z) external returns (int256) {
-        return x.muldivceil(y, z);
-    }
 }
 
 
