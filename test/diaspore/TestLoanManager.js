@@ -1636,45 +1636,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
         });
 
-        it('Try Cosign function the request with bad position', async function () {
-            const borrower = accounts[2];
-            const salt = bn('1998');
-            const amount = bn('90880');
-            const expiration = (await Helper.getBlockTime()) + 100;
-            const loanData = await model.encodeData(amount, expiration);
-
-            const id = await calcId(
-                amount,
-                borrower,
-                borrower,
-                model.address,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData
-            );
-
-            await loanManager.requestLoan(
-                amount,
-                model.address,
-                Helper.address0x,
-                borrower,
-                Helper.address0x,
-                salt,
-                expiration,
-                loanData,
-                { from: borrower }
-            );
-
-            await Helper.tryCatchRevert(
-                () => loanManager.cosign(
-                    id,
-                    0
-                ),
-                'Request cosigned is invalid'
-            );
-        });
-
         it('Try lend a loan with cosigner cost very high', async function () {
             const borrower = accounts[2];
             const lender = accounts[3];
@@ -3716,8 +3677,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const creatorSig = await web3.eth.sign(id, creator);
-            const borrowerSig = await web3.eth.sign(id, borrower);
+            // Sign loan id
+            const creatorSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as creator'), creator);
+            const borrowerSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as borrower'), borrower);
 
             await rcn.setBalance(lender, amount.mul(bn('2')));
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
@@ -3767,8 +3729,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const creatorSig = await web3.eth.sign(id, creator);
-            const borrowerSig = await web3.eth.sign(id, borrower);
+            // Sign loan id
+            const creatorSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as creator'), creator);
+            const borrowerSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as borrower'), borrower);
 
             await rcn.setBalance(lender, amount.mul(bn('2')));
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
@@ -3818,8 +3781,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const creatorSig = await web3.eth.sign(id, creator);
-            const borrowerSig = await web3.eth.sign(id, borrower);
+            // Sign loan id
+            const creatorSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as creator'), creator);
+            const borrowerSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as borrower'), borrower);
 
             await rcn.setBalance(lender, amount.mul(bn('2')));
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
@@ -3870,8 +3834,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const creatorSig = await web3.eth.sign(id, creator);
-            const borrowerSig = await web3.eth.sign(id, borrower);
+            // Sign loan id
+            const creatorSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as creator'), creator);
+            const borrowerSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as borrower'), borrower);
 
             await rcn.setBalance(lender, amount.mul(bn('2')));
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
@@ -3974,8 +3939,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const creatorSig = await web3.eth.sign(id, creator);
-            const borrowerSig = await web3.eth.sign(id, borrower);
+            // Sign loan id
+            const creatorSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as creator'), creator);
+            const borrowerSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as borrower'), borrower);
 
             await rcn.setBalance(lender, amount.mul(bn('2')));
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
@@ -4086,8 +4052,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const creatorSig = await web3.eth.sign(id, creator);
-            const borrowerSig = await web3.eth.sign(id, borrower);
+            // Sign loan id
+            const creatorSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as creator'), creator);
+            const borrowerSig = await web3.eth.sign(calcSignature(id, 'sign settle lend as borrower'), borrower);
 
             await rcn.setBalance(lender, amount.mul(bn('2')));
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
