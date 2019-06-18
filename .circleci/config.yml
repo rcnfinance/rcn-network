@@ -71,10 +71,6 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Create migrations folder
-            - run:
-                name: Create migrations folder
-                command: mkdir migrations
             # Start ganache
             - run:
                 name: Start ganache instance
@@ -102,10 +98,6 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Create migrations folder
-            - run:
-                name: Create migrations folder
-                command: mkdir migrations
             # Replace build target to byzantium
             # Solidity coverage is not compatible with constantinople
             - run:
@@ -114,6 +106,7 @@ jobs:
             # Start test-rpc
             - run:
                 name: Start testrpc instance
+                no_output_timeout: 30m
                 command: node_modules/ganache-cli-coverage/cli.js --emitFreeLogs true --gasLimit 0xfffffffffffff --allowUnlimitedContractSize true
                 background: true
             # Run coverage
@@ -121,6 +114,7 @@ jobs:
                 name: solidity-coverage
                 environment:
                   SOLIDITY_COVERAGE: true
+                no_output_timeout: 30m
                 command: node_modules/.bin/solidity-coverage
             # Upload results
             - run:
