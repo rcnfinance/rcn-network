@@ -101,10 +101,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint32 _margincallRewardFee
     ) external returns (uint256 id) {
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
-        require(_balanceRatio > _liquidationRatio, "The balance ratio should be greater than liquidation ratio");
-        require(_payDebtBurnFee.add(_payDebtRewardFee) < BASE, "PayDebtFee should be less than BASE");
         require(_margincallBurnFee.add(_margincallRewardFee) < BASE, "MargincallFee should be less than BASE");
-
+        require(_balanceRatio > _liquidationRatio, "The balance ratio should be greater than liquidation ratio");
+        // Check underflow in previus require
+        require(_margincallBurnFee + _margincallRewardFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
+        require(_payDebtBurnFee.add(_payDebtRewardFee) < BASE, "PayDebtFee should be less than BASE");
         require(_loanManager.getStatus(_debtId) == 0, "Debt request should be open");
 
         id = entries.push(
@@ -468,6 +469,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _rateTokens,
         uint256 _rateEquivalent
     ) public view returns (uint256) {
+        // If the entry is collateralized should not have collateral amount to pay
         if (liquidationDeltaRatio(_id, _rateTokens, _rateEquivalent) >= 0) {
             return 0;
         }
@@ -489,9 +491,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function _collateralRequiredToBalance(
         int256 _cwithdraw,
-        uint256 _ratio
+        uint256 _balanceRatio
     ) internal pure returns(uint256) {
-        return _cwithdraw.abs().toUint256().mult(BASE) / (_ratio - BASE);
+        // Check underflow when create the entry
+        return _cwithdraw.abs().toUint256().mult(BASE) / (_balanceRatio - BASE);
     }
 
     function canWithdraw(
