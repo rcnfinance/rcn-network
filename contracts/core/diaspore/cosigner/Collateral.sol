@@ -64,10 +64,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event SetUrl(string _url);
 
+    event SetRcnBurner(address _burnableToken);
+
     Entry[] public entries;
     mapping(address => mapping(bytes32 => uint256)) public liabilities;
 
     string private iurl;
+    address public rcnBurner;
 
     struct Entry {
         LoanManager loanManager;
@@ -86,6 +89,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     constructor() public ERC721Base("RCN Collateral Cosigner", "RCC") { }
 
     function getEntriesLength() external view returns (uint256) { return entries.length; }
+
+    function setRcnBurner(address _rcnBurner) external onlyOwner {
+        rcnBurner = _rcnBurner;
+        emit SetRcnBurner(_rcnBurner);
+    }
 
     function create(
         LoanManager _loanManager,
@@ -358,7 +366,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if ( _entry.margincallBurnFee != 0 || _entry.margincallRewardFee != 0 ) {
             IERC20 debtToken = _loanManager.token();
 
-            uint256 burned = _takeFee(_entry, debtToken, _grossTokenPayRequired, _entry.margincallBurnFee, address(debtToken));
+            uint256 burned = _takeFee(_entry, debtToken, _grossTokenPayRequired, _entry.margincallBurnFee, rcnBurner);
             uint256 rewarded = _takeFee(_entry, debtToken, _grossTokenPayRequired, _entry.margincallRewardFee, msg.sender);
 
             emit TakeMargincallFee(burned, rewarded);
@@ -375,7 +383,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if ( _entry.payDebtBurnFee != 0 || _entry.payDebtRewardFee != 0 ) {
             IERC20 debtToken = _loanManager.token();
 
-            uint256 burned = _takeFee(_entry, debtToken, _grossTokenObligation, _entry.payDebtBurnFee, address(debtToken));
+            uint256 burned = _takeFee(_entry, debtToken, _grossTokenObligation, _entry.payDebtBurnFee, rcnBurner);
             uint256 rewarded = _takeFee(_entry, debtToken, _grossTokenObligation, _entry.payDebtRewardFee, msg.sender);
 
             emit TakeDebtFee(burned, rewarded);
