@@ -320,25 +320,25 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             change = true;
         }
 
-        uint256 tokenPayRequired = getTokenPayRequired(id, loanManager, debtId, _oracleData);
+        uint256 tokenPayRequiredToBalance = getTokenPayRequiredToBalance(id, loanManager, debtId, _oracleData);
 
-        if (tokenPayRequired > 0) {
+        if (tokenPayRequiredToBalance > 0) {
             // Run margin call, buy required tokens
             // and substract from total collateral
             _convertPay(
                 entry,
-                tokenPayRequired,
-                _takeMargincallFee(entry, loanManager, tokenPayRequired),
+                tokenPayRequiredToBalance,
+                _takeMargincallFee(entry, loanManager, tokenPayRequiredToBalance),
                 _oracleData
             );
 
-            emit CollateralBalance(id, tokenPayRequired);
+            emit CollateralBalance(id, tokenPayRequiredToBalance);
 
             change = true;
         }
     }
 
-    function getTokenPayRequired(
+    function getTokenPayRequiredToBalance(
         uint256 _id,
         LoanManager _loanManager,
         bytes32 _debtId,
@@ -403,7 +403,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function _convertPay(
         Entry storage _entry,
-        uint256 _tokenPayRequired,
+        uint256 _tokenPayRequiredToBalance,
         uint256 _feeAmount,
         bytes memory _oracleData
     ) internal {
@@ -415,10 +415,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _entry.token,
             token,
             _entry.amount.sub(_feeAmount),
-            _tokenPayRequired
+            _tokenPayRequiredToBalance
         );
 
-        uint256 tokensToPay = Math.min(bought, _tokenPayRequired);
+        uint256 tokensToPay = Math.min(bought, _tokenPayRequiredToBalance);
 
         // Pay debt
         (, uint256 paidTokens) = _entry.loanManager.safePayToken(
