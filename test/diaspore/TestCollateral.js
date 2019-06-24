@@ -1942,7 +1942,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1000');
             const collateralAmount = bn('1100');
-            const equilibrateAmount = bn('900');
+            const equilibrateAmount = bn('899');
             const liquidationRatio = bn('15000');
             const balanceRatio = bn('20000');
             const payDebtBurnFee = bn('3');
@@ -2049,7 +2049,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateralId,
                 bn('0'),
                 bn('0')
-            )).gte(balanceRatio));
+            )).gte(liquidationRatio));
         });
         it('Should claim an entry and equilibrate the entry, with a debt with oracle', async function () {
             const salt = bn(web3.utils.randomHex(32));
@@ -2173,7 +2173,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateralId,
                 tokens,
                 equivalent
-            )).gte(balanceRatio));
+            )).gte(liquidationRatio));
         });
         it('Should claim an entry and equilibrate the entry, with a debt with oracle and fee', async function () {
             const salt = bn(web3.utils.randomHex(32));
@@ -2185,7 +2185,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const payDebtRewardFee = bn('789');
             const margincallBurnFee = bn('0');
             const margincallRewardFee = bn('1000');
-            const equilibrateAmountInCollateral = bn('7700359');
+            const equilibrateAmountInCollateral = bn('6300294');
             const equilibrateAmountInToken = equilibrateAmountInCollateral.mul(bn('2'));
             const rewardedCollateral = equilibrateAmountInCollateral.mul(margincallRewardFee).div(BASE);
             const loanDuration = 1000;
@@ -2308,7 +2308,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateralId,
                 tokens,
                 equivalent
-            )).gte(balanceRatio.sub(rewardedCollateral)));
+            )).gte(liquidationRatio));
         });
         it('Should claim an entry and pay the loan, with a debt with oracle and fee', async function () {
             const salt = bn(web3.utils.randomHex(32));
