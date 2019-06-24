@@ -477,24 +477,26 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry storage entry = entries[_id];
         uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
         uint256 fee = uint256(entry.margincallBurnFee + entry.margincallRewardFee);
-        int256 cwithdraw = canWithdraw(_id, _rateTokens, _rateEquivalent);
 
         return Math.min(
             // The collateral required to equilibrate the balance (the collateral should be more than the debt)
-            _collateralRequiredToBalance(cwithdraw, entry.balanceRatio).mult(BASE + fee) / BASE,
+            _collateralRequiredToBalance(_id, _rateTokens, _rateEquivalent, entry.balanceRatio),
             // Pay all collateral amount (the collateral should be less than the debt)
-            entry.amount.mult(BASE - fee) / BASE,
+            entry.amount,
             // Pay all debt amount (the collateral and the debt should be equal)
-            valueTokensToCollateral(_id, debt).mult(BASE - fee) / BASE
-        );
+            valueTokensToCollateral(_id, debt)
+        ).mult(BASE - fee) / BASE; // Take the fee
     }
 
     function _collateralRequiredToBalance(
-        int256 _cwithdraw,
+        uint256 _id,
+        uint256 _rateTokens,
+        uint256 _rateEquivalent,
         uint256 _balanceRatio
-    ) internal pure returns(uint256) {
+    ) internal view returns(uint256) {
+        int256 cwithdraw = canWithdraw(_id, _rateTokens, _rateEquivalent);
         // Check underflow when create the entry
-        return _cwithdraw.abs().toUint256().mult(BASE) / (_balanceRatio - BASE);
+        return cwithdraw.abs().toUint256().mult(BASE) / (_balanceRatio - BASE);
     }
 
     function canWithdraw(
