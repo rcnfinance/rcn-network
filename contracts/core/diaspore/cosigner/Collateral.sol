@@ -32,11 +32,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event Created(
         uint256 indexed _id,
-        address indexed _manager,
         bytes32 indexed _debtId,
-        address _token,
+        IERC20 _token,
         uint256 _amount,
-        address _converter,
         uint32 _liquidationRatio,
         uint32 _balanceRatio,
         uint32 _payDebtBurnFee,
@@ -63,18 +61,19 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event EmergencyRedeemed(uint256 indexed _id, address _to);
 
     event SetUrl(string _url);
-
     event SetRcnBurner(address _burnableToken);
+    event SetConverter(TokenConverter _converter);
 
     Entry[] public entries;
-    mapping(address => mapping(bytes32 => uint256)) public liabilities;
+    mapping(bytes32 => uint256) public debtToEntry;
 
     string private iurl;
     address public rcnBurner;
+    TokenConverter public converter;
+    LoanManager public loanManager;
+    IERC20 public loanManagerToken;
 
     struct Entry {
-        LoanManager loanManager;
-        TokenConverter converter;
         IERC20 token;
         bytes32 debtId;
         uint256 amount;
@@ -86,7 +85,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint32 margincallRewardFee;
     }
 
-    constructor() public ERC721Base("RCN Collateral Cosigner", "RCC") { }
+    // TODO test
+    constructor(LoanManager _loanManager) public ERC721Base("RCN Collateral Cosigner", "RCC") {
+        require(address(_loanManager) != address(0), "Error loading loan manager");
+        loanManager = _loanManager;
+        loanManagerToken = loanManager.token();
+    }
 
     function getEntriesLength() external view returns (uint256) { return entries.length; }
 
@@ -95,31 +99,34 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         emit SetRcnBurner(_rcnBurner);
     }
 
+    // TODO test
+    function setConverter(TokenConverter _converter) external onlyOwner {
+        converter = _converter;
+        emit SetConverter(_converter);
+    }
+
     function create(
-        LoanManager _loanManager,
         bytes32 _debtId,
         IERC20 _token,
         uint256 _amount,
-        TokenConverter _converter,
         uint32 _liquidationRatio,
         uint32 _balanceRatio,
         uint32 _payDebtBurnFee,
         uint32 _payDebtRewardFee,
         uint32 _margincallBurnFee,
         uint32 _margincallRewardFee
-    ) external returns (uint256 id) {
+    ) external returns (uint256 entryId) {
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
-        require(_margincallBurnFee.add(_margincallRewardFee) < BASE, "MargincallFee should be less than BASE");
+        uint256 totalMargincallFee = _margincallBurnFee.add(_margincallRewardFee);
+        require(totalMargincallFee < BASE, "MargincallFee should be less than BASE");
         require(_balanceRatio > _liquidationRatio, "The balance ratio should be greater than liquidation ratio");
         // Check underflow in previus require
-        require(_margincallBurnFee + _margincallRewardFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
+        require(totalMargincallFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
         require(_payDebtBurnFee.add(_payDebtRewardFee) < BASE, "PayDebtFee should be less than BASE");
-        require(_loanManager.getStatus(_debtId) == 0, "Debt request should be open");
+        require(loanManager.getStatus(_debtId) == 0, "Debt request should be open");
 
-        id = entries.push(
+        entryId = entries.push(
             Entry({
-                loanManager: _loanManager,
-                converter: _converter,
                 token: _token,
                 debtId: _debtId,
                 amount: _amount,
@@ -133,15 +140,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         ) - 1;
 
         require(_token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
-        _generate(id, msg.sender);
+        _generate(entryId, msg.sender);
 
         emit Created(
-            id,
-            address(_loanManager),
+            entryId,
             _debtId,
-            address(_token),
+            _token,
             _amount,
-            address(_converter),
             _liquidationRatio,
             _balanceRatio,
             _payDebtBurnFee,
@@ -175,7 +180,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry storage entry = entries[_id];
 
         // Read oracle
-        (uint256 rateTokens, uint256 rateEquivalent) = entry.loanManager.readOracle(entry.debtId, _oracleData);
+        (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(entry.debtId, _oracleData);
 
         require(_amount.toInt256() <= canWithdraw(_id, rateTokens, rateEquivalent), "Dont have collateral to withdraw");
 
@@ -209,7 +214,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     ) internal {
         Entry storage entry = entries[_id];
 
-        uint256 status = entry.loanManager.getStatus(entry.debtId);
+        uint256 status = loanManager.getStatus(entry.debtId);
 
         if (_emergency) {
             require(status == 4, "Debt is not in error");
@@ -222,7 +227,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(entry.token.safeTransfer(_to, entry.amount), "Error sending tokens");
 
         // Destroy ERC721 collateral token
-        delete liabilities[address(entry.loanManager)][entry.debtId];
+        delete debtToEntry[entry.debtId];
         delete entries[_id]; // TODO: Find best way to delete
     }
 
@@ -233,7 +238,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(_isAuthorized(msg.sender, _id), "The sender its not authorized");
         Entry storage entry = entries[_id];
         bytes32 debtId = entry.debtId;
-        LoanManager loanManager = entry.loanManager;
         Model model = Model(loanManager.getModel(uint256(debtId)));
 
         uint256 closingObligation = model.getClosingObligation(debtId);
@@ -277,22 +281,21 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         bytes memory _data,
         bytes memory
     ) public returns (bool) {
-        // Load id and entry
-        uint256 id = abi.decode(_data, (uint256));
-        Entry storage entry = entries[id];
+        // Load entryId and entry
+        uint256 entryId = abi.decode(_data, (uint256));
+        Entry storage entry = entries[entryId];
 
         // Validate call from loan manager
-        LoanManager loanManager = entry.loanManager;
         require(entry.debtId == bytes32(_debtId), "Wrong debt id");
         require(address(loanManager) == msg.sender, "Not the debt manager");
 
-        // Save liability ID
-        liabilities[address(loanManager)][bytes32(_debtId)] = id;
+        // Save entryId
+        debtToEntry[bytes32(_debtId)] = entryId;
 
         // Cosign
         require(loanManager.cosign(_debtId, 0), "Error performing cosign");
 
-        emit Started(id);
+        emit Started(entryId);
 
         return true;
     }
@@ -303,11 +306,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         bytes memory _oracleData
     ) public returns (bool change) {
         bytes32 debtId = bytes32(_debtId);
-        uint256 id = liabilities[_loanManager][debtId];
-        LoanManager loanManager = LoanManager(_loanManager);
+        uint256 entryId = debtToEntry[debtId];
 
         // Load collateral entry
-        Entry storage entry = entries[id];
+        Entry storage entry = entries[entryId];
 
         Model model = Model(loanManager.getModel(_debtId));
         uint256 dueTime = model.getDueTime(debtId);
@@ -319,16 +321,16 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _convertPay(
                 entry,
                 obligationToken,
-                _takeDebtFee(entry, loanManager, obligationToken),
+                _takeDebtFee(entry, obligationToken),
                 _oracleData
             );
 
-            emit CancelDebt(id, obligationToken);
+            emit CancelDebt(entryId, obligationToken);
 
             change = true;
         }
 
-        uint256 tokenPayRequiredToBalance = getTokenPayRequiredToBalance(id, loanManager, debtId, _oracleData);
+        uint256 tokenPayRequiredToBalance = getTokenPayRequiredToBalance(entryId, debtId, _oracleData);
 
         if (tokenPayRequiredToBalance > 0) {
             // Run margin call, buy required tokens
@@ -336,11 +338,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _convertPay(
                 entry,
                 tokenPayRequiredToBalance,
-                _takeMargincallFee(entry, loanManager, tokenPayRequiredToBalance),
+                _takeMargincallFee(entry, tokenPayRequiredToBalance),
                 _oracleData
             );
 
-            emit CollateralBalance(id, tokenPayRequiredToBalance);
+            emit CollateralBalance(entryId, tokenPayRequiredToBalance);
 
             change = true;
         }
@@ -348,26 +350,22 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function getTokenPayRequiredToBalance(
         uint256 _id,
-        LoanManager _loanManager,
         bytes32 _debtId,
         bytes memory _oracleData
     ) internal returns(uint256) {
         // Read oracle
-        (uint256 rateTokens, uint256 rateEquivalent) = _loanManager.readOracle(_debtId, _oracleData);
+        (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(_debtId, _oracleData);
         // Pay tokens
         return tokensToPay(_id, rateTokens, rateEquivalent);
     }
 
     function _takeMargincallFee(
         Entry storage _entry,
-        LoanManager _loanManager,
         uint256 _grossTokenPayRequired
     ) internal returns(uint256) {
         if ( _entry.margincallBurnFee != 0 || _entry.margincallRewardFee != 0 ) {
-            IERC20 debtToken = _loanManager.token();
-
-            uint256 burned = _takeFee(_entry, debtToken, _grossTokenPayRequired, _entry.margincallBurnFee, rcnBurner);
-            uint256 rewarded = _takeFee(_entry, debtToken, _grossTokenPayRequired, _entry.margincallRewardFee, msg.sender);
+            uint256 burned = _takeFee(_entry, _grossTokenPayRequired, _entry.margincallBurnFee, rcnBurner);
+            uint256 rewarded = _takeFee(_entry, _grossTokenPayRequired, _entry.margincallRewardFee, msg.sender);
 
             emit TakeMargincallFee(burned, rewarded);
 
@@ -377,14 +375,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function _takeDebtFee(
         Entry storage _entry,
-        LoanManager _loanManager,
         uint256 _grossTokenObligation
     ) internal returns(uint256) {
         if ( _entry.payDebtBurnFee != 0 || _entry.payDebtRewardFee != 0 ) {
-            IERC20 debtToken = _loanManager.token();
-
-            uint256 burned = _takeFee(_entry, debtToken, _grossTokenObligation, _entry.payDebtBurnFee, rcnBurner);
-            uint256 rewarded = _takeFee(_entry, debtToken, _grossTokenObligation, _entry.payDebtRewardFee, msg.sender);
+            uint256 burned = _takeFee(_entry, _grossTokenObligation, _entry.payDebtBurnFee, rcnBurner);
+            uint256 rewarded = _takeFee(_entry, _grossTokenObligation, _entry.payDebtRewardFee, msg.sender);
 
             emit TakeDebtFee(burned, rewarded);
 
@@ -394,7 +389,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function _takeFee(
         Entry storage _entry,
-        IERC20 _debtToken,
         uint256 _grossTokenObligation,
         uint256 _fee,
         address _to
@@ -404,7 +398,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
 
         uint256 takeFee = _fee.mult(_grossTokenObligation) / BASE;
-        takeFeeInColl = _entry.converter.getReturn(_debtToken, _entry.token, takeFee);
+        takeFeeInColl = converter.getReturn(loanManagerToken, _entry.token, takeFee);
 
         require(_entry.token.safeTransfer(_to, takeFeeInColl), "Error sending tokens");
     }
@@ -415,13 +409,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _feeAmount,
         bytes memory _oracleData
     ) internal {
-        // Load debt token
-        IERC20 token = _entry.loanManager.token();
-
         // Use collateral to buy tokens
         (uint256 bought, uint256 sold) = converter.safeConvertToMax(
             _entry.token,
-            token,
+            loanManagerToken,
             _entry.amount.sub(_feeAmount),
             _tokenPayRequiredToBalance
         );
@@ -429,7 +420,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 tokensToPay = Math.min(bought, _tokenPayRequiredToBalance);
 
         // Pay debt
-        (, uint256 paidTokens) = _entry.loanManager.safePayToken(
+        (, uint256 paidTokens) = loanManager.safePayToken(
             _entry.debtId,
             tokensToPay,
             address(this),
@@ -441,8 +432,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if (paidTokens < tokensToPay) {
             // Buy back extra collateral
             sold = tokensToPay - paidTokens;
-            bought = _entry.converter.safeConvertFrom(
-                token,
+            bought = converter.safeConvertFrom(
+                loanManagerToken,
                 _entry.token,
                 sold,
                 0
@@ -591,17 +582,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             return 0;
         }
 
-        Entry storage entry = entries[_id];
+        IERC20 collateralToken = entries[_id].token;
 
-        IERC20 loanToken = entry.loanManager.token();
-        IERC20 collateralToken = entry.token;
-
-        if (collateralToken == loanToken) {
+        if (collateralToken == loanManagerToken) {
             return _amount;
         } else {
-            return entry.converter.getReturn(
+            return converter.getReturn(
                 collateralToken,
-                loanToken,
+                loanManagerToken,
                 _amount
             );
         }
@@ -621,16 +609,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             return 0;
         }
 
-        Entry storage entry = entries[_id];
+        IERC20 collateralToken = entries[_id].token;
 
-        IERC20 loanToken = entry.loanManager.token();
-        IERC20 collateralToken = entry.token;
-
-        if (collateralToken == loanToken) {
+        if (collateralToken == loanManagerToken) {
             return _amount;
         } else {
-            return entry.converter.getReturn(
-                loanToken,
+            return converter.getReturn(
+                loanManagerToken,
                 collateralToken,
                 _amount
             );
@@ -647,10 +632,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _rateTokens,
         uint256 _rateEquivalent
     ) public view returns (uint256) {
-        Entry storage entry = entries[_id];
-        LoanManager manager = entry.loanManager;
-
-        uint256 debt = manager.getClosingObligation(entry.debtId);
+        uint256 debt = loanManager.getClosingObligation(entries[_id].debtId);
 
         if (_rateTokens == 0 && _rateEquivalent == 0) {
             return debt;

@@ -73,17 +73,19 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     }
 
     before('Create constracts', async function () {
+        converter = await TestConverter.new({ from: owner });
+        oracle = await TestRateOracle.new({ from: owner });
+        rcnBurner = await RcnBurner.new({ from: owner });
         rcn = await TestToken.new({ from: owner });
+        auxToken = await TestToken.new({ from: owner });
         debtEngine = await DebtEngine.new(rcn.address, { from: owner });
         loanManager = await LoanManager.new(debtEngine.address, { from: owner });
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
-        collateral = await Collateral.new({ from: owner });
-        rcnBurner = await RcnBurner.new({ from: owner });
+        // Collateral deploy
+        collateral = await Collateral.new(loanManager.address, { from: owner });
+        await collateral.setConverter(converter.address, { from: owner });
         await collateral.setRcnBurner(rcnBurner.address, { from: owner });
-        auxToken = await TestToken.new({ from: owner });
-        converter = await TestConverter.new({ from: owner });
-        oracle = await TestRateOracle.new({ from: owner });
     });
 
     describe('Function create', function () {
@@ -122,11 +124,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const Created = await Helper.toEvents(
                 collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     collateralAmount, // amount
-                    converter.address, // converter
                     liquidationRatio, // liquidationRatio
                     balanceRatio, // balanceRatio
                     payDebtBurnFee, // payDebtBurnFee
@@ -139,11 +139,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
 
             expect(Created._id).to.eq.BN(collateralId);
-            assert.equal(Created._manager, loanManager.address);
             assert.equal(Created._debtId, loanId);
             assert.equal(Created._token, auxToken.address);
             expect(Created._amount).to.eq.BN(collateralAmount);
-            assert.equal(Created._converter, converter.address);
             expect(Created._liquidationRatio).to.eq.BN(liquidationRatio);
             expect(Created._balanceRatio).to.eq.BN(balanceRatio);
             expect(Created._payDebtBurnFee).to.eq.BN(payDebtBurnFee);
@@ -158,8 +156,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount);
@@ -188,11 +184,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     bn('0'), // amount
-                    converter.address, // converter
                     bn('15000'), // liquidationRatio
                     bn('20000'), // balanceRatio
                     bn('0'), // payDebtBurnFee
@@ -206,11 +200,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     bn('0'), // amount
-                    converter.address, // converter
                     bn('15000'), // liquidationRatio
                     bn('20000'), // balanceRatio
                     bn('0'), // margincallBurnFee
@@ -250,11 +242,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     collateralAmount, // amount
-                    converter.address, // converter
                     liquidationRatio, // liquidationRatio
                     balanceRatio, // balanceRatio
                     payDebtBurnFee, // payDebtBurnFee
@@ -289,11 +279,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     bn('0'), // amount
-                    converter.address, // converter
                     liquidationRatio, // liquidationRatio
                     balanceRatio, // balanceRatio
                     balanceRatio, // payDebtBurnFee
@@ -330,11 +318,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     bn('0'), // amount
-                    converter.address, // converter
                     bn('10001'), // liquidationRatio
                     bn('10001').add(margincallfee), // balanceRatio
                     bn('0'), // payDebtBurnFee
@@ -348,11 +334,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     bn('0'), // amount
-                    converter.address, // converter
                     bn('10001'), // liquidationRatio
                     bn('10002'), // balanceRatio
                     bn('0'), // payDebtBurnFee
@@ -385,11 +369,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     bn('0'), // amount
-                    converter.address, // converter
                     bn('15000'), // liquidationRatio
                     bn('20000'), // balanceRatio
                     BASE.div(bn('2')), // payDebtBurnFee
@@ -403,11 +385,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     bn('0'), // amount
-                    converter.address, // converter
                     bn('15000'), // liquidationRatio
                     bn('20000'), // balanceRatio
                     bn('2').pow(bn('32')).sub(bn('1')), // payDebtBurnFee
@@ -445,11 +425,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     bn('0'), // amount
-                    converter.address, // converter
                     bn('15000'), // liquidationRatio
                     bn('20000'), // balanceRatio
                     bn('0'), // payDebtBurnFee
@@ -483,11 +461,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await Helper.tryCatchRevert(
                 () => collateral.create(
-                    loanManager.address, // loanManager
                     loanId, // debtId
                     auxToken.address, // token
                     collateralAmount, // amount
-                    converter.address, // converter
                     bn('15000'), // liquidationRatio
                     bn('20000'), // balanceRatio
                     bn('0'), // payDebtBurnFee
@@ -529,11 +505,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const collateralId = await collateral.getEntriesLength();
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 0,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -569,8 +543,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(depositAmount);
@@ -599,11 +571,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const collateralId = await collateral.getEntriesLength();
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 0,
-                converter.address,
                 bn('15000'),
                 bn('20000'),
                 bn('0'),
@@ -659,11 +629,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -700,8 +668,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(withdrawAmount));
@@ -731,11 +697,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const collateralId = await collateral.getEntriesLength();
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 0,
-                converter.address,
                 bn('15000'),
                 bn('20000'),
                 bn('0'),
@@ -825,11 +789,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 bn('15000'),
                 bn('20000'),
                 bn('0'),
@@ -883,11 +845,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -917,13 +877,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(0);
             expect(entry.margincallBurnFee).to.eq.BN(0);
             expect(entry.margincallRewardFee).to.eq.BN(0);
-            assert.equal(entry.loanManager, Helper.address0x);
-            assert.equal(entry.converter, Helper.address0x);
             assert.equal(entry.token, Helper.address0x);
             assert.equal(entry.debtId, Helper.bytes320x);
             expect(entry.amount).to.eq.BN(0);
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(0);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(0);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(collateralAmount));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(collateralAmount));
@@ -964,11 +922,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -1017,13 +973,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(0);
             expect(entry.margincallBurnFee).to.eq.BN(0);
             expect(entry.margincallRewardFee).to.eq.BN(0);
-            assert.equal(entry.loanManager, Helper.address0x);
-            assert.equal(entry.converter, Helper.address0x);
             assert.equal(entry.token, Helper.address0x);
             assert.equal(entry.debtId, Helper.bytes320x);
             expect(entry.amount).to.eq.BN(0);
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(0);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(0);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(collateralAmount.sub(amount)));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(collateralAmount.sub(amount)));
@@ -1050,11 +1004,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const collateralId = await collateral.getEntriesLength();
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 0,
-                converter.address,
                 bn('15000'),
                 bn('20000'),
                 0,
@@ -1093,11 +1045,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const collateralId = await collateral.getEntriesLength();
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 0,
-                converter.address,
                 bn('15000'),
                 bn('20000'),
                 0,
@@ -1148,11 +1098,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const collateralId = await collateral.getEntriesLength();
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 0,
-                converter.address,
                 bn('15000'),
                 bn('20000'),
                 0,
@@ -1217,11 +1165,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -1267,13 +1213,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(0);
             expect(entry.margincallBurnFee).to.eq.BN(0);
             expect(entry.margincallRewardFee).to.eq.BN(0);
-            assert.equal(entry.loanManager, Helper.address0x);
-            assert.equal(entry.converter, Helper.address0x);
             assert.equal(entry.token, Helper.address0x);
             assert.equal(entry.debtId, Helper.bytes320x);
             expect(entry.amount).to.eq.BN(0);
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(0);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(0);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(collateralAmount));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(collateralAmount));
@@ -1300,11 +1244,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const collateralId = await collateral.getEntriesLength();
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 0,
-                converter.address,
                 bn('15000'),
                 bn('20000'),
                 0,
@@ -1344,11 +1286,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const collateralId = await collateral.getEntriesLength();
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 0,
-                converter.address,
                 bn('15000'),
                 bn('20000'),
                 0,
@@ -1412,11 +1352,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 0,
@@ -1465,13 +1403,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const entry = await collateral.entries(collateralId);
             expect(entry.liquidationRatio).to.eq.BN(liquidationRatio);
             expect(entry.balanceRatio).to.eq.BN(balanceRatio);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(amount));
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(amount));
             assert.equal(await collateral.ownerOf(collateralId), creator);
@@ -1511,11 +1447,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 0,
@@ -1573,13 +1507,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const entry = await collateral.entries(collateralId);
             expect(entry.liquidationRatio).to.eq.BN(liquidationRatio);
             expect(entry.balanceRatio).to.eq.BN(balanceRatio);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(closingObligationInToken.div(bn('2'))));
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(closingObligationInToken.div(bn('2'))));
             assert.equal(await collateral.ownerOf(collateralId), creator);
@@ -1619,11 +1551,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 0,
@@ -1689,11 +1619,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 0,
@@ -1749,11 +1677,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -1809,13 +1735,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(amount));
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(amount));
             assert.equal(await collateral.ownerOf(collateralId), creator);
@@ -1859,11 +1783,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -1928,13 +1850,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(closingObligationInToken.div(bn('2'))));
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(closingObligationInToken.div(bn('2'))));
             assert.equal(await collateral.ownerOf(collateralId), creator);
@@ -1978,11 +1898,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -2035,8 +1953,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(equilibrateAmount));
@@ -2044,7 +1960,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(equilibrateAmount));
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             expect(await model.getClosingObligation(loanId)).to.eq.BN(amount.sub(equilibrateAmount));
             assert.isTrue((await model.getStatus.call(loanId)).toString() === '1');
@@ -2093,11 +2009,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -2158,8 +2072,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(equilibrateAmountInCollateral));
@@ -2167,7 +2079,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(equilibrateAmountInCollateral));
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             const payAmount = equilibrateAmountInToken.mul(equivalent).div(tokens);
             expect(await model.getClosingObligation(loanId)).to.eq.BN(amount.sub(payAmount));
@@ -2218,11 +2130,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -2290,8 +2200,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(equilibrateAmountInCollateral.add(rewardedCollateral)));
@@ -2302,7 +2210,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             const payAmount = equilibrateAmountInToken.mul(equivalent).div(tokens);
             expect(await model.getClosingObligation(loanId)).to.eq.BN(amount.sub(payAmount));
@@ -2350,11 +2258,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -2433,13 +2339,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(closingObligationInCollateral.add(totalFeeCollateral)));
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(closingObligationInCollateral.add(totalFeeCollateral)));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(rewardedCollateral));
@@ -2493,11 +2397,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
             await collateral.create(
-                loanManager.address,
                 loanId,
                 auxToken.address,
                 collateralAmount,
-                converter.address,
                 liquidationRatio,
                 balanceRatio,
                 payDebtBurnFee,
@@ -2566,8 +2468,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
             expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
             expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.loanManager, loanManager.address);
-            assert.equal(entry.converter, converter.address);
             assert.equal(entry.token, auxToken.address);
             assert.equal(entry.debtId, loanId);
             expect(entry.amount).to.eq.BN(collateralAmount.sub(collateralToPay.add(totalFeeCollateral)));
@@ -2579,7 +2479,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
-            expect(await collateral.liabilities(loanManager.address, loanId)).to.eq.BN(collateralId);
+            expect(await collateral.debtToEntry(loanId)).to.eq.BN(collateralId);
 
             const closingObligationInToken = (await model.getClosingObligation(loanId)).mul(tokens).div(equivalent);
             expect(closingObligationInToken).to.eq.BN(amountInToken.sub(tokenToPay));
@@ -2730,11 +2630,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
                 await collateral.create(
-                    loanManager.address,
                     loanId,
                     auxToken.address,
                     collateralAmount,
-                    converter.address,
                     liquidationRatioLimit,
                     balanceRatioLimit,
                     0,
@@ -2883,10 +2781,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
         const expiration = (await Helper.getBlockTime()) + 100;
         const loanId = await getId(loanManager.requestLoan(
-            loanAmount,           // Amount
-            model.address,     // Model
-            Helper.address0x,  // Oracle
-            borrower,          // Borrower
+            loanAmount, // Amount
+            model.address, // Model
+            Helper.address0x, // Oracle
+            borrower, // Borrower
             bn(web3.utils.randomHex(32)), // salt
             expiration, // Expiration
             await model.encodeData(loanAmount, expiration), // Loan data
@@ -2898,11 +2796,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         await auxToken.approve(collateral.address, collateralAmount, { from: creator });
 
         await collateral.create(
-            loanManager.address,
             loanId,
             auxToken.address,
             collateralAmount,
-            converter.address,
             liquidationRatio,
             balanceRatio,
             0,
@@ -2945,11 +2841,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         await rcn.approve(collateral.address, collateralAmount, { from: creator });
 
         await collateral.create(
-            loanManager.address,
             loanId,
             rcn.address,
             collateralAmount,
-            converter.address,
             liquidationRatio,
             balanceRatio,
             0,
@@ -2995,11 +2889,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         await rcn.approve(collateral.address, collateralAmount, { from: creator });
 
         await collateral.create(
-            loanManager.address,
             loanId,
             rcn.address,
             collateralAmount,
-            converter.address,
             liquidationRatio,
             balanceRatio,
             0,
@@ -3102,11 +2994,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         await rcn.approve(collateral.address, collateralAmount, { from: creator });
 
         await collateral.create(
-            loanManager.address,
             loanId,
             rcn.address,
             collateralAmount,
-            converter.address,
             liquidationRatio,
             balanceRatio,
             0,
