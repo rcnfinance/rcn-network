@@ -58,7 +58,7 @@ library SafeTokenConverter {
         require(sold == prevFromBalance.sub(_fromToken.balanceOf(address(this))), "The sold and the transfer amount should be equal");
     }
 
-    function safeConverterToMax(
+    function safeConvertToMax(
         TokenConverter _converter,
         IERC20 _fromToken,
         IERC20 _toToken,

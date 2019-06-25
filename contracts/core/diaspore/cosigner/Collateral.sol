@@ -419,7 +419,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         IERC20 token = _entry.loanManager.token();
 
         // Use collateral to buy tokens
-        (uint256 bought, uint256 sold) = _entry.converter.safeConverterToMax(
+        (uint256 bought, uint256 sold) = converter.safeConvertToMax(
             _entry.token,
             token,
             _entry.amount.sub(_feeAmount),
