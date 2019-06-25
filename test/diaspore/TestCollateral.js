@@ -1,10 +1,11 @@
-const Collateral = artifacts.require('./core/diaspore/cosigner/Collateral.sol');
-const TestModel = artifacts.require('./test_utils/diaspore/TestModel.sol');
-const LoanManager = artifacts.require('./core/diaspore/LoanManager.sol');
-const DebtEngine = artifacts.require('./core/diaspore/DebtEngine.sol');
-const TestToken = artifacts.require('./test_utils/TestToken.sol');
-const TestConverter = artifacts.require('./test_utils/TestConverter.sol');
-const TestRateOracle = artifacts.require('./test_utils/diaspore/TestRateOracle.sol');
+const Collateral = artifacts.require('Collateral');
+const RcnBurner = artifacts.require('RcnBurner');
+const TestModel = artifacts.require('TestModel');
+const LoanManager = artifacts.require('LoanManager');
+const DebtEngine = artifacts.require('DebtEngine');
+const TestToken = artifacts.require('TestToken');
+const TestConverter = artifacts.require('TestConverter');
+const TestRateOracle = artifacts.require('TestRateOracle');
 
 const Helper = require('../Helper.js');
 const BN = web3.utils.BN;
@@ -48,6 +49,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     let debtEngine;
     let model;
     let collateral;
+    let rcnBurner;
     let converter;
     let oracle;
 
@@ -77,6 +79,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
         collateral = await Collateral.new({ from: owner });
+        rcnBurner = await RcnBurner.new({ from: owner });
+        await collateral.setRcnBurner(rcnBurner.address, { from: owner });
         auxToken = await TestToken.new({ from: owner });
         converter = await TestConverter.new({ from: owner });
         oracle = await TestRateOracle.new({ from: owner });
@@ -2393,6 +2397,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const prevCollateralBal = await auxToken.balanceOf(collateral.address);
             const prevCreatorBal = await auxToken.balanceOf(creator);
             const prevRCNBal = await auxToken.balanceOf(rcn.address);
+            const prevRcnBurnerBal = await auxToken.balanceOf(rcnBurner.address);
 
             await Helper.increaseTime(loanDuration + 10);
 
@@ -2438,7 +2443,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(closingObligationInCollateral.add(totalFeeCollateral)));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(rewardedCollateral));
-            expect(await auxToken.balanceOf(rcn.address)).to.eq.BN(prevRCNBal.add(burnedCollateral));
+            expect(await auxToken.balanceOf(rcn.address)).to.eq.BN(prevRCNBal);
+            expect(await auxToken.balanceOf(rcnBurner.address)).to.eq.BN(prevRcnBurnerBal.add(burnedCollateral));
 
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
@@ -2526,6 +2532,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const prevCollateralBal = await auxToken.balanceOf(collateral.address);
             const prevCreatorBal = await auxToken.balanceOf(creator);
             const prevRCNBal = await auxToken.balanceOf(rcn.address);
+            const prevRcnBurnerBal = await auxToken.balanceOf(rcnBurner.address);
 
             const events = await Helper.toEvents(
                 collateral.claim(
@@ -2567,7 +2574,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(collateralToPay.add(totalFeeCollateral)));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(rewardedCollateral));
-            expect(await auxToken.balanceOf(rcn.address)).to.eq.BN(prevRCNBal.add(burnedCollateral));
+            expect(await auxToken.balanceOf(rcn.address)).to.eq.BN(prevRCNBal);
+            expect(await auxToken.balanceOf(rcnBurner.address)).to.eq.BN(prevRcnBurnerBal.add(burnedCollateral));
 
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
