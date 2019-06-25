@@ -1,3 +1,4 @@
+// TODO test RcnBurner.sol
 const Collateral = artifacts.require('Collateral');
 const RcnBurner = artifacts.require('RcnBurner');
 const TestModel = artifacts.require('TestModel');
@@ -72,7 +73,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         );
     }
 
-    before('Create constracts', async function () {
+    before('Create contracts', async function () {
         converter = await TestConverter.new({ from: owner });
         oracle = await TestRateOracle.new({ from: owner });
         rcnBurner = await RcnBurner.new({ from: owner });
