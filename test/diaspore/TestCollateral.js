@@ -82,7 +82,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         // Collateral deploy
         collateral = await Collateral.new(loanManager.address, { from: owner });
         await collateral.setConverter(converter.address, { from: owner });
-        await collateral.setBurner(Helper.address0x, { from: owner });
     });
 
     describe('Functions onlyOwner', function () {
