@@ -1,6 +1,4 @@
-// TODO test RcnBurner.sol
 const Collateral = artifacts.require('Collateral');
-const RcnBurner = artifacts.require('RcnBurner');
 const TestModel = artifacts.require('TestModel');
 const LoanManager = artifacts.require('LoanManager');
 const DebtEngine = artifacts.require('DebtEngine');
@@ -50,7 +48,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     let debtEngine;
     let model;
     let collateral;
-    let rcnBurner;
     let converter;
     let oracle;
 
@@ -76,7 +73,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     before('Create contracts', async function () {
         converter = await TestConverter.new({ from: owner });
         oracle = await TestRateOracle.new({ from: owner });
-        rcnBurner = await RcnBurner.new({ from: owner });
         rcn = await TestToken.new({ from: owner });
         auxToken = await TestToken.new({ from: owner });
         debtEngine = await DebtEngine.new(rcn.address, { from: owner });
@@ -86,9 +82,93 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         // Collateral deploy
         collateral = await Collateral.new(loanManager.address, { from: owner });
         await collateral.setConverter(converter.address, { from: owner });
-        await collateral.setRcnBurner(rcnBurner.address, { from: owner });
+        await collateral.setBurner(Helper.address0x, { from: owner });
     });
 
+    describe('Functions onlyOwner', function () {
+        it('Try redeem an entry without be the owner', async function () {
+            const salt = bn(web3.utils.randomHex(32));
+            const amount = bn('1000');
+            const expiration = (await Helper.getBlockTime()) + 1000;
+
+            const loanData = await model.encodeData(amount, expiration);
+
+            const loanId = await getId(loanManager.requestLoan(
+                amount,            // Amount
+                model.address,     // Model
+                Helper.address0x,  // Oracle
+                borrower,          // Borrower
+                salt,              // salt
+                expiration,        // Expiration
+                loanData,          // Loan data
+                { from: borrower } // Creator
+            ));
+
+            const collateralId = await collateral.getEntriesLength();
+
+            await collateral.create(
+                loanId,
+                auxToken.address,
+                0,
+                bn('15000'),
+                bn('20000'),
+                0,
+                0,
+                0,
+                0,
+                { from: creator }
+            );
+
+            await Helper.tryCatchRevert(
+                () => collateral.emergencyRedeem(
+                    collateralId,
+                    borrower,
+                    { from: borrower }
+                ),
+                'The owner should be the sender'
+            );
+        });
+        it('Try set new url without be the owner', async function () {
+            await Helper.tryCatchRevert(
+                () => collateral.setUrl(
+                    '',
+                    { from: creator }
+                ),
+                'The owner should be the sender'
+            );
+        });
+        it('Try set burner without be the owner', async function () {
+            await Helper.tryCatchRevert(
+                () => collateral.setBurner(
+                    creator,
+                    { from: creator }
+                ),
+                'The owner should be the sender'
+            );
+        });
+        it('Try set converter without be the owner', async function () {
+            await Helper.tryCatchRevert(
+                () => collateral.setConverter(
+                    converter.address,
+                    { from: creator }
+                ),
+                'The owner should be the sender'
+            );
+        });
+    });
+    describe('Constructor', function () {
+        it('Check the loanManager and loanManagerToken', async function () {
+            assert.equal(await collateral.loanManager(), loanManager.address);
+            assert.equal(await collateral.loanManagerToken(), await loanManager.token());
+        });
+        it('Creation should fail if loan manger is the address 0', async function () {
+            await Helper.tryCatchRevert(
+                () => Collateral.new(
+                    Helper.address0x
+                ), 'Error loading loan manager'
+            );
+        });
+    });
     describe('Function create', function () {
         it('Should create a new collateral', async function () {
             const salt = bn(web3.utils.randomHex(32));
@@ -1224,48 +1304,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(collateralAmount));
             assert.equal(await collateral.ownerOf(collateralId), creator);
         });
-        it('Try redeem an entry without be the owner', async function () {
-            const salt = bn(web3.utils.randomHex(32));
-            const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
-
-            const loanData = await model.encodeData(amount, expiration);
-
-            const loanId = await getId(loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            ));
-
-            const collateralId = await collateral.getEntriesLength();
-
-            await collateral.create(
-                loanId,
-                auxToken.address,
-                0,
-                bn('15000'),
-                bn('20000'),
-                0,
-                0,
-                0,
-                0,
-                { from: creator }
-            );
-
-            await Helper.tryCatchRevert(
-                () => collateral.emergencyRedeem(
-                    collateralId,
-                    borrower,
-                    { from: borrower }
-                ),
-                'The owner should be the sender'
-            );
-        });
         it('Try redeem an entry with a loan in not ERROR status', async function () {
             const salt = bn(web3.utils.randomHex(32));
             const amount = bn('1000');
@@ -2304,7 +2342,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const prevCollateralBal = await auxToken.balanceOf(collateral.address);
             const prevCreatorBal = await auxToken.balanceOf(creator);
             const prevRCNBal = await auxToken.balanceOf(rcn.address);
-            const prevRcnBurnerBal = await auxToken.balanceOf(rcnBurner.address);
+            const prevBurnerBal = await auxToken.balanceOf(Helper.address0x);
 
             await Helper.increaseTime(loanDuration + 10);
 
@@ -2349,7 +2387,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(closingObligationInCollateral.add(totalFeeCollateral)));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(rewardedCollateral));
             expect(await auxToken.balanceOf(rcn.address)).to.eq.BN(prevRCNBal);
-            expect(await auxToken.balanceOf(rcnBurner.address)).to.eq.BN(prevRcnBurnerBal.add(burnedCollateral));
+            expect(await auxToken.balanceOf(Helper.address0x)).to.eq.BN(prevBurnerBal.add(burnedCollateral));
 
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
@@ -2435,7 +2473,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const prevCollateralBal = await auxToken.balanceOf(collateral.address);
             const prevCreatorBal = await auxToken.balanceOf(creator);
             const prevRCNBal = await auxToken.balanceOf(rcn.address);
-            const prevRcnBurnerBal = await auxToken.balanceOf(rcnBurner.address);
+            const prevBurnerBal = await auxToken.balanceOf(Helper.address0x);
 
             const events = await Helper.toEvents(
                 collateral.claim(
@@ -2476,7 +2514,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollateralBal.sub(collateralToPay.add(totalFeeCollateral)));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBal.add(rewardedCollateral));
             expect(await auxToken.balanceOf(rcn.address)).to.eq.BN(prevRCNBal);
-            expect(await auxToken.balanceOf(rcnBurner.address)).to.eq.BN(prevRcnBurnerBal.add(burnedCollateral));
+            expect(await auxToken.balanceOf(Helper.address0x)).to.eq.BN(prevBurnerBal.add(burnedCollateral));
 
             assert.equal(await collateral.ownerOf(collateralId), creator);
 
@@ -2757,14 +2795,34 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
         assert.equal(SetUrl._url, url);
         assert.equal(await collateral.url(), url);
-
-        await Helper.tryCatchRevert(
-            () => collateral.setUrl(
-                url,
-                { from: creator }
+    });
+    it('Set new burner', async function () {
+        const SetBurner = await Helper.toEvents(
+            collateral.setBurner(
+                creator,
+                { from: owner }
             ),
-            'The owner should be the sender'
+            'SetBurner'
         );
+
+        assert.equal(SetBurner._burner, creator);
+        assert.equal(await collateral.burner(), creator);
+
+        await collateral.setBurner(Helper.address0x, { from: owner });
+    });
+    it('Set new converter', async function () {
+        const SetConverter = await Helper.toEvents(
+            collateral.setConverter(
+                Helper.address0x,
+                { from: owner }
+            ),
+            'SetConverter'
+        );
+
+        assert.equal(SetConverter._converter, Helper.address0x);
+        assert.equal(await collateral.converter(), Helper.address0x);
+
+        await collateral.setConverter(converter.address, { from: owner });
     });
     it('The cost should be 0', async function () {
         expect(await collateral.cost(

@@ -67,9 +67,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     Entry[] public entries;
     mapping(bytes32 => uint256) public debtToEntry;
 
+
+    // Can change
     string private iurl;
     address public burner;
     TokenConverter public converter;
+    // Constant, set in constructor
     LoanManager public loanManager;
     IERC20 public loanManagerToken;
 
@@ -85,7 +88,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint32 margincallRewardFee;
     }
 
-    // TODO test
     constructor(LoanManager _loanManager) public ERC721Base("RCN Collateral Cosigner", "RCC") {
         require(address(_loanManager) != address(0), "Error loading loan manager");
         loanManager = _loanManager;
@@ -99,7 +101,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         emit SetBurner(_burner);
     }
 
-    // TODO test
     function setConverter(TokenConverter _converter) external onlyOwner {
         converter = _converter;
         emit SetConverter(_converter);
