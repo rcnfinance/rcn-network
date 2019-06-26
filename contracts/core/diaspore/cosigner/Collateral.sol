@@ -61,14 +61,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event EmergencyRedeemed(uint256 indexed _id, address _to);
 
     event SetUrl(string _url);
-    event SetRcnBurner(address _burnableToken);
+    event SetBurner(address _burner);
     event SetConverter(TokenConverter _converter);
 
     Entry[] public entries;
     mapping(bytes32 => uint256) public debtToEntry;
 
     string private iurl;
-    address public rcnBurner;
+    address public burner;
     TokenConverter public converter;
     LoanManager public loanManager;
     IERC20 public loanManagerToken;
@@ -94,9 +94,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function getEntriesLength() external view returns (uint256) { return entries.length; }
 
-    function setRcnBurner(address _rcnBurner) external onlyOwner {
-        rcnBurner = _rcnBurner;
-        emit SetRcnBurner(_rcnBurner);
+    function setBurner(address _burner) external onlyOwner {
+        burner = _burner;
+        emit SetBurner(_burner);
     }
 
     // TODO test
@@ -364,7 +364,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _grossTokenPayRequired
     ) internal returns(uint256) {
         if ( _entry.margincallBurnFee != 0 || _entry.margincallRewardFee != 0 ) {
-            uint256 burned = _takeFee(_entry, _grossTokenPayRequired, _entry.margincallBurnFee, rcnBurner);
+            uint256 burned = _takeFee(_entry, _grossTokenPayRequired, _entry.margincallBurnFee, burner);
             uint256 rewarded = _takeFee(_entry, _grossTokenPayRequired, _entry.margincallRewardFee, msg.sender);
 
             emit TakeMargincallFee(burned, rewarded);
@@ -378,7 +378,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _grossTokenObligation
     ) internal returns(uint256) {
         if ( _entry.payDebtBurnFee != 0 || _entry.payDebtRewardFee != 0 ) {
-            uint256 burned = _takeFee(_entry, _grossTokenObligation, _entry.payDebtBurnFee, rcnBurner);
+            uint256 burned = _takeFee(_entry, _grossTokenObligation, _entry.payDebtBurnFee, burner);
             uint256 rewarded = _takeFee(_entry, _grossTokenObligation, _entry.payDebtRewardFee, msg.sender);
 
             emit TakeDebtFee(burned, rewarded);
