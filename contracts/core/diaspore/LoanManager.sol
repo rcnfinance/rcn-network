@@ -272,7 +272,7 @@ contract LoanManager is BytesUtils {
     ) internal returns (bool approved) {
         // bytes32 expected = _id XOR keccak256("approve-loan-request");
         bytes32 expected = _id ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
-        (uint256 success, bytes32 result) = _safeCall(
+        (bool success, bytes32 result) = _safeCall(
             _borrower,
             abi.encodeWithSelector(
                 0x76ba6009,
@@ -280,13 +280,13 @@ contract LoanManager is BytesUtils {
             )
         );
 
-        approved = success == 1 && result == expected;
+        approved = success && result == expected;
 
         // Emit events if approve was rejected or failed
         if (approved) {
             emit ApprovedByCallback(_id);
         } else {
-            if (success == 0) {
+            if (!success) {
                 emit ApprovedError(_id, result);
             } else {
                 emit ApprovedRejected(_id, result);
@@ -803,23 +803,21 @@ contract LoanManager is BytesUtils {
         return tokens.mult(_amount) / equivalent;
     }
 
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
+     * relaxing the requirement on the return value
+     * @param _contract The borrower contract that receives the approveRequest(bytes32) call
+     * @param _data The call data
+     * @return True if the call not reverts and the result of the call
+     */
     function _safeCall(
         address _contract,
         bytes memory _data
-    ) internal returns (uint256 success, bytes32 result) {
-        assembly {
-            let x := mload(0x40)
-            success := call(
-                            gas,                 // Send almost all gas
-                            _contract,            // To addr
-                            0,                    // Send ETH
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
+    ) internal returns (bool success, bytes32 result) {
+        bytes memory returnData;
+        (success, returnData) = _contract.call(_data);
 
-            result := mload(x)
-        }
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (bytes32));
     }
 }
