@@ -6,7 +6,7 @@ import "truffle/DeployedAddresses.sol";
 import "../../contracts/core/basalt/utils/RpSafeMath.sol";
 
 
-contract RpSafeMathMock is RpSafeMath {
+contract TestRpSafeMathMock is RpSafeMath {
     function add(uint256 a, uint256 b) external returns (uint256 c) {
         c = safeAdd(a, b);
     }
@@ -29,11 +29,11 @@ contract RpSafeMathMock is RpSafeMath {
 }
 
 
-contract RpSafeMathTest {
-    RpSafeMathMock safeMath;
+contract TestRpSafeMath {
+    TestRpSafeMathMock safeMath;
 
     constructor() public {
-        safeMath = new RpSafeMathMock();
+        safeMath = new TestRpSafeMathMock();
     }
 
     function testCatchAddOverflow() external {

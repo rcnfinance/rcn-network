@@ -94,8 +94,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     function create(bytes32 id, bytes calldata data) external onlyEngine returns (bool) {
         require(configs[id].cuota == 0, "Entry already exist");
 
-        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _decodeData(data);
-        _validate(cuota, interestRate, installments, duration, timeUnit);
+        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _validate(data);
 
         configs[id] = Config({
             installments: installments,
@@ -281,8 +280,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     }
 
     function validate(bytes calldata data) external view returns (bool) {
-        (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _decodeData(data);
-        _validate(cuota, interestRate, installments, duration, timeUnit);
+        _validate(data);
         return true;
     }
 
@@ -350,7 +348,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 clock = state.clock;
         if (clock < _target) {
             (uint256 newInterest, uint256 newClock) = _runAdvanceClock({
-                _clock: state.clock,
+                _clock: clock,
                 _timeUnit: config.timeUnit,
                 _interest: state.interest,
                 _duration: config.duration,
@@ -503,19 +501,16 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     }
 
     function _validate(
-        uint256 _cuota,
-        uint256 _interestRate,
-        uint256 _installments,
-        uint256 _installmentDuration,
-        uint256 _timeUnit
-    ) internal pure {
-        require(_cuota > 0, "Cuota can't be 0");
-        require(_interestRate > 0, "Interest rate can't be 0");
-        require(_installments > 0, "Installments can't be 0");
-        require(_installmentDuration > 0, "Installment duration can't be 0");
-        require(_timeUnit <= _installmentDuration, "Time unit can't be lower than installment duration");
-        require(_interestRate > _timeUnit, "Interest rate by time unit is too low");
-        require(_timeUnit > 0, "Time unit can'be 0");
+        bytes memory _data
+    ) internal pure returns (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) {
+        (cuota, interestRate, installments, duration, timeUnit) = _decodeData(_data);
+
+        require(cuota > 0, "Cuota can't be 0");
+        require(installments > 0, "Installments can't be 0");
+        require(timeUnit > 0, "Time unit can't be 0");
+
+        require(timeUnit <= duration, "Time unit must be lower or equal than installment duration");
+        require(timeUnit < interestRate, "Interest rate by time unit is too low");
     }
 
     function _decodeData(
