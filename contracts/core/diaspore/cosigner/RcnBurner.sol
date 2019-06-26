@@ -46,7 +46,7 @@ contract RcnBurner is Ownable {
     }
 
     function _convert(IERC20 _token) internal {
-        if(_token == token)
+        if (_token == token)
             return;
 
         uint256 balance = _token.balanceOf(address(this));
