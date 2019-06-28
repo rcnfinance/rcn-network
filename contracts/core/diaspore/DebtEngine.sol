@@ -683,7 +683,9 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _gas = (block.gaslimit * 80) / 100;
 
         (success, returnData) = _contract.staticcall.gas(gasleft() < _gas ? gasleft() : _gas)(_data);
-        result = abi.decode(returnData, (uint256));
+
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (uint256));
     }
 
     /**
