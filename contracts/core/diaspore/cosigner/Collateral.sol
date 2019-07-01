@@ -37,10 +37,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _amount,
         uint32 _liquidationRatio,
         uint32 _balanceRatio,
-        uint32 _payDebtBurnFee,
-        uint32 _payDebtRewardFee,
-        uint32 _margincallBurnFee,
-        uint32 _margincallRewardFee
+        uint32 _burnFee,
+        uint32 _rewardFee
     );
 
     event Deposited(uint256 indexed _id, uint256 _amount);
@@ -50,9 +48,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event PayOffDebt(uint256 indexed _id, uint256 _closingObligationToken);
     event CancelDebt(uint256 indexed _id, uint256 _obligationInToken);
-    event TakeDebtFee(uint256 _burned, uint256 _rewarded);
     event CollateralBalance(uint256 indexed _id, uint256 _tokenPayRequired);
-    event TakeMargincallFee(uint256 _burned, uint256 _rewarded);
+    event TakeFee(uint256 _burned, uint256 _rewarded);
 
     event ConvertPay(uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
     event Rebuy(uint256 _fromAmount, uint256 _toAmount);
@@ -82,10 +79,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 amount;
         uint32 liquidationRatio;
         uint32 balanceRatio;
-        uint32 payDebtBurnFee;
-        uint32 payDebtRewardFee;
-        uint32 margincallBurnFee;
-        uint32 margincallRewardFee;
+        uint32 burnFee;
+        uint32 rewardFee;
     }
 
     constructor(LoanManager _loanManager) public ERC721Base("RCN Collateral Cosigner", "RCC") {
@@ -112,18 +107,15 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _amount,
         uint32 _liquidationRatio,
         uint32 _balanceRatio,
-        uint32 _payDebtBurnFee,
-        uint32 _payDebtRewardFee,
-        uint32 _margincallBurnFee,
-        uint32 _margincallRewardFee
+        uint32 _burnFee,
+        uint32 _rewardFee
     ) external returns (uint256 entryId) {
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
-        uint256 totalMargincallFee = _margincallBurnFee.add(_margincallRewardFee);
-        require(totalMargincallFee < BASE, "MargincallFee should be less than BASE");
+        uint256 totalMargincallFee = _burnFee.add(_rewardFee);
+        require(totalMargincallFee < BASE, "Fee should be lower than BASE");
+        require(totalMargincallFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
         require(_balanceRatio > _liquidationRatio, "The balance ratio should be greater than liquidation ratio");
         // Check underflow in previus require
-        require(totalMargincallFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
-        require(_payDebtBurnFee.add(_payDebtRewardFee) < BASE, "PayDebtFee should be less than BASE");
         require(loanManager.getStatus(_debtId) == 0, "Debt request should be open");
 
         entryId = entries.push(
@@ -133,10 +125,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 amount: _amount,
                 liquidationRatio: _liquidationRatio,
                 balanceRatio: _balanceRatio,
-                payDebtBurnFee: _payDebtBurnFee,
-                payDebtRewardFee: _payDebtRewardFee,
-                margincallBurnFee: _margincallBurnFee,
-                margincallRewardFee: _margincallRewardFee
+                burnFee: _burnFee,
+                rewardFee: _rewardFee
             })
         ) - 1;
 
@@ -150,10 +140,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _amount,
             _liquidationRatio,
             _balanceRatio,
-            _payDebtBurnFee,
-            _payDebtRewardFee,
-            _margincallBurnFee,
-            _margincallRewardFee
+            _burnFee,
+            _rewardFee
         );
     }
 
@@ -247,8 +235,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         _convertPay(
             entry,
             closingObligationToken,
-            0,
-            _oracleData
+            _oracleData,
+            false
         );
 
         emit PayOffDebt(_id, closingObligationToken);
@@ -322,8 +310,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _convertPay(
                 entry,
                 obligationToken,
-                _takeDebtFee(entry, obligationToken),
-                _oracleData
+                _oracleData,
+                true
             );
 
             emit CancelDebt(entryId, obligationToken);
@@ -339,8 +327,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _convertPay(
                 entry,
                 tokenPayRequiredToBalance,
-                _takeMargincallFee(entry, tokenPayRequiredToBalance),
-                _oracleData
+                _oracleData,
+                true
             );
 
             emit CollateralBalance(entryId, tokenPayRequiredToBalance);
@@ -360,65 +348,72 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         return tokensToPay(_id, rateTokens, rateEquivalent);
     }
 
-    function _takeMargincallFee(
-        Entry storage _entry,
-        uint256 _grossTokenPayRequired
-    ) internal returns(uint256) {
-        if ( _entry.margincallBurnFee != 0 || _entry.margincallRewardFee != 0 ) {
-            uint256 burned = _takeFee(_entry, _grossTokenPayRequired, _entry.margincallBurnFee, burner);
-            uint256 rewarded = _takeFee(_entry, _grossTokenPayRequired, _entry.margincallRewardFee, msg.sender);
-
-            emit TakeMargincallFee(burned, rewarded);
-
-            return burned + rewarded;
-        }
-    }
-
-    function _takeDebtFee(
-        Entry storage _entry,
-        uint256 _grossTokenObligation
-    ) internal returns(uint256) {
-        if ( _entry.payDebtBurnFee != 0 || _entry.payDebtRewardFee != 0 ) {
-            uint256 burned = _takeFee(_entry, _grossTokenObligation, _entry.payDebtBurnFee, burner);
-            uint256 rewarded = _takeFee(_entry, _grossTokenObligation, _entry.payDebtRewardFee, msg.sender);
-
-            emit TakeDebtFee(burned, rewarded);
-
-            return burned + rewarded;
-        }
-    }
-
     function _takeFee(
-        Entry storage _entry,
-        uint256 _grossTokenObligation,
+        Entry memory _entry,
+        uint256 _amount
+    ) internal returns(uint256) {
+        IERC20 token = _entry.token;
+
+        uint256 reward = _takeFeeTo(
+            token,
+            _amount,
+            _entry.rewardFee,
+            msg.sender
+        );
+
+        uint256 burned = _takeFeeTo(
+            token,
+            _amount,
+            _entry.burnFee,
+            burner
+        );
+
+        emit TakeFee(burned, reward);
+        return reward.add(burned);
+    }
+
+    function _takeFeeTo(
+        IERC20 _token,
+        uint256 _amount,
         uint256 _fee,
         address _to
-    ) internal returns(uint256 takeFeeInColl) {
+    ) internal returns(uint256 taked) {
         if (_fee == 0) {
             return 0;
         }
 
-        uint256 takeFee = _fee.mult(_grossTokenObligation) / BASE;
-        takeFeeInColl = converter.getReturn(loanManagerToken, _entry.token, takeFee);
+        uint256 takeFee = _fee.mult(_amount) / BASE;
 
-        require(_entry.token.safeTransfer(_to, takeFeeInColl), "Error sending tokens");
+        taked = converter.getReturn(loanManagerToken, _token, takeFee);
+        require(_token.transfer(_to, taked), "Error sending tokens");
     }
 
     function _convertPay(
         Entry storage _entry,
-        uint256 _tokenPayRequiredToBalance,
-        uint256 _feeAmount,
-        bytes memory _oracleData
+        uint256 _required,
+        bytes memory _oracleData,
+        bool _chargeFee
     ) internal {
+        // Target buy
+        uint256 targetBuy;
+        if (_chargeFee) {
+            targetBuy = _required.mult(
+                BASE + _entry.rewardFee + _entry.burnFee
+            ) / BASE;
+        } else {
+            targetBuy = _required;
+        }
+
         // Use collateral to buy tokens
         (uint256 bought, uint256 sold) = converter.safeConvertToMax(
-            _entry.token,
-            loanManagerToken,
-            _entry.amount.sub(_feeAmount),
-            _tokenPayRequiredToBalance
+            _entry.token,         // Token to sell
+            loanManagerToken,     // Token to buy
+            _entry.amount,        // Amount to sell
+            targetBuy             // Token to buy
         );
 
-        uint256 tokensToPay = Math.min(bought, _tokenPayRequiredToBalance);
+        uint256 feeTaked = _chargeFee ? _takeFee(_entry, bought) : 0;
+        uint256 tokensToPay = Math.min(bought, targetBuy.sub(feeTaked));
 
         // Pay debt
         (, uint256 paidTokens) = loanManager.safePayToken(
@@ -444,7 +439,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             bought = 0;
         }
 
-        _entry.amount = _entry.amount.sub(sold.add(_feeAmount)).add(bought);
+        _entry.amount = _entry.amount.sub(sold).add(bought);
     }
 
     // Collateral methods
@@ -476,16 +471,20 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         Entry storage entry = entries[_id];
         uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
-        uint256 fee = uint256(entry.margincallBurnFee + entry.margincallRewardFee);
 
         return Math.min(
             // The collateral required to equilibrate the balance (the collateral should be more than the debt)
-            _collateralRequiredToBalance(_id, _rateTokens, _rateEquivalent, entry.balanceRatio),
+            _collateralRequiredToBalance(
+                _id,
+                _rateTokens,
+                _rateEquivalent,
+                entry.balanceRatio
+            ),
             // Pay all collateral amount (the collateral should be less than the debt)
             entry.amount,
             // Pay all debt amount (the collateral and the debt should be equal)
             valueTokensToCollateral(_id, debt)
-        ).mult(BASE - fee) / BASE; // Take the fee
+        );
     }
 
     function _collateralRequiredToBalance(
