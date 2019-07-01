@@ -35,6 +35,111 @@ function divceil (x, y) {
 const WEI = bn('10').pow(bn('18'));
 const BASE = bn('10000');
 
+class CollateralBuilder {
+    constructor() {
+        this.liquidationRatio = bn('15000');
+        this.burnFee = bn('0');
+        this.rewardFee = bn('0');
+    }
+
+    withLiquidationRatio(ratio) {
+        this.liquidationRatio = ratio;
+        return this;
+    }
+
+    withBurnFee(fee) {
+        this.burnFee = fee;
+        return this;
+    }
+
+    withRewardFee(fee) {
+        this.rewardFee = fee;
+        return this;
+    }
+
+    async build() {
+        const salt = bn(web3.utils.randomHex(32));
+        const amount = bn('1000');
+        const balanceRatio = bn('20000');
+        const payDebtBurnFee = bn('3');
+        const payDebtRewardFee = bn('3');
+        const margincallBurnFee = bn('3');
+        const margincallRewardFee = bn('3');
+        const liquidationRatio = this.liquidationRatio;
+
+        const expiration = (await Helper.getBlockTime()) + 1000;
+
+        const loanData = await model.encodeData(amount, expiration);
+
+        const loanId = await getId(loanManager.requestLoan(
+            amount,            // Amount
+            model.address,     // Model
+            Helper.address0x,  // Oracle
+            borrower,          // Borrower
+            salt,              // salt
+            expiration,        // Expiration
+            loanData,          // Loan data
+            { from: borrower } // Creator
+        ));
+
+        const collateralId = await collateral.getEntriesLength();
+
+        await auxToken.setBalance(creator, collateralAmount);
+        await auxToken.approve(collateral.address, collateralAmount, { from: creator });
+
+        const prevAuxTokenBal = await auxToken.balanceOf(collateral.address);
+
+        const createdEvent = await Helper.toEvents(
+            collateral.create(
+                loanId,              // debtId
+                auxToken.address,    // token
+                collateralAmount,    // amount
+                liquidationRatio,    // liquidationRatio
+                balanceRatio,        // balanceRatio
+                payDebtBurnFee,      // payDebtBurnFee
+                payDebtRewardFee,    // payDebtRewardFee
+                margincallBurnFee,   // margincallBurnFee
+                margincallRewardFee, // margincallRewardFee
+                { from: creator }
+            ),
+            'Created'
+        );
+
+        // Control collateral creation event
+        expect(createdEvent._id).to.eq.BN(collateralId);
+        assert.equal(createdEvent._debtId, loanId);
+        assert.equal(createdEvent._token, auxToken.address);
+        expect(createdEvent._amount).to.eq.BN(collateralAmount);
+        expect(createdEvent._liquidationRatio).to.eq.BN(liquidationRatio);
+        expect(createdEvent._balanceRatio).to.eq.BN(balanceRatio);
+        expect(createdEvent._payDebtBurnFee).to.eq.BN(payDebtBurnFee);
+        expect(createdEvent._payDebtRewardFee).to.eq.BN(payDebtRewardFee);
+        expect(createdEvent._margincallBurnFee).to.eq.BN(margincallBurnFee);
+        expect(createdEvent._margincallRewardFee).to.eq.BN(margincallRewardFee);
+
+        // Expect entry creation
+        const entry = await collateral.entries(collateralId);
+        expect(entry.liquidationRatio).to.eq.BN(liquidationRatio);
+        expect(entry.balanceRatio).to.eq.BN(balanceRatio);
+        expect(entry.payDebtBurnFee).to.eq.BN(payDebtBurnFee);
+        expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
+        expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
+        expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
+        assert.equal(entry.token, auxToken.address);
+        assert.equal(entry.debtId, loanId);
+        expect(entry.amount).to.eq.BN(collateralAmount);
+
+        // Owner and balance of colalteral
+        expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevAuxTokenBal.add(collateralAmount));
+        assert.equal(await collateral.ownerOf(collateralId), creator);
+
+        return {
+            collateral: collateralId,
+            loan: loanId
+        }
+    }
+}
+
 contract('Test Collateral cosigner Diaspore', function (accounts) {
     const owner = accounts[1];
     const creator = accounts[2];
@@ -85,38 +190,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
 
     describe('Functions onlyOwner', function () {
-        it('Try redeem an entry without be the owner', async function () {
-            const salt = bn(web3.utils.randomHex(32));
-            const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
-
-            const loanData = await model.encodeData(amount, expiration);
-
-            const loanId = await getId(loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            ));
-
-            const collateralId = await collateral.getEntriesLength();
-
-            await collateral.create(
-                loanId,
-                auxToken.address,
-                0,
-                bn('15000'),
-                bn('20000'),
-                0,
-                0,
-                0,
-                0,
-                { from: creator }
-            );
+        it('Try redeem an entry without being the owner', async function () {
+            const receipt = await new CollateralBuilder.build();
+            const collateralId = receipt.collateral;
 
             await Helper.tryCatchRevert(
                 () => collateral.emergencyRedeem(
@@ -170,111 +246,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
     describe('Function create', function () {
         it('Should create a new collateral', async function () {
-            const salt = bn(web3.utils.randomHex(32));
-            const amount = bn('1000');
-            const collateralAmount = bn('1000');
-            const liquidationRatio = bn('15000');
-            const balanceRatio = bn('20000');
-            const payDebtBurnFee = bn('3');
-            const payDebtRewardFee = bn('3');
-            const margincallBurnFee = bn('3');
-            const margincallRewardFee = bn('3');
-
-            const expiration = (await Helper.getBlockTime()) + 1000;
-
-            const loanData = await model.encodeData(amount, expiration);
-
-            const loanId = await getId(loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            ));
-
-            const collateralId = await collateral.getEntriesLength();
-
-            await auxToken.setBalance(creator, collateralAmount);
-            await auxToken.approve(collateral.address, collateralAmount, { from: creator });
-
-            const prevAuxTokenBal = await auxToken.balanceOf(collateral.address);
-
-            const Created = await Helper.toEvents(
-                collateral.create(
-                    loanId, // debtId
-                    auxToken.address, // token
-                    collateralAmount, // amount
-                    liquidationRatio, // liquidationRatio
-                    balanceRatio, // balanceRatio
-                    payDebtBurnFee, // payDebtBurnFee
-                    payDebtRewardFee, // payDebtRewardFee
-                    margincallBurnFee, // margincallBurnFee
-                    margincallRewardFee, // margincallRewardFee
-                    { from: creator }
-                ),
-                'Created'
-            );
-
-            expect(Created._id).to.eq.BN(collateralId);
-            assert.equal(Created._debtId, loanId);
-            assert.equal(Created._token, auxToken.address);
-            expect(Created._amount).to.eq.BN(collateralAmount);
-            expect(Created._liquidationRatio).to.eq.BN(liquidationRatio);
-            expect(Created._balanceRatio).to.eq.BN(balanceRatio);
-            expect(Created._payDebtBurnFee).to.eq.BN(payDebtBurnFee);
-            expect(Created._payDebtRewardFee).to.eq.BN(payDebtRewardFee);
-            expect(Created._margincallBurnFee).to.eq.BN(margincallBurnFee);
-            expect(Created._margincallRewardFee).to.eq.BN(margincallRewardFee);
-
-            const entry = await collateral.entries(collateralId);
-            expect(entry.liquidationRatio).to.eq.BN(liquidationRatio);
-            expect(entry.balanceRatio).to.eq.BN(balanceRatio);
-            expect(entry.payDebtBurnFee).to.eq.BN(payDebtBurnFee);
-            expect(entry.payDebtRewardFee).to.eq.BN(payDebtRewardFee);
-            expect(entry.margincallBurnFee).to.eq.BN(margincallBurnFee);
-            expect(entry.margincallRewardFee).to.eq.BN(margincallRewardFee);
-            assert.equal(entry.token, auxToken.address);
-            assert.equal(entry.debtId, loanId);
-            expect(entry.amount).to.eq.BN(collateralAmount);
-
-            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevAuxTokenBal.add(collateralAmount));
-            assert.equal(await collateral.ownerOf(collateralId), creator);
+            await new CollateralBuilder.build();
         });
-        it('Try create a new collateral with a higt margincallFee', async function () {
-            const salt = bn(web3.utils.randomHex(32));
-            const amount = bn('1000');
-
-            const expiration = (await Helper.getBlockTime()) + 1000;
-
-            const loanData = await model.encodeData(amount, expiration);
-
-            const loanId = await getId(loanManager.requestLoan(
-                amount,            // Amount
-                model.address,     // Model
-                Helper.address0x,  // Oracle
-                borrower,          // Borrower
-                salt,              // salt
-                expiration,        // Expiration
-                loanData,          // Loan data
-                { from: borrower } // Creator
-            ));
-
+        it('Try create a new collateral with a high margincallFee', async function () {
             await Helper.tryCatchRevert(
-                () => collateral.create(
-                    loanId, // debtId
-                    auxToken.address, // token
-                    bn('0'), // amount
-                    bn('15000'), // liquidationRatio
-                    bn('20000'), // balanceRatio
-                    bn('0'), // payDebtBurnFee
-                    bn('0'), // payDebtRewardFee
-                    BASE.div(bn('2')), // margincallBurnFee
-                    BASE.div(bn('2')), // margincallRewardFee
-                    { from: creator }
-                ),
+                () => await new CollateralBuilder.withLiquidationRatio().build(),
                 'MargincallFee should be less than BASE'
             );
 
