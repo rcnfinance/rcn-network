@@ -37,12 +37,13 @@ module.exports.toBytes32 = (source) => {
 
 module.exports.increaseTime = function increaseTime(duration) {
     const id = Date.now();
+    const delta = duration.toNumber !== undefined ? duration.toNumber() : duration;
 
     return new Promise((resolve, reject) => {
         web3.currentProvider.send({
             jsonrpc: "2.0",
             method: "evm_increaseTime",
-            params: [duration],
+            params: [delta],
             id: id
         },
         err1 => {
@@ -162,13 +163,13 @@ module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
     );
 };
 
-module.exports.balanceSnap = async (token, address) => {
+module.exports.balanceSnap = async (token, address, account = "") => {
     const snapBalance = await token.balanceOf(address);
     return {
         requireConstant: async function() {
             expect(
                 snapBalance,
-                "Balance should remain constant"
+                `${account} balance should remain constant`
             ).to.eq.BN(
                 await token.balanceOf(address)
             );
@@ -176,7 +177,7 @@ module.exports.balanceSnap = async (token, address) => {
         requireIncrease: async function(delta) {
             expect(
                 snapBalance.add(delta),
-                "Balance should increase"
+                `${account} should increase by ${delta}`
             ).to.eq.BN(
                 await token.balanceOf(address)
             );
@@ -184,7 +185,7 @@ module.exports.balanceSnap = async (token, address) => {
         requireDecrease: async function(delta) {
             expect(
                 snapBalance.sub(delta),
-                "Balance should decrease"
+                `${account} should decrease by ${delta}`
             ).to.eq.BN(
                 await token.balanceOf(address)
             );
