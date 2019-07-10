@@ -5,6 +5,7 @@ import "../../core/diaspore/interfaces/LoanCallback.sol";
 
 contract TestLoanCallback is LoanCallback {
     bytes32 public requireId;
+    address public requireLender;
     bytes public requireData;
 
     uint256 public burnGas;
@@ -19,6 +20,10 @@ contract TestLoanCallback is LoanCallback {
 
     function setRequireId(bytes32 _id) external {
         requireId = _id;
+    }
+
+    function setRequireLender(address _lender) external {
+        requireLender = _lender;
     }
 
     function setRequireData(bytes calldata _data) external {
@@ -43,6 +48,7 @@ contract TestLoanCallback is LoanCallback {
 
     function onLent(
         bytes32 _id,
+        address _lender,
         bytes calldata _data
     ) external returns (bool) {
         uint256 initGas = gasleft();
@@ -53,6 +59,7 @@ contract TestLoanCallback is LoanCallback {
         }
 
         require(_id == requireId, "callback: wrong id");
+        require(_lender == requireLender, "callback: wrong lender");
         require(keccak256(abi.encodePacked(_data)) == keccak256(abi.encodePacked(requireData)), "callback: wrong data");
 
         caller = msg.sender;
@@ -63,6 +70,7 @@ contract TestLoanCallback is LoanCallback {
     function acceptsLoan(
         address _engine,
         bytes32 _id,
+        address _lender,
         bytes calldata _data
     ) external view returns (bool) {
         return returnValue;
