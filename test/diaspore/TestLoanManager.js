@@ -3460,6 +3460,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
 
             const lent = await Helper.toEvents(
                 loanManager.lend(
@@ -3520,6 +3521,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
             await callback.setRequireData(callbackData);
 
             const lent = await Helper.toEvents(
@@ -3580,6 +3582,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
             await callback.setReturn(false);
 
             await Helper.tryCatchRevert(
@@ -3635,6 +3638,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
 
             await Helper.tryCatchRevert(
                 () => loanManager.lend(
@@ -3685,6 +3689,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
 
             await loanManager.settleLend(
                 settleData,
@@ -3737,6 +3742,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
             await callback.setRequireData(callbackdata);
 
             await loanManager.settleLend(
@@ -3789,6 +3795,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
             await callback.setReturn(false);
 
             await Helper.tryCatchRevert(
@@ -3896,6 +3903,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
             await callback.setBurnGas(300001);
 
             await Helper.tryCatchRevert(
@@ -3947,6 +3955,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
             await callback.setBurnGas(300001);
 
             await Helper.tryCatchRevert(
@@ -4004,6 +4013,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
             await callback.setBurnGas(250000);
 
             const lent = await Helper.toEvents(
@@ -4060,6 +4070,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
 
             await callback.setRequireId(id);
+            await callback.setRequireLender(lender);
             await callback.setBurnGas(250000);
 
             await loanManager.settleLend(
