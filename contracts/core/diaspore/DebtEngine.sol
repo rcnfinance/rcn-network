@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.10;
 
 import "../../interfaces/IERC20.sol";
 import "./interfaces/Model.sol";
@@ -664,36 +664,28 @@ contract DebtEngine is ERC721Base, Ownable {
         if (debt.error) {
             return 4;
         } else {
-            (uint256 success, bytes32 result) = _safeGasStaticCall(
+            (bool success, uint256 result) = _safeGasStaticCall(
                 address(debt.model),
                 abi.encodeWithSelector(
                     debt.model.getStatus.selector,
                     _id
                 )
             );
-            return success == 1 ? uint256(result) : 4;
+            return success ? result : 4;
         }
     }
 
     function _safeGasStaticCall(
         address _contract,
         bytes memory _data
-    ) internal view returns (uint256 success, bytes32 result) {
+    ) internal view returns (bool success, uint256 result) {
+        bytes memory returnData;
         uint256 _gas = (block.gaslimit * 80) / 100;
-        _gas = gasleft() < _gas ? gasleft() : _gas;
-        assembly {
-            let x := mload(0x40)
-            success := staticcall(
-                            _gas,                 // Send almost all gas
-                            _contract,            // To addr
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
 
-            result := mload(x)
-        }
+        (success, returnData) = _contract.staticcall.gas(gasleft() < _gas ? gasleft() : _gas)(_data);
+
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (uint256));
     }
 
     /**
