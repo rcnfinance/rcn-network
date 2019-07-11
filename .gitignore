@@ -43,4 +43,6 @@ node_modules
 .vscode
 package-lock.json
 
-
+# Solidity coverage
+.solidity_coverage/
+.coverage_env/
