@@ -9,8 +9,8 @@ contract StandardToken {
     using SafeMath for uint256;
 
     uint256 public totalSupply;
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
+    event Transfer(address indexed _from, address indexed _to, uint256 indexed _value);
+    event Approval(address indexed _owner, address indexed _spender, uint256 indexed _value);
 
     function transfer(address _to, uint256 _value) public returns (bool success) {
         if (balances[msg.sender] >= _value) {
