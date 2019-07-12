@@ -98,11 +98,6 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Replace build target to byzantium
-            # Solidity coverage is not compatible with constantinople
-            - run:
-                name: Set compiler to Byzantium
-                command: sed s/constantinople/byzantium/g truffle.js > truffle_tmp.js && mv truffle_tmp.js truffle.js
             # Start test-rpc
             - run:
                 name: Start Macaron instance

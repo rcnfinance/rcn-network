@@ -52,7 +52,7 @@
     "ethjs-abi": "^0.2.1",
     "ethlint": "^1.2.0",
     "ganache-cli": "^6.4.3",
-    "macaron-cli": "^6.2.7",
+    "macaron-cli": "^6.4.1",
     "pre-commit": "^1.2.2",
     "rp-solidity-coverage": "^0.5.13",
     "solium": "^1.2.4",
