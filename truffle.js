@@ -15,14 +15,14 @@ module.exports = {
     },
     compilers: {
         solc: {
-            version: '0.5.8',
+            version: '0.5.10',
             docker: false,
             settings: {
                 optimizer: {
                     enabled: true,
                     runs: 200,
                 },
-                evmVersion: 'constantinople',
+                evmVersion: 'petersburg',
             },
         },
     },

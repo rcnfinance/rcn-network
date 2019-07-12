@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.10;
 
 import "../../core/diaspore/interfaces/LoanApprover.sol";
 import "../../commons/ERC165.sol";

@@ -62,7 +62,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function setURIProvider', function () {
         it('Should set the URI provider', async function () {
             const URIProvider = await TestURIProvider.new();
@@ -77,7 +76,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             assert.equal(SetURIProvider._uriProvider, URIProvider.address);
         });
-
         it('Try set URI provider without ownership', async function () {
             await Helper.tryCatchRevert(
                 () => debtEngine.setURIProvider(
@@ -88,7 +86,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
         });
     });
-
     it('Should generate diferents ids create and create2', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
@@ -105,7 +102,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         ));
         assert.notEqual(id1, id2);
     });
-
     it('Should create different ids create2 and create3', async function () {
         const expireTime = (await Helper.getBlockTime()) + 2000;
         const id1 = await getId(debtEngine.create2(
@@ -126,7 +122,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
         assert.notEqual(id1, id2);
     });
-
     describe('Function create', function () {
         it('Should create a debt using create', async function () {
             const owner = accounts[1];
@@ -166,7 +161,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
         });
-
         it('Differents debt engine should give differents ids, create', async function () {
             const engine1 = await DebtEngine.new(rcn.address);
             const engine2 = await DebtEngine.new(rcn.address);
@@ -193,7 +187,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             assert.notEqual(id1, id2);
         });
-
         it('Should fail to create if model returned false', async function () {
             await testModel.setGlobalErrorFlag(bn('8'));
 
@@ -212,7 +205,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await testModel.setGlobalErrorFlag('0');
         });
     });
-
     describe('Function create2', function () {
         it('Should create a debt using create2', async function () {
             const owner = accounts[1];
@@ -255,7 +247,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(await debtEngine.ownerOf(calcId), owner);
             expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
         });
-
         it('Should create 2 debts using create2', async function () {
             const prevBalAcc1 = await debtEngine.balanceOf(accounts[1]);
             const prevBalAcc2 = await debtEngine.balanceOf(accounts[2]);
@@ -280,7 +271,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await debtEngine.balanceOf(accounts[2])).to.eq.BN(prevBalAcc2.add(bn('1')), 'Account 2 should have a new asset');
         });
-
         it('Should predict Ids', async function () {
             const pid1 = await debtEngine.buildId2(
                 accounts[0],
@@ -314,7 +304,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             assert.equal(pid2, id2);
         });
-
         it('Differents debt engine should give differents ids, create2', async function () {
             const engine1 = await DebtEngine.new(rcn.address);
             const engine2 = await DebtEngine.new(rcn.address);
@@ -343,7 +332,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             assert.notEqual(id1, id2);
         });
-
         it('Should fail to create2 if model returned false', async function () {
             await testModel.setGlobalErrorFlag(bn('8'));
 
@@ -362,7 +350,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await testModel.setGlobalErrorFlag('0');
         });
-
         it('Should fail to create2 with the same nonce', async function () {
             const expireTime = (await Helper.getBlockTime()) + 2000;
             await debtEngine.create2(
@@ -387,7 +374,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function create3', function () {
         it('Should create a debt using create3', async function () {
             const owner = accounts[1];
@@ -427,7 +413,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(await debtEngine.ownerOf(calcId), owner);
             expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
         });
-
         it('Differents debt engine should give differents ids, create3', async function () {
             const engine1 = await DebtEngine.new(rcn.address);
             const engine2 = await DebtEngine.new(rcn.address);
@@ -456,7 +441,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             assert.notEqual(id1, id2);
         });
-
         it('Try withdrawBatch funds to 0x0 address', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -478,7 +462,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 '_to should not be 0x0'
             );
         });
-
         it('Try withdraw funds to 0x0 address', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -500,7 +483,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 '_to should not be 0x0'
             );
         });
-
         it('Try withdrawPartial funds to 0x0 address', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -523,7 +505,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 '_to should not be 0x0'
             );
         });
-
         it('Should predict id create 3', async function () {
             const pid = await debtEngine.buildId3(
                 accounts[0],
@@ -540,7 +521,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             assert.equal(pid, id);
         });
-
         it('Should fail to create3 if model returned false', async function () {
             await testModel.setGlobalErrorFlag(bn('8'));
 
@@ -559,7 +539,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await testModel.setGlobalErrorFlag('0');
         });
-
         it('Should fail to create3 with the same nonce', async function () {
             const expireTime = (await Helper.getBlockTime()) + 2000;
 
@@ -585,7 +564,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function buildId2', function () {
         it('It should create diferent IDs create2 with any change', async function () {
             const ids = [];
@@ -665,7 +643,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(new Set(ids).size, 9);
         });
     });
-
     describe('Function pay', function () {
         it('Should create and pay a debt', async function () {
             const owner = accounts[1];
@@ -713,7 +690,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_PAID);
             expect(await testModel.getPaid(id)).to.eq.BN(amount);
         });
-
         it('Should pay using an Oracle', async function () {
             const owner = accounts[1];
             const payer = accounts[2];
@@ -794,7 +770,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id)).to.eq.BN('10000');
             expect(await debtEngine.getStatus(id)).to.eq.BN('2');
         });
-
         it('Pay should round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -813,7 +788,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-
         it('Should apply rate even when tokens is not divisible by 10', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -832,7 +806,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
-
         it('Should apply rate with token more expensive than currency', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -851,7 +824,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
-
         it('Pay should fail if paid is more than requested', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -872,7 +844,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id)).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
-
         it('Pay should fail if rate includes zero', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -899,7 +870,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-
         it('Pay should fail if payer has not enought balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -915,7 +885,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-
         it('Should catch and recover from a pay error', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -961,7 +930,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Should catch and recover from a pay infinite loop', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1007,7 +975,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Should catch and recover from a pay error, with an Oracle', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1055,7 +1022,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Try use pay to pay a debt with invalid id', async function () {
             await rcn.setBalance(accounts[0], 1);
             await rcn.approve(debtEngine.address, 1);
@@ -1081,7 +1047,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function payToken', function () {
         it('Should create and pay a debt using payToken', async function () {
             const owner = accounts[1];
@@ -1127,7 +1092,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_PAID);
             expect(await testModel.getPaid(id)).to.eq.BN(amount);
         });
-
         it('Should payToken using an Oracle', async function () {
             const owner = accounts[1];
             const payer = accounts[2];
@@ -1222,7 +1186,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id)).to.eq.BN('10000');
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_PAID);
         });
-
         it('Pay tokens round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1241,7 +1204,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-
         it('Should apply rate pay tokens even when tokens is not divisible by 10', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1261,7 +1223,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('342');
             expect(await testModel.getPaid(id)).to.eq.BN(bn('704974378193313'));
         });
-
         it('Should apply rate pay tokens with token more expensive than currency', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1281,7 +1242,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(bn('1834816'));
             expect(await testModel.getPaid(id)).to.eq.BN(bn('242587496458'));
         });
-
         it('Should catch and recover from a payToken infinite loop', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1327,7 +1287,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Should catch and recover from a payToken infinite loop, with an Oracle', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1375,7 +1334,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Should catch and recover from a payToken error, with an Oracle', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1423,7 +1381,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Should catch and recover from a payToken error', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1469,7 +1426,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Pay tokens should fail if paid is more than requested', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1490,7 +1446,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id)).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
-
         it('Pay tokens should fail if payer has not enought balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1506,7 +1461,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-
         it('Pay tokens fail if rate includes zero', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1533,7 +1487,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-
         it('Try use payToken to pay a debt with invalid id', async function () {
             await rcn.setBalance(accounts[0], 1);
             await rcn.approve(debtEngine.address, 1);
@@ -1559,7 +1512,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function payBatch', function () {
         it('Should fail because are different size input arrays)', async function () {
             const id = await getId(debtEngine.create(
@@ -1589,7 +1541,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 )
             );
         });
-
         it('Pay 0 loans should make no change', async function () {
             await rcn.setBalance(accounts[2], 0);
             await debtEngine.payBatch(
@@ -1601,7 +1552,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 { from: accounts[2] }
             );
         });
-
         it('Pay batch should emit pay event', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -1659,7 +1609,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 }
             });
         });
-
         it('Pay batch multiple times multiple id should be like paying the sum', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -1690,7 +1639,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt2 = await debtEngine.debts(id2);
             expect(debt2[1]).to.eq.BN('500');
         });
-
         it('Should create and pay debts in batch', async function () {
             const ids = [];
             ids[0] = await getId(
@@ -1729,7 +1677,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
             expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
-
         it('Should pay batch using a oracle', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1748,7 +1695,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
             expect(await testModel.getPaid(id)).to.eq.BN('1000');
         });
-
         it('Pay batch should round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1769,7 +1715,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-
         it('Should apply rate pay batch with token more expensive than currency', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1788,7 +1733,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
-
         it('Pay batch should fail if one debt paid is more than requested', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -1817,7 +1761,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
-
         it('Pay batch should fail if payer has balance for zero payments', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -1841,7 +1784,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
         });
-
         it('Pay batch should fail if payer has balance below total', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -1865,7 +1807,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
         });
-
         it('Should pay batch with tokens less expensive than currency', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -1921,7 +1862,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
-
         it('Should create and pay a debts using payTokens in batch', async function () {
             const ids = [];
             ids[0] = await getId(
@@ -1960,7 +1900,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
             expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
-
         it('Try use payTokenBatch to pay a debt/s with invalid id/s', async function () {
             await rcn.setBalance(accounts[0], 1);
             await rcn.approve(debtEngine.address, 1);
@@ -1999,7 +1938,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function payTokenBatch', function () {
         it('Should fail because are different size input arrays)', async function () {
             const id = await getId(debtEngine.create(
@@ -2029,7 +1967,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 )
             );
         });
-
         it('Pay token batch shoud not overflow the debt balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2071,7 +2008,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
-
         it('Pay tokens batch should fail if one debt paid is more than requested', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -2100,7 +2036,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
-
         it('Pay tokens batch should fail if payer has balance for zero payments', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -2124,7 +2059,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
         });
-
         it('Pay tokens batch should fail if payer has balance below total', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -2148,7 +2082,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
         });
-
         it('Should create and pay a debts using payTokens in batch', async function () {
             const ids = [];
             ids[0] = await getId(
@@ -2187,7 +2120,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
             expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
-
         it('Should pay tokens batch with tokens less expensive than currency', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -2215,7 +2147,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
-
         it('Should pay tokens batch with tokens more expensive than currency', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -2243,7 +2174,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
-
         it('Should pay token batch using a oracle', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2262,7 +2192,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
             expect(await testModel.getPaid(id)).to.eq.BN('1000');
         });
-
         it('Should create and pay a debts using payTokens in batch', async function () {
             const ids = [];
             ids[0] = await getId(
@@ -2301,7 +2230,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
             expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
-
         it('Pay tokens batch round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2320,7 +2248,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-
         it('Should not pay the third debt because not correspond the currency and oracle.', async function () {
             const ids = [];
             ids[0] = await getId(
@@ -2359,7 +2286,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(ids[0])).to.eq.BN(Helper.STATUS_PAID);
             expect(await testModel.getPaid(ids[0])).to.eq.BN('3000');
         });
-
         it('Should apply rate pay batch tokens even when tokens is not divisible by 10', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2379,7 +2305,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('342');
             expect(await testModel.getPaid(id)).to.eq.BN(bn('704974378193313'));
         });
-
         it('Should apply rate pay batch tokens with token more expensive than currency', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2399,7 +2324,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(bn('1834816'));
             expect(await testModel.getPaid(id)).to.eq.BN(bn('242587496458'));
         });
-
         it('Pay tokens batch multiple times multiple id should be like paying the sum', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -2430,7 +2354,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt2 = await debtEngine.debts(id2);
             expect(debt2[1]).to.eq.BN('500');
         });
-
         it('Pay token batch should emit pay event', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -2488,7 +2411,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 }
             });
         });
-
         it('Try use payBatch to pay a debt/s with invalid id/s', async function () {
             await rcn.setBalance(accounts[0], 1);
             await rcn.approve(debtEngine.address, 1);
@@ -2527,7 +2449,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function withdraw', function () {
         it('Should withdraw funds from payment', async function () {
             const owner = accounts[1];
@@ -2595,7 +2516,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(beneficiary)).to.eq.BN('0');
         });
-
         it('Pay shoud not overflow the debt balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2627,7 +2547,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
-
         it('Pay token shoud not overflow the debt balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2659,7 +2578,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
-
         it('Pay batch shoud not overflow the debt balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2701,7 +2619,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
-
         it('Should fail withdraw not authorized', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2728,7 +2645,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdraw(id, accounts[2], { from: accounts[2] });
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
-
         it('Should fail withdraw if debt engine has no funds', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2752,7 +2668,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await rcn.setBalance(debtEngine.address, auxBalance);
         });
-
         it('Should withdraw partial payments, authorized', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2795,7 +2710,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[8])).to.eq.BN('200');
         });
     });
-
     describe('Function withdrawPartial', function () {
         it('Should fail to withdraw partially if sender is not authorized', async function () {
             const id = await getId(debtEngine.create(
@@ -2819,7 +2733,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt = await debtEngine.debts(id);
             expect(debt[1]).to.eq.BN('1000');
         });
-
         it('Should withdraw partially if sender is authorized', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2844,7 +2757,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt = await debtEngine.debts(id);
             expect(debt[1]).to.eq.BN('400');
         });
-
         it('Should withdraw partially total amount', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2869,7 +2781,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt = await debtEngine.debts(id);
             expect(debt[1]).to.eq.BN('0');
         });
-
         it('Should fail to withdraw more than available', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2894,7 +2805,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt = await debtEngine.debts(id);
             expect(debt[1]).to.eq.BN('1000');
         });
-
         it('Should fail to withdraw a more than possible balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2926,7 +2836,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt = await debtEngine.debts(id);
             expect(debt[1]).to.eq.BN('1000');
         });
-
         it('Should fail to withdraw if debt engine has no tokens', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2955,7 +2864,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(debt[1]).to.eq.BN('1000');
         });
     });
-
     describe('Function withdrawBatch', function () {
         it('Should withdraw funds from multiple debts', async function () {
             const owner = accounts[1];
@@ -3031,7 +2939,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdrawBatch([id1, id2], beneficiary, { from: owner });
             expect(await rcn.balanceOf(beneficiary)).to.eq.BN('0');
         });
-
         it('Should pay using an Oracle and withdraw', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3070,7 +2977,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdrawBatch([id], accounts[9], { from: accounts[3] });
             expect(await rcn.balanceOf(accounts[9])).to.eq.BN('0');
         });
-
         it('Should fail withdraw batch if debt engine has no funds', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3101,7 +3007,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await rcn.setBalance(debtEngine.address, auxBalance);
         });
-
         it('Should fail withdraw batch not authorized', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -3135,7 +3040,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.withdrawBatch([id1, id2], accounts[2], { from: accounts[2] });
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
-
         it('Should fail withdraw batch not authorized mixed', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -3169,7 +3073,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[4])).to.eq.BN('1500');
         });
-
         it('Withdraw multiple times same id should make no difference', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3195,14 +3098,12 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('3000');
         });
-
         it('Withdraw zero debts should have no effect', async function () {
             await rcn.setBalance(accounts[7], 0);
             await debtEngine.withdrawBatch([], accounts[7], { from: accounts[7] });
             expect(await rcn.balanceOf(accounts[7])).to.eq.BN('0');
         });
     });
-
     describe('Errors tests', function () {
         it('Should catch and recover from a pay infinite loop, with an Oracle', async function () {
             const id = await getId(debtEngine.create(
@@ -3251,7 +3152,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Should catch and recover from a pay infinite loop, with an Oracle', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3299,7 +3199,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
-
         it('Should catch a getStatus error', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3328,7 +3227,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('100');
         });
-
         it('Should catch a getStatus infinite loop', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3357,7 +3255,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('100');
         });
-
         it('Should catch and recover from a run error', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3382,7 +3279,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             // Should have failed and the status should be 4
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
         });
-
         it('Should catch and recover from a run infinite loop', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3407,7 +3303,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             // Should have failed and the status should be 4
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
         });
-
         it('Should catch a getStatus write storage error', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -3437,7 +3332,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id)).to.eq.BN('100');
         });
     });
-
     it('Funds should follow the debt', async function () {
         const id = await getId(debtEngine.create(
             testModel.address,
@@ -3463,7 +3357,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await debtEngine.withdraw(id, accounts[6], { from: accounts[6] });
         expect(await rcn.balanceOf(accounts[6])).to.eq.BN('3000');
     });
-
     it('Calling pay, payTokens, payBatch or payBatchTokens should get the same rate', async function () {
         const id1 = await getId(debtEngine.create(
             testModel.address,
@@ -3511,7 +3404,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         expect(paid1).to.eq.BN(await testModel.getPaid(id4));
         expect(paid1).to.eq.BN(await testModel.getPaid(id2));
     });
-
     it('Try run a debt/s with invalid id/s', async function () {
         await Helper.tryCatchRevert(
             () => debtEngine.run(
@@ -3527,7 +3419,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             'Debt does not exist'
         );
     });
-
     // Notice: Keep this test last
     it('Should not be possible to brute-forze an infinite loop', async function () {
         const id = await getId(debtEngine.create(
