@@ -305,6 +305,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         Model model = Model(loanManager.getModel(_debtId));
         uint256 dueTime = model.getDueTime(debtId);
+
         if (block.timestamp >= dueTime) {
             // Run payment of debt, use collateral to buy tokens
             (uint256 obligation,) = model.getObligation(debtId, uint64(dueTime));
@@ -393,18 +394,18 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function _convertPay(
         Entry storage _entry,
-        uint256 _required,
+        uint256 _requiredToken, // in loanManager token
         bytes memory _oracleData,
         bool _chargeFee
     ) internal {
         // Target buy
         uint256 targetBuy;
         if (_chargeFee) {
-            targetBuy = _required.mult(
+            targetBuy = _requiredToken.mult(
                 BASE + _entry.rewardFee + _entry.burnFee
             ) / BASE;
         } else {
-            targetBuy = _required;
+            targetBuy = _requiredToken;
         }
 
         // Use collateral to buy tokens
@@ -415,7 +416,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             targetBuy             // Token to buy
         );
 
-        uint256 feeTaked = _chargeFee ? _takeFee(_entry, bought) : 0;
+        uint256 feeTaked = _chargeFee ? _takeFee(_entry, _requiredToken) : 0;
         uint256 tokensToPay = Math.min(bought, targetBuy.sub(feeTaked));
 
         // Pay debt
