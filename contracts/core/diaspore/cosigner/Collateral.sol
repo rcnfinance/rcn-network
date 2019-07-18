@@ -58,7 +58,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event EmergencyRedeemed(uint256 indexed _id, address _to);
 
     event SetUrl(string _url);
-    event SetBurner(address _burner);
     event SetConverter(TokenConverter _converter);
 
     Entry[] public entries;
@@ -67,7 +66,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     // Can change
     string private iurl;
-    address public burner;
     TokenConverter public converter;
     // Constant, set in constructor
     LoanManager public loanManager;
@@ -92,11 +90,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     function getEntriesLength() external view returns (uint256) { return entries.length; }
-
-    function setBurner(address _burner) external onlyOwner {
-        burner = _burner;
-        emit SetBurner(_burner);
-    }
 
     function setConverter(TokenConverter _converter) external onlyOwner {
         converter = _converter;
@@ -355,41 +348,37 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function _takeFee(
         Entry memory _entry,
         uint256 _amount
-    ) internal returns(uint256) {
+    ) internal returns(uint256 feeTaked) {
         IERC20 token = _entry.token;
 
+        uint256 burned = _takeFeeTo(
+            _amount,
+            _entry.burnFee,
+            address(0)
+        );
+
         uint256 reward = _takeFeeTo(
-            token,
             _amount,
             _entry.rewardFee,
             msg.sender
         );
 
-        uint256 burned = _takeFeeTo(
-            token,
-            _amount,
-            _entry.burnFee,
-            burner
-        );
+        feeTaked = reward.add(burned);
 
-        emit TakeFee(burned, reward);
-        return reward.add(burned);
+        if (feeTaked != 0)
+            emit TakeFee(burned, reward);
     }
 
     function _takeFeeTo(
-        IERC20 _token,
         uint256 _amount,
         uint256 _fee,
         address _to
     ) internal returns(uint256 taked) {
-        if (_fee == 0) {
-            return 0;
-        }
+        if (_fee == 0) return 0;
 
-        uint256 takeFee = _fee.mult(_amount) / BASE;
+        taked = _fee.mult(_amount) / BASE;
 
-        taked = converter.getReturn(loanManagerToken, _token, takeFee);
-        require(_token.transfer(_to, taked), "Error sending tokens");
+        require(loanManagerToken.transfer(_to, taked), "Error sending tokens");
     }
 
     function _convertPay(
