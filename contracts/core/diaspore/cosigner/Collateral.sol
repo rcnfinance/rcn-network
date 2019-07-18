@@ -58,7 +58,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event EmergencyRedeemed(uint256 indexed _id, address _to);
 
     event SetUrl(string _url);
-    event SetBurner(address _burner);
     event SetConverter(TokenConverter _converter);
 
     Entry[] public entries;
@@ -67,7 +66,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     // Can change
     string private iurl;
-    address public burner;
     TokenConverter public converter;
     // Constant, set in constructor
     LoanManager public loanManager;
@@ -87,14 +85,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(address(_loanManager) != address(0), "Error loading loan manager");
         loanManager = _loanManager;
         loanManagerToken = loanManager.token();
+        // Invalid entry of index 0
+        entries.length ++;
     }
 
     function getEntriesLength() external view returns (uint256) { return entries.length; }
-
-    function setBurner(address _burner) external onlyOwner {
-        burner = _burner;
-        emit SetBurner(_burner);
-    }
 
     function setConverter(TokenConverter _converter) external onlyOwner {
         converter = _converter;
@@ -296,12 +291,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     ) public returns (bool change) {
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = debtToEntry[debtId];
+        require(entryId != 0, "The loan dont lent");
 
         // Load collateral entry
         Entry storage entry = entries[entryId];
 
         Model model = Model(loanManager.getModel(_debtId));
         uint256 dueTime = model.getDueTime(debtId);
+
         if (block.timestamp >= dueTime) {
             // Run payment of debt, use collateral to buy tokens
             (uint256 obligation,) = model.getObligation(debtId, uint64(dueTime));
@@ -351,57 +348,53 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function _takeFee(
         Entry memory _entry,
         uint256 _amount
-    ) internal returns(uint256) {
+    ) internal returns(uint256 feeTaked) {
         IERC20 token = _entry.token;
 
+        uint256 burned = _takeFeeTo(
+            _amount,
+            _entry.burnFee,
+            address(0)
+        );
+
         uint256 reward = _takeFeeTo(
-            token,
             _amount,
             _entry.rewardFee,
             msg.sender
         );
 
-        uint256 burned = _takeFeeTo(
-            token,
-            _amount,
-            _entry.burnFee,
-            burner
-        );
+        feeTaked = reward.add(burned);
 
-        emit TakeFee(burned, reward);
-        return reward.add(burned);
+        if (feeTaked != 0)
+            emit TakeFee(burned, reward);
     }
 
     function _takeFeeTo(
-        IERC20 _token,
         uint256 _amount,
         uint256 _fee,
         address _to
     ) internal returns(uint256 taked) {
-        if (_fee == 0) {
-            return 0;
-        }
+        if (_fee == 0) return 0;
 
-        uint256 takeFee = _fee.mult(_amount) / BASE;
+        taked = _fee.mult(_amount) / BASE;
 
-        taked = converter.getReturn(loanManagerToken, _token, takeFee);
-        require(_token.transfer(_to, taked), "Error sending tokens");
+        require(loanManagerToken.transfer(_to, taked), "Error sending tokens");
     }
 
     function _convertPay(
         Entry storage _entry,
-        uint256 _required,
+        uint256 _requiredToken, // in loanManager token
         bytes memory _oracleData,
         bool _chargeFee
     ) internal {
         // Target buy
         uint256 targetBuy;
         if (_chargeFee) {
-            targetBuy = _required.mult(
+            targetBuy = _requiredToken.mult(
                 BASE + _entry.rewardFee + _entry.burnFee
             ) / BASE;
         } else {
-            targetBuy = _required;
+            targetBuy = _requiredToken;
         }
 
         // Use collateral to buy tokens
@@ -412,7 +405,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             targetBuy             // Token to buy
         );
 
-        uint256 feeTaked = _chargeFee ? _takeFee(_entry, bought) : 0;
+        uint256 feeTaked = _chargeFee ? _takeFee(_entry, _requiredToken) : 0;
         uint256 tokensToPay = Math.min(bought, targetBuy.sub(feeTaked));
 
         // Pay debt
