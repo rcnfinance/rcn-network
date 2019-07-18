@@ -87,6 +87,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(address(_loanManager) != address(0), "Error loading loan manager");
         loanManager = _loanManager;
         loanManagerToken = loanManager.token();
+        // Invalid entry of index 0
+        entries.length ++;
     }
 
     function getEntriesLength() external view returns (uint256) { return entries.length; }
@@ -296,6 +298,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     ) public returns (bool change) {
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = debtToEntry[debtId];
+        require(entryId != 0, "The loan dont lent");
 
         // Load collateral entry
         Entry storage entry = entries[entryId];
