@@ -632,7 +632,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if (_rateTokens == 0 && _rateEquivalent == 0) {
             return debt;
         } else {
-                debt = debt.multdiv(_rateTokens, _rateEquivalent);
+            debt = debt.multdiv(_rateTokens, _rateEquivalent);
             if (debt == 0) {
                 return 1;
             } else {
