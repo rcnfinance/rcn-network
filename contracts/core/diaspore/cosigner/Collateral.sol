@@ -156,7 +156,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _id,
         address _to,
         uint256 _amount,
-        bytes calldata   _oracleData
+        bytes calldata _oracleData
     ) external {
         // Validate ownership of collateral
         require(_isAuthorized(msg.sender, _id), "Sender not authorized");
@@ -500,9 +500,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     ) public view returns (int256) {
         int256 ratio = collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256();
         int256 collateral = entries[_id].amount.toInt256();
-        if (ratio == 0) {
-            return collateral;
-        }
+
+        if (ratio == 0) return collateral;
 
         int256 delta = balanceDeltaRatio(_id, _rateTokens, _rateEquivalent);
         return collateral.muldiv(delta, ratio);
@@ -545,9 +544,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _rateEquivalent
     ) public view returns (uint256) {
         uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
-        if (debt == 0) {
-            return 0;
-        }
+
+        if (debt == 0) return 0;
 
         return collateralInTokens(_id).multdiv(BASE, debt);
     }
@@ -573,9 +571,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _id,
         uint256 _amount
     ) public view returns (uint256) {
-        if (_amount == 0) {
-            return 0;
-        }
+        if (_amount == 0) return 0;
 
         IERC20 collateralToken = entries[_id].token;
 
@@ -600,9 +596,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _id,
         uint256 _amount
     ) public view returns (uint256) {
-        if (_amount == 0) {
-            return 0;
-        }
+        if (_amount == 0) return 0;
 
         IERC20 collateralToken = entries[_id].token;
 
