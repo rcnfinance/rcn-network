@@ -265,18 +265,24 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         address,
         uint256 _debtId,
         bytes memory _data,
-        bytes memory
+        bytes memory _oracleData
     ) public returns (bool) {
         // Load entryId and entry
+        bytes32 debtId = bytes32(_debtId);
         uint256 entryId = abi.decode(_data, (uint256));
+
+        // Check if the entry its collateralized, the ratio collateral/debt should be greator than balanceRatio
+        (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(debtId, _oracleData);
+        require(balanceDeltaRatio(entryId, rateTokens, rateEquivalent) >= 0, "The entry its not collateralized");
+
         Entry storage entry = entries[entryId];
 
         // Validate call from loan manager
-        require(entry.debtId == bytes32(_debtId), "Wrong debt id");
+        require(entry.debtId == debtId, "Wrong debt id");
         require(address(loanManager) == msg.sender, "Not the debt manager");
 
         // Save entryId
-        debtToEntry[bytes32(_debtId)] = entryId;
+        debtToEntry[debtId] = entryId;
 
         // Cosign
         require(loanManager.cosign(_debtId, 0), "Error performing cosign");
