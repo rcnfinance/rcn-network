@@ -79,6 +79,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             this.tokens = WEI;
             this.equivalent = WEI;
             // To converter
+            this.entryOracle = Helper.address0x;
             this.rateFromRCN = WEI;
             this.rateToRCN = WEI;
             // Entry
@@ -145,6 +146,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const createdEvent = await Helper.toEvents(
                 collateral.create(
                     this.loanId,                  // debtId
+                    this.entryOracle,             // entry oracle
                     this.collateralToken.address, // token
                     this.entryAmount,             // amount
                     this.liquidationRatio,        // liquidationRatio
@@ -425,26 +427,26 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             .with('rateToRCN', bn(2).mul(WEI))
             .build();
 
-        expect(await collateral.collateralInTokens(
+        expect(await collateral.collateralInTokens.call(
             entry.id
         )).to.eq.BN(await entry.collateralToRCN());
 
-        expect(await collateral.valueCollateralToTokens(
+        expect(await collateral.valueCollateralToTokens.call(
             entry.id,
             0
         )).to.eq.BN(0);
 
-        expect(await collateral.valueTokensToCollateral(
+        expect(await collateral.valueTokensToCollateral.call(
             entry.id,
             0
         )).to.eq.BN(0);
 
-        expect(await collateral.valueCollateralToTokens(
+        expect(await collateral.valueCollateralToTokens.call(
             entry.id,
             200
         )).to.eq.BN(400);
 
-        expect(await collateral.valueTokensToCollateral(
+        expect(await collateral.valueTokensToCollateral.call(
             entry.id,
             400
         )).to.eq.BN(200);
@@ -453,12 +455,12 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             .with('collateralToken', rcn)
             .build();
 
-        expect(await collateral.valueCollateralToTokens(
+        expect(await collateral.valueCollateralToTokens.call(
             entry2.id,
             200
         )).to.eq.BN(200);
 
-        expect(await collateral.valueTokensToCollateral(
+        expect(await collateral.valueTokensToCollateral.call(
             entry2.id,
             200
         )).to.eq.BN(200);
@@ -474,21 +476,21 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         )).to.eq.BN(entry.loanAmount);
 
         let calcCollateralRatio = entry.entryAmount.mul(BASE).div(entry.loanAmount);
-        expect(await collateral.collateralRatio(
+        expect(await collateral.collateralRatio.call(
             entry.id,
             bn(0),
             bn(0)
         )).to.eq.BN(calcCollateralRatio);
 
         let calcDeltaRatio = calcCollateralRatio.sub(entry.balanceRatio);
-        expect(await collateral.balanceDeltaRatio(
+        expect(await collateral.balanceDeltaRatio.call(
             entry.id,
             bn(0),
             bn(0)
         )).to.eq.BN(calcDeltaRatio);
 
         let calcCanWithdraw = entry.entryAmount.mul(calcDeltaRatio).div(calcCollateralRatio);
-        expect(await collateral.canWithdraw(
+        expect(await collateral.canWithdraw.call(
             entry.id,
             bn(0),
             bn(0)
@@ -505,21 +507,21 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         )).to.eq.BN(calcDebtInTokens);
 
         calcCollateralRatio = entry.entryAmount.mul(BASE).div(calcDebtInTokens);
-        expect(await collateral.collateralRatio(
+        expect(await collateral.collateralRatio.call(
             entry.id,
             rateTokens,
             rateEquivalent
         )).to.eq.BN(calcCollateralRatio);
 
         calcDeltaRatio = calcCollateralRatio.sub(entry.balanceRatio);
-        expect(await collateral.balanceDeltaRatio(
+        expect(await collateral.balanceDeltaRatio.call(
             entry.id,
             rateTokens,
             rateEquivalent
         )).to.eq.BN(calcCollateralRatio.sub(entry.balanceRatio));
 
         calcCanWithdraw = entry.entryAmount.mul(calcDeltaRatio).div(calcCollateralRatio);
-        expect(await collateral.canWithdraw(
+        expect(await collateral.canWithdraw.call(
             entry.id,
             rateTokens,
             rateEquivalent
@@ -641,6 +643,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await Helper.tryCatchRevert(
                 () => collateral.create(
                     loan,             // debtId
+                    Helper.address0x, // entry oracle
                     auxToken.address, // token
                     1,                // amount
                     bn(15000),        // liquidationRatio
@@ -1329,7 +1332,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await model.getClosingObligation(entry.loanId)).to.eq.BN(entry.loanAmount.sub(equilibrateAmount));
             assert.isTrue((await model.getStatus.call(entry.loanId)).toString() === '1');
 
-            assert.isTrue((await collateral.collateralRatio(
+            assert.isTrue((await collateral.collateralRatio.call(
                 entry.id,
                 bn(0),
                 bn(0)
@@ -1399,7 +1402,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await model.getClosingObligation(entry.loanId)).to.eq.BN(entry.loanAmount.sub(payAmount));
             assert.isTrue((await model.getStatus.call(entry.loanId)).toString() === '1');
 
-            assert.isTrue((await collateral.collateralRatio(
+            assert.isTrue((await collateral.collateralRatio.call(
                 entry.id,
                 entry.tokens,
                 entry.equivalent
@@ -1511,7 +1514,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await model.getClosingObligation(entry.loanId)).to.eq.BN(entry.loanAmount.sub(payAmount));
             assert.isTrue((await model.getStatus.call(entry.loanId)).toString() === '1');
 
-            assert.isTrue((await collateral.collateralRatio(
+            assert.isTrue((await collateral.collateralRatio.call(
                 entry.id,
                 entry.tokens,
                 entry.equivalent
@@ -1833,27 +1836,27 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
                 expect(await entry.collateralToRCN()).to.eq.BN(collateralInToken);
 
-                expect(await collateral.collateralInTokens(entry.id)).to.eq.BN(collateralInToken);
-                expect(await collateral.valueCollateralToTokens(entry.id, entryAmount)).to.eq.BN(collateralInToken);
+                expect(await collateral.collateralInTokens.call(entry.id)).to.eq.BN(collateralInToken);
+                expect(await collateral.valueCollateralToTokens.call(entry.id, entryAmount)).to.eq.BN(collateralInToken);
 
                 expect(await collateral.debtInTokens(entry.id, tokens, equivalent)).to.eq.BN(debtRCN);
 
-                const _collateralRatio = await collateral.collateralRatio(entry.id, tokens, equivalent);
+                const _collateralRatio = await collateral.collateralRatio.call(entry.id, tokens, equivalent);
                 expect(_collateralRatio).to.eq.BN(collateralRatio);
 
-                const _liquidationDeltaRatio = await collateral.liquidationDeltaRatio(entry.id, tokens, equivalent);
+                const _liquidationDeltaRatio = await collateral.liquidationDeltaRatio.call(entry.id, tokens, equivalent);
                 expect(_liquidationDeltaRatio).to.eq.BN(liquidationDeltaRatio);
 
-                const _balanceDeltaRatio = await collateral.balanceDeltaRatio(entry.id, tokens, equivalent);
+                const _balanceDeltaRatio = await collateral.balanceDeltaRatio.call(entry.id, tokens, equivalent);
                 expect(_balanceDeltaRatio).to.eq.BN(balanceDeltaRatio);
 
-                const _canWithdraw = await collateral.canWithdraw(entry.id, tokens, equivalent);
+                const _canWithdraw = await collateral.canWithdraw.call(entry.id, tokens, equivalent);
                 expect(_canWithdraw).to.eq.BN(canWithdraw);
 
-                const _collateralToPay = await collateral.collateralToPay(entry.id, tokens, equivalent);
+                const _collateralToPay = await collateral.collateralToPay.call(entry.id, tokens, equivalent);
                 expect(_collateralToPay).to.eq.BN(requiredCollateralPay);
 
-                const _tokensToPay = await collateral.tokensToPay(entry.id, tokens, equivalent);
+                const _tokensToPay = await collateral.tokensToPay.call(entry.id, tokens, equivalent);
                 expect(_tokensToPay).to.eq.BN(requiredTokenPay);
 
                 await auxToken.setBalance(converter.address, bn(0));
@@ -1867,7 +1870,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 const _newCollateral = (await collateral.entries(entry.id)).amount;
                 roundCompare(_newCollateral, newCollateral);
 
-                const _newCollateralInToken = await collateral.collateralInTokens(entry.id);
+                const _newCollateralInToken = await collateral.collateralInTokens.call(entry.id);
                 roundCompare(_newCollateralInToken, newCollateralInToken);
 
                 if (!(newDebt.isZero() && newCollateral.isZero())) {
@@ -1879,7 +1882,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                             assert.isTrue(newCollateralRatio.isZero());
                             assert.isFalse((await model.getStatus.call(entry.loanId)).toString() === '2');
                         } else {
-                            const _newCollateralRatio = await collateral.collateralRatio(entry.id, tokens, equivalent);
+                            const _newCollateralRatio = await collateral.collateralRatio.call(entry.id, tokens, equivalent);
                             assert.equal(_newCollateralRatio.gte(liquidationRatioLimit), collateralized);
 
                             assert.isFalse((await model.getStatus.call(entry.loanId)).toString() === '2');
@@ -1892,7 +1895,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 }
 
                 const prevCollateralAmount = (await collateral.entries(entry.id)).amount;
-                const _coll = await collateral.collateralInTokens(entry.id);
+                const _coll = await collateral.collateralInTokens.call(entry.id);
                 const _debt = await collateral.debtInTokens(entry.id, tokens, equivalent);
                 const canPayAllDebt = _coll.gte(_debt);
 
@@ -1909,7 +1912,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
                 const newCollateralAmount = (await collateral.entries(entry.id)).amount;
                 if (canPayAllDebt) {
-                    const closingObligationInCollateral = await collateral.valueTokensToCollateral(entry.id, closingObligationInRCN);
+                    const closingObligationInCollateral = await collateral.valueTokensToCollateral.call(entry.id, closingObligationInRCN);
                     roundCompare(newCollateralAmount, prevCollateralAmount.sub(closingObligationInCollateral)); // Convert rounded
                     assert.isTrue((await model.getStatus.call(entry.loanId)).toString() === '2');
                 } else {

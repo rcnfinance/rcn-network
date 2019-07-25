@@ -592,6 +592,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             return _amount;
         } else {
             return _getReturn(
+                entry.token,
                 entry.oracle,
                 _amount,
                 false
@@ -600,21 +601,27 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     function _getReturn(
+        IERC20 _token,
         RateOracle _oracle,
         uint256 _amount,
         bool _fromLoanManagerToken
     ) internal returns (uint256) {
-        if (_oracle == RateOracle(0)) return _amount;
+        if (_oracle == RateOracle(0)) {
+            if (_fromLoanManagerToken)
+                return converter.getReturn(loanManagerToken, _token, _amount);
+            else
+                return converter.getReturn(_token, loanManagerToken, _amount);
+        } else {
+            (uint256 tokens, uint256 equivalent) = _oracle.readSample("");
+            emit ReadedOracle(_oracle, tokens, equivalent);
 
-        (uint256 tokens, uint256 equivalent) = _oracle.readSample("");
-        emit ReadedOracle(_oracle, tokens, equivalent);
-
-        if (_fromLoanManagerToken)
-            // From loanManagerToken to entry token
-            return equivalent.mult(_amount) / tokens;
-        else
-            // From entry token to loanManagerToken
-            return tokens.mult(_amount) / equivalent;
+            if (_fromLoanManagerToken)
+                // From loanManagerToken to entry token
+                return equivalent.mult(_amount) / tokens;
+            else
+                // From entry token to loanManagerToken
+                return tokens.mult(_amount) / equivalent;
+        }
     }
 
     /**
@@ -635,6 +642,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             return _amount;
         } else {
             return _getReturn(
+                entry.token,
                 entry.oracle,
                 _amount,
                 true
