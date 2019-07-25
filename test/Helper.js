@@ -1,3 +1,8 @@
+const BN = web3.utils.BN;
+const expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
+
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
@@ -32,12 +37,13 @@ module.exports.toBytes32 = (source) => {
 
 module.exports.increaseTime = function increaseTime(duration) {
     const id = Date.now();
+    const delta = duration.toNumber !== undefined ? duration.toNumber() : duration;
 
     return new Promise((resolve, reject) => {
         web3.currentProvider.send({
             jsonrpc: "2.0",
             method: "evm_increaseTime",
-            params: [duration],
+            params: [delta],
             id: id
         },
         err1 => {
@@ -156,3 +162,36 @@ module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
         reason
     );
 };
+
+module.exports.balanceSnap = async (token, address, account = "") => {
+    const snapBalance = await token.balanceOf(address);
+    return {
+        requireConstant: async function() {
+            expect(
+                snapBalance,
+                `${account} balance should remain constant`
+            ).to.eq.BN(
+                await token.balanceOf(address)
+            );
+        },
+        requireIncrease: async function(delta) {
+            expect(
+                snapBalance.add(delta),
+                `${account} should increase by ${delta}`
+            ).to.eq.BN(
+                await token.balanceOf(address)
+            );
+        },
+        requireDecrease: async function(delta) {
+            expect(
+                snapBalance.sub(delta),
+                `${account} should decrease by ${delta}`
+            ).to.eq.BN(
+                await token.balanceOf(address)
+            );
+        },
+        restore: async function() {
+            await token.setBalance(address, snapBalance);
+        }
+    }
+}
