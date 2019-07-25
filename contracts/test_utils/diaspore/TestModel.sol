@@ -233,7 +233,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         }
     }
 
-    function addDebt(bytes32 id, uint256 amount) external onlyEngine returns (bool) {
+    function addDebt(bytes32 id, uint256 amount) external returns (bool) {
         _run(id);
 
         Entry storage entry = registry[id];
