@@ -46,10 +46,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event Started(uint256 indexed _id);
 
-    event PayOffDebt(uint256 indexed _id, uint256 _closingObligationToken);
-    event CancelDebt(uint256 indexed _id, uint256 _obligationInToken);
-    event CollateralBalance(uint256 indexed _id, uint256 _tokenPayRequired);
-    event TakeFee(uint256 _burned, uint256 _rewarded);
+    event PayOffDebt(uint256 indexed _id, uint256 _closingObligationToken, uint256 _payTokens);
+    event CancelDebt(uint256 indexed _id, uint256 _obligationInToken, uint256 _payTokens);
+    event CollateralBalance(uint256 indexed _id, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
+    event TakeFee(uint256 _burned, address _rewardTo, uint256 _rewarded);
 
     event ConvertPay(uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
     event Rebuy(uint256 _fromAmount, uint256 _toAmount);
@@ -229,14 +229,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 closingObligation = model.getClosingObligation(debtId);
         uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
 
-        _convertPay(
+        uint256 payTokens = _convertPay(
             entry,
             closingObligationToken,
             _oracleData,
             false
         );
 
-        emit PayOffDebt(_id, closingObligationToken);
+        emit PayOffDebt(_id, closingObligationToken, payTokens);
     }
 
     // ///
@@ -312,37 +312,37 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             (uint256 obligation,) = model.getObligation(debtId, uint64(dueTime));
             uint256 obligationToken = loanManager.amountToToken(debtId, _oracleData, obligation);
 
-            _convertPay(
+            uint256 payTokens = _convertPay(
                 entry,
                 obligationToken,
                 _oracleData,
                 true
             );
 
-            emit CancelDebt(entryId, obligationToken);
+            emit CancelDebt(entryId, obligationToken, payTokens);
 
             change = true;
         }
 
-        uint256 tokenPayRequiredToBalance = getTokenPayRequiredToBalance(entryId, debtId, _oracleData);
+        uint256 tokenRequiredToTryBalance = getTokenRequiredToTryBalance(entryId, debtId, _oracleData);
 
-        if (tokenPayRequiredToBalance > 0) {
+        if (tokenRequiredToTryBalance > 0) {
             // Run margin call, buy required tokens
             // and substract from total collateral
-            _convertPay(
+            uint256 payTokens = _convertPay(
                 entry,
-                tokenPayRequiredToBalance,
+                tokenRequiredToTryBalance,
                 _oracleData,
                 true
             );
 
-            emit CollateralBalance(entryId, tokenPayRequiredToBalance);
+            emit CollateralBalance(entryId, tokenRequiredToTryBalance, payTokens);
 
             change = true;
         }
     }
 
-    function getTokenPayRequiredToBalance(
+    function getTokenRequiredToTryBalance(
         uint256 _id,
         bytes32 _debtId,
         bytes memory _oracleData
@@ -374,7 +374,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         feeTaked = reward.add(burned);
 
         if (feeTaked != 0)
-            emit TakeFee(burned, reward);
+            emit TakeFee(burned, msg.sender, reward);
     }
 
     function _takeFeeTo(
@@ -394,7 +394,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _requiredToken, // in loanManager token
         bytes memory _oracleData,
         bool _chargeFee
-    ) internal {
+    ) internal returns(uint256 paidTokens) {
         // Target buy
         uint256 targetBuy;
         if (_chargeFee) {
@@ -417,7 +417,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 tokensToPay = Math.min(bought, targetBuy.sub(feeTaked));
 
         // Pay debt
-        (, uint256 paidTokens) = loanManager.safePayToken(
+        (, paidTokens) = loanManager.safePayToken(
             _entry.debtId,
             tokensToPay,
             address(this),
