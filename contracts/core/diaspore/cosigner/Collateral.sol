@@ -413,8 +413,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             targetBuy             // Token to buy
         );
 
-        uint256 feeTaked = _chargeFee ? _takeFee(_entry, _requiredToken) : 0;
-        uint256 tokensToPay = Math.min(bought, targetBuy.sub(feeTaked));
+        uint256 feeTaked = _chargeFee ? _takeFee(_entry, Math.min(bought, _requiredToken)) : 0;
+        uint256 tokensToPay = Math.min(bought, targetBuy).sub(feeTaked);
 
         // Pay debt
         (, paidTokens) = loanManager.safePayToken(
