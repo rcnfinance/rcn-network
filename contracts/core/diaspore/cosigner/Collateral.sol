@@ -210,9 +210,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         require(entry.token.safeTransfer(_to, entry.amount), "Error sending tokens");
 
-        // Destroy ERC721 collateral token
-        delete debtToEntry[entry.debtId];
-        delete entries[_id]; // TODO: Find best way to delete
+        if (!_emergency) {
+            // Destroy ERC721 collateral token
+            delete debtToEntry[entry.debtId];
+            delete entries[_id];
+        }
     }
 
     function payOffDebt(
