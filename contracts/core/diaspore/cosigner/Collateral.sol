@@ -300,7 +300,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     function claim(
-        address _loanManager,
+        address,
         uint256 _debtId,
         bytes memory _oracleData
     ) public returns (bool change) {
@@ -364,8 +364,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry memory _entry,
         uint256 _amount // TODO to doc, this amount is in loanManagerToken
     ) internal returns(uint256 feeTaked) {
-        IERC20 token = _entry.token;
-
         uint256 burned = _takeFeeTo(
             _amount,
             _entry.burnFee,
