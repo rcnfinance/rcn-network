@@ -991,6 +991,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(EmergencyRedeemed._id).to.eq.BN(entry.id);
             assert.equal(EmergencyRedeemed._to, accounts[7]);
 
+            await requireDeleted(entry.id, entry.loanId);
+
             await collateralSnap.requireDecrease(entry.entryAmount);
             await receiverSnap.requireIncrease(entry.entryAmount);
         });
