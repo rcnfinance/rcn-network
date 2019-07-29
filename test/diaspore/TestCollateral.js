@@ -751,7 +751,58 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await collateralSnap.requireConstant();
         });
-        it('Try withdraw an entry with collateral ratio less than balance ratio', async function () {
+        it('Should withdraw tokens of an cosigned entry', async function () {
+            const entry = await new EntryBuilder()
+                .with('loanAmount', bn(1))
+                .with('entryAmount', bn(100))
+                .build();
+
+            await lend(entry);
+
+            await withdraw(
+                entry.id,
+                creator,
+                bn(1),
+                creator
+            );
+        });
+        it('Try withdraw an cosigned entry without having collateral balance', async function () {
+            const entry = await new EntryBuilder()
+                .with('loanAmount', bn(1000))
+                .with('entryAmount', bn(2000))
+                .with('liquidationRatio', bn(10001))
+                .with('balanceRatio', bn(20000))
+                .build();
+
+            await lend(entry);
+
+            const collateralSnap = await Helper.balanceSnap(auxToken, collateral.address);
+
+            await Helper.tryCatchRevert(
+                () => withdraw(
+                    entry.id,
+                    creator,
+                    bn(2).pow(bn(127)),
+                    creator
+                ),
+                'Dont have collateral to withdraw'
+            );
+
+            await collateralSnap.requireConstant();
+
+            await Helper.tryCatchRevert(
+                () => withdraw(
+                    entry.id,
+                    creator,
+                    bn(1),
+                    creator
+                ),
+                'Dont have collateral to withdraw'
+            );
+
+            await collateralSnap.requireConstant();
+        });
+        it('Try withdraw an cosigned entry with collateral ratio less than balance ratio', async function () {
             const entry = await new EntryBuilder()
                 .with('loanAmount', bn(1000))
                 .with('entryAmount', bn(2000))
