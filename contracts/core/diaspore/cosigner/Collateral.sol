@@ -688,7 +688,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         @return The ratio of the collateral vs the debt
     */
-    function collateralRatio(
+    function collateralRatioData(
         uint256 _id,
         bytes memory _oracleData
     ) public returns (uint256) {
@@ -705,7 +705,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         @return The collateral ratio minus the liquidation ratio
     */
-    function liquidationDeltaRatio(
+    function liquidationDeltaRatioData(
         uint256 _id,
         bytes memory _oracleData
     ) public returns (int256) {
