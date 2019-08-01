@@ -683,35 +683,4 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
     }
 
-        /**
-        @param _id The index of entry, inside of entries array
-
-        @return The ratio of the collateral vs the debt
-    */
-    function collateralRatioData(
-        uint256 _id,
-        bytes memory _oracleData
-    ) public returns (uint256) {
-        (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(entries[_id].debtId, _oracleData);
-        uint256 debt = debtInTokens(_id, rateTokens, rateEquivalent);
-
-        if (debt == 0) return 0;
-
-        return collateralInTokens(_id).multdiv(BASE, debt);
-    }
-
-     /**
-        @param _id The index of entry, inside of entries array
-
-        @return The collateral ratio minus the liquidation ratio
-    */
-    function liquidationDeltaRatioData(
-        uint256 _id,
-        bytes memory _oracleData
-    ) public returns (int256) {
-        (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(entries[_id].debtId, _oracleData);
-        return collateralRatio(_id, rateTokens, rateEquivalent).toInt256().sub(uint256(entries[_id].liquidationRatio).toInt256());
-    }
-
-
 }
