@@ -9,7 +9,7 @@ library SafeMath {
     }
 
     function sub(uint256 x, uint256 y) internal pure returns (uint256) {
-        require(x >= y, "Sub underflow");
+        require(x >= y, "Sub overflow");
         return x - y;
     }
 
