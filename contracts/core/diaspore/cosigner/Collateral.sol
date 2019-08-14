@@ -50,10 +50,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event PayOffDebt(uint256 indexed _id, uint256 _closingObligationToken, uint256 _payTokens);
     event CancelDebt(uint256 indexed _id, uint256 _obligationInToken, uint256 _payTokens);
     event CollateralBalance(uint256 indexed _id, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
-    event TakeFee(uint256 _burned, address _rewardTo, uint256 _rewarded);
+    event TakeFee(uint256 indexed _id, uint256 _burned, address _rewardTo, uint256 _rewarded);
 
-    event ConvertPay(uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
-    event Rebuy(uint256 _fromAmount, uint256 _toAmount);
+    event ConvertPay(uint256 indexed _id, uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
+    event Rebuy(uint256 indexed _id, uint256 _fromAmount, uint256 _toAmount);
 
     event Redeemed(uint256 indexed _id);
     event EmergencyRedeemed(uint256 indexed _id, address _to);
@@ -238,6 +238,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
 
         uint256 payTokens = _convertPay(
+            _id,
             entry,
             closingObligationToken,
             _oracleData,
@@ -321,6 +322,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             uint256 obligationToken = loanManager.amountToToken(debtId, _oracleData, obligation);
 
             uint256 payTokens = _convertPay(
+                entryId,
                 entry,
                 obligationToken,
                 _oracleData,
@@ -338,6 +340,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             // Run margin call, buy required tokens
             // and substract from total collateral
             uint256 payTokens = _convertPay(
+                entryId,
                 entry,
                 tokenRequiredToTryBalance,
                 _oracleData,
@@ -362,6 +365,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     function _takeFee(
+        uint256 _entryId,
         Entry memory _entry,
         uint256 _amount // TODO to doc, this amount is in loanManagerToken
     ) internal returns(uint256 feeTaked) {
@@ -380,7 +384,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         feeTaked = reward.add(burned);
 
         if (feeTaked != 0)
-            emit TakeFee(burned, msg.sender, reward);
+            emit TakeFee(
+                _entryId,
+                burned,
+                msg.sender,
+                reward)
+            ;
     }
 
     function _takeFeeTo(
@@ -396,6 +405,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     function _convertPay(
+        uint256 _entryId,
         Entry storage _entry,
         uint256 _requiredToken, // in loanManager token
         bytes memory _oracleData,
@@ -419,7 +429,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             targetBuy             // Token to buy
         );
 
-        uint256 feeTaked = _chargeFee ? _takeFee(_entry, Math.min(bought, _requiredToken)) : 0;
+        uint256 feeTaked = _chargeFee ? _takeFee(_entryId, _entry, Math.min(bought, _requiredToken)) : 0;
         uint256 tokensToPay = Math.min(bought, targetBuy).sub(feeTaked);
 
         // Pay debt
@@ -430,7 +440,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _oracleData
         );
 
-        emit ConvertPay(sold, bought, _oracleData);
+        emit ConvertPay(
+            _entryId,
+            sold,
+            bought,
+            _oracleData
+        );
 
         if (paidTokens < tokensToPay) {
             // Buy back extra collateral
@@ -441,7 +456,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 sold,
                 0
             );
-            emit Rebuy(sold, bought);
+            emit Rebuy(_entryId, sold, bought);
         } else {
             bought = 0;
         }
@@ -672,4 +687,5 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             }
         }
     }
+
 }
