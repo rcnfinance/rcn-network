@@ -13,10 +13,7 @@ const expect = require('chai')
     .expect;
 
 function bn (number) {
-    if (!(number instanceof String)) {
-        number.toString();
-    }
-    return new BN(number);
+    return web3.utils.toBN(number);
 }
 
 function min (x, y, z) {
