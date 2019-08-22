@@ -280,12 +280,21 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // Load entryId and entry
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = abi.decode(_data, (uint256));
+        Entry storage entry = entries[entryId];
 
         // Check if the entry its collateralized, the ratio collateral/debt should be greator than balanceRatio
-        (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(debtId, _oracleData);
-        require(balanceDeltaRatio(entryId, rateTokens, rateEquivalent) >= 0, "The entry its not collateralized");
+        (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(debtId, _oracleData);
+        (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
+        emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
+        uint256 debt = debtInTokens(entryId, debtRateTokens, debtRateEquivalent);
 
-        Entry storage entry = entries[entryId];
+        require(balanceDeltaRatio(
+            entryId,
+            debt,
+            entryRateTokens,
+            entryRateEquivalent
+        ) >= 0, "The entry its not collateralized");
+
 
         // Validate call from loan manager
         require(entry.debtId == debtId, "Wrong debt id");
@@ -335,7 +344,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             change = true;
         }
 
-        uint256 tokenRequiredToTryBalance = getTokenRequiredToTryBalance(entryId, debtId, _oracleData);
+        // Read oracle
+        (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(debtId, _oracleData);
+        uint256 tokenRequiredToTryBalance = getTokenRequiredToTryBalance(entryId, debtRateTokens, debtRateEquivalent);
 
         if (tokenRequiredToTryBalance > 0) {
             // Run margin call, buy required tokens
@@ -352,17 +363,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
             change = true;
         }
-    }
-
-    function getTokenRequiredToTryBalance(
-        uint256 _id,
-        bytes32 _debtId,
-        bytes memory _oracleData
-    ) internal returns(uint256) {
-        // Read oracle
-        (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(_debtId, _oracleData);
-        // Pay tokens
-        return tokensToPay(_id, rateTokens, rateEquivalent);
     }
 
     function _takeFee(
@@ -467,199 +467,178 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     // Collateral methods
 
-    function tokensToPay(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public returns (uint256) {
-        return valueCollateralToTokens(
-            _id,
-            collateralToPay(
-                _id,
-                _rateTokens,
-                _rateEquivalent
-            )
-        );
-    }
+    function getTokenRequiredToTryBalance(
+        uint256 _entryId,
+        uint256 _debtRateTokens,
+        uint256 _debtRateEquivalent
+    ) public returns(uint256) {
+        Entry storage entry = entries[_entryId];
+        uint256 debt = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
 
-    function collateralToPay(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public returns (uint256) {
+        if(debt == 0) return 0;
+
+        (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
+        emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
+
         // If the entry is collateralized should not have collateral amount to pay
-        if (liquidationDeltaRatio(_id, _rateTokens, _rateEquivalent) >= 0) {
+        if (liquidationDeltaRatio(
+            _entryId,
+            debt,
+            entryRateTokens,
+            entryRateEquivalent
+        ) >= 0) {
             return 0;
         }
 
-        Entry storage entry = entries[_id];
-        uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
+        uint256 cwithdraw = canWithdraw(_entryId, debt).abs().toUint256();
 
-        return Math.min(
+        // Check underflow when create the entry
+        uint256 collateralRequiredToBalance = cwithdraw.mult(BASE) / (entry.balanceRatio - BASE - entry.burnFee - entry.rewardFee);
+
+        uint256 min = Math.min(
             // The collateral required to equilibrate the balance (the collateral should be more than the debt)
-            _collateralRequiredToBalance(
-                _id,
-                _rateTokens,
-                _rateEquivalent,
-                entry.balanceRatio
-            ),
+            collateralRequiredToBalance,
             // Pay all collateral amount (the collateral should be less than the debt)
             entry.amount
         );
-    }
 
-    function _collateralRequiredToBalance(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent,
-        uint256 _balanceRatio
-    ) internal returns(uint256) {
-        int256 cwithdraw = canWithdraw(_id, _rateTokens, _rateEquivalent);
-        // Check underflow when create the entry
-        return cwithdraw.abs().toUint256().mult(BASE) / (_balanceRatio - BASE);
+        return collateralToTokens(
+            entry.token,
+            min,
+            entryRateTokens,
+            entryRateEquivalent
+        );
     }
 
     function canWithdraw(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
+        uint256 _entryId,
+        uint256 _debtRateTokens,
+        uint256 _debtRateEquivalent
     ) public returns (int256) {
-        int256 ratio = collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256();
-        int256 collateral = entries[_id].amount.toInt256();
+        uint256 debtInToken = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
+
+        return canWithdraw(_entryId, debtInToken);
+    }
+
+    function canWithdraw(
+        uint256 _entryId,
+        uint256 _debtInToken
+    ) public returns (int256) {
+        Entry storage entry = entries[_entryId];
+
+        (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
+        emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
+
+        int256 ratio = collateralRatio(
+            _entryId,
+            _debtInToken,
+            entryRateTokens,
+            entryRateEquivalent
+        ).toInt256();
+        int256 collateral = entry.amount.toInt256();
 
         if (ratio == 0) return collateral;
 
-        int256 delta = balanceDeltaRatio(_id, _rateTokens, _rateEquivalent);
+        int256 delta = balanceDeltaRatio(
+            _entryId,
+            _debtInToken,
+            entryRateTokens,
+            entryRateEquivalent
+        );
         return collateral.muldiv(delta, ratio);
     }
 
     /**
-        @param _id The index of entry, inside of entries array
+        @param _entryId The index of entry, inside of entries array
 
         @return The collateral ratio minus the liquidation ratio
     */
     function liquidationDeltaRatio(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public returns (int256) {
-        return collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256().sub(uint256(entries[_id].liquidationRatio).toInt256());
+        uint256 _entryId,
+        uint256 _debtInToken,
+        uint256 _entryRateTokens,
+        uint256 _entryRateEquivalent
+    ) public view returns (int256) {
+        return collateralRatio(
+            _entryId,
+            _debtInToken,
+            _entryRateTokens,
+            _entryRateEquivalent
+        ).toInt256().sub(uint256(entries[_entryId].liquidationRatio).toInt256());
     }
 
     /**
-        @param _id The index of entry, inside of entries array
+        f The index of entry, inside of entries array
 
         @return The collateral ratio minus the balance ratio
     */
     function balanceDeltaRatio(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public returns (int256) {
-        return collateralRatio(_id, _rateTokens, _rateEquivalent).toInt256().sub(uint256(entries[_id].balanceRatio).toInt256());
+        uint256 _entryId,
+        uint256 _debtInToken,
+        uint256 _entryRateTokens,
+        uint256 _entryRateEquivalent
+    ) public view returns (int256) {
+        return collateralRatio(
+            _entryId,
+            _debtInToken,
+            _entryRateTokens,
+            _entryRateEquivalent
+        ).toInt256().sub(uint256(entries[_entryId].balanceRatio).toInt256());
+    }
+
+    function collateralRatio(
+        uint256 _entryId,
+        uint256 _debtRateTokens,
+        uint256 _debtRateEquivalent
+    ) public returns (uint256) {
+        Entry storage entry = entries[_entryId];
+
+        uint256 debtInToken = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
+
+        (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
+        emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
+
+        return collateralRatio(_entryId, debtInToken, entryRateTokens, entryRateEquivalent);
     }
 
     /**
-        @param _id The index of entry, inside of entries array
+        @param _entryId The index of entry, inside of entries array
 
         @return The ratio of the collateral vs the debt
     */
     function collateralRatio(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
-    ) public returns (uint256) {
-        uint256 debt = debtInTokens(_id, _rateTokens, _rateEquivalent);
+        uint256 _entryId,
+        uint256 _debtInToken,
+        uint256 _entryRateTokens,
+        uint256 _entryRateEquivalent
+    ) public view returns (uint256) {
+        if (_debtInToken == 0) return 0;
 
-        if (debt == 0) return 0;
+        Entry storage entry = entries[_entryId];
 
-        return collateralInTokens(_id).multdiv(BASE, debt);
+        uint256 collateralInTokens = collateralToTokens(
+            entry.token,
+            entry.amount,
+            _entryRateTokens,
+            _entryRateEquivalent
+        );
+
+        return collateralInTokens.multdiv(BASE, _debtInToken);
     }
 
     /**
-        @param _id The index of entry, inside of entries array
-
-        @return The _amount of the entry valuate in collateral Token
-    */
-    function collateralInTokens(
-        uint256 _id
-    ) public returns (uint256) {
-        return valueCollateralToTokens(_id, entries[_id].amount);
-    }
-
-    /**
-        @param _id The index of entry, inside of entries array
-        @param _amount The amount in collateral Token
-
         @return The _amount valuate in loanManager Token
     */
-    function valueCollateralToTokens(
-        uint256 _id,
-        uint256 _amount
-    ) public returns (uint256) {
-        if (_amount == 0) return 0;
-
-        Entry storage entry = entries[_id];
-
-        if (entry.token == loanManagerToken) {
-            return _amount;
-        } else {
-            return _getReturn(
-                entry.token,
-                entry.oracle,
-                _amount,
-                false
-            );
-        }
-    }
-
-    function _getReturn(
-        IERC20 _token,
-        RateOracle _oracle,
+    function collateralToTokens(
+        IERC20 _entryToken,
         uint256 _amount,
-        bool _fromLoanManagerToken
-    ) internal returns (uint256) {
-        if (_oracle == RateOracle(0)) {
-            if (_fromLoanManagerToken)
-                return converter.getReturn(loanManagerToken, _token, _amount);
-            else
-                return converter.getReturn(_token, loanManagerToken, _amount);
-        } else {
-            (uint256 tokens, uint256 equivalent) = _oracle.readSample("");
-            emit ReadedOracle(_oracle, tokens, equivalent);
-
-            if (_fromLoanManagerToken)
-                // From loanManagerToken to entry token
-                return equivalent.mult(_amount) / tokens;
-            else
-                // From entry token to loanManagerToken
-                return tokens.mult(_amount) / equivalent;
-        }
-    }
-
-    /**
-        @param _id The index of entry, inside of entries array
-        @param _amount The amount in loanManager Token
-
-        @return The _amount valuate in collateral Token
-    */
-    function valueTokensToCollateral(
-        uint256 _id,
-        uint256 _amount
-    ) public returns (uint256) {
-        if (_amount == 0) return 0;
-
-        Entry storage entry = entries[_id];
-
-        if (entry.token == loanManagerToken) {
+        uint256 _entryRateTokens,
+        uint256 _entryRateEquivalent
+    ) public view returns (uint256) {
+        if (_entryToken == loanManagerToken) {
             return _amount;
         } else {
-            return _getReturn(
-                entry.token,
-                entry.oracle,
-                _amount,
-                true
-            );
+            return _amount.multdiv(_entryRateTokens, _entryRateEquivalent);
         }
     }
 
