@@ -86,7 +86,7 @@ module.exports.assertThrow = async (promise) => {
         );
         return;
     }
-    assert.fail('Expected throw not received');
+    throw new Error('Expected throw not received');
 };
 
 // the promiseFunction should be a function
@@ -109,7 +109,7 @@ module.exports.tryCatchRevert = async (promise, message) => {
         );
         return;
     }
-    assert.fail('Expected throw not received');
+    throw new Error('Expected throw not received');
 };
 
 module.exports.toInterestRate = (interest) => {
@@ -143,8 +143,8 @@ module.exports.toEvents = async (promise, ...events) => {
     );
 
     if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
-        console.warn('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
-        assert.fail();
+        console.log('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
+        throw new Error('The event dont find');
     }
     eventObjs = eventObjs.map(x => x.args);
     return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
