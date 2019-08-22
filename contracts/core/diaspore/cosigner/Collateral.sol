@@ -110,6 +110,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint32 _burnFee,
         uint32 _rewardFee
     ) external returns (uint256 entryId) {
+        require(_oracle != RateOracle(0), "Invalid oracle, cant be address 0");
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
         uint256 totalMargincallFee = _burnFee.add(_rewardFee);
         require(totalMargincallFee < BASE, "Fee should be lower than BASE");
