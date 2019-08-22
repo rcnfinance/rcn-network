@@ -173,8 +173,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         if (debtToEntry[entry.debtId] != 0) {
             // Read oracle
-            (uint256 rateTokens, uint256 rateEquivalent) = loanManager.readOracle(entry.debtId, _oracleData);
-            require(_amount.toInt256() <= canWithdraw(_id, rateTokens, rateEquivalent), "Dont have collateral to withdraw");
+            (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(entry.debtId, _oracleData);
+            require(_amount.toInt256() <= canWithdraw(_entryId, debtRateTokens, debtRateEquivalent), "Dont have collateral to withdraw");
         } else {
             require(_amount <= entry.amount, "Dont have collateral to withdraw");
         }
@@ -664,21 +664,21 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _id The index of entry, inside of entries array
+        @param _entryId The index of entry, inside of entries array
 
         @return The _amount of the debt valuate in loanManager Token
     */
     function debtInTokens(
-        uint256 _id,
-        uint256 _rateTokens,
-        uint256 _rateEquivalent
+        uint256 _entryId,
+        uint256 _debtRateTokens,
+        uint256 _debtRateEquivalent
     ) public view returns (uint256) {
-        uint256 debt = loanManager.getClosingObligation(entries[_id].debtId);
+        uint256 debt = loanManager.getClosingObligation(entries[_entryId].debtId);
 
-        if (_rateTokens == 0 && _rateEquivalent == 0) {
+        if (_debtRateTokens == 0 && _debtRateEquivalent == 0) {
             return debt;
         } else {
-            debt = debt.multdiv(_rateTokens, _rateEquivalent);
+            debt = debt.multdiv(_debtRateTokens, _debtRateEquivalent);
             if (debt == 0) {
                 return 1;
             } else {
@@ -686,5 +686,4 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             }
         }
     }
-
 }
