@@ -389,8 +389,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 _entryId,
                 burned,
                 msg.sender,
-                reward)
-            ;
+                reward);
     }
 
     function _takeFeeTo(
@@ -414,6 +413,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     ) internal returns(uint256 paidTokens) {
         // Target buy
         uint256 targetBuy;
+
         if (_chargeFee) {
             targetBuy = _requiredToken.mult(
                 BASE + _entry.rewardFee + _entry.burnFee
@@ -427,7 +427,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _entry.token,         // Token to sell
             loanManagerToken,     // Token to buy
             _entry.amount,        // Amount to sell
-            targetBuy             // Token to buy
+            targetBuy             // Target buy amount in buy token
         );
 
         uint256 feeTaked = _chargeFee ? _takeFee(_entryId, _entry, Math.min(bought, _requiredToken)) : 0;
