@@ -16,12 +16,8 @@ function bn (number) {
     return web3.utils.toBN(number);
 }
 
-function min (x, y, z) {
-    if (x.lte(y) && x.lte(z)) {
-        return x;
-    } else {
-        return y.lte(z) ? y : x;
-    }
+function min (x, y) {
+    return x.lte(y) ? x : y;
 }
 
 function divceil (x, y) {
@@ -1850,9 +1846,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                             // Collateral require to balance
                             canWithdraw.abs().mul(BASE).div(balanceRatioLimit.sub(BASE)),
                             // Collateral
-                            entryAmount,
-                            // Debt In Collateral
-                            await converter.getReturn(rcn.address, auxToken.address, debtRCN)
+                            entryAmount
                         );
                     } else {
                         return bn(0);

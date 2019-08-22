@@ -22,12 +22,6 @@ contract TestMath {
         Assert.equal(uint256(0).min(0), 0, "");
         Assert.equal(uint256(1).min(0), 0, "");
         Assert.equal(uint256(0).min(1), 0, "");
-
-        // min(uint256,uint256,uint256)
-        Assert.equal(uint256(0).min(0, 0), 0, "");
-        Assert.equal(uint256(1).min(0, 0), 0, "");
-        Assert.equal(uint256(0).min(1, 0), 0, "");
-        Assert.equal(uint256(0).min(0, 1), 0, "");
     }
 
     function testMax() external {

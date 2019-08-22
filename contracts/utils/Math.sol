@@ -33,12 +33,4 @@ library Math {
             return _b;
         }
     }
-
-    function min(uint256 _a, uint256 _b, uint256 _c) internal pure returns (uint256) {
-        if (_a < _b) {
-            return _a < _c ? _a : _c;
-        } else {
-            return _b < _c ? _b : _c;
-        }
-    }
 }

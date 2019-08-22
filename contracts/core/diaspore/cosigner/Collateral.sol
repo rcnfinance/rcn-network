@@ -503,9 +503,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 entry.balanceRatio
             ),
             // Pay all collateral amount (the collateral should be less than the debt)
-            entry.amount,
-            // Pay all debt amount (the collateral and the debt should be equal)
-            valueTokensToCollateral(_id, debt)
+            entry.amount
         );
     }
 
