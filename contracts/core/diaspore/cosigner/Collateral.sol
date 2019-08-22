@@ -31,7 +31,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     uint256 private constant BASE = 10000;
 
     event Created(
-        uint256 indexed _id,
+        uint256 indexed _entryId,
         bytes32 indexed _debtId,
         RateOracle _oracle,
         IERC20 _token,
@@ -42,21 +42,21 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint32 _rewardFee
     );
 
-    event Deposited(uint256 indexed _id, uint256 _amount);
-    event Withdrawed(uint256 indexed _id, address _to, uint256 _amount);
+    event Deposited(uint256 indexed _entryId, uint256 _amount);
+    event Withdrawed(uint256 indexed _entryId, address _to, uint256 _amount);
 
-    event Started(uint256 indexed _id);
+    event Started(uint256 indexed _entryId);
 
-    event PayOffDebt(uint256 indexed _id, uint256 _closingObligationToken, uint256 _payTokens);
-    event CancelDebt(uint256 indexed _id, uint256 _obligationInToken, uint256 _payTokens);
-    event CollateralBalance(uint256 indexed _id, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
-    event TakeFee(uint256 indexed _id, uint256 _burned, address _rewardTo, uint256 _rewarded);
+    event PayOffDebt(uint256 indexed _entryId, uint256 _closingObligationToken, uint256 _payTokens);
+    event CancelDebt(uint256 indexed _entryId, uint256 _obligationInToken, uint256 _payTokens);
+    event CollateralBalance(uint256 indexed _entryId, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
+    event TakeFee(uint256 indexed _entryId, uint256 _burned, address _rewardTo, uint256 _rewarded);
 
-    event ConvertPay(uint256 indexed _id, uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
-    event Rebuy(uint256 indexed _id, uint256 _fromAmount, uint256 _toAmount);
+    event ConvertPay(uint256 indexed _entryId, uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
+    event Rebuy(uint256 indexed _entryId, uint256 _fromAmount, uint256 _toAmount);
 
-    event Redeemed(uint256 indexed _id);
-    event EmergencyRedeemed(uint256 indexed _id, address _to);
+    event Redeemed(uint256 indexed _entryId);
+    event EmergencyRedeemed(uint256 indexed _entryId, address _to);
 
     event SetUrl(string _url);
     event SetConverter(TokenConverter _converter);
@@ -148,27 +148,27 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     function deposit(
-        uint256 _id,
+        uint256 _entryId,
         uint256 _amount
     ) external {
-        Entry storage entry = entries[_id];
+        Entry storage entry = entries[_entryId];
         require(entry.token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
 
         entry.amount = entry.amount.add(_amount);
 
-        emit Deposited(_id, _amount);
+        emit Deposited(_entryId, _amount);
     }
 
     function withdraw(
-        uint256 _id,
+        uint256 _entryId,
         address _to,
         uint256 _amount,
         bytes calldata _oracleData
     ) external {
         // Validate ownership of collateral
-        require(_isAuthorized(msg.sender, _id), "Sender not authorized");
+        require(_isAuthorized(msg.sender, _entryId), "Sender not authorized");
 
-        Entry storage entry = entries[_id];
+        Entry storage entry = entries[_entryId];
 
         if (debtToEntry[entry.debtId] != 0) {
             // Read oracle
@@ -182,55 +182,55 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         entry.amount = entry.amount.sub(_amount);
 
-        emit Withdrawed(_id, _to, _amount);
+        emit Withdrawed(_entryId, _to, _amount);
     }
 
     function redeem(
-        uint256 _id
+        uint256 _entryId
     ) external {
         // Validate ownership of collateral
-        require(_isAuthorized(msg.sender, _id), "Sender not authorized");
+        require(_isAuthorized(msg.sender, _entryId), "Sender not authorized");
 
-        _redeem(_id, msg.sender, false);
+        _redeem(_entryId, msg.sender, false);
     }
 
     function emergencyRedeem(
-        uint256 _id,
+        uint256 _entryId,
         address _to
     ) external onlyOwner {
-        _redeem(_id, _to, true);
+        _redeem(_entryId, _to, true);
     }
 
     function _redeem(
-        uint256 _id,
+        uint256 _entryId,
         address _to,
         bool _emergency
     ) internal {
-        Entry storage entry = entries[_id];
+        Entry storage entry = entries[_entryId];
 
         uint256 status = loanManager.getStatus(entry.debtId);
 
         if (_emergency) {
             require(status == 4, "Debt is not in error");
-            emit EmergencyRedeemed(_id, _to);
+            emit EmergencyRedeemed(_entryId, _to);
         } else {
             require(status == 0 || status == 2, "Debt not request or paid");
-            emit Redeemed(_id);
+            emit Redeemed(_entryId);
         }
 
         require(entry.token.safeTransfer(_to, entry.amount), "Error sending tokens");
 
         // Destroy ERC721 collateral token
         delete debtToEntry[entry.debtId];
-        delete entries[_id];
+        delete entries[_entryId];
     }
 
     function payOffDebt(
-        uint256 _id,
+        uint256 _entryId,
         bytes calldata _oracleData
     ) external {
-        require(_isAuthorized(msg.sender, _id), "The sender its not authorized");
-        Entry storage entry = entries[_id];
+        require(_isAuthorized(msg.sender, _entryId), "The sender its not authorized");
+        Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
         Model model = Model(loanManager.getModel(uint256(debtId)));
 
@@ -238,14 +238,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
 
         uint256 payTokens = _convertPay(
-            _id,
+            _entryId,
             entry,
             closingObligationToken,
             _oracleData,
             false
         );
 
-        emit PayOffDebt(_id, closingObligationToken, payTokens);
+        emit PayOffDebt(_entryId, closingObligationToken, payTokens);
     }
 
     // ///
