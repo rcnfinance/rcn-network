@@ -35,8 +35,22 @@ contract TestRateOracle is BytesUtils, ERC165, RateOracle {
     }
 
     function readSample(bytes calldata _data) external returns (uint256 tokens, uint256 equivalent) {
-        (bytes32 btokens, bytes32 bequivalent) = decode(_data, 16, 16);
-        tokens = uint256(btokens);
-        equivalent = uint256(bequivalent);
+        if (_data.length != 0) {
+            (bytes32 btokens, bytes32 bequivalent) = decode(_data, 16, 16);
+            tokens = uint256(btokens);
+            equivalent = uint256(bequivalent);
+        } else {
+            tokens = 1000000000000000000;
+            equivalent = RCNequivalent;
+        }
+    }
+    // Used by collateral tests
+    uint256 public RCNequivalent;
+
+    event SetEquivalent(uint256 _equivalent);
+
+    function setEquivalent(uint256 _equivalent) external {
+        RCNequivalent = _equivalent;
+        emit SetEquivalent(_equivalent);
     }
 }
