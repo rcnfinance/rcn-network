@@ -426,82 +426,136 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             []
         )).to.eq.BN(0);
     });
-    it('Function valueCollateralToTokens, valueTokensToCollateral and collateralInTokens', async function () {
+    it('Function canWithdraw', async function () {
         const entry = await new EntryBuilder()
-            .with('rateFromRCN', bn(5).mul(WEI).div(bn(10)))
-            .with('rateToRCN', bn(2).mul(WEI))
+            .with('rateFromRCN', WEI)
+            .with('rateToRCN', WEI)
             .build();
+        await lend(entry);
 
-        expect(await collateral.collateralInTokens(
-            entry.id,
-            entryRateTokens,
-            entryRateEquivalent
-        )).to.eq.BN(await entry.convertToRCN());
+        expect(await collateral.methods['canWithdraw(uint256,uint256)'].call(
+            entry.id, // entryId,
+            0         // debtInToken
+        )).to.eq.BN(entry.entryAmount);
 
-        expect(await collateral.valueCollateralToTokens(
-            entry.id,
-            0
-        )).to.eq.BN(0);
+        const collateralRatio = await collateral.methods['collateralRatio(uint256,uint256,uint256,uint256)'](
+            entry.id,         // entryId
+            entry.loanAmount, // debtInToken
+            WEI,              // entryRateTokens
+            WEI               // entryRateEquivalent
+        );
+        const balanceDeltaRatio = await collateral.balanceDeltaRatio(
+            entry.id,         // entryId
+            entry.loanAmount, // debtInToken
+            WEI,              // entryRateTokens
+            WEI               // entryRateEquivalent
+        );
+        const calcCanWithdraw = entry.entryAmount.mul(balanceDeltaRatio).div(collateralRatio);
 
-        expect(await collateral.valueTokensToCollateral.call(
-            entry.id,
-            0
-        )).to.eq.BN(0);
+        expect(await collateral.methods['canWithdraw(uint256,uint256)'].call(
+            entry.id,        // entryId,
+            entry.loanAmount // debtInToken
+        )).to.eq.BN(calcCanWithdraw);
 
-        expect(await collateral.valueCollateralToTokens(
-            entry.id,
-            200
-        )).to.eq.BN(160);
-
-        expect(await collateral.valueTokensToCollateral.call(
-            entry.id,
-            400
-        )).to.eq.BN(500);
-
-        const entry2 = await new EntryBuilder()
-            .with('collateralToken', rcn)
-            .build();
-
-        expect(await collateral.valueCollateralToTokens(
-            entry2.id,
-            200
-        )).to.eq.BN(200);
-
-        expect(await collateral.valueTokensToCollateral.call(
-            entry2.id,
-            200
-        )).to.eq.BN(200);
+        expect(await collateral.methods['canWithdraw(uint256,uint256,uint256)'].call(
+            entry.id, // entryId,
+            WEI,      // debtRateTokens
+            WEI       // debtRateEquivalent
+        )).to.eq.BN(calcCanWithdraw);
     });
-    it('Function debtInTokens, collateralRatio, balanceDeltaRatio and canWithdraw', async function () {
+    it('Function liquidationDeltaRatio, balanceDeltaRatio', async function () {
+        const entry = await new EntryBuilder()
+            .with('rateFromRCN', WEI)
+            .with('rateToRCN', WEI)
+            .build();
+        await lend(entry);
+
+        const collateralRatio = await collateral.methods['collateralRatio(uint256,uint256,uint256,uint256)'](
+            entry.id,         // entryId
+            entry.loanAmount, // debtInToken
+            WEI,              // entryRateTokens
+            WEI               // entryRateEquivalent
+        );
+
+        expect(await collateral.liquidationDeltaRatio(
+            entry.id,         // entryId
+            entry.loanAmount, // debtInToken
+            WEI,              // entryRateTokens
+            WEI               // entryRateEquivalent
+        )).to.eq.BN(collateralRatio.sub(entry.liquidationRatio));
+
+        expect(await collateral.balanceDeltaRatio(
+            entry.id,         // entryId
+            entry.loanAmount, // debtInToken
+            WEI,              // entryRateTokens
+            WEI               // entryRateEquivalent
+        )).to.eq.BN(collateralRatio.sub(entry.balanceRatio));
+    });
+    it('Function collateralRatio', async function () {
+        const entry = await new EntryBuilder()
+            .with('rateFromRCN', WEI)
+            .with('rateToRCN', WEI)
+            .build();
+        await lend(entry);
+
+        expect(await collateral.methods['collateralRatio(uint256,uint256,uint256,uint256)'](
+            entry.id, // entryId
+            0,        // debtInToken
+            WEI,      // entryRateTokens
+            WEI       // entryRateEquivalent
+        )).to.eq.BN(0);
+
+        const calcCollateralRatio = entry.entryAmount.mul(BASE).div(entry.loanAmount);
+
+        expect(await collateral.methods['collateralRatio(uint256,uint256,uint256,uint256)'](
+            entry.id,          // entryId
+            entry.loanAmount,  // debtInToken
+            WEI,               // entryRateTokens
+            WEI                // entryRateEquivalent
+        )).to.eq.BN(calcCollateralRatio);
+
+        expect(await collateral.methods['collateralRatio(uint256,uint256,uint256)'].call(
+            entry.id, // entryId
+            WEI,      // debtRateTokens
+            WEI       // debtRateEquivalent
+        )).to.eq.BN(calcCollateralRatio);
+    });
+    it('Function collateralToTokens', async function () {
+        const amount = bn(5555);
+        expect(await collateral.collateralToTokens(
+            rcn.address,
+            0,
+            0,
+            0
+        )).to.eq.BN(0);
+
+        expect(await collateral.collateralToTokens(
+            rcn.address,
+            amount,
+            0,
+            0
+        )).to.eq.BN(amount);
+
+        const rateTokens = bn(2).mul(WEI);
+        const rateEquivalent = WEI;
+
+        const amountInTokens = rateTokens.mul(amount).div(rateEquivalent);
+        expect(await collateral.collateralToTokens(
+            Helper.address0x,
+            amount,
+            rateTokens,
+            rateEquivalent
+        )).to.eq.BN(amountInTokens);
+    });
+    it('Function debtInTokens', async function () {
         const entry = await new EntryBuilder().build();
         await lend(entry);
 
         expect(await collateral.debtInTokens(
             entry.id,
-            bn(0),
-            bn(0)
+            0,
+            0
         )).to.eq.BN(entry.loanAmount);
-
-        let calcCollateralRatio = entry.entryAmount.mul(BASE).div(entry.loanAmount);
-        expect(await collateral.collateralRatio(
-            entry.id,
-            bn(0),
-            bn(0)
-        )).to.eq.BN(calcCollateralRatio);
-
-        let calcDeltaRatio = calcCollateralRatio.sub(entry.balanceRatio);
-        expect(await collateral.balanceDeltaRatio(
-            entry.id,
-            bn(0),
-            bn(0)
-        )).to.eq.BN(calcDeltaRatio);
-
-        let calcCanWithdraw = entry.entryAmount.mul(calcDeltaRatio).div(calcCollateralRatio);
-        expect(await collateral.canWithdraw.call(
-            entry.id,
-            bn(0),
-            bn(0)
-        )).to.eq.BN(calcCanWithdraw);
 
         const rateTokens = bn(2).mul(WEI);
         const rateEquivalent = WEI;
@@ -513,26 +567,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             rateEquivalent
         )).to.eq.BN(calcDebtInTokens);
 
-        calcCollateralRatio = entry.entryAmount.mul(BASE).div(calcDebtInTokens);
-        expect(await collateral.collateralRatio(
+        expect(await collateral.debtInTokens(
             entry.id,
-            rateTokens,
-            rateEquivalent
-        )).to.eq.BN(calcCollateralRatio);
-
-        calcDeltaRatio = calcCollateralRatio.sub(entry.balanceRatio);
-        expect(await collateral.balanceDeltaRatio(
-            entry.id,
-            rateTokens,
-            rateEquivalent
-        )).to.eq.BN(calcCollateralRatio.sub(entry.balanceRatio));
-
-        calcCanWithdraw = entry.entryAmount.mul(calcDeltaRatio).div(calcCollateralRatio);
-        expect(await collateral.canWithdraw.call(
-            entry.id,
-            rateTokens,
-            rateEquivalent
-        )).to.eq.BN(calcCanWithdraw);
+            1,
+            WEI
+        )).to.eq.BN(bn(1));
     });
     describe('Functions onlyOwner', async function () {
         it('Try emergency redeem an entry without being the owner', async function () {
