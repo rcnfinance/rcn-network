@@ -564,7 +564,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _debtInToken,
             _entryRateTokens,
             _entryRateEquivalent
-        ).toInt256().sub(uint256(entries[_entryId].liquidationRatio).toInt256());
+        ).toInt256().sub(int256(entries[_entryId].liquidationRatio));
     }
 
     /**
@@ -583,7 +583,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _debtInToken,
             _entryRateTokens,
             _entryRateEquivalent
-        ).toInt256().sub(uint256(entries[_entryId].balanceRatio).toInt256());
+        ).toInt256().sub(int256(entries[_entryId].balanceRatio));
     }
 
     function collateralRatio(
