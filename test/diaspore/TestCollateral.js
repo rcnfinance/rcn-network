@@ -1114,6 +1114,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             // Assert convert pay event
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(entry.loanAmount);
             expect(ConvertPay._toAmount).to.eq.BN(entry.loanAmount);
             assert.equal(ConvertPay._oracleData, null);
@@ -1163,6 +1164,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             // Assert convert pay event
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(entry.entryAmount);
             expect(ConvertPay._toAmount).to.eq.BN(entry.entryAmount);
             assert.equal(ConvertPay._oracleData, null);
@@ -1221,6 +1223,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             // Assert convert pay event
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(closignObligationInCollateral);
             expect(ConvertPay._toAmount).to.eq.BN(closingObligationInRCN);
             assert.equal(ConvertPay._oracleData, oracleData);
@@ -1311,6 +1314,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             // Assert convert pay events
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(entry.loanAmount);
             expect(ConvertPay._toAmount).to.eq.BN(entry.loanAmount);
             assert.equal(ConvertPay._oracleData, null);
@@ -1370,6 +1374,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(CancelDebt._payTokens).to.eq.BN(entry.loanAmountRcn);
 
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(await entry.convertFromRCN(closingObligationInRCN));
             expect(ConvertPay._toAmount).to.eq.BN(closingObligationInRCN);
             assert.equal(ConvertPay._oracleData, entry.oracleData);
@@ -1429,6 +1434,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(CollateralBalance._payTokens).to.eq.BN(equilibrateAmount);
 
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(equilibrateAmount);
             expect(ConvertPay._toAmount).to.eq.BN(equilibrateAmount);
             assert.equal(ConvertPay._oracleData, null);
@@ -1498,6 +1504,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(CollateralBalance._payTokens).to.eq.BN(equilibrateAmountInToken);
 
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(equilibrateAmountInCollateral);
             expect(ConvertPay._toAmount).to.eq.BN(equilibrateAmountInToken);
             assert.equal(ConvertPay._oracleData, entry.oracleData);
@@ -1590,6 +1597,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             // _toAmount is the amount of tokens bought
             // _oracleData is used to reconstruct the operation
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(
                 ConvertPay._fromAmount,
                 'Amount sold to equilibrate and pay fees'
@@ -1606,6 +1614,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const burned = entry.toBurnFee(equilibrateAmountInToken, false);
 
             const TakeFee = events[2];
+            expect(TakeFee._entryId).to.eq.BN(entry.id);
             expect(TakeFee._burned).to.eq.BN(burned);
             expect(TakeFee._rewardTo).to.eq.BN(creator);
             expect(TakeFee._rewarded).to.eq.BN(rewarded);
@@ -1694,11 +1703,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(CancelDebt._payTokens).to.eq.BN(entry.loanAmountRcn);
 
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(entry.withFee(closingObligationInCollateral));
             expect(ConvertPay._toAmount).to.eq.BN(entry.withFee(closingObligationInRCN));
             assert.equal(ConvertPay._oracleData, entry.oracleData);
 
             const TakeFee = events[2];
+            expect(TakeFee._entryId).to.eq.BN(entry.id);
             expect(TakeFee._burned).to.eq.BN(burned);
             expect(TakeFee._rewardTo).to.eq.BN(creator);
             expect(TakeFee._rewarded).to.eq.BN(rewarded);
@@ -1772,11 +1783,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(CollateralBalance._payTokens).to.eq.BN(entry.removeFee(rcnCanPay));
 
             const ConvertPay = events[1];
+            expect(ConvertPay._entryId).to.eq.BN(entry.id);
             expect(ConvertPay._fromAmount).to.eq.BN(entry.entryAmount);
             expect(ConvertPay._toAmount).to.eq.BN(rcnCanPay);
             assert.equal(ConvertPay._oracleData, entry.oracleData);
 
             const TakeFee = events[2];
+            expect(TakeFee._entryId).to.eq.BN(entry.id);
             expect(TakeFee._burned).to.eq.BN(burned);
             expect(TakeFee._rewardTo).to.eq.BN(creator);
             expect(TakeFee._rewarded).to.eq.BN(rewarded);
