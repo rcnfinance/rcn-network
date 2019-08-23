@@ -1,7 +1,5 @@
 pragma solidity ^0.5.10;
 
-import "../../../interfaces/IERC165.sol";
-
 
 interface LoanCallback {
     function scheme() external view returns (string memory);
