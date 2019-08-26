@@ -588,21 +588,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         ).toInt256().sub(int256(entries[_entryId].balanceRatio));
     }
 
-    function collateralRatio(
-        uint256 _entryId,
-        uint256 _debtRateTokens,
-        uint256 _debtRateEquivalent
-    ) public returns (uint256) {
-        Entry storage entry = entries[_entryId];
-
-        uint256 debtInToken = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
-
-        (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
-        emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
-
-        return collateralRatio(_entryId, debtInToken, entryRateTokens, entryRateEquivalent);
-    }
-
     /**
         @param _entryId The index of entry, inside of entries array
 
