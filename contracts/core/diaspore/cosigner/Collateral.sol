@@ -288,12 +288,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
         uint256 debt = debtInTokens(entryId, debtRateTokens, debtRateEquivalent);
 
-        require(balanceDeltaRatio(
-            entryId,
-            debt,
-            entryRateTokens,
-            entryRateEquivalent
-        ) >= 0, "The entry its not collateralized");
+        require(
+            balanceDeltaRatio(
+                entryId,
+                debt,
+                entryRateTokens,
+                entryRateEquivalent
+            ) >= 0, "The entry its not collateralized"
+        );
 
 
         // Validate call from loan manager
@@ -475,7 +477,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry storage entry = entries[_entryId];
         uint256 debt = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
 
-        if(debt == 0) return 0;
+        if (debt == 0) return 0;
 
         (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
         emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
