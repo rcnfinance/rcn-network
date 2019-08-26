@@ -188,25 +188,25 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     function redeem(
         uint256 _entryId
-    ) external {
+    ) external returns(uint256) {
         // Validate ownership of collateral
         require(_isAuthorized(msg.sender, _entryId), "Sender not authorized");
 
-        _redeem(_entryId, msg.sender, false);
+        return _redeem(_entryId, msg.sender, false);
     }
 
     function emergencyRedeem(
         uint256 _entryId,
         address _to
-    ) external onlyOwner {
-        _redeem(_entryId, _to, true);
+    ) external onlyOwner returns(uint256) {
+        return _redeem(_entryId, _to, true);
     }
 
     function _redeem(
         uint256 _entryId,
         address _to,
         bool _emergency
-    ) internal {
+    ) internal returns(uint256 totalTransfer) {
         Entry storage entry = entries[_entryId];
 
         uint256 status = loanManager.getStatus(entry.debtId);
@@ -219,7 +219,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             emit Redeemed(_entryId);
         }
 
-        require(entry.token.safeTransfer(_to, entry.amount), "Error sending tokens");
+        totalTransfer = entry.amount;
+        require(entry.token.safeTransfer(_to, totalTransfer), "Error sending tokens");
 
         // Destroy ERC721 collateral token
         delete debtToEntry[entry.debtId];
@@ -229,7 +230,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function payOffDebt(
         uint256 _entryId,
         bytes calldata _oracleData
-    ) external {
+    ) external returns(uint256 payTokens) {
         require(_isAuthorized(msg.sender, _entryId), "The sender its not authorized");
         Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
@@ -238,7 +239,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 closingObligation = model.getClosingObligation(debtId);
         uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
 
-        uint256 payTokens = _convertPay(
+        payTokens = _convertPay(
             _entryId,
             entry,
             closingObligationToken,
@@ -288,12 +289,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
         uint256 debt = debtInTokens(entryId, debtRateTokens, debtRateEquivalent);
 
-        require(balanceDeltaRatio(
-            entryId,
-            debt,
-            entryRateTokens,
-            entryRateEquivalent
-        ) >= 0, "The entry its not collateralized");
+        require(
+            balanceDeltaRatio(
+                entryId,
+                debt,
+                entryRateTokens,
+                entryRateEquivalent
+            ) >= 0, "The entry its not collateralized"
+        );
 
 
         // Validate call from loan manager
@@ -475,7 +478,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry storage entry = entries[_entryId];
         uint256 debt = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
 
-        if(debt == 0) return 0;
+        if (debt == 0) return 0;
 
         (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
         emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
@@ -584,21 +587,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _entryRateTokens,
             _entryRateEquivalent
         ).toInt256().sub(int256(entries[_entryId].balanceRatio));
-    }
-
-    function collateralRatio(
-        uint256 _entryId,
-        uint256 _debtRateTokens,
-        uint256 _debtRateEquivalent
-    ) public returns (uint256) {
-        Entry storage entry = entries[_entryId];
-
-        uint256 debtInToken = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
-
-        (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
-        emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
-
-        return collateralRatio(_entryId, debtInToken, entryRateTokens, entryRateEquivalent);
     }
 
     /**
