@@ -112,11 +112,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     ) external returns (uint256 entryId) {
         require(_oracle != RateOracle(0), "Invalid oracle, cant be address 0");
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
-        uint256 totalMargincallFee = _burnFee.add(_rewardFee);
-        require(totalMargincallFee < BASE, "Fee should be lower than BASE");
-        require(totalMargincallFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
+        uint256 totalFee = _burnFee.add(_rewardFee);
+        require(totalFee < BASE, "Fee should be lower than BASE");
         require(_balanceRatio > _liquidationRatio, "The balance ratio should be greater than liquidation ratio");
         // Check underflow in previus require
+        require(totalFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
         require(loanManager.getStatus(_debtId) == 0, "Debt request should be open");
 
         entryId = entries.push(
