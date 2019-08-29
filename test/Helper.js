@@ -96,8 +96,8 @@ module.exports.assertThrow = async (promise) => {
 // the promiseFunction should be a function
 module.exports.tryCatchRevert = async (promise, message, headMsg = 'revert ') => {
     if (message === '') {
-        headMsg = headMsg.slice(0, headMsg.length - 1);
-        console.warn('    \u001b[93m\u001b[2m\u001b[1m⬐ Warning:\u001b[0m\u001b[30m\u001b[1m There is an empty revert/require message');
+        headMsg = headMsg.slice(0, -1);
+        console.log('    \u001b[93m\u001b[2m\u001b[1m⬐ Warning:\u001b[0m\u001b[30m\u001b[1m There is an empty revert/require message');
     }
     try {
         if (promise instanceof Function) {
@@ -149,7 +149,7 @@ module.exports.toEvents = async (tx, ...events) => {
    );
 
    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
-      console.warn('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
+      console.log('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
       assert.fail();
    }
    eventObjs = eventObjs.map(x => x.args);
