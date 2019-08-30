@@ -18,10 +18,9 @@ contract CollateralWETHManager is Ownable {
 
     IWETH9 public weth;
     Collateral public collateral;
-    mapping(uint256 => address) public ownerOf;
 
     modifier isTheOwner(uint256 _entryId) {
-        require(ownerOf[_entryId] == msg.sender, "Not current owner");
+        require(collateral.ownerOf(_entryId) == msg.sender, "The sender is not current owner");
         _;
     }
 
@@ -70,7 +69,7 @@ contract CollateralWETHManager is Ownable {
             _rewardFee
         );
 
-        ownerOf[entryId] = msg.sender;
+        collateral.safeTransferFrom(address(this), msg.sender, entryId);
 
         emit Created(entryId, msg.sender, msg.value);
     }
@@ -127,9 +126,5 @@ contract CollateralWETHManager is Ownable {
         _to.transfer(_amount);
     }
 
-    function claim(uint256 _entryId) external isTheOwner(_entryId) {
-        collateral.safeTransferFrom(address(this), msg.sender, _entryId);
-        delete ownerOf[_entryId];
-    }
     function () external payable { }
 }
