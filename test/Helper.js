@@ -132,7 +132,10 @@ module.exports.searchEvent = (tx, eventName) => {
 };
 
 module.exports.toEvents = async (promise, ...events) => {
-    const logs = (await promise).logs;
+    if (promise instanceof Promise) {
+        promise = (await promise);
+    }
+    const logs = promise.logs;
 
     let eventObjs = [].concat.apply(
         [], events.map(
