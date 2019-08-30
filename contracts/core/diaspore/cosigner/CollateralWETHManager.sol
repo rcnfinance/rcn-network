@@ -131,4 +131,5 @@ contract CollateralWETHManager is Ownable {
         collateral.safeTransferFrom(address(this), msg.sender, _entryId);
         delete ownerOf[_entryId];
     }
+    function () external payable { }
 }
