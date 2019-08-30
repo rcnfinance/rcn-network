@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.10;
+pragma solidity ^0.5.11;
 
 import "../../interfaces/IERC20.sol";
 import "./interfaces/Oracle.sol";
