@@ -10,6 +10,12 @@ contract CollateralWETHManager is Ownable {
     event SetWeth(IWETH9 _weth);
     event SetCollateral(Collateral _collateral);
 
+    event Created(uint256 indexed _entryId, address _sender, uint256 _amount);
+    event Deposited(uint256 indexed _entryId, address _sender, uint256 _amount);
+
+    event Redeemed(uint256 _entryId, address _to, uint256 _amount);
+    event Withdrawed(uint256 _entryId, address _to, uint256 _amount);
+
     IWETH9 public weth;
     Collateral public collateral;
     mapping(uint256 => address) public ownerOf;
@@ -65,6 +71,8 @@ contract CollateralWETHManager is Ownable {
         );
 
         ownerOf[entryId] = msg.sender;
+
+        emit Created(entryId, msg.sender, msg.value);
     }
 
     function deposit(
@@ -73,6 +81,8 @@ contract CollateralWETHManager is Ownable {
         depositApprove();
 
         collateral.deposit(_entryId, msg.value);
+
+        emit Deposited(_entryId, msg.sender, msg.value);
     }
 
     function depositApprove() internal {
@@ -94,6 +104,8 @@ contract CollateralWETHManager is Ownable {
         );
 
         withdrawTransfer(_to, _amount);
+
+        emit Withdrawed(_entryId, _to, _amount);
     }
 
     function redeem(
@@ -103,6 +115,8 @@ contract CollateralWETHManager is Ownable {
         uint256 amount = collateral.redeem(_entryId);
 
         withdrawTransfer(_to, amount);
+
+        emit Redeemed(_entryId, _to, amount);
     }
 
     function withdrawTransfer(
