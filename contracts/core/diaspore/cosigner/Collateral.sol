@@ -521,19 +521,28 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
     }
 
+    /**
+        @param _entryId The index of entry, inside of entries array
+        @param _entry The entry
+        @param _amountInToken The amount(valuate in loanManagerToken)
+            from where the fee is taken
+
+        @return The total fee taken(burn plus reward)
+    */
     function _takeFee(
         uint256 _entryId,
         Entry memory _entry,
-        uint256 _amount // TODO to doc, this amount is in loanManagerToken
+        uint256 _amountInToken
     ) internal returns(uint256 feeTaked) {
+        // Take the burn fee
         uint256 burned = _takeFeeTo(
-            _amount,
+            _amountInToken,
             _entry.burnFee,
             address(0)
         );
-
+        // Take the reward fee
         uint256 reward = _takeFeeTo(
-            _amount,
+            _amountInToken,
             _entry.rewardFee,
             msg.sender
         );
@@ -548,14 +557,22 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 reward);
     }
 
+    /**
+        @param _amountInToken The amount(valuate in loanManagerToken)
+            from where the fee is taken
+        @param _fee The fee ratio
+        @param _to The destination of the tokens
+
+        @return The total fee taken(burn plus reward)
+    */
     function _takeFeeTo(
-        uint256 _amount,
+        uint256 _amountInToken,
         uint256 _fee,
         address _to
     ) internal returns(uint256 taked) {
         if (_fee == 0) return 0;
 
-        taked = _fee.mult(_amount) / BASE;
+        taked = _fee.mult(_amountInToken) / BASE;
 
         require(loanManagerToken.transfer(_to, taked), "Error sending tokens");
     }
