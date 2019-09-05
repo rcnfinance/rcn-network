@@ -1193,7 +1193,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             // Read closing obligation
             const closingObligation = await loanManager.getClosingObligation(entry.loanId);
             const closingObligationInRCN = await entry.currencyToRCN(closingObligation);
-            const closignObligationInCollateral = divceil(closingObligationInRCN, bn(2));
+            const closingObligationInCollateral = divceil(closingObligationInRCN, bn(2));
 
             const collateralSnap = await Helper.balanceSnap(auxToken, collateral.address, 'collateral');
             const debtSnap = await Helper.balanceSnap(rcn, debtEngine.address, 'debt engine');
@@ -1218,16 +1218,16 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             // Assert convert pay event
             const ConvertPay = events[1];
             expect(ConvertPay._entryId).to.eq.BN(entry.id);
-            expect(ConvertPay._fromAmount).to.eq.BN(closignObligationInCollateral);
+            expect(ConvertPay._fromAmount).to.eq.BN(closingObligationInCollateral);
             expect(ConvertPay._toAmount).to.eq.BN(closingObligationInRCN);
             assert.equal(ConvertPay._oracleData, oracleData);
 
             // Assert entry
             const storageEntry = await collateral.entries(entry.id);
-            expect(storageEntry.amount).to.eq.BN(entry.entryAmount.sub(closignObligationInCollateral));
+            expect(storageEntry.amount).to.eq.BN(entry.entryAmount.sub(closingObligationInCollateral));
 
             // Check balances
-            await collateralSnap.requireDecrease(closignObligationInCollateral);
+            await collateralSnap.requireDecrease(closingObligationInCollateral);
             await debtSnap.requireIncrease(closingObligationInRCN);
 
             assert.isTrue((await model.getStatus.call(entry.loanId)).toString() === '2');
