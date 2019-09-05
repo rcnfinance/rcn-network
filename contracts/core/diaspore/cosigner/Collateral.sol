@@ -65,6 +65,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event ReadedOracle(RateOracle _oracle, uint256 _tokens, uint256 _equivalent);
 
     Entry[] public entries;
+    // Define when cosign the debt on requestCosign function
     mapping(bytes32 => uint256) public debtToEntry;
 
 
@@ -75,6 +76,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     LoanManager public loanManager;
     IERC20 public loanManagerToken;
 
+    // Set in create function
     struct Entry {
         RateOracle oracle;
         IERC20 token;
