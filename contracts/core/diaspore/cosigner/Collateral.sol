@@ -578,6 +578,17 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(loanManagerToken.transfer(_to, taked), "Error sending tokens");
     }
 
+    /**
+        @param _entryId The index of entry, inside of entries array
+        @param _requiredToken The required amount to pay in loanManager token
+        @param _oracleData Data of oracle to change the currency of debt
+            to Token of debt engine
+        @param _chargeFee If charge fee
+
+        @return The minimum amount valuate in collateral token of:
+            collateral required to balance the entry
+            entry amount
+    */
     function _convertPay(
         uint256 _entryId,
         uint256 _requiredToken,
