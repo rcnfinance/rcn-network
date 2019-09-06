@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "./../interfaces/Model.sol";
 import "./../interfaces/ModelDescriptor.sol";
@@ -189,7 +189,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
             uint256 debt = config.amount.add(calcInterest).add(state.interest);
             uint256 pending = min(debt, debt.add(state.punitoryInterest).sub(state.paid));
 
-            (, debt) = _calculateInterest(timestamp - max(config.dueTime, state.interestTimestamp), config.interestRatePunitory, pending);// cant underflow, check in the previus if
+            (, debt) = _calculateInterest(timestamp - max(config.dueTime, state.interestTimestamp), config.interestRatePunitory, pending);// cant overflow, check in the previus if
             calcInterest = debt.add(calcInterest);
         }
 
@@ -287,7 +287,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         state.paid = uint128(newPay);
         emit AddedPaid(id, newPay);
 
-        if (totalDebt - newPay == 0) { // check underflow in min
+        if (totalDebt - newPay == 0) { // check overflow in min
             state.status = uint8(STATUS_PAID);
             emit ChangedStatus(id, now, uint8(STATUS_PAID));
         }
@@ -316,9 +316,9 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
             uint256 endNonPunitory = min(timestamp, config.dueTime);
             if (state.interestTimestamp < endNonPunitory) {
                 if (state.paid < config.amount)
-                    pending = config.amount - state.paid;// cant underflow, check in if-condition
+                    pending = config.amount - state.paid;// cant overflow, check in if-condition
 
-                (realDelta, calculatedInterest) = _calculateInterest(endNonPunitory - state.interestTimestamp, config.interestRate, pending);// cant underflow, check in if-condition
+                (realDelta, calculatedInterest) = _calculateInterest(endNonPunitory - state.interestTimestamp, config.interestRate, pending);// cant overflow, check in if-condition
                 newInterest = calculatedInterest.add(newInterest);
                 newTimestamp = state.interestTimestamp.add(realDelta);
             }
@@ -331,7 +331,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
                 newPunitoryInterest = state.punitoryInterest;
                 pending = min(debt, debt.add(newPunitoryInterest).sub(state.paid));
 
-                (realDelta, calculatedInterest) = _calculateInterest(timestamp - startPunitory, config.interestRatePunitory, pending);// cant underflow, check in the previus if
+                (realDelta, calculatedInterest) = _calculateInterest(timestamp - startPunitory, config.interestRatePunitory, pending);// cant overflow, check in the previus if
                 newPunitoryInterest = newPunitoryInterest.add(calculatedInterest);
                 newTimestamp = startPunitory.add(realDelta);
             }

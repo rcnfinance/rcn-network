@@ -1,7 +1,8 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "./DebtEngine.sol";
 import "./interfaces/LoanApprover.sol";
+import "./interfaces/LoanCallback.sol";
 import "./interfaces/RateOracle.sol";
 import "../../interfaces/Cosigner.sol";
 import "../../utils/ImplementsInterface.sol";
@@ -14,6 +15,8 @@ contract LoanManager is BytesUtils {
     using ImplementsInterface for address;
     using IsContract for address;
     using SafeMath for uint256;
+
+    uint256 public constant GAS_CALLBACK = 300000;
 
     DebtEngine public debtEngine;
     IERC20 public token;
@@ -28,10 +31,12 @@ contract LoanManager is BytesUtils {
         address _creator,
         address _oracle,
         address _borrower,
+        address _callback,
         uint256 _salt,
         bytes _loanData,
         uint256 _expiration
     );
+
     event Approved(bytes32 indexed _id);
     event Lent(bytes32 indexed _id, address _lender, uint256 _tokens);
     event Cosigned(bytes32 indexed _id, address _cosigner, uint256 _cost);
@@ -106,6 +111,8 @@ contract LoanManager is BytesUtils {
         return debtEngine.ownerOf(uint256(_id));
     }
 
+    function getCallback(bytes32 _id) external view returns (address) { return requests[_id].callback; }
+
     struct Request {
         bool open;
         bool approved;
@@ -116,6 +123,7 @@ contract LoanManager is BytesUtils {
         address creator;
         address oracle;
         address borrower;
+        address callback;
         uint256 salt;
         bytes loanData;
     }
@@ -126,22 +134,30 @@ contract LoanManager is BytesUtils {
         address _creator,
         address _model,
         address _oracle,
+        address _callback,
         uint256 _salt,
         uint64 _expiration,
-        bytes calldata _data
-    ) external view returns (bytes32) {
-        return debtEngine.buildId2(
-            address(this),
-            _model,
-            _oracle,
-            _buildInternalSalt(
-                _amount,
-                _borrower,
-                _creator,
-                _salt,
-                _expiration
-            ),
-            _data
+        bytes memory _data
+    ) public view returns (bytes32) {
+        uint256 internalSalt = _buildInternalSalt(
+            _amount,
+            _borrower,
+            _creator,
+            _callback,
+            _salt,
+            _expiration
+        );
+
+        return keccak256(
+            abi.encodePacked(
+                uint8(2),
+                debtEngine,
+                address(this),
+                _model,
+                _oracle,
+                internalSalt,
+                _data
+            )
         );
     }
 
@@ -149,6 +165,7 @@ contract LoanManager is BytesUtils {
         uint128 _amount,
         address _borrower,
         address _creator,
+        address _callback,
         uint256 _salt,
         uint64 _expiration
     ) external pure returns (uint256) {
@@ -156,6 +173,7 @@ contract LoanManager is BytesUtils {
             _amount,
             _borrower,
             _creator,
+            _callback,
             _salt,
             _expiration
         );
@@ -172,6 +190,7 @@ contract LoanManager is BytesUtils {
             _request.amount,
             _request.borrower,
             _request.creator,
+            _request.callback,
             _request.salt,
             _request.expiration
         );
@@ -182,6 +201,7 @@ contract LoanManager is BytesUtils {
         address _model,
         address _oracle,
         address _borrower,
+        address _callback,
         uint256 _salt,
         uint64 _expiration,
         bytes calldata _loanData
@@ -189,17 +209,16 @@ contract LoanManager is BytesUtils {
         require(_borrower != address(0), "The request should have a borrower");
         require(Model(_model).validate(_loanData), "The loan data is not valid");
 
-        uint256 innerSalt = _buildInternalSalt(_amount, _borrower, msg.sender, _salt, _expiration);
-        id = keccak256(
-            abi.encodePacked(
-                uint8(2),
-                debtEngine,
-                address(this),
-                _model,
-                _oracle,
-                innerSalt,
-                _loanData
-            )
+        id = calcId(
+            _amount,
+            _borrower,
+            msg.sender,
+            _model,
+            _oracle,
+            _callback,
+            _salt,
+            _expiration,
+            _loanData
         );
 
         require(!canceledSettles[id], "The debt was canceled");
@@ -217,12 +236,24 @@ contract LoanManager is BytesUtils {
             creator: msg.sender,
             oracle: _oracle,
             borrower: _borrower,
+            callback: _callback,
             salt: _salt,
             loanData: _loanData,
             expiration: _expiration
         });
 
-        emit Requested(id, _amount, _model, msg.sender, _oracle, _borrower, _salt, _loanData, _expiration);
+        emit Requested(
+            id,
+            _amount,
+            _model,
+            msg.sender,
+            _oracle,
+            _borrower,
+            _callback,
+            _salt,
+            _loanData,
+            _expiration
+        );
 
         if (!approved) {
             // implements: 0x76ba6009 = approveRequest(bytes32)
@@ -243,7 +274,7 @@ contract LoanManager is BytesUtils {
     ) internal returns (bool approved) {
         // bytes32 expected = _id XOR keccak256("approve-loan-request");
         bytes32 expected = _id ^ 0xdfcb15a077f54a681c23131eacdfd6e12b5e099685b492d382c3fd8bfc1e9a2a;
-        (uint256 success, bytes32 result) = _safeCall(
+        (bool success, bytes32 result) = _safeCall(
             _borrower,
             abi.encodeWithSelector(
                 0x76ba6009,
@@ -251,13 +282,13 @@ contract LoanManager is BytesUtils {
             )
         );
 
-        approved = success == 1 && result == expected;
+        approved = success && result == expected;
 
         // Emit events if approve was rejected or failed
         if (approved) {
             emit ApprovedByCallback(_id);
         } else {
-            if (success == 0) {
+            if (!success) {
                 emit ApprovedError(_id, result);
             } else {
                 emit ApprovedRejected(_id, result);
@@ -324,7 +355,8 @@ contract LoanManager is BytesUtils {
         bytes memory _oracleData,
         address _cosigner,
         uint256 _cosignerLimit,
-        bytes memory _cosignerData
+        bytes memory _cosignerData,
+        bytes memory _callbackData
     ) public returns (bool) {
         Request storage request = requests[_id];
         require(request.open, "Request is no longer open");
@@ -373,6 +405,12 @@ contract LoanManager is BytesUtils {
             );
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
             request.salt = auxSalt;
+        }
+
+        // Call the loan callback
+        address callback = request.callback;
+        if (callback != address(0)) {
+            require(LoanCallback(callback).onLent.gas(GAS_CALLBACK)(_id, msg.sender, _callbackData), "Rejected by loan callback");
         }
 
         return true;
@@ -428,14 +466,15 @@ contract LoanManager is BytesUtils {
     uint256 private constant L_EXPIRATION = 8;
     uint256 private constant O_CREATOR = O_EXPIRATION + L_EXPIRATION;
     uint256 private constant L_CREATOR = 20;
-
-    uint256 private constant L_TOTAL = O_CREATOR + L_CREATOR;
+    uint256 private constant O_CALLBACK = O_CREATOR + L_CREATOR;
+    uint256 private constant L_CALLBACK = 20;
 
     function encodeRequest(
         uint128 _amount,
         address _model,
         address _oracle,
         address _borrower,
+        address _callback,
         uint256 _salt,
         uint64 _expiration,
         address _creator,
@@ -448,13 +487,15 @@ contract LoanManager is BytesUtils {
             _borrower,
             _salt,
             _expiration,
-            _creator
+            _creator,
+            _callback
         );
 
         uint256 innerSalt = _buildInternalSalt(
             _amount,
             _borrower,
             _creator,
+            _callback,
             _salt,
             _expiration
         );
@@ -476,7 +517,8 @@ contract LoanManager is BytesUtils {
         bytes memory _cosignerData,
         bytes memory _oracleData,
         bytes memory _creatorSig,
-        bytes memory _borrowerSig
+        bytes memory _borrowerSig,
+        bytes memory _callbackData
     ) public returns (bytes32 id) {
         // Validate request
         require(uint256(read(_requestData, O_EXPIRATION, L_EXPIRATION)) > now, "Loan request is expired");
@@ -520,6 +562,7 @@ contract LoanManager is BytesUtils {
             creator: address(uint256(read(_requestData, O_CREATOR, L_CREATOR))),
             oracle: address(uint256(read(_requestData, O_ORACLE, L_ORACLE))),
             borrower: address(uint256(read(_requestData, O_BORROWER, L_BORROWER))),
+            callback: address(uint256(read(_requestData, O_CALLBACK, L_CALLBACK))),
             salt: _cosigner != address(0) ? _maxCosignerCost : uint256(read(_requestData, O_SALT, L_SALT)),
             loanData: _loanData,
             expiration: uint64(uint256(read(_requestData, O_EXPIRATION, L_EXPIRATION)))
@@ -536,6 +579,12 @@ contract LoanManager is BytesUtils {
             require(Cosigner(_cosigner).requestCosign(address(this), uint256(id), _cosignerData, _oracleData), "Cosign method returned false");
             require(request.cosigner == _cosigner, "Cosigner didn't callback");
             request.salt = uint256(read(_requestData, O_SALT, L_SALT));
+        }
+
+        // Call the loan callback
+        address callback = address(uint256(read(_requestData, O_CALLBACK, L_CALLBACK)));
+        if (callback != address(0)) {
+            require(LoanCallback(callback).onLent.gas(GAS_CALLBACK)(id, msg.sender, _callbackData), "Rejected by loan callback");
         }
     }
 
@@ -660,6 +709,7 @@ contract LoanManager is BytesUtils {
             amount,
             borrower,
             creator,
+            address(uint256(read(_requestData, O_CALLBACK, L_CALLBACK))),
             salt,
             expiration
         );
@@ -677,6 +727,7 @@ contract LoanManager is BytesUtils {
         uint128 _amount,
         address _borrower,
         address _creator,
+        address _callback,
         uint256 _salt,
         uint64 _expiration
     ) internal pure returns (uint256) {
@@ -686,6 +737,7 @@ contract LoanManager is BytesUtils {
                     _amount,
                     _borrower,
                     _creator,
+                    _callback,
                     _salt,
                     _expiration
                 )
@@ -753,23 +805,21 @@ contract LoanManager is BytesUtils {
         return tokens.mult(_amount) / equivalent;
     }
 
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
+     * relaxing the requirement on the return value
+     * @param _contract The borrower contract that receives the approveRequest(bytes32) call
+     * @param _data The call data
+     * @return True if the call not reverts and the result of the call
+     */
     function _safeCall(
         address _contract,
         bytes memory _data
-    ) internal returns (uint256 success, bytes32 result) {
-        assembly {
-            let x := mload(0x40)
-            success := call(
-                            gas,                 // Send almost all gas
-                            _contract,            // To addr
-                            0,                    // Send ETH
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
+    ) internal returns (bool success, bytes32 result) {
+        bytes memory returnData;
+        (success, returnData) = _contract.call(_data);
 
-            result := mload(x)
-        }
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (bytes32));
     }
 }

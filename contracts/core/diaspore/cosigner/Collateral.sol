@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "../../../interfaces/IERC20.sol";
 import "../../../interfaces/Cosigner.sol";
@@ -65,6 +65,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event ReadedOracle(RateOracle _oracle, uint256 _tokens, uint256 _equivalent);
 
     Entry[] public entries;
+    // Define when cosign the debt on requestCosign function
     mapping(bytes32 => uint256) public debtToEntry;
 
 
@@ -75,6 +76,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     LoanManager public loanManager;
     IERC20 public loanManagerToken;
 
+    // Set in create function
     struct Entry {
         RateOracle oracle;
         IERC20 token;
@@ -351,7 +353,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // Convert the tokens of the entry to LoanManager Token and pay the debt
         payTokens = _convertPay(
             _entryId,
-            entry,
             closingObligationToken,
             _oracleData,
             false
@@ -488,7 +489,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             // Convert the tokens of the entry to LoanManager Token and pay the debt
             uint256 payTokens = _convertPay(
                 entryId,
-                entry,
                 obligationToken,
                 _oracleData,
                 true
@@ -509,7 +509,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             // and substract from total collateral
             uint256 payTokens = _convertPay(
                 entryId,
-                entry,
                 tokenRequiredToTryBalance,
                 _oracleData,
                 true
@@ -521,20 +520,31 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
     }
 
+    /**
+        @param _entryId The index of entry, inside of entries array
+        @param _burnFee The entry burn fee
+        @param _rewardFee The entry reward fee
+        @param _amountInToken The amount(valuate in loanManagerToken)
+            from where the fee is taken
+
+        @return The total fee taken(burn plus reward)
+    */
     function _takeFee(
         uint256 _entryId,
-        Entry memory _entry,
-        uint256 _amount // TODO to doc, this amount is in loanManagerToken
+        uint256 _burnFee,
+        uint256 _rewardFee,
+        uint256 _amountInToken
     ) internal returns(uint256 feeTaked) {
+        // Take the burn fee
         uint256 burned = _takeFeeTo(
-            _amount,
-            _entry.burnFee,
+            _amountInToken,
+            _burnFee,
             address(0)
         );
-
+        // Take the reward fee
         uint256 reward = _takeFeeTo(
-            _amount,
-            _entry.rewardFee,
+            _amountInToken,
+            _rewardFee,
             msg.sender
         );
 
@@ -548,31 +558,50 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 reward);
     }
 
+    /**
+        @param _amountInToken The amount(valuate in loanManagerToken)
+            from where the fee is taken
+        @param _fee The fee ratio
+        @param _to The destination of the tokens
+
+        @return The total fee taken(burn plus reward)
+    */
     function _takeFeeTo(
-        uint256 _amount,
+        uint256 _amountInToken,
         uint256 _fee,
         address _to
     ) internal returns(uint256 taked) {
         if (_fee == 0) return 0;
 
-        taked = _fee.mult(_amount) / BASE;
+        taked = _fee.mult(_amountInToken) / BASE;
 
         require(loanManagerToken.transfer(_to, taked), "Error sending tokens");
     }
 
+    /**
+        @param _entryId The index of entry, inside of entries array
+        @param _requiredToken The required amount to pay in loanManager token
+        @param _oracleData Data of oracle to change the currency of debt
+            to Token of debt engine
+        @param _chargeFee If charge fee
+
+        @return The minimum amount valuate in collateral token of:
+            collateral required to balance the entry
+            entry amount
+    */
     function _convertPay(
         uint256 _entryId,
-        Entry storage _entry,
-        uint256 _requiredToken, // in loanManager token
+        uint256 _requiredToken,
         bytes memory _oracleData,
         bool _chargeFee
     ) internal returns(uint256 paidTokens) {
+        Entry storage entry = entries[_entryId];
         // Target buy
         uint256 targetBuy;
 
         if (_chargeFee) {
             targetBuy = _requiredToken.mult(
-                BASE + _entry.rewardFee + _entry.burnFee
+                BASE + entry.rewardFee + entry.burnFee
             ) / BASE;
         } else {
             targetBuy = _requiredToken;
@@ -580,18 +609,18 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         // Use collateral to buy tokens
         (uint256 bought, uint256 sold) = converter.safeConvertToMax(
-            _entry.token,         // Token to sell
+            entry.token,         // Token to sell
             loanManagerToken,     // Token to buy
-            _entry.amount,        // Amount to sell
+            entry.amount,        // Amount to sell
             targetBuy             // Target buy amount in buy token
         );
 
-        uint256 feeTaked = _chargeFee ? _takeFee(_entryId, _entry, Math.min(bought, _requiredToken)) : 0;
+        uint256 feeTaked = _chargeFee ? _takeFee(_entryId, entry.burnFee, entry.rewardFee, Math.min(bought, _requiredToken)) : 0;
         uint256 tokensToPay = Math.min(bought, targetBuy).sub(feeTaked);
 
         // Pay debt
         (, paidTokens) = loanManager.safePayToken(
-            _entry.debtId,
+            entry.debtId,
             tokensToPay,
             address(this),
             _oracleData
@@ -609,7 +638,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             sold = tokensToPay - paidTokens;
             bought = converter.safeConvertFrom(
                 loanManagerToken,
-                _entry.token,
+                entry.token,
                 sold,
                 0
             );
@@ -618,7 +647,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             bought = 0;
         }
 
-        _entry.amount = _entry.amount.sub(sold).add(bought);
+        entry.amount = entry.amount.sub(sold).add(bought);
     }
 
     // Collateral methods
