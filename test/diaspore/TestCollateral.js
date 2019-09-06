@@ -114,6 +114,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     model.address,       // Model
                     this.oracle.address, // Oracle
                     borrower,            // Borrower
+                    Helper.address0x,    // Callback
                     salt,                // salt
                     expiration,          // Expiration
                     loanData,            // Loan data
@@ -330,6 +331,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             collateral.address,         // Collateral cosigner address
             bn(0),                      // Collateral cosigner cost
             Helper.toBytes32(entry.id), // Collateral ID reference
+            [],                         // Callback data
             { from: lender }
         );
 
@@ -739,6 +741,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     collateral.address,         // Collateral cosigner address
                     bn(0),                      // Collateral cosigner cost
                     Helper.toBytes32(entry.id), // Collateral ID reference
+                    [],                         // Callback data
                     { from: lender }
                 ),
                 'The entry its not collateralized'
