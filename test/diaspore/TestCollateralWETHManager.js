@@ -82,6 +82,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 model.address,     // Model
                 Helper.address0x,  // Oracle
                 borrower,          // Borrower
+                Helper.address0x,  // Callback
                 salt,              // salt
                 expiration,        // Expiration
                 loanData,          // Loan data
