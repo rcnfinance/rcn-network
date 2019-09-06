@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "../../contracts/utils/SafeMath.sol";
 
@@ -9,8 +9,13 @@ contract StandardToken {
     using SafeMath for uint256;
 
     uint256 public totalSupply;
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
+    // ERC20 events don't have an indexed _value, Trufffle has a bug when decoding
+    // events, and signatures and indexes can't be mixed
+    // Temporarily change the ERC20 to indexed to match the ERC721 event
+    // remove the indexed _value when the Truffle issue is fixed
+    // ref https://github.com/trufflesuite/truffle/issues/2179
+    event Transfer(address indexed _from, address indexed _to, uint256 indexed _value);
+    event Approval(address indexed _owner, address indexed _spender, uint256 indexed _value);
 
     function transfer(address _to, uint256 _value) public returns (bool success) {
         if (balances[msg.sender] >= _value) {

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "../../contracts/commons/ERC721Base.sol";
 
