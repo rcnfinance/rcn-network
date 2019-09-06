@@ -1,3 +1,8 @@
+const BN = web3.utils.BN;
+const expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
+
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
