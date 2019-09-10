@@ -475,9 +475,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 entryId = debtToEntry[debtId];
         require(entryId != 0, "The loan dont lent");
 
-        // Load collateral entry
-        Entry storage entry = entries[entryId];
-
         Model model = Model(loanManager.getModel(_debtId));
         uint256 dueTime = model.getDueTime(debtId);
 
