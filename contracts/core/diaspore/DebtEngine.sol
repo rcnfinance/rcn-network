@@ -109,6 +109,14 @@ contract DebtEngine is ERC721Base, Ownable {
         _setURIProvider(_provider);
     }
 
+    function setName(string calldata _name) external onlyOwner {
+        _setName(_name);
+    }
+
+    function setSymbol(string calldata _symbol) external onlyOwner {
+        _setSymbol(_symbol);
+    }
+
     function create(
         Model _model,
         address _owner,
