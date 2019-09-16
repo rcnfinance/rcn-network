@@ -273,6 +273,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             assert.equal(await loanManager.ownerOf(id), lender);
             assert.equal(await loanManager.methods['ownerOf(bytes32)'](id), lender);
+
+            assert.equal(await loanManager.getModel(id), model.address);
+            assert.equal(await loanManager.methods['getModel(bytes32)'](id), model.address);
         });
     });
 
