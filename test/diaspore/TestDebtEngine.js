@@ -64,21 +64,21 @@ contract('Test DebtEngine Diaspore', function (accounts) {
     });
     describe('Update name and symbol', function () {
         it('Should update name of NFT', async function () {
-            debtEngine = await DebtEngine.new(rcn.address, { from: accounts[2] });
+            const debtEngine = await DebtEngine.new(rcn.address, { from: accounts[2] });
             await debtEngine.setName('New name for NFT', { from: accounts[2] });
             expect(await debtEngine.name()).to.be.equal('New name for NFT');
         });
         it('Should update symbol of NFT', async function () {
-            debtEngine = await DebtEngine.new(rcn.address, { from: accounts[2] });
+            const debtEngine = await DebtEngine.new(rcn.address, { from: accounts[2] });
             await debtEngine.setSymbol('SYM2', { from: accounts[2] });
             expect(await debtEngine.symbol()).to.be.equal('SYM2');
         });
         it('Should fail update name of NFT if callers is not the owner', async function () {
-            debtEngine = await DebtEngine.new(rcn.address, { from: accounts[2] });
+            const debtEngine = await DebtEngine.new(rcn.address, { from: accounts[2] });
             await Helper.tryCatchRevert(debtEngine.setName('New name for NFT', { from: accounts[1] }), 'The owner should be the sender');
         });
         it('Should fail update symbol of NFT if callers is not the owner', async function () {
-            debtEngine = await DebtEngine.new(rcn.address, { from: accounts[2] });
+            const debtEngine = await DebtEngine.new(rcn.address, { from: accounts[2] });
             await Helper.tryCatchRevert(debtEngine.setSymbol('New name for NFT', { from: accounts[1] }), 'The owner should be the sender');
         });
     });
