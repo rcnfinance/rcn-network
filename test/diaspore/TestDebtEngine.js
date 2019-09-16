@@ -154,8 +154,12 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(debt.error, false);
             expect(debt.balance).to.eq.BN('0');
             assert.equal(debt.model, testModel.address);
+            assert.equal(await debtEngine.getModel(calcId), testModel.address);
             assert.equal(debt.creator, creator);
+            assert.equal(await debtEngine.getCreator(calcId), creator);
             assert.equal(debt.oracle, Helper.address0x);
+            assert.equal(await debtEngine.getOracle(calcId), Helper.address0x);
+            assert.equal(await debtEngine.getError(calcId), false);
 
             assert.equal(await debtEngine.ownerOf(calcId), owner);
 
@@ -704,6 +708,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 data
             ));
 
+            assert.equal(await debtEngine.getOracle(id), oracle.address);
+
             // 1 ETH WEI = 6000 RCN WEI
             const oracleTokens = bn('6000');
             const oracleEquivalent = bn('1');
@@ -914,6 +920,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('100');
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ERROR);
+            expect(await debtEngine.getError(id)).to.be.equal(true);
             expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Remove the flag

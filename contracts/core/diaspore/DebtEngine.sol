@@ -105,6 +105,26 @@ contract DebtEngine is ERC721Base, Ownable {
         require(address(_token).isContract(), "Token should be a contract");
     }
 
+    function getError(bytes32 _id) external view returns (bool) {
+        return debts[_id].error;
+    }
+
+    function getBalance(bytes32 _id) external view returns (uint128) {
+        return debts[_id].balance;
+    }
+
+    function getModel(bytes32 _id) external view returns (address) {
+        return address(debts[_id].model);
+    }
+
+    function getCreator(bytes32 _id) external view returns (address) {
+        return debts[_id].creator;
+    }
+
+    function getOracle(bytes32 _id) external view returns (address) {
+        return debts[_id].oracle;
+    }
+
     function setURIProvider(URIProvider _provider) external onlyOwner {
         _setURIProvider(_provider);
     }
