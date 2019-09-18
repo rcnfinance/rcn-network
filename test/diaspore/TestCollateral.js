@@ -956,7 +956,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await lend(entry);
 
-            await rcn.setBalance(converter.address, bn(2).pow(bn(40)));// TODO change
+            await rcn.setBalance(converter.address, bn(2).pow(bn(40)));
 
             // Snaps before claim pay
             let collateralSnap = await Helper.balanceSnap(auxToken, collateral.address, 'collateral');
@@ -1187,7 +1187,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const entry = await new EntryBuilder()
                 .with('entryAmount', bn(1000))
                 .with('loanAmount', bn(100))
-                .with('rateFromRCN', WEI.mul(bn(2)))
+                .with('rateFromRCN', WEI.div(bn(2)))
                 .with('rateToRCN', WEI.mul(bn(2)))
                 .build();
 
@@ -1910,7 +1910,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateralToTokenRate = bn(collateralToTokenRate * 10000).mul(WEI).div(BASE);
                 await converter.setRate(auxToken.address, rcn.address, collateralToTokenRate);
 
-                const collateralInToken = await converter.getReturn(auxToken.address, rcn.address, entryAmount);
+                const collateralInToken = await converter.getPriceConvertFrom(auxToken.address, rcn.address, entryAmount);
                 const collateralRatio = collateralInToken.mul(BASE).div(debtRCN);
                 const liquidationDeltaRatio = collateralRatio.sub(liquidationRatioLimit);
                 const balanceDeltaRatio = collateralRatio.sub(balanceRatioLimit);
@@ -1933,7 +1933,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 const requiredTokenPay = await calcTokenRequiredToTryBalance();
                 const newDebt = debtRCN.sub(requiredTokenPay);
                 const newCollateral = entryAmount.sub(requiredTokenPay);
-                const newCollateralInToken = await converter.getReturn(auxToken.address, rcn.address, newCollateral);
+                const newCollateralInToken = await converter.getPriceConvertFrom(auxToken.address, rcn.address, newCollateral);
                 const newCollateralRatio = newDebt.isZero() ? null : divceil(newCollateralInToken.mul(BASE), newDebt);
                 const collateralized = newCollateralRatio === null ? true : newCollateralRatio.gte(liquidationRatioLimit) !== -1;
 

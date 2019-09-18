@@ -16,71 +16,71 @@ library SafeTokenConverter {
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 _fromAmount,
-        uint256 _minReturn
-    ) internal returns (uint256 amount) {
-        require(_fromToken.approve(address(_converter), _fromAmount), "Fail approve");
+        uint256 _minReceive
+    ) internal returns (uint256 received) {
+        require(_fromToken.safeApprove(address(_converter), _fromAmount), "error approving converter");
         uint256 prevToBalance = _toToken.balanceOf(address(this));
 
-        amount = _converter.convertFrom(
+        _converter.convertFrom(
             _fromToken,
             _toToken,
             _fromAmount,
-            _minReturn
+            _minReceive
         );
 
-        require(_fromToken.clearApprove(address(_converter)), "Fail clearApprove");
-        require(amount >= _minReturn, "Should not return less than the _minReturn");
-        require(amount <= _toToken.balanceOf(address(this)).sub(prevToBalance), "The return its low");
+        require(_fromToken.clearApprove(address(_converter)), "error clearing approve");
+        received = _toToken.balanceOf(address(this)).sub(prevToBalance);
+        require(received >= _minReceive, "_minReceived not reached");
     }
 
     function safeConvertTo(
         TokenConverter _converter,
         IERC20 _fromToken,
         IERC20 _toToken,
-        uint256 _maxPull,
-        uint256 _return
-    ) internal returns (uint256 sold) {
-        require(_fromToken.approve(address(_converter), _maxPull), "Fail approve");
+        uint256 _toAmount,
+        uint256 _maxSpend
+    ) internal returns (uint256 spend) {
+        require(_fromToken.safeApprove(address(_converter), _maxSpend), "error approving converter");
 
         uint256 prevFromBalance = _fromToken.balanceOf(address(this));
         uint256 prevToBalance = _toToken.balanceOf(address(this));
 
-        sold = _converter.convertTo(
+        _converter.convertTo(
             _fromToken,
             _toToken,
-            _maxPull,
-            _return
+            _toAmount,
+            _maxSpend
         );
 
-        require(_fromToken.clearApprove(address(_converter)), "Fail clearApprove");
-        require(_maxPull >= sold, "Should not pull more than the _maxPull");
-        require(_return <= _toToken.balanceOf(address(this)).sub(prevToBalance), "The return should be less than the transfer amount");
-        require(sold == prevFromBalance.sub(_fromToken.balanceOf(address(this))), "The sold and the transfer amount should be equal");
+        require(_fromToken.clearApprove(address(_converter)), "error clearing approve");
+        spend = prevFromBalance.sub(_fromToken.balanceOf(address(this)));
+        require(spend <= _maxSpend, "_maxSpend exceeded");
+        require(_toToken.balanceOf(address(this)).sub(prevToBalance) >= _toAmount, "_toAmount not received");
     }
 
     function safeConvertToMax(
         TokenConverter _converter,
         IERC20 _fromToken,
         IERC20 _toToken,
-        uint256 _maxPull,
-        uint256 _return
-    ) internal returns (uint256 bought, uint256 sold) {
-        uint256 maxReturn = _converter.getReturn(_fromToken, _toToken, _maxPull);
+        uint256 _toAmount,
+        uint256 _maxSpend
+    ) internal returns (uint256 received, uint256 spend) {
+        uint256 maxReceive = _converter.getPriceConvertFrom(_fromToken, _toToken, _maxSpend);
 
-        if (maxReturn < _return) {
-            sold = _maxPull;
-            bought = _converter.safeConvertFrom(
+        if (maxReceive < _toAmount) {
+            spend = _maxSpend;
+            received = _converter.safeConvertFrom(
                 _fromToken,
                 _toToken,
-                _maxPull,
-                0
+                _maxSpend,
+                maxReceive
             );
 
-            if (bought > _return) {
+            if (received > _toAmount) {
                 // Ups... how could this happen
-                uint256 diff = bought - _return;
-                bought = bought.sub(diff);
-                sold = sold.sub(
+                uint256 diff = received - _toAmount;
+                received = received.sub(diff);
+                spend = spend.sub(
                     _converter.safeConvertFrom(
                         _toToken,
                         _fromToken,
@@ -88,18 +88,18 @@ library SafeTokenConverter {
                         0
                     )
                 );
-            }
 
-            require(_maxPull >= sold, "Should not pull more than the _maxPull");
+                require(_maxSpend >= spend, "Should not pull more than the _maxSpend");
+            }
         } else {
-            sold = _converter.safeConvertTo(
+            spend = _converter.safeConvertTo(
                 _fromToken,
                 _toToken,
-                _maxPull,
-                _return
+                _toAmount,
+                _maxSpend
             );
 
-            bought = _return;
+            received = _toAmount;
         }
     }
 }
