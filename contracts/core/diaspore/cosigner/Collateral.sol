@@ -606,10 +606,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         // Use collateral to buy tokens
         (uint256 bought, uint256 sold) = converter.safeConvertToMax(
-            entry.token,         // Token to sell
-            loanManagerToken,     // Token to buy
-            entry.amount,        // Amount to sell
-            targetBuy             // Target buy amount in buy token
+            entry.token,      // Token to sell
+            loanManagerToken, // Token to buy
+            targetBuy,        // Target buy amount in buy token
+            entry.amount      // Max amount to sell in sell token
         );
 
         uint256 feeTaked = _chargeFee ? _takeFee(_entryId, entry.burnFee, entry.rewardFee, Math.min(bought, _requiredToken)) : 0;
