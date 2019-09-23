@@ -324,7 +324,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         delete entries[_entryId];
     }
 
-
     /**
         @notice Pay a debt with the entry balance, only an authorized can be use this function
 
