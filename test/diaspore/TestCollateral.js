@@ -82,6 +82,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             this.liquidationRatio = rand(BASE, 20000);
             this.balanceRatio = rand(this.liquidationRatio.add(this.burnFee).add(this.rewardFee), 30000);
             this.collateralToken = auxToken;
+            this.maxDeltaPriceRatio = 1000;
         }
 
         with (attr, value) {
@@ -153,6 +154,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     this.balanceRatio,            // balanceRatio
                     this.burnFee,                 // burnFee
                     this.rewardFee,               // rewardFee
+                    this.maxDeltaPriceRatio,      // maxDeltaPriceRatio
                     { from: this.createFrom }     // sender
                 ),
                 'Created'
@@ -630,10 +632,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     Helper.address0x, // entry oracle
                     rcn.address,      // token
                     0,                // amount
-                    bn(15000),        // liquidationRatio
-                    bn(20000),        // balanceRatio
-                    bn(0),            // burnFee
-                    bn(0),            // rewardFee
+                    15000,            // liquidationRatio
+                    20000,            // balanceRatio
+                    0,                // burnFee
+                    0,                // rewardFee
+                    0,                // maxDeltaPriceRatio
                     { from: creator }
                 ),
                 'Invalid oracle, cant be address 0'
@@ -708,10 +711,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     oracle.address,   // entry oracle
                     auxToken.address, // token
                     1,                // amount
-                    bn(15000),        // liquidationRatio
-                    bn(20000),        // balanceRatio
-                    bn(0),            // burnFee
-                    bn(0),            // rewardFee
+                    15000,            // liquidationRatio
+                    20000,            // balanceRatio
+                    0,                // burnFee
+                    0,                // rewardFee
+                    0,                // maxDeltaPriceRatio
                     { from: creator }
                 ),
                 'Error pulling tokens'
@@ -1249,24 +1253,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     { from: lender }
                 ),
                 'The sender its not authorized'
-            );
-
-            await collateralSnap.requireConstant();
-            await debtSnap.requireConstant();
-        });
-        it('Try pay off a non existing debt', async function () {
-            const entry = await new EntryBuilder().build();
-
-            const collateralSnap = await Helper.balanceSnap(auxToken, collateral.address, 'collateral');
-            const debtSnap = await Helper.balanceSnap(rcn, debtEngine.address, 'debt engine');
-
-            await Helper.tryCatchRevert(
-                () => collateral.payOffDebt(
-                    entry.id,
-                    [],
-                    { from: creator }
-                ),
-                'Debt does not exist'
             );
 
             await collateralSnap.requireConstant();
@@ -1829,6 +1815,45 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
         });
     });
+    describe('Try do front-running', function () {
+        it('With low rate', frontRunningTest(1000, WEI.div(bn(2))));
+        it('With high rate', frontRunningTest(1000, WEI.mul(bn(2))));
+        it('T0', frontRunningTest(0, WEI.div(bn(2))));
+        it('T1', frontRunningTest(0, WEI.mul(bn(2))));
+        it('T3', frontRunningTest(9999, WEI.div(bn(2))));
+        it('T4', frontRunningTest(4999, WEI.mul(bn(2))));
+
+        function frontRunningTest (
+            maxDeltaPriceRatio,
+            rcnToEntryRate
+        ) {
+            return async () => {
+                const entry = await new EntryBuilder()
+                    .with('entryAmount', bn(1000000000))
+                    .with('loanAmount', bn(10000))
+                    .with('burnFee', bn(0))
+                    .with('rewardFee', bn(0))
+                    .with('maxDeltaPriceRatio', maxDeltaPriceRatio)
+                    .build();
+
+                await converter.setRate(rcn.address, entry.collateralToken.address, rcnToEntryRate);
+
+                await lend(entry);
+
+                await rcn.setBalance(converter.address, bn(2).pow(bn('40')));
+
+                await Helper.tryCatchRevert(
+                    () => collateral.payOffDebt(
+                        entry.id,
+                        [],
+                        { from: creator }
+                    ),
+                    'The delta price its to high'
+                );
+                //assert.isTrue(false)
+            };
+        };
+    });
     describe('Functional test', function () {
         const ratesMsg = [
             'Debt in Token, debt Token and collateral Token are the same',
@@ -1852,33 +1877,31 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         // Debt in Token
         it('Test 4: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
             cTest(1, 1, 15000, 20000, 200, 450, 2));
-        it('Test 5: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[2],
-            cTest(1, 1, 15000, 20000, 300, 600, 0.50));
-        it('Test 6: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+        it('Test 5: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
             cTest(1, 1, 90000, 100000, 2000, 6000, 0.50));
-        it('Test 7: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+        it('Test 6: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
             cTest(1, 1, 15000, 20000, 200, 201, 2.00));
-        it('Test 8: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[1],
+        it('Test 7: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[1],
             cTest(1, 1, 15000, 20000, 310, 600, 0.50));
-        it('Test 9: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+        it('Test 8: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
             cTest(1, 1, 15000, 20000, 310, 930, 2.00));
-        it('Test 10: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
+        it('Test 9: ' + ratesMsg[1] + ', ' + 'Path: ' + paths[0],
             cTest(1, 1, 15000, 20000, 310, 930, 0.40));
         // Collateral in Token
-        it('Test 11: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
+        it('Test 10: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
             cTest(5, 1, 12345, 15678, 100, 600, 1.00));
-        it('Test 12: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
+        it('Test 11: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
             cTest(2, 7, 16500, 20000, 100, 600, 1.00));
-        it('Test 13: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
+        it('Test 12: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[0],
             cTest(1, 2, 11000, 20000, 100, 600, 1.00));
-        it('Test 14: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[1],
+        it('Test 13: ' + ratesMsg[2] + ', ' + 'Path: ' + paths[1],
             cTest(1, 2, 11000, 20000, 1000, 100, 1.00));
 
-        it('Test 15: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[1],
+        it('Test 14: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[1],
             cTest(1, 2, 11000, 20000, 1000, 100, 0.50));
-        it('Test 16: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[0],
+        it('Test 15: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[0],
             cTest(1, 4, 11000, 20000, 4000, 1500, 1.50));
-        it('Test 17: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[0],
+        it('Test 16: ' + ratesMsg[3] + ', ' + 'Path: ' + paths[0],
             cTest(4, 1, 11000, 20000, 1500, 8000, 1.50));
 
         // Converter error: When the collateral calculate collateralToPay, use valueTokensToCollateral and the Converter
@@ -1992,7 +2015,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 const _canWithdraw = await collateral.methods['canWithdraw(uint256,uint256,uint256)'].call(entry.id, tokens, equivalent);
                 expect(_canWithdraw).to.eq.BN(canWithdraw);
 
-                const _collateralToPay = await collateral.getTokenRequiredToTryBalance.call(entry.id, tokens, equivalent);
+                const _collateralToPay = await collateral.getTokenRequiredToTryBalance.call(
+                    entry.id,
+                    tokens,
+                    equivalent,
+                    entry.rateToRCN,
+                    WEI
+                );
                 expect(_collateralToPay).to.eq.BN(requiredTokenPay);
 
                 await auxToken.setBalance(converter.address, bn(0));
@@ -2062,7 +2091,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 await rcn.setBalance(converter.address, closingObligationInRCN);
                 await auxToken.setBalance(converter.address, bn(0));
 
-                await collateral.claim(loanManager.address, entry.loanId, entry.oracleData);
+                if (!(await collateral.entries(entry.id)).amount.eq(bn(0)))
+                    await collateral.claim(loanManager.address, entry.loanId, entry.oracleData);
 
                 const newCollateralAmount = (await collateral.entries(entry.id)).amount;
                 if (canPayAllDebt) {
