@@ -914,7 +914,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     bn(1),
                     lender
                 ),
-                'Sender not authorized'
+                'msg.sender Not authorized'
             );
 
             await collateralSnap.requireConstant();
@@ -1003,7 +1003,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     entry.id,
                     { from: borrower }
                 ),
-                'Sender not authorized'
+                'msg.sender Not authorized'
             );
         });
         it('Try redeem an entry with ongoing loan', async function () {
@@ -1252,7 +1252,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: lender }
                 ),
-                'The sender its not authorized'
+                'msg.sender Not authorized'
             );
 
             await collateralSnap.requireConstant();

@@ -224,10 +224,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         address _to,
         uint256 _amount,
         bytes calldata _oracleData
-    ) external {
-        // Validate ownership of collateral
-        require(_isAuthorized(msg.sender, _entryId), "Sender not authorized");
-
+    ) external onlyAuthorized(_entryId) {
         Entry storage entry = entries[_entryId];
 
         if (debtToEntry[entry.debtId] != 0) { // The entry is cosigned
@@ -261,10 +258,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     */
     function redeem(
         uint256 _entryId
-    ) external returns(uint256) {
-        // Validate ownership of collateral
-        require(_isAuthorized(msg.sender, _entryId), "Sender not authorized");
-
+    ) external onlyAuthorized(_entryId) returns(uint256) {
         return _redeem(_entryId, msg.sender, false);
     }
 
@@ -343,9 +337,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function payOffDebt(
         uint256 _entryId,
         bytes calldata _oracleData
-    ) external returns(uint256 payTokens) {
-        // Validate ownership of collateral
-        require(_isAuthorized(msg.sender, _entryId), "The sender its not authorized");
+    ) external onlyAuthorized(_entryId) returns(uint256 payTokens) {
         Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
         Model model = Model(loanManager.getModel(uint256(debtId)));
