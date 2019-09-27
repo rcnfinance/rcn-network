@@ -69,7 +69,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     // Define when cosign the debt on requestCosign function
     mapping(bytes32 => uint256) public debtToEntry;
 
-
     // Can change
     string private iurl;
     TokenConverter public converter;
