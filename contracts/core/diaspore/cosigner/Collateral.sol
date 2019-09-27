@@ -49,6 +49,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event Started(uint256 indexed _entryId);
 
+    event SetMaxDeltaPriceRatio(uint256 indexed _entryId, address _sender, uint256 _maxDeltaPriceRatio);
+
     event PayOffDebt(uint256 indexed _entryId, uint256 _closingObligationToken, uint256 _payTokens);
     event CancelDebt(uint256 indexed _entryId, uint256 _obligationInToken, uint256 _payTokens);
     event CollateralBalance(uint256 indexed _entryId, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
@@ -189,6 +191,21 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _rewardFee,
             _maxDeltaPriceRatio
         );
+    }
+
+    /**
+        @notice Set a new max delta price ratio
+
+        @param _entryId The index of entry, inside of entries array
+        @param _maxDeltaPriceRatio The max delta between the price of entry oracle vs converter oracle
+    */
+    function setMaxDeltaPriceRatio(
+        uint256 _entryId,
+        uint256 _maxDeltaPriceRatio
+    ) external onlyAuthorized(_entryId) {
+        entries[_entryId].maxDeltaPriceRatio = uint32(_maxDeltaPriceRatio);
+
+        emit SetMaxDeltaPriceRatio(_entryId, msg.sender, _maxDeltaPriceRatio);
     }
 
     /**
