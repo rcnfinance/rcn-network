@@ -178,7 +178,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(entry.debtId, this.loanId);
             expect(entry.amount).to.eq.BN(this.entryAmount);
 
-            // Owner and balance of colalteral
+            // Owner and balance of collateral
             await creatorSnap.requireDecrease(this.entryAmount);
             await collateralSnap.requireIncrease(this.entryAmount);
             assert.equal(await collateral.ownerOf(this.id), creator);
@@ -630,10 +630,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     Helper.address0x, // entry oracle
                     rcn.address,      // token
                     0,                // amount
-                    bn(15000),        // liquidationRatio
-                    bn(20000),        // balanceRatio
-                    bn(0),            // burnFee
-                    bn(0),            // rewardFee
+                    15000,            // liquidationRatio
+                    20000,            // balanceRatio
+                    0,                // burnFee
+                    0,                // rewardFee
                     { from: creator }
                 ),
                 'Invalid oracle, cant be address 0'
@@ -708,10 +708,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     oracle.address,   // entry oracle
                     auxToken.address, // token
                     1,                // amount
-                    bn(15000),        // liquidationRatio
-                    bn(20000),        // balanceRatio
-                    bn(0),            // burnFee
-                    bn(0),            // rewardFee
+                    15000,            // liquidationRatio
+                    20000,            // balanceRatio
+                    0,                // burnFee
+                    0,                // rewardFee
                     { from: creator }
                 ),
                 'Error pulling tokens'
@@ -2072,5 +2072,5 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 }
             };
         };
-    });
+    })
 });

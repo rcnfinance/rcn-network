@@ -543,7 +543,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 _entryId,
                 burned,
                 msg.sender,
-                reward);
+                reward
+            );
     }
 
     /**
@@ -805,7 +806,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _entryRateTokens,
         uint256 _entryRateEquivalent
     ) public view returns (uint256) {
-        // if the debt amount its 0 the collateal ratio its 0
+        // if the debt amount its 0 the collateral ratio its 0
         if (_debtInToken == 0) return 0;
 
         Entry storage entry = entries[_entryId];
