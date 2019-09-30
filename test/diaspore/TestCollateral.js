@@ -722,40 +722,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
         });
     });
-    describe('Function setMaxDeltaPriceRatio', function () {
-        it('Should set a new maxDeltaPriceRatio', async function () {
-            const entry = await new EntryBuilder().build();
-
-            const SetMaxDeltaPriceRatio = await Helper.toEvents(
-                collateral.setMaxDeltaPriceRatio(
-                    entry.id,
-                    1,
-                    { from: creator }
-                ),
-                'SetMaxDeltaPriceRatio'
-            );
-
-            // Check SetMaxDeltaPriceRatio event params
-            expect(SetMaxDeltaPriceRatio._entryId).to.eq.BN(entry.id);
-            expect(SetMaxDeltaPriceRatio._sender).to.eq.BN(creator);
-
-            const maxDeltaPriceRatio = (await collateral.entries(entry.id)).maxDeltaPriceRatio;
-            expect(SetMaxDeltaPriceRatio._maxDeltaPriceRatio).to.eq.BN(maxDeltaPriceRatio);
-
-        });
-        it('Try set a new maxDeltaPriceRatio without being authorized', async function () {
-            const entry = await new EntryBuilder().build();
-
-            await Helper.tryCatchRevert(
-                () => collateral.setMaxDeltaPriceRatio(
-                    entry.id,
-                    100000000,
-                    { from: lender }
-                ),
-                'msg.sender Not authorized'
-            );
-        });
-    });
     describe('Function requestCosign', function () {
         it('Try lend a debt with low collateral ratio', async function () {
             const entry = await new EntryBuilder()
