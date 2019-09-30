@@ -135,8 +135,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @param _burnFee Ratio, The burn fee of execute a margin call or pay expired debt, this is sent to the address 0
         @param _rewardFee Ratio, The reward fee of execute a margin call or pay expired debt, this is sent to the sender of the transaction
 
-        @param _maxDeltaPriceRatio The max delta between the price of entry oracle vs converter oracle
-
         @return The id of the entry
     */
     function create(
@@ -900,9 +898,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
     }
 
-    /**
-        @return The price rate
-    */
     function getPrice(
         uint256 x,
         uint256 y
@@ -910,13 +905,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         return x.multdiv(1000000000000000000, y);
     }
 
-    /**
-        @param _bought The bought amount
-        @param _sold The sold amount
-        @param _expecPrice The expected rate obtain by the entry oracle
-
-        @return The delta of bought/sold price vs expecRate in Ratio
-    */
     function deltaPriceRatio(
         uint256 _bought,
         uint256 _sold,
