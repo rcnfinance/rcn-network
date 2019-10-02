@@ -109,7 +109,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         emit SetConverter(_converter);
     }
 
-
     /**
         @notice Set a new max delta price ratio
 
@@ -332,7 +331,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         delete debtToEntry[entry.debtId];
         delete entries[_entryId];
     }
-
 
     /**
         @notice Pay a debt with the entry balance, only an authorized can be use this function
