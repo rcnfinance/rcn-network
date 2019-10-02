@@ -241,10 +241,15 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if (debtToEntry[entry.debtId] != 0) { // The entry is cosigned
             // Read oracle
             (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(entry.debtId, _oracleData);
-            // Valuate the debt amount from debt currency to loanManagerToken
-            uint256 debtInToken = debtInTokens(_entryId, debtRateTokens, debtRateEquivalent);
             // Check if can withdraw the amount
-            require(_amount.toInt256() <= canWithdraw(_entryId, debtInToken), "Dont have collateral to withdraw");
+            require(
+                _amount.toInt256() <= canWithdraw(
+                    _entryId,
+                    // Valuate the debt amount from debt currency to loanManagerToken
+                    debtInTokens(_entryId, debtRateTokens, debtRateEquivalent)
+                ),
+                "Dont have collateral to withdraw"
+            );
         }
 
         // Register the withdraw of amount on the entry
