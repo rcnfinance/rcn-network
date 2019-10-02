@@ -396,11 +396,15 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     it('Set new url', async function () {
         const url = 'test.com';
 
-        await collateral.setUrl(
-            url,
-            { from: owner }
+        const SetUrl = await Helper.toEvents(
+            collateral.setUrl(
+                url,
+                { from: owner }
+            ),
+            'SetUrl'
         );
 
+        assert.equal(SetUrl._url, url);
         assert.equal(await collateral.url(), url);
     });
     it('Set new converter', async function () {

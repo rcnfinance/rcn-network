@@ -59,6 +59,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event Redeemed(uint256 indexed _entryId);
     event EmergencyRedeemed(uint256 indexed _entryId, address _to);
 
+    event SetUrl(string _url);
     event SetConverter(TokenConverter _converter);
     event SetMaxDeltaPriceRatio(address _token, uint256 _maxDeltaPriceRatio);
 
@@ -381,6 +382,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     */
     function setUrl(string calldata _url) external onlyOwner {
         iurl = _url;
+        emit SetUrl(_url);
     }
 
     /**
