@@ -599,6 +599,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     /**
         @param _entryId The index of entry, inside of entries array
         @param _requiredToken The required amount to pay in loanManager token
+        @param _expecPrice The expected price from entry token to loanManagerToken
         @param _oracleData Data of oracle to change the currency of debt
             to Token of debt engine
         @param _chargeFee If charge fee
@@ -678,6 +679,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @param _entryId The index of entry, inside of entries array
         @param _debtRateTokens Rate in loanManagerToken
         @param _debtRateEquivalent Equivalent rate in debt currency
+        @param _entryRateTokens Rate in loanManagerToken
+        @param _entryRateEquivalent Equivalent rate in entry token
 
         @return The minimum amount valuate in collateral token of:
             collateral required to balance the entry
@@ -723,6 +726,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     /**
         @param _entryId The index of entry, inside of entries array
+        @param _debtInToken The total amount of the debt valuate in loanManagerToken
 
         @return The amount that can be withdraw of the collateral, valuate in collateral Token.
             If the return its negative, the entry should be below of the balance ratio
@@ -754,6 +758,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     /**
         @param _entryId The index of entry, inside of entries array
         @param _debtInToken The total amount of the debt valuate in loanManagerToken
+        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
 
         @return The amount that can be withdraw of the collateral, valuate in collateral Token.
             If the return its negative, the entry should be below of the balance ratio
@@ -775,7 +780,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
+        @param _ratio Ratio to substract collateralRatio
         @param _debtInToken The total amount of the debt valuate in loanManagerToken
+        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
 
         @return The collateral ratio minus the ratio
     */
