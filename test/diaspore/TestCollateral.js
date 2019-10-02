@@ -2029,9 +2029,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 const _collateralToPay = await collateral.getTokenRequiredToTryBalance.call(
                     entry.id,
                     tokens,
-                    equivalent,
-                    entry.rateToRCN,
-                    WEI
+                    equivalent
                 );
                 expect(_collateralToPay).to.eq.BN(requiredTokenPay);
 

@@ -522,9 +522,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 tokenRequiredToTryBalance = getTokenRequiredToTryBalance(
             entryId,
             debtRateTokens,
-            debtRateEquivalent,
-            entryRateTokens,
-            entryRateEquivalent
+            debtRateEquivalent
         );
 
         if (tokenRequiredToTryBalance > 0) {
@@ -686,8 +684,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @param _entryId The index of entry, inside of entries array
         @param _debtRateTokens Rate in loanManagerToken
         @param _debtRateEquivalent Equivalent rate in debt currency
-        @param _entryRateTokens Rate in loanManagerToken
-        @param _entryRateEquivalent Equivalent rate in entry token
 
         @return The minimum amount valuate in collateral token of:
             collateral required to balance the entry
@@ -696,10 +692,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function getTokenRequiredToTryBalance(
         uint256 _entryId,
         uint256 _debtRateTokens,
-        uint256 _debtRateEquivalent,
-        uint256 _entryRateTokens,
-        uint256 _entryRateEquivalent
-    ) public returns(uint256) {
+        uint256 _debtRateEquivalent
+    ) public view returns(uint256) {
         Entry storage entry = entries[_entryId];
         // Valuate the debt amount from debt currency to loanManagerToken
         uint256 debt = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
