@@ -22,8 +22,8 @@ contract CollateralWETHManager is Ownable {
     /**
         @dev Check if the sender is the owner of the collateral
     */
-    modifier isTheOwner(uint256 _entryId) {
-        require(collateral.ownerOf(_entryId) == msg.sender, "The sender is not current owner");
+    modifier isAuthorized(uint256 _entryId) {
+        require(collateral.isAuthorized(msg.sender, _entryId), "msg.sender Not authorized");
         _;
     }
 
@@ -138,7 +138,7 @@ contract CollateralWETHManager is Ownable {
         address payable _to,
         uint256 _amount,
         bytes calldata _oracleData
-    ) external isTheOwner(_entryId) {
+    ) external isAuthorized(_entryId) {
         collateral.withdraw(
             _entryId,
             address(this),
@@ -160,7 +160,7 @@ contract CollateralWETHManager is Ownable {
     function redeem(
         uint256 _entryId,
         address payable _to
-    ) external isTheOwner(_entryId) {
+    ) external isAuthorized(_entryId) {
         uint256 amount = collateral.redeem(_entryId);
 
         withdrawTransfer(_to, amount);
