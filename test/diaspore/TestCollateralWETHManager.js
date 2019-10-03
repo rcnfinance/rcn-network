@@ -133,6 +133,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
         weth9 = await WETH9.new({ from: owner });
         collWETHManager = await CollateralWETHManager.new(weth9.address, collateral.address, { from: owner });
+
+        await collateral.setMaxDeltaPriceRatio(weth9.address, 1000, { from: owner });
     });
 
     describe('Function setWeth', async function () {
@@ -150,15 +152,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await collWETHManager.setWeth(weth9.address, { from: owner });
         });
-        it('Try set address(0)', async function () {
-            await Helper.tryCatchRevert(
-                () => collWETHManager.setWeth(
-                    Helper.address0x,
-                    { from: owner }
-                ),
-                'Error loading WETH'
-            );
-        });
     });
     describe('Function setCollateral', async function () {
         it('Set a new collateral contract', async function () {
@@ -174,15 +167,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(await collWETHManager.collateral(), owner);
 
             await collWETHManager.setCollateral(collateral.address, { from: owner });
-        });
-        it('Try set address(0)', async function () {
-            await Helper.tryCatchRevert(
-                () => collWETHManager.setCollateral(
-                    Helper.address0x,
-                    { from: owner }
-                ),
-                'Error loading Collateral'
-            );
         });
     });
     describe('Functions onlyOwner', async function () {
@@ -218,7 +202,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: borrower }
                 ),
-                'The sender is not current owner'
+                'msg.sender Not authorized'
             );
         });
         it('Try redeem an entry without being the owner', async function () {
@@ -231,7 +215,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     Helper.address0x,
                     { from: borrower }
                 ),
-                'The sender is not current owner'
+                'msg.sender Not authorized'
             );
         });
     });
@@ -344,7 +328,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: entry.createFrom }
                 ),
-                'Sender not authorized'
+                'msg.sender Not authorized'
             );
         });
     });
@@ -386,7 +370,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     Helper.address0x,
                     { from: entry.createFrom }
                 ),
-                'Sender not authorized'
+                'msg.sender Not authorized'
             );
         });
     });
