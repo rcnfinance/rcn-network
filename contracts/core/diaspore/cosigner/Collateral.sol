@@ -361,14 +361,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 closingObligation = model.getClosingObligation(debtId);
         // Transform the closing obligation to tokens using the rate of oracle
         uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
-        // Read entry oracle
-        (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
-        emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
+
         // Convert the tokens of the entry to LoanManager Token and pay the debt
         payTokens = _convertPay(
             _entryId,
             closingObligationToken,
-            getPrice(entryRateTokens, entryRateEquivalent),
             _oracleData,
             false
         );
@@ -485,24 +482,17 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         Model model = Model(loanManager.getModel(_debtId));
         uint256 dueTime = model.getDueTime(debtId);
-        // Entry storage entry = entries[entryId];
-
-        uint256 entryRateTokens;
-        uint256 entryRateEquivalent;
 
         if (block.timestamp >= dueTime) { // Expired debt
             // Run payment of debt, use collateral to buy tokens
             (uint256 obligation,) = model.getObligation(debtId, uint64(dueTime));
             // Valuate the debt amount from debt currency to loanManagerToken
             uint256 obligationToken = loanManager.amountToToken(debtId, _oracleData, obligation);
-            // Read entry oracle
-            (entryRateTokens, entryRateEquivalent) = entries[entryId].oracle.readSample("");
-            emit ReadedOracle(entries[entryId].oracle, entryRateTokens, entryRateEquivalent);
+
             // Convert the tokens of the entry to LoanManager Token and pay the debt
             uint256 payTokens = _convertPay(
                 entryId,
                 obligationToken,
-                getPrice(entryRateTokens, entryRateEquivalent),
                 _oracleData,
                 true
             );
@@ -514,9 +504,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         // Read debt oracle
         (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(debtId, _oracleData);
-        // Read entry oracle
-        (entryRateTokens, entryRateEquivalent) = entries[entryId].oracle.readSample("");
-        emit ReadedOracle(entries[entryId].oracle, entryRateTokens, entryRateEquivalent);
 
         // Get the minimum amount required to balance the collateral ratio
         uint256 tokenRequiredToTryBalance = getTokenRequiredToTryBalance(
@@ -531,7 +518,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             uint256 payTokens = _convertPay(
                 entryId,
                 tokenRequiredToTryBalance,
-                getPrice(entryRateTokens, entryRateEquivalent),
                 _oracleData,
                 true
             );
@@ -604,7 +590,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     /**
         @param _entryId The index of entry, inside of entries array
         @param _requiredToken The required amount to pay in loanManager token
-        @param _expecPrice The expected price from entry token to loanManagerToken
         @param _oracleData Data of oracle to change the currency of debt
             to Token of debt engine
         @param _chargeFee If charge fee
@@ -616,7 +601,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function _convertPay(
         uint256 _entryId,
         uint256 _requiredToken,
-        uint256 _expecPrice,
         bytes memory _oracleData,
         bool _chargeFee
     ) internal returns(uint256 paidTokens) {
@@ -641,7 +625,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         );
 
         // Check delta price ratio(oracle vs converter)
-        require(deltaPriceRatio(bought, sold, _expecPrice) <= tokenToMaxDeltaPriceRatio[address(entry.token)], "The delta price its to high");
+        require(_deltaPriceRatio(entry.oracle, bought, sold) <= tokenToMaxDeltaPriceRatio[address(entry.token)], "The delta price its to high");
 
         uint256 feeTaked = _chargeFee ? _takeFee(_entryId, entry.burnFee, entry.rewardFee, Math.min(bought, _requiredToken)) : 0;
         uint256 tokensToPay = Math.min(bought, targetBuy).sub(feeTaked);
@@ -676,6 +660,29 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
 
         entry.amount = entry.amount.sub(sold).add(bought);
+    }
+
+    /**
+        @param _oracle The entry oracle
+        @param _bought The bought amount
+        @param _sold The sold amount
+
+        @return The delta of bought/sold price vs oracle price in Ratio
+    */
+    function _deltaPriceRatio(
+        RateOracle _oracle,
+        uint256 _bought,
+        uint256 _sold
+    ) internal returns(uint256 delta) {
+        // Read entry oracle
+        (uint256 entryRateTokens, uint256 entryRateEquivalent) = _oracle.readSample("");
+        emit ReadedOracle(_oracle, entryRateTokens, entryRateEquivalent);
+
+        uint256 expectedPrice = entryRateTokens.multdiv(1000000000000000000, entryRateEquivalent);
+        uint256 price = _bought.multdiv(1000000000000000000, _sold);
+
+        if (price > expectedPrice)
+            delta = ((price - expectedPrice) * BASE) / expectedPrice;
     }
 
     // Collateral methods
@@ -737,18 +744,15 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _debtInToken
     ) public returns (int256) {
         Entry storage entry = entries[_entryId];
-        // Read entry oracle
-        (uint256 entryRateTokens, uint256 entryRateEquivalent) = entry.oracle.readSample("");
-        emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
         // Valuate the entry amount in loanManagerToken
         uint256 collateralInToken = collateralToTokens(entry.token, entry.amount);
 
         // Check delta price ratio(oracle vs converter)
         require(
-            deltaPriceRatio(
+            _deltaPriceRatio(
+                entry.oracle,
                 collateralInToken,
-                entry.amount,
-                getPrice(entryRateTokens, entryRateEquivalent)
+                entry.amount
             ) <= tokenToMaxDeltaPriceRatio[address(entry.token)],
             "The delta price its to high"
         );
@@ -852,33 +856,5 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 return debt;
             }
         }
-    }
-
-    /**
-        @return The price rate
-    */
-    function getPrice(
-        uint256 x,
-        uint256 y
-    ) internal pure returns(uint256) {
-        return x.multdiv(1000000000000000000, y);
-    }
-
-    /**
-        @param _bought The bought amount
-        @param _sold The sold amount
-        @param _expecPrice The expected rate obtain by the entry oracle
-
-        @return The delta of bought/sold price vs expecRate in Ratio
-    */
-    function deltaPriceRatio(
-        uint256 _bought,
-        uint256 _sold,
-        uint256 _expecPrice
-    ) internal pure returns(uint256 delta) {
-        uint256 price = getPrice(_bought, _sold);
-
-        if (price > _expecPrice)
-            delta = ((price - _expecPrice) * BASE) / _expecPrice;
     }
 }
