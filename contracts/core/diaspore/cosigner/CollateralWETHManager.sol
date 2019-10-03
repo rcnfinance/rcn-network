@@ -28,11 +28,9 @@ contract CollateralWETHManager is Ownable {
     }
 
     constructor(IWETH9 _weth, Collateral _collateral) public {
-        require(_weth != IWETH9(0), "Error loading WETH");
         weth = _weth;
         emit SetWeth(_weth);
 
-        require(_collateral != Collateral(0), "Error loading Collateral");
         collateral = _collateral;
         emit SetCollateral(_collateral);
     }
@@ -43,8 +41,6 @@ contract CollateralWETHManager is Ownable {
         @param _weth New WETH
     */
     function setWeth(IWETH9 _weth) external onlyOwner {
-        require(_weth != IWETH9(0), "Error loading WETH");
-
         weth = _weth;
         emit SetWeth(_weth);
     }
@@ -55,8 +51,6 @@ contract CollateralWETHManager is Ownable {
         @param _collateral New collateral
     */
     function setCollateral(Collateral _collateral) external onlyOwner {
-        require(_collateral != Collateral(0), "Error loading Collateral");
-
         collateral = _collateral;
         emit SetCollateral(_collateral);
     }
