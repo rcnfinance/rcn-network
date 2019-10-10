@@ -61,7 +61,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event SetUrl(string _url);
     event SetConverter(TokenConverter _converter);
-    event SetMaxDeltaPriceRatio(address _token, uint256 _maxDeltaPriceRatio);
+    event SetMaxSpreadRatio(address _token, uint256 _maxSpreadRatio);
 
     event ReadedOracle(RateOracle _oracle, uint256 _tokens, uint256 _equivalent);
 
@@ -69,7 +69,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     // Define when cosign the debt on requestCosign function
     mapping(bytes32 => uint256) public debtToEntry;
     // Associate a token to the max delta between the price of entry oracle vs converter oracle
-    mapping(address => uint256) public tokenToMaxDeltaPriceRatio;
+    mapping(address => uint256) public tokenToMaxSpreadRatio;
 
     // Can change
     string private iurl;
@@ -111,16 +111,16 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @notice Set a new max delta price ratio
+        @notice Set a new max spread ratio
 
-        @param _maxDeltaPriceRatio The max delta between the price of entry oracle vs converter oracle
+        @param _maxSpreadRatio The max spread between the bought vs the expected bought
     */
-    function setMaxDeltaPriceRatio(
+    function setMaxSpreadRatio(
         address _token,
-        uint256 _maxDeltaPriceRatio
+        uint256 _maxSpreadRatio
     ) external onlyOwner {
-        tokenToMaxDeltaPriceRatio[_token] = _maxDeltaPriceRatio;
-        emit SetMaxDeltaPriceRatio(_token, _maxDeltaPriceRatio);
+        tokenToMaxSpreadRatio[_token] = _maxSpreadRatio;
+        emit SetMaxSpreadRatio(_token, _maxSpreadRatio);
     }
 
     /**
@@ -624,8 +624,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entry.amount      // Max amount to sell in sell token
         );
 
-        // Check delta price ratio(oracle vs converter)
-        require(_deltaPriceRatio(entry.oracle, bought, sold) <= tokenToMaxDeltaPriceRatio[address(entry.token)], "The delta price its to high");
+        // Check spread ratio(oracle vs converter)
+        require(_spreadRatio(entry.oracle, bought, sold) <= tokenToMaxSpreadRatio[address(entry.token)], "The spread its to high");
 
         uint256 feeTaked = _chargeFee ? _takeFee(_entryId, entry.burnFee, entry.rewardFee, Math.min(bought, _requiredToken)) : 0;
         uint256 tokensToPay = Math.min(bought, targetBuy).sub(feeTaked);
@@ -667,23 +667,22 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @param _bought The bought amount
         @param _sold The sold amount
 
-        @return The delta of bought/sold price vs oracle price in Ratio
+        @return The delta between the _bought and the expected bought valuate with entry oracle
     */
-    function _deltaPriceRatio(
+    function _spreadRatio(
         RateOracle _oracle,
         uint256 _bought,
         uint256 _sold
-    ) internal returns(uint256 delta) {
+    ) internal returns(uint256 spread) {
         // Read entry oracle
         (uint256 entryRateTokens, uint256 entryRateEquivalent) = _oracle.readSample("");
         emit ReadedOracle(_oracle, entryRateTokens, entryRateEquivalent);
 
-        uint256 expectedPrice = entryRateTokens.multdiv(1000000000000000000, entryRateEquivalent);
-        uint256 price = _bought.multdiv(1000000000000000000, _sold);
+        uint256 expectedBought = _sold.multdiv(entryRateTokens, entryRateEquivalent);
 
-        if (price > expectedPrice)
-            delta = ((price - expectedPrice) * BASE) / expectedPrice;
-    }
+        if (_bought < expectedBought)
+            spread = BASE - ((_bought * BASE) / expectedBought);
+     }
 
     // Collateral methods
 
@@ -747,14 +746,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // Valuate the entry amount in loanManagerToken
         uint256 collateralInToken = collateralToTokens(entry.token, entry.amount);
 
-        // Check delta price ratio(oracle vs converter)
+        // Check spread ratio(oracle vs converter)
         require(
-            _deltaPriceRatio(
+            _spreadRatio(
                 entry.oracle,
                 collateralInToken,
                 entry.amount
-            ) <= tokenToMaxDeltaPriceRatio[address(entry.token)],
-            "The delta price its to high"
+            ) <= tokenToMaxSpreadRatio[address(entry.token)],
+            "The spread its to high"
         );
 
         return canWithdraw(_entryId, _debtInToken, collateralInToken);
