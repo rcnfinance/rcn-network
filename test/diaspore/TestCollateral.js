@@ -1818,22 +1818,24 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     describe('Front-running in _convertPay function', function () {
         // With change oracle rate(RCNequivalent)
         // Try do front-running with high rate
-        it('T0', frontRunningTest(0, WEI.mul(bn(2))));
-        it('T1', frontRunningTest(1000, WEI.mul(bn(2))));
-        it('T2', frontRunningTest(4999, WEI.mul(bn(2))));
+        const oracleRateTitle = 'Change oracle rate';
+        it('T0: ' + oracleRateTitle, frontRunningTest(0, WEI.mul(bn(2))));
+        it('T1: ' + oracleRateTitle, frontRunningTest(1000, WEI.mul(bn(2))));
+        it('T2: ' + oracleRateTitle, frontRunningTest(4999, WEI.mul(bn(2))));
         // Test with low rate
-        it('T3', frontRunningTest(0, WEI.div(bn(2)), false));
-        it('T4', frontRunningTest(1000, WEI.div(bn(2)), false));
-        it('T5', frontRunningTest(4999, WEI.div(bn(2)), false));
+        it('T3: ' + oracleRateTitle, frontRunningTest(0, WEI.div(bn(2)), false));
+        it('T4: ' + oracleRateTitle, frontRunningTest(1000, WEI.div(bn(2)), false));
+        it('T5: ' + oracleRateTitle, frontRunningTest(4999, WEI.div(bn(2)), false));
         // With change converter rate(setRate)
         // Try do front-running with high rate
-        it('T0', frontRunningTest(0, WEI.mul(bn(2))), true, false);
-        it('T1', frontRunningTest(1000, WEI.mul(bn(2))), true, false);
-        it('T2', frontRunningTest(4999, WEI.mul(bn(2))), true, false);
+        const converterRateTitle = 'Change converter rate';
+        it('T0: ' + converterRateTitle, frontRunningTest(0, WEI.mul(bn(2))), true, false);
+        it('T1: ' + converterRateTitle, frontRunningTest(1000, WEI.mul(bn(2))), true, false);
+        it('T2: ' + converterRateTitle, frontRunningTest(4999, WEI.mul(bn(2))), true, false);
         // Test with low rate
-        it('T3', frontRunningTest(0, WEI.div(bn(2)), false), false);
-        it('T4', frontRunningTest(1000, WEI.div(bn(2)), false), false);
-        it('T5', frontRunningTest(4999, WEI.div(bn(2)), false), false);
+        it('T3: ' + converterRateTitle, frontRunningTest(0, WEI.div(bn(2)), false), false);
+        it('T4: ' + converterRateTitle, frontRunningTest(1000, WEI.div(bn(2)), false), false);
+        it('T5: ' + converterRateTitle, frontRunningTest(4999, WEI.div(bn(2)), false), false);
 
         function frontRunningTest (
             maxSpreadRatio,
