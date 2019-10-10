@@ -134,7 +134,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         weth9 = await WETH9.new({ from: owner });
         collWETHManager = await CollateralWETHManager.new(weth9.address, collateral.address, { from: owner });
 
-        await collateral.setMaxDeltaPriceRatio(weth9.address, 1000, { from: owner });
+        await collateral.setMaxSpreadRatio(weth9.address, 1000, { from: owner });
     });
 
     describe('Function setWeth', async function () {
