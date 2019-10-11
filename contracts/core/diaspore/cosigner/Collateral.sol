@@ -625,8 +625,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entry.amount      // Max amount to sell in sell token
         );
 
-        // Check spread ratio(oracle vs converter)
-        require(_spreadRatio(entry.oracle, bought, sold) <= tokenToMaxSpreadRatio[address(entry.token)], "The spread its to high");
+        // Check spread ratio (oracle vs converter)
+        IERC20 token = entry.token;
+        _validateMinReturn(
+            token,
+            entry.oracle,
+            bought,
+            sold
+        );
 
         uint256 feeTaked = _chargeFee ? _takeFee(_entryId, entry.burnFee, entry.rewardFee, Math.min(bought, _requiredToken)) : 0;
         uint256 tokensToPay = Math.min(bought, targetBuy).sub(feeTaked);
@@ -651,7 +657,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             sold = tokensToPay - paidTokens;
             bought = converter.safeConvertFrom(
                 loanManagerToken,
-                entry.token,
+                token,
                 sold,
                 0
             );
@@ -664,26 +670,34 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _oracle The entry oracle
-        @param _bought The bought amount
-        @param _sold The sold amount
+        @param _token To check the _minReturn
+        @param _oracle Oracle providing the reference rate
+        @param _bought Base token amount bought
+        @param _sold Token amount sold
 
-        @return The delta between the _bought and the expected bought valuate with entry oracle
+        @dev Reverts if the _token/_base rate of _bought/_sold differs from
+            from the one provided by the Oracle
     */
-    function _spreadRatio(
+    function _validateMinReturn(
+        IERC20 _token,
         RateOracle _oracle,
         uint256 _bought,
         uint256 _sold
-    ) internal returns(uint256 spread) {
+    ) internal {
         // Read entry oracle
         (uint256 entryRateTokens, uint256 entryRateEquivalent) = _oracle.readSample("");
         emit ReadedOracle(_oracle, entryRateTokens, entryRateEquivalent);
 
-        uint256 expectedBought = _sold.multdiv(entryRateTokens, entryRateEquivalent);
+        uint256 minReturn = _sold.multdiv(
+            entryRateTokens,
+            entryRateEquivalent
+        ).multdiv(
+            tokenToMaxSpreadRatio[address(_token)],
+            BASE
+        );
 
-        if (_bought < expectedBought)
-            spread = BASE - ((_bought * BASE) / expectedBought);
-     }
+        require(_bought >= minReturn, "converter return below minimun required");
+    }
 
     // Collateral methods
 
@@ -742,21 +756,10 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function canWithdraw(
         uint256 _entryId,
         uint256 _debtInToken
-    ) public returns (int256) {
+    ) public view returns (int256) {
         Entry storage entry = entries[_entryId];
         // Valuate the entry amount in loanManagerToken
         uint256 collateralInToken = collateralToTokens(entry.token, entry.amount);
-
-        // Check spread ratio(oracle vs converter)
-        require(
-            _spreadRatio(
-                entry.oracle,
-                collateralInToken,
-                entry.amount
-            ) <= tokenToMaxSpreadRatio[address(entry.token)],
-            "The spread its to high"
-        );
-
         return canWithdraw(_entryId, _debtInToken, collateralInToken);
     }
 

@@ -1815,7 +1815,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
         });
     });
-    describe('Front-running in _convertPay function', function () {
+    describe.only('Front-running in _convertPay function', function () {
         // With change oracle rate(RCNequivalent)
         // Try do front-running with high rate
         const oracleRateTitle = 'Change oracle rate';
@@ -1854,7 +1854,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 await lend(entry);
 
                 const prevMaxSpreadRatio = await collateral.tokenToMaxSpreadRatio(auxToken.address);
-                await collateral.setMaxSpreadRatio(auxToken.address, maxSpreadRatio, { from: owner });
+                await collateral.setMaxSpreadRatio(auxToken.address, bn(10000).sub(bn(maxSpreadRatio)), { from: owner });
 
                 if (oracleRate) {
                     await converter.setRate(rcn.address, entry.collateralToken.address, rate);
@@ -1872,7 +1872,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 if (revert) {
                     await Helper.tryCatchRevert(
                         payOffDebt,
-                        'The spread its to high'
+                        'converter return below minimun required'
                     );
                 } else {
                     await payOffDebt();
