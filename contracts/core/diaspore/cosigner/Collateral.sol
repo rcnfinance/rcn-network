@@ -252,10 +252,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             );
         }
 
-        // Register the withdraw of amount on the entry
-        entry.amount = entry.amount.sub(_amount);
         // Send the amount of ERC20 tokens to _to
         require(entry.token.safeTransfer(_to, _amount), "Error sending tokens");
+
+        // Register the withdraw of amount on the entry
+        entry.amount = entry.amount.sub(_amount);
 
         emit Withdrawed(_entryId, _to, _amount);
     }
