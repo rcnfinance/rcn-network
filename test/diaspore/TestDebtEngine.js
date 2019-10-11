@@ -1595,7 +1595,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(paidLogs.filter((e) => e.args._id === id2).length, 1);
             paidLogs.forEach((event) => {
                 switch (event.args._id) {
-                case id1:
+                case id1: {
                     const args = event.args;
                     expect(args._requested).to.eq.BN('2000');
                     expect(args._requestedTokens).to.eq.BN('0');
@@ -1604,7 +1604,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     assert.equal(args._sender, accounts[0]);
                     assert.equal(args._origin, accounts[4]);
                     break;
-                case id2:
+                }
+                case id2: {
                     const args2 = event.args;
                     expect(args2._requested).to.eq.BN('1000');
                     expect(args2._requestedTokens).to.eq.BN('0');
@@ -1613,6 +1614,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     assert.equal(args2._sender, accounts[0]);
                     assert.equal(args2._origin, accounts[4]);
                     break;
+                }
                 }
             });
         });
@@ -2397,7 +2399,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(paidLogs.filter((e) => e.args._id === id2).length, 1);
             paidLogs.forEach((event) => {
                 switch (event.args._id) {
-                case id1:
+                case id1: {
                     const args = event.args;
                     expect(args._requested).to.eq.BN('0');
                     expect(args._requestedTokens).to.eq.BN('1000');
@@ -2406,7 +2408,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     assert.equal(args._sender, accounts[0]);
                     assert.equal(args._origin, accounts[4]);
                     break;
-                case id2:
+                }
+                case id2: {
                     const args2 = event.args;
                     expect(args2._requested).to.eq.BN('0');
                     expect(args2._requestedTokens).to.eq.BN('500');
@@ -2415,6 +2418,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     assert.equal(args2._sender, accounts[0]);
                     assert.equal(args2._origin, accounts[4]);
                     break;
+                }
                 }
             });
         });
@@ -3452,6 +3456,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             try {
                 await debtEngine.payToken(id, 100, accounts[3], [], { gas: i });
             } catch (ignored) {
+                console.log(ignored);
             }
 
             expect(await debtEngine.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
