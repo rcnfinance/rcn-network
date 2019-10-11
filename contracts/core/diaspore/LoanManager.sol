@@ -183,7 +183,7 @@ contract LoanManager is BytesUtils {
         return _internalSalt(request);
     }
 
-    function _internalSalt(Request memory _request) internal view returns (uint256) {
+    function _internalSalt(Request memory _request) internal pure returns (uint256) {
         return _buildInternalSalt(
             _request.amount,
             _request.borrower,

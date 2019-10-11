@@ -40,7 +40,7 @@ contract('ReferenceOracle', function (accounts) {
         const s = '0x' + approveSignature.slice(64, 128);
         const v = web3.utils.toDecimal(approveSignature.slice(128, 130)) + 27;
         return [v, r, s];
-    };
+    }
 
     before('Assign accounts, create contracts, add delegate and set a rate', async function () {
         // set account addresses

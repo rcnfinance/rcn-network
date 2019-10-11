@@ -316,7 +316,7 @@ contract('NanoLoanModel', function (accounts) {
             expect(state.paid).to.eq.BN(d4PendingAmount, 'The paid should be ' + d4PendingAmount.toString());
             expect(state.status).to.eq.BN(Helper.STATUS_PAID, 'The status should be paid');
         };
-    };
+    }
 
     it('get modelId', async function () {
         const nameModel = 'NanoLoanModel 1.0';
