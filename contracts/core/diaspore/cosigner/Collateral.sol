@@ -246,7 +246,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 _amount.toInt256() <= canWithdraw(
                     _entryId,
                     // Valuate the debt amount from debt currency to loanManagerToken
-                    debtInTokens(_entryId, debtRateTokens, debtRateEquivalent)
+                    debtInTokens(_entryId, debtRateTokens, debtRateEquivalent),
+                    // Valuate the entry amount from entry token to loanManagerToken, use the entry oracle
+                    collateralToTokens(entry.oracle, entry.token, entry.amount)
                 ),
                 "Dont have collateral to withdraw"
             );
@@ -432,7 +434,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // Load entryId and entry
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = abi.decode(_data, (uint256));
-        require(entries[entryId].debtId == debtId, "Wrong debt id");
+        Entry storage entry = entries[entryId];
+        require(entry.debtId == debtId, "Wrong debt id");
 
         // Check if the entry its collateralized, the ratio collateral/debt should be greator than balanceRatio
         (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(debtId, _oracleData);
@@ -441,7 +444,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             canWithdraw(
                 entryId,
                 // Valuate the debt amount from debt currency to loanManagerToken
-                debtInTokens(entryId, debtRateTokens, debtRateEquivalent)
+                debtInTokens(entryId, debtRateTokens, debtRateEquivalent),
+                // Valuate the entry amount from entry token to loanManagerToken, use the entry oracle
+                collateralToTokens(entry.oracle, entry.token, entry.amount)
             ) >= 0, "The entry its not collateralized"
         );
 
@@ -657,7 +662,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             sold = tokensToPay - paidTokens;
             bought = converter.safeConvertFrom(
                 loanManagerToken,
-                token,
+                entry.token,
                 sold,
                 0
             );
@@ -714,14 +719,26 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _entryId,
         uint256 _debtRateTokens,
         uint256 _debtRateEquivalent
-    ) public view returns(uint256) {
+    ) public returns(uint256) {
         Entry storage entry = entries[_entryId];
         // Valuate the debt amount from debt currency to loanManagerToken
         uint256 debt = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
         // If the debt amount its 0 dont need balance the entry
         if (debt == 0) return 0;
-        // Valuate the entry amount in loanManagerToken
-        uint256 collateralInToken = collateralToTokens(entry.token, entry.amount);
+
+        uint256 collateralInToken;
+        uint256 entryRateTokens;
+        uint256 entryRateEquivalent;
+        if (entry.token == loanManagerToken) {
+            collateralInToken = entry.amount;
+        } else {
+            // Read entry oracle
+            (entryRateTokens, entryRateEquivalent) = entry.oracle.readSample("");
+            emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
+            // Valuate the entry amount in loanManagerToken
+            collateralInToken = collateralToTokens(entry.token, entry.amount, entryRateTokens, entryRateEquivalent);
+        }
+
         // If the entry is collateralized should not have collateral amount to pay
         if (deltaCollateralRatio(
             entry.liquidationRatio,
@@ -743,24 +760,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entry.amount
         );
 
-        return collateralToTokens(entry.token, min);
-    }
-
-    /**
-        @param _entryId The index of entry, inside of entries array
-        @param _debtInToken The total amount of the debt valuate in loanManagerToken
-
-        @return The amount that can be withdraw of the collateral, valuate in collateral Token.
-            If the return its negative, the entry should be below of the balance ratio
-    */
-    function canWithdraw(
-        uint256 _entryId,
-        uint256 _debtInToken
-    ) public view returns (int256) {
-        Entry storage entry = entries[_entryId];
-        // Valuate the entry amount in loanManagerToken
-        uint256 collateralInToken = collateralToTokens(entry.token, entry.amount);
-        return canWithdraw(_entryId, _debtInToken, collateralInToken);
+        return collateralToTokens(entry.token, min, entryRateTokens, entryRateEquivalent);
     }
 
     /**
@@ -819,19 +819,46 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
+        @param _oracle The oracle to get the rate between loanManagerToken and entry token
         @param _entryToken The token of entry
         @param _amount The amount in loanManagerToken
 
         @return The _amount valuate in loanManagerToken
     */
     function collateralToTokens(
+        RateOracle _oracle,
         IERC20 _entryToken,
         uint256 _amount
+    ) public returns (uint256) {
+        if (_entryToken == loanManagerToken) {
+            return _amount;
+        } else {
+            // Read entry oracle
+            (uint256 entryRateTokens, uint256 entryRateEquivalent) = _oracle.readSample("");
+            emit ReadedOracle(_oracle, entryRateTokens, entryRateEquivalent);
+
+            return _amount.multdiv(entryRateTokens, entryRateEquivalent);
+        }
+    }
+
+    /**
+        @param _entryToken The token of entry
+        @param _amount The amount in loanManagerToken
+        @param _entryRateTokens Rate in loanManagerToken
+        @param _entryRateEquivalent Equivalent rate in entry token
+
+        @return The _amount valuate in loanManagerToken
+    */
+    function collateralToTokens(
+        IERC20 _entryToken,
+        uint256 _amount,
+        uint256 _entryRateTokens,
+        uint256 _entryRateEquivalent
     ) public view returns (uint256) {
         if (_entryToken == loanManagerToken) {
             return _amount;
         } else {
-            return converter.getPriceConvertFrom(_entryToken, loanManagerToken, _amount);
+            return _amount.multdiv(_entryRateTokens, _entryRateEquivalent);
         }
     }
 
