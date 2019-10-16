@@ -68,7 +68,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     Entry[] public entries;
     // Define when cosign the debt on requestCosign function
     mapping(bytes32 => uint256) public debtToEntry;
-    // Associate a token to the max delta between the price of entry oracle vs converter oracle
+    // Associate a token to the max delta between the price of entry oracle vs converter oracle, uses in _validateMinReturn function
     mapping(address => uint256) public tokenToMaxSpreadRatio;
 
     // Can change
@@ -112,6 +112,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     /**
         @notice Set a new max spread ratio
+
+        @dev In _validateMinReturn function:
+            Spread ratio = 0 -> Accepts all bought amount
+            Spread ratio between 1 to 9999 -> When more low is the ratio more spread accepts
+                I.e.: 9000 reprecent a 10% of up spread
+            Spread ratio = 10000(BASE) -> Reprecent a 0% of spread
+            Spread ratio > 10000(BASE) -> When more high is the ratio less spread accepts(The converter should return more than oracle)
+                I.e.: 11000 reprecent a 10% of down spread
 
         @param _maxSpreadRatio The max spread between the bought vs the expected bought
     */
@@ -680,7 +688,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @param _bought Base token amount bought
         @param _sold Token amount sold
 
-        @dev Reverts if the _token/_base rate of _bought/_sold differs from
+        @dev Reverts if the _token/_base rate of _bought/_sold differs
             from the one provided by the Oracle
     */
     function _validateMinReturn(
@@ -692,6 +700,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // Read entry oracle
         (uint256 entryRateTokens, uint256 entryRateEquivalent) = _oracle.readSample("");
         emit ReadedOracle(_oracle, entryRateTokens, entryRateEquivalent);
+
+        // _sold     - entryRateEquivalent
+        // minReturn - entryRateTokens
+        // expecBought = _sold * entryRateTokens / entryRateEquivalent
+
+        // expecBought - BASE
+        // minReturn   - tokenToMaxSpreadRatio[address(_token)]
+        // minReturn = expecBought * tokenToMaxSpreadRatio[address(_token)] / BASE
 
         uint256 minReturn = _sold.multdiv(
             entryRateTokens,
