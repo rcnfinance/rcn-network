@@ -684,7 +684,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         if (_bought < expectedBought)
             spread = BASE - ((_bought * BASE) / expectedBought);
-     }
+    }
 
     // Collateral methods
 
