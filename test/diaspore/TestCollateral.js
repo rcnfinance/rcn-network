@@ -810,7 +810,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     bn(2).pow(bn(127)),
                     creator
                 ),
-                'Error sending tokens'
+                'Sub overflow'
             );
 
             await collateralSnap.requireConstant();
@@ -822,7 +822,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     bn(1),
                     creator
                 ),
-                'Error sending tokens'
+                'Sub overflow'
             );
 
             await collateralSnap.requireConstant();
