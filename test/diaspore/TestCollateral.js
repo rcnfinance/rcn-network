@@ -558,23 +558,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateralInToken // collateralInToken
             )).to.eq.BN(calcCanWithdraw);
         });
-        it('Try canWithdraw with high spread', async function () {
-            const entry = await new EntryBuilder()
-                .with('rateFromRCN', WEI)
-                .with('rateToRCN', WEI)
-                .build();
-            await lend(entry);
-
-            await converter.setRate(entry.collateralToken.address, rcn.address, WEI.div(bn(2)));
-
-            await Helper.tryCatchRevert(
-                () => collateral.methods['canWithdraw(uint256,uint256)'](
-                    entry.id,         // entryId,
-                    entry.loanAmount // debtInToken
-                ),
-                'The spread its to high'
-            );
-        });
     });
     describe('Functions onlyOwner', async function () {
         it('Try emergency redeem an entry without being the owner', async function () {
@@ -1815,7 +1798,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
         });
     });
-    describe.only('Front-running in _convertPay function', function () {
+    describe('Front-running in _convertPay function', function () {
         // With change oracle rate(RCNequivalent)
         // Try do front-running with high rate
         const oracleRateTitle = 'Change oracle rate';
