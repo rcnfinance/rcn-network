@@ -69,11 +69,4 @@ library DiasporeUtils {
         require(token.clearApprove(address(engine)), "Error clear approve");
         require(prevBalance.sub(token.balanceOf(address(this))) <= tokens, "Debt engine pulled too many tokens");
     }
-
-    function getModel(
-        LoanManager _manager,
-        bytes32 _id
-    ) internal view returns (Model model) {
-        (,,model,,) = _manager.debtEngine().debts(_id);
-    }
 }
