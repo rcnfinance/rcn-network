@@ -16,11 +16,14 @@ import "../../../utils/SafeCast.sol";
 import "../../../utils/SafeSignedMath.sol";
 import "../../../utils/SafeTokenConverter.sol";
 import "../../../utils/Math.sol";
+import "../utils/OracleUtils.sol";
 
 
 contract Collateral is Ownable, Cosigner, ERC721Base {
     using SafeTokenConverter for TokenConverter;
     using DiasporeUtils for LoanManager;
+    using OracleUtils for OracleUtils.Sample;
+    using OracleUtils for RateOracle;
     using SafeSignedMath for int256;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -245,18 +248,17 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         bytes calldata _oracleData
     ) external onlyAuthorized(_entryId) {
         Entry storage entry = entries[_entryId];
+        bytes32 debtId = entry.debtId;
 
-        if (debtToEntry[entry.debtId] != 0) { // The entry is cosigned
-            // Read oracle
-            (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(entry.debtId, _oracleData);
+        if (debtToEntry[debtId] != 0) { // The entry is cosigned
             // Check if can withdraw the amount
             require(
                 _amount.toInt256() <= canWithdraw(
                     _entryId,
                     // Valuate the debt amount from debt currency to loanManagerToken
-                    debtInTokens(_entryId, debtRateTokens, debtRateEquivalent),
+                    debtInTokens(debtId, _oracleData),
                     // Valuate the entry amount from entry token to loanManagerToken, use the entry oracle
-                    collateralToTokens(entry.oracle, entry.token, entry.amount)
+                    entry.oracle.read().toTokens(entry.amount)
                 ),
                 "Dont have collateral to withdraw"
             );
@@ -371,8 +373,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         // Get the closing obligation
         uint256 closingObligation = model.getClosingObligation(debtId);
+
         // Transform the closing obligation to tokens using the rate of oracle
-        uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
+        uint256 closingObligationToken = loanManager
+            .oracle(debtId)
+            .read(_oracleData)
+            .toTokens(closingObligation, true);
 
         // Convert the tokens of the entry to LoanManager Token and pay the debt
         payTokens = _convertPay(
@@ -446,16 +452,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry storage entry = entries[entryId];
         require(entry.debtId == debtId, "Wrong debt id");
 
-        // Check if the entry its collateralized, the ratio collateral/debt should be greator than balanceRatio
-        (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(debtId, _oracleData);
-
         require(
             canWithdraw(
                 entryId,
                 // Valuate the debt amount from debt currency to loanManagerToken
-                debtInTokens(entryId, debtRateTokens, debtRateEquivalent),
+                debtInTokens(debtId, _oracleData),
                 // Valuate the entry amount from entry token to loanManagerToken, use the entry oracle
-                collateralToTokens(entry.oracle, entry.token, entry.amount)
+                entry.oracle.read().toTokens(entry.amount)
             ) >= 0, "The entry its not collateralized"
         );
 
@@ -501,8 +504,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if (block.timestamp >= dueTime) { // Expired debt
             // Run payment of debt, use collateral to buy tokens
             (uint256 obligation,) = model.getObligation(debtId, uint64(dueTime));
+
             // Valuate the debt amount from debt currency to loanManagerToken
-            uint256 obligationToken = loanManager.amountToToken(debtId, _oracleData, obligation);
+            uint256 obligationToken = loanManager
+                .oracle(debtId)
+                .read(_oracleData)
+                .toTokens(obligation, true);
 
             // Convert the tokens of the entry to LoanManager Token and pay the debt
             uint256 payTokens = _convertPay(
@@ -517,15 +524,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             change = true;
         }
 
-        // Read debt oracle
-        (uint256 debtRateTokens, uint256 debtRateEquivalent) = loanManager.readOracle(debtId, _oracleData);
-
         // Get the minimum amount required to balance the collateral ratio
-        uint256 tokenRequiredToTryBalance = getTokenRequiredToTryBalance(
-            entryId,
-            debtRateTokens,
-            debtRateEquivalent
-        );
+        uint256 tokenRequiredToTryBalance = getTokenRequiredToTryBalance(entryId, _oracleData);
 
         if (tokenRequiredToTryBalance > 0) {
             // Run margin call, buy required tokens
@@ -631,16 +631,18 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             targetBuy = _requiredToken;
         }
 
+        // Load entry token
+        IERC20 token = entry.token;
+
         // Use collateral to buy tokens
         (uint256 bought, uint256 sold) = converter.safeConvertToMax(
-            entry.token,      // Token to sell
+            token,      // Token to sell
             loanManagerToken, // Token to buy
             targetBuy,        // Target buy amount in buy token
             entry.amount      // Max amount to sell in sell token
         );
 
         // Check spread ratio (oracle vs converter)
-        IERC20 token = entry.token;
         _validateMinReturn(
             token,
             entry.oracle,
@@ -671,7 +673,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             sold = tokensToPay - paidTokens;
             bought = converter.safeConvertFrom(
                 loanManagerToken,
-                entry.token,
+                token,
                 sold,
                 0
             );
@@ -698,10 +700,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _bought,
         uint256 _sold
     ) internal {
-        // Read entry oracle
-        (uint256 entryRateTokens, uint256 entryRateEquivalent) = _oracle.readSample("");
-        emit ReadedOracle(_oracle, entryRateTokens, entryRateEquivalent);
-
         // _sold     - entryRateEquivalent
         // minReturn - entryRateTokens
         // expecBought = _sold * entryRateTokens / entryRateEquivalent
@@ -710,13 +708,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // minReturn   - tokenToMaxSpreadRatio[address(_token)]
         // minReturn = expecBought * tokenToMaxSpreadRatio[address(_token)] / BASE
 
-        uint256 minReturn = _sold.multdiv(
-            entryRateTokens,
-            entryRateEquivalent
-        ).multdiv(
-            tokenToMaxSpreadRatio[address(_token)],
-            BASE
-        );
+        uint256 minReturn = _oracle
+            .read()
+            .toTokens(_sold)
+            .multdiv(
+                tokenToMaxSpreadRatio[address(_token)],
+                BASE
+            );
 
         require(_bought >= minReturn, "converter return below minimun required");
     }
@@ -724,37 +722,24 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     // Collateral methods
 
     /**
-        @param _entryId The index of entry, inside of entries array
-        @param _debtRateTokens Rate in loanManagerToken
-        @param _debtRateEquivalent Equivalent rate in debt currency
-
         @return The minimum amount valuate in collateral token of:
             collateral required to balance the entry
             entry amount
     */
     function getTokenRequiredToTryBalance(
         uint256 _entryId,
-        uint256 _debtRateTokens,
-        uint256 _debtRateEquivalent
+        bytes memory _oracleData
     ) public returns(uint256) {
         Entry storage entry = entries[_entryId];
+
         // Valuate the debt amount from debt currency to loanManagerToken
-        uint256 debt = debtInTokens(_entryId, _debtRateTokens, _debtRateEquivalent);
+        uint256 debt = debtInTokens(entry.debtId, _oracleData);
+
         // If the debt amount its 0 dont need balance the entry
         if (debt == 0) return 0;
 
-        uint256 collateralInToken;
-        uint256 entryRateTokens;
-        uint256 entryRateEquivalent;
-        if (entry.token == loanManagerToken) {
-            collateralInToken = entry.amount;
-        } else {
-            // Read entry oracle
-            (entryRateTokens, entryRateEquivalent) = entry.oracle.readSample("");
-            emit ReadedOracle(entry.oracle, entryRateTokens, entryRateEquivalent);
-            // Valuate the entry amount in loanManagerToken
-            collateralInToken = collateralToTokens(entry.token, entry.amount, entryRateTokens, entryRateEquivalent);
-        }
+        OracleUtils.Sample memory sample = entry.oracle.read();
+        uint256 collateralInToken = sample.toTokens(entry.amount);
 
         // If the entry is collateralized should not have collateral amount to pay
         if (deltaCollateralRatio(
@@ -777,7 +762,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entry.amount
         );
 
-        return collateralToTokens(entry.token, min, entryRateTokens, entryRateEquivalent);
+        return sample.toTokens(min);
     }
 
     /**
@@ -836,72 +821,16 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _oracle The oracle to get the rate between loanManagerToken and entry token
-        @param _entryToken The token of entry
-        @param _amount The amount in loanManagerToken
 
-        @return The _amount valuate in loanManagerToken
-    */
-    function collateralToTokens(
-        RateOracle _oracle,
-        IERC20 _entryToken,
-        uint256 _amount
-    ) public returns (uint256) {
-        if (_entryToken == loanManagerToken) {
-            return _amount;
-        } else {
-            // Read entry oracle
-            (uint256 entryRateTokens, uint256 entryRateEquivalent) = _oracle.readSample("");
-            emit ReadedOracle(_oracle, entryRateTokens, entryRateEquivalent);
-
-            return _amount.multdiv(entryRateTokens, entryRateEquivalent);
-        }
-    }
-
-    /**
-        @param _entryToken The token of entry
-        @param _amount The amount in loanManagerToken
-        @param _entryRateTokens Rate in loanManagerToken
-        @param _entryRateEquivalent Equivalent rate in entry token
-
-        @return The _amount valuate in loanManagerToken
-    */
-    function collateralToTokens(
-        IERC20 _entryToken,
-        uint256 _amount,
-        uint256 _entryRateTokens,
-        uint256 _entryRateEquivalent
-    ) public view returns (uint256) {
-        if (_entryToken == loanManagerToken) {
-            return _amount;
-        } else {
-            return _amount.multdiv(_entryRateTokens, _entryRateEquivalent);
-        }
-    }
-
-    /**
-        @param _entryId The index of entry, inside of entries array
-        @param _debtRateTokens Rate in loanManagerToken
-        @param _debtRateEquivalent Equivalent rate in debt currency
-
-        @return The _amount of the debt valuate in loanManagerToken
     */
     function debtInTokens(
-        uint256 _entryId,
-        uint256 _debtRateTokens,
-        uint256 _debtRateEquivalent
-    ) public view returns (uint256) {
-        uint256 debt = loanManager.getClosingObligation(entries[_entryId].debtId);
-
-        if (_debtRateTokens == 0 && _debtRateEquivalent == 0) {
-            return debt;
-        } else {
-            debt = debt.multdiv(_debtRateTokens, _debtRateEquivalent);
-            if (debt == 0) {
-                return 1;
-            } else {
-                return debt;
-            }
-        }
+        bytes32 debtId,
+        bytes memory _data
+    ) public returns (uint256) {
+        LoanManager _loanManager = loanManager;
+        return _loanManager
+            .oracle(debtId)
+            .read(_data)
+            .toTokens(_loanManager.getClosingObligation(debtId));
     }
 }
