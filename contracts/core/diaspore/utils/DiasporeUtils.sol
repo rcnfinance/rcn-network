@@ -13,39 +13,6 @@ library DiasporeUtils {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    function amountToToken(
-        LoanManager _manager,
-        bytes32 _id,
-        bytes memory _oracleData,
-        uint256 _amount
-    ) internal returns (uint256 amountInToken) {
-        RateOracle oracle = RateOracle(_manager.getOracle(_id));
-
-        if (address(oracle) == address(0)) {
-            return _amount;
-        } else {
-            (uint256 tokens, uint256 equivalent) = oracle.readSample(_oracleData);
-            amountInToken = tokens * _amount;
-            if (amountInToken % equivalent == 0)
-                amountInToken = amountInToken / equivalent;
-            else
-                amountInToken = (amountInToken / equivalent) + 1;
-        }
-    }
-
-    function readOracle(
-        LoanManager _manager,
-        bytes32 _id,
-        bytes memory _oracleData
-    ) internal returns (uint256, uint256) {
-        RateOracle oracle = RateOracle(_manager.getOracle(_id));
-        if (address(oracle) == address(0)) {
-            return (0, 0);
-        } else {
-            return oracle.readSample(_oracleData);
-        }
-    }
-
     function oracle(
         LoanManager _manager,
         bytes32 _id

@@ -373,8 +373,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         // Get the closing obligation
         uint256 closingObligation = model.getClosingObligation(debtId);
+
         // Transform the closing obligation to tokens using the rate of oracle
-        uint256 closingObligationToken = loanManager.amountToToken(debtId, _oracleData, closingObligation);
+        uint256 closingObligationToken = loanManager
+            .oracle(debtId)
+            .read(_oracleData)
+            .toTokens(closingObligation, true);
 
         // Convert the tokens of the entry to LoanManager Token and pay the debt
         payTokens = _convertPay(
@@ -500,8 +504,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         if (block.timestamp >= dueTime) { // Expired debt
             // Run payment of debt, use collateral to buy tokens
             (uint256 obligation,) = model.getObligation(debtId, uint64(dueTime));
+
             // Valuate the debt amount from debt currency to loanManagerToken
-            uint256 obligationToken = loanManager.amountToToken(debtId, _oracleData, obligation);
+            uint256 obligationToken = loanManager
+                .oracle(debtId)
+                .read(_oracleData)
+                .toTokens(obligation, true);
 
             // Convert the tokens of the entry to LoanManager Token and pay the debt
             uint256 payTokens = _convertPay(

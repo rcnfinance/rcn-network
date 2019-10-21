@@ -52,10 +52,24 @@ library OracleUtils {
     ) internal pure returns (
         uint256 tokens
     ) {
+        tokens = _sample.toTokens(_base, false);
+    }
+
+    function toTokens(
+        Sample memory _sample,
+        uint256 _base,
+        bool ceil
+    ) internal pure returns (
+        uint256 tokens
+    ) {
         if (_sample.tokens == 1 && _sample.equivalent == 1) {
             tokens = _base;
         } else {
-            tokens = _base.multdiv(_sample.tokens, _sample.equivalent);
+            uint256 mul = _base.mult(_sample.tokens);
+            tokens = mul.div(_sample.equivalent);
+            if (ceil && mul % tokens != 0) {
+                tokens = tokens.add(1);
+            }
         }
     }
 
@@ -65,10 +79,24 @@ library OracleUtils {
     ) internal pure returns (
         uint256 base
     ) {
+        base = _sample.toBase(_tokens, false);
+    }
+
+    function toBase(
+        Sample memory _sample,
+        uint256 _tokens,
+        bool ceil
+    ) internal pure returns (
+        uint256 base
+    ) {
         if (_sample.tokens == 1 && _sample.equivalent == 1) {
             base = _tokens;
         } else {
-            base = _tokens.multdiv(_sample.equivalent, _sample.tokens);
+            uint256 mul = _tokens.mult(_sample.equivalent);
+            base = mul.div(_sample.tokens);
+            if (ceil && mul % base != 0) {
+                base = base.add(1);
+            }
         }
     }
 }
