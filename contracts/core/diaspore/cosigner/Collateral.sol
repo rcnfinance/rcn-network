@@ -71,7 +71,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     Entry[] public entries;
     // Define when cosign the debt on requestCosign function
     mapping(bytes32 => uint256) public debtToEntry;
-    // Associate a token to the max delta between the price of entry oracle vs converter oracle, uses in _validateMinReturn function
+
+    // Associate a token to the max delta between the price of entry oracle vs converter oracle
+    // used during all collateral convertions
     mapping(address => uint256) public tokenToMaxSpreadRatio;
 
     // Can change
@@ -250,15 +252,16 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
 
-        if (debtToEntry[debtId] != 0) { // The entry is cosigned
-            // Check if can withdraw the amount
+        // Check if the entry is cosigned
+        // and if it's cosigned check how much collateral
+        // can be withdrew
+        if (debtToEntry[debtId] != 0) {
+            // Check if can withdraw the requested amount
             require(
                 _amount.toInt256() <= canWithdraw(
-                    _entryId,
-                    // Valuate the debt amount from debt currency to loanManagerToken
-                    debtInTokens(debtId, _oracleData),
-                    // Valuate the entry amount from entry token to loanManagerToken, use the entry oracle
-                    entry.oracle.read().toTokens(entry.amount)
+                    _entryId,                                   // ID of the collateral entry
+                    debtInTokens(debtId, _oracleData),          // Value of the debt in tokens (debt oracle)
+                    entry.oracle.read().toTokens(entry.amount)  // Value of the collateral in tokens (collateral oracle)
                 ),
                 "Dont have collateral to withdraw"
             );
@@ -443,22 +446,23 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         bytes memory _data,
         bytes memory _oracleData
     ) public returns (bool) {
+        bytes32 debtId = bytes32(_debtId);
+
         // Validate call from loan manager
         require(address(loanManager) == msg.sender, "Not the debt manager");
 
         // Load entryId and entry
-        bytes32 debtId = bytes32(_debtId);
         uint256 entryId = abi.decode(_data, (uint256));
         Entry storage entry = entries[entryId];
         require(entry.debtId == debtId, "Wrong debt id");
 
+        // Validate if the collateral is enough
+        // and if the loan is collateralized
         require(
             canWithdraw(
-                entryId,
-                // Valuate the debt amount from debt currency to loanManagerToken
-                debtInTokens(debtId, _oracleData),
-                // Valuate the entry amount from entry token to loanManagerToken, use the entry oracle
-                entry.oracle.read().toTokens(entry.amount)
+                entryId,                                   // Collateral ID
+                debtInTokens(debtId, _oracleData),         // Value of debt in tokens (debt oracle)
+                entry.oracle.read().toTokens(entry.amount) // Value of collateral in tokens (collateral oracle)
             ) >= 0, "The entry its not collateralized"
         );
 
@@ -636,7 +640,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         // Use collateral to buy tokens
         (uint256 bought, uint256 sold) = converter.safeConvertToMax(
-            token,      // Token to sell
+            token,            // Token to sell
             loanManagerToken, // Token to buy
             targetBuy,        // Target buy amount in buy token
             entry.amount      // Max amount to sell in sell token
@@ -722,6 +726,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     // Collateral methods
 
     /**
+        @param _entryId ID of the collateral entry
+        @param _oracleData Oracle Data for debt oracle
+
         @return The minimum amount valuate in collateral token of:
             collateral required to balance the entry
             entry amount
