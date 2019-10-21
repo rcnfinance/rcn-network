@@ -476,120 +476,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await entry.convertToRCN()
         )).to.eq.BN(calcCollateralRatio);
     });
-    it('Function collateralToTokens(address,address,uint256)', async function () {
-        // With loanManagerToken
-        expect(await collateral.methods['collateralToTokens(address,address,uint256)'].call(
-            oracle.address,
-            rcn.address,
-            0
-        )).to.eq.BN(0);
-
-        const amount = bn(5555);
-        expect(await collateral.methods['collateralToTokens(address,address,uint256)'].call(
-            oracle.address,
-            rcn.address,
-            amount
-        )).to.eq.BN(amount);
-
-        // With other token
-        const equivalent = WEI.div(bn(2));
-        await oracle.setEquivalent(equivalent);
-
-        const amountInToken = amount.mul(WEI).div(equivalent);
-
-        expect(await collateral.methods['collateralToTokens(address,address,uint256)'].call(
-            oracle.address,
-            auxToken.address,
-            0
-        )).to.eq.BN(0);
-
-        expect(await collateral.methods['collateralToTokens(address,address,uint256)'].call(
-            oracle.address,
-            auxToken.address,
-            amount
-        )).to.eq.BN(amountInToken);
-
-        const ReadedOracle = await Helper.toEvents(
-            collateral.methods['collateralToTokens(address,address,uint256)'](
-                oracle.address,
-                auxToken.address,
-                amount
-            ),
-            'ReadedOracle'
-        );
-
-        // Assert ReadedOracle event
-        expect(ReadedOracle._oracle).to.eq.BN(oracle.address);
-        expect(ReadedOracle._tokens).to.eq.BN(WEI);
-        expect(ReadedOracle._equivalent).to.eq.BN(equivalent);
-    });
-    it('Function collateralToTokens(address,uint256,uint256,uint256)', async function () {
-        // With loanManagerToken
-        expect(await collateral.methods['collateralToTokens(address,uint256,uint256,uint256)'](
-            rcn.address,
-            0,
-            0,
-            0
-        )).to.eq.BN(0);
-
-        const amount = bn(5555);
-        expect(await collateral.methods['collateralToTokens(address,uint256,uint256,uint256)'](
-            rcn.address,
-            amount,
-            0,
-            0
-        )).to.eq.BN(amount);
-
-        // With other token
-        expect(await collateral.methods['collateralToTokens(address,uint256,uint256,uint256)'](
-            auxToken.address,
-            amount,
-            WEI,
-            WEI
-        )).to.eq.BN(amount);
-
-        const halfWEI = WEI.div(bn(2));
-
-        expect(await collateral.methods['collateralToTokens(address,uint256,uint256,uint256)'](
-            auxToken.address,
-            amount,
-            halfWEI,
-            WEI
-        )).to.eq.BN(amount.mul(halfWEI).div(WEI));
-
-        expect(await collateral.methods['collateralToTokens(address,uint256,uint256,uint256)'](
-            auxToken.address,
-            amount,
-            WEI,
-            halfWEI
-        )).to.eq.BN(amount.mul(WEI).div(halfWEI));
-    });
-    it('Function debtInTokens', async function () {
-        const entry = await new EntryBuilder().build();
-        await lend(entry);
-
-        expect(await collateral.debtInTokens(
-            entry.id,
-            0,
-            0
-        )).to.eq.BN(entry.loanAmount);
-
-        const rateTokens = bn(2).mul(WEI);
-        const rateEquivalent = WEI;
-
-        const calcDebtInTokens = rateTokens.mul(entry.loanAmount).div(rateEquivalent);
-        expect(await collateral.debtInTokens(
-            entry.id,
-            rateTokens,
-            rateEquivalent
-        )).to.eq.BN(calcDebtInTokens);
-
-        expect(await collateral.debtInTokens(
-            entry.id,
-            1,
-            WEI
-        )).to.eq.BN(bn(1));
-    });
     describe('Function canWithdraw', async function () {
         it('Function canWithdraw', async function () {
             const entry = await new EntryBuilder()
@@ -2101,13 +1987,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
                 expect(await entry.convertToRCN()).to.eq.BN(collateralInToken);
 
-                expect(await collateral.methods['collateralToTokens(address,address,uint256)'].call(
-                    entry.oracle.address,
-                    entry.collateralToken.address,
-                    entryAmount
-                )).to.eq.BN(collateralInToken);
+                // expect(await collateral.methods['collateralToTokens(address,address,uint256)'].call(
+                //     entry.oracle.address,
+                //     entry.collateralToken.address,
+                //     entryAmount
+                // )).to.eq.BN(collateralInToken);
 
-                expect(await collateral.debtInTokens(entry.id, tokens, equivalent)).to.eq.BN(debtRCN);
+                // expect(await collateral.debtInTokens.call(entry.loanId)).to.eq.BN(debtRCN);
 
                 const _collateralRatio = await collateral.collateralRatio(
                     debtRCN,
@@ -2138,9 +2024,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
                 const _collateralToPay = await collateral.getTokenRequiredToTryBalance.call(
                     entry.id,
-                    tokens,
-                    equivalent
+                    entry.oracleData
                 );
+
                 expect(_collateralToPay).to.eq.BN(requiredTokenPay);
 
                 await auxToken.setBalance(converter.address, bn(0));
@@ -2148,17 +2034,20 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
                 await collateral.claim(loanManager.address, entry.loanId, entry.oracleData);
 
-                const _newDebt = await collateral.debtInTokens(entry.id, tokens, equivalent);
+                const _newDebt = await collateral.debtInTokens.call(entry.loanId, entry.oracleData);
                 roundCompare(_newDebt, newDebt);
 
                 const _newCollateral = (await collateral.entries(entry.id)).amount;
                 roundCompare(_newCollateral, newCollateral);
 
-                const _newCollateralInToken = await collateral.methods['collateralToTokens(address,address,uint256)'].call(
-                    entry.oracle.address,
-                    entry.collateralToken.address,
-                    _newCollateral
-                );
+                let _newCollateralInToken;
+                const samples = await entry.oracle.readSample.call([]);
+                if (entry.oracle.address === Helper.address0x) {
+                    _newCollateralInToken = _newCollateral;
+                } else {
+                    _newCollateralInToken = _newCollateral.mul(samples[0]).div(samples[1]);
+                }
+
                 roundCompare(_newCollateralInToken, newCollateralInToken);
 
                 if (!(newDebt.isZero() && newCollateral.isZero())) {
@@ -2189,12 +2078,20 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     }
                 }
 
-                const _coll = await collateral.methods['collateralToTokens(address,address,uint256)'].call(
-                    entry.oracle.address,
-                    entry.collateralToken.address,
-                    _newCollateral
+                // Fix this
+                let _coll;
+                if (entry.oracle.address === Helper.address0x) {
+                    _coll = _newCollateral;
+                } else {
+                    const sample = await entry.oracle.readSample.call([]);
+                    _coll = _newCollateral.mul(sample[0]).div(sample[1]);
+                }
+
+                const _debt = await collateral.debtInTokens.call(
+                    entry.loanId,
+                    entry.oracleData
                 );
-                const _debt = await collateral.debtInTokens(entry.id, tokens, equivalent);
+
                 const canPayAllDebt = _coll.gte(_debt);
 
                 // Claim when the loan is in debt

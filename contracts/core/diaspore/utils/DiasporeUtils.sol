@@ -46,6 +46,13 @@ library DiasporeUtils {
         }
     }
 
+    function oracle(
+        LoanManager _manager,
+        bytes32 _id
+    ) internal view returns (RateOracle) {
+        return RateOracle(_manager.getOracle(_id));
+    }
+
     function safePayToken(
         LoanManager _manager,
         bytes32 _id,
