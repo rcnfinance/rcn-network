@@ -252,6 +252,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
 
+        uint256 entryAmount = entry.amount;
+
         // Check if the entry is cosigned
         // and if it's cosigned check how much collateral
         // can be withdrew
@@ -261,14 +263,15 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 _amount.toInt256() <= canWithdraw(
                     _entryId,                                   // ID of the collateral entry
                     debtInTokens(debtId, _oracleData),          // Value of the debt in tokens (debt oracle)
-                    entry.oracle.read().toTokens(entry.amount)  // Value of the collateral in tokens (collateral oracle)
+                    entry.oracle.read().toTokens(entryAmount)   // Value of the collateral in tokens (collateral oracle)
                 ),
                 "Dont have collateral to withdraw"
             );
         }
 
         // Register the withdraw of amount on the entry
-        entry.amount = entry.amount.sub(_amount);
+        require(entryAmount >= _amount, "Don't have collateral to withdraw");
+        entry.amount = entryAmount.sub(_amount);
 
         // Send the amount of ERC20 tokens to _to
         require(entry.token.safeTransfer(_to, _amount), "Error sending tokens");
