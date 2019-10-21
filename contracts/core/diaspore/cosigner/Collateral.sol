@@ -631,16 +631,18 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             targetBuy = _requiredToken;
         }
 
+        // Load entry token
+        IERC20 token = entry.token;
+
         // Use collateral to buy tokens
         (uint256 bought, uint256 sold) = converter.safeConvertToMax(
-            entry.token,      // Token to sell
+            token,      // Token to sell
             loanManagerToken, // Token to buy
             targetBuy,        // Target buy amount in buy token
             entry.amount      // Max amount to sell in sell token
         );
 
         // Check spread ratio (oracle vs converter)
-        IERC20 token = entry.token;
         _validateMinReturn(
             token,
             entry.oracle,
@@ -671,7 +673,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             sold = tokensToPay - paidTokens;
             bought = converter.safeConvertFrom(
                 loanManagerToken,
-                entry.token,
+                token,
                 sold,
                 0
             );
