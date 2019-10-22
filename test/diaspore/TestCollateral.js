@@ -749,7 +749,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     bn(2).pow(bn(127)),
                     creator
                 ),
-                'Sub overflow'
+                'Don\'t have collateral to withdraw'
             );
 
             await collateralSnap.requireConstant();
@@ -761,7 +761,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     bn(1),
                     creator
                 ),
-                'Sub overflow'
+                'Don\'t have collateral to withdraw'
             );
 
             await collateralSnap.requireConstant();
