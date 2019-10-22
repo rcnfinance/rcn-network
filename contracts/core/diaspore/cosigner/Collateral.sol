@@ -796,7 +796,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         // if the collateralRatio its 0 can withdraw all the collateral, because the debt amount its 0
         if (ratio == 0) return collateral;
 
-        return collateral.muldiv(deltaCollateralRatio(entry.balanceRatio, _debtInToken, _collateralInToken), ratio);
+        int256 delta = deltaCollateralRatio(
+            entry.balanceRatio,
+            _debtInToken,
+            _collateralInToken
+        );
+
+        return collateral.muldiv(delta, ratio);
     }
 
     /**
