@@ -85,7 +85,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             this.rewardFee = rand(0, BASE.sub(this.burnFee).sub(bn(1)));
             this.liquidationRatio = rand(BASE, 20000);
             this.balanceRatio = rand(this.liquidationRatio.add(this.burnFee).add(this.rewardFee), 30000);
-            this.collateralToken = auxToken;
+            this.collateralToken = this.entryOracle.address === Helper.address0x ? rcn : auxToken;
         }
 
         with (attr, value) {
@@ -94,14 +94,14 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         }
 
         async build () {
-            if (rcn.address !== this.collateralToken.address) {
+            if (this.entryOracle.address !== Helper.address0x) {
                 await converter.setRate(rcn.address, this.collateralToken.address, this.rateFromRCN);
                 await converter.setRate(this.collateralToken.address, rcn.address, this.rateToRCN);
                 const equivalent = (this.entryOracleEquivalent === undefined) ? this.rateFromRCN : this.entryOracleEquivalent;
                 await this.entryOracle.setEquivalent(equivalent);
                 this.collateralOracleEquivalent = equivalent;
             } else {
-                await this.entryOracle.setEquivalent(WEI);
+                this.collateralToken = rcn;
                 this.collateralOracleEquivalent = WEI;
             }
 
@@ -151,7 +151,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateral.create(
                     this.loanId,                  // debtId
                     this.entryOracle.address,     // entry oracle
-                    this.collateralToken.address, // token
                     this.entryAmount,             // amount
                     this.liquidationRatio,        // liquidationRatio
                     this.balanceRatio,            // balanceRatio
@@ -231,13 +230,21 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         }
 
         async convertToRCN (amount = this.entryAmount) {
-            const sample = await this.entryOracle.readSample.call([]);
-            return amount.mul(sample.tokens).div(sample.equivalent);
+            if (this.entryOracle.address !== Helper.address0x) {
+                const sample = await this.entryOracle.readSample.call([]);
+                return amount.mul(sample.tokens).div(sample.equivalent);
+            } else {
+                return amount;
+            }
         }
 
         async convertFromRCN (amountRCN) {
-            const sample = await this.entryOracle.readSample.call([]);
-            return amountRCN.mul(sample.equivalent).div(sample.tokens);
+            if (this.entryOracle.address !== Helper.address0x) {
+                const sample = await this.entryOracle.readSample.call([]);
+                return amountRCN.mul(sample.equivalent).div(sample.tokens);
+            } else {
+                return amountRCN;
+            }
         }
     }
 
@@ -384,9 +391,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
     before('Create contracts', async function () {
         converter = await TestConverter.new({ from: owner });
-        oracle = await TestRateOracle.new({ from: owner });
         rcn = await TestToken.new({ from: owner });
         auxToken = await TestToken.new({ from: owner });
+        oracle = await TestRateOracle.new({ from: owner });
+        await oracle.setToken(auxToken.address, { from: owner });
         debtEngine = await DebtEngine.new(rcn.address, { from: owner });
         loanManager = await LoanManager.new(debtEngine.address, { from: owner });
         model = await TestModel.new({ from: owner });
@@ -575,25 +583,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should create a new collateral', async function () {
             await new EntryBuilder().build();
         });
-        it('Try create with address 0 as oracle', async function () {
-            const loan = await new EntryBuilder()
-                .with('onlyTakeALoan', true)
+        it('Should create a new collateral in loanManagerToken as token', async function () {
+            await new EntryBuilder()
+                .with('entryOracle', { address: Helper.address0x })
                 .build();
-
-            await Helper.tryCatchRevert(
-                () => collateral.create(
-                    loan,             // debtId
-                    Helper.address0x, // entry oracle
-                    rcn.address,      // token
-                    0,                // amount
-                    15000,            // liquidationRatio
-                    20000,            // balanceRatio
-                    0,                // burnFee
-                    0,                // rewardFee
-                    { from: creator }
-                ),
-                'Invalid oracle, cant be address 0'
-            );
         });
         it('Try create a new collateral with a high fee', async function () {
             await Helper.tryCatchRevert(
@@ -662,7 +655,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 () => collateral.create(
                     loan,             // debtId
                     oracle.address,   // entry oracle
-                    auxToken.address, // token
                     1,                // amount
                     15000,            // liquidationRatio
                     20000,            // balanceRatio

@@ -144,7 +144,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 123.45% is 12345
 
         @dev This generate an ERC721,
-            The _oracle should not be the address 0
             The _liquidationRatio should be greater than BASE(10000)
             The _balanceRatio should be greater than _liquidationRatio
             The sum of _burnFee and _rewardFee should be lower than BASE(10000)
@@ -153,7 +152,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         @param _debtId Id of the debt
         @param _oracle The oracle to get the rate between loanManagerToken and entry token
-        @param _token ERC20 of the collateral
+            If the oracle its the address 0 the entry token its the loanManagerToken
+                otherwise the token its the oracle.token
         @param _amount The amount to be transferred to the contract
 
         @param _liquidationRatio Ratio, when collateral ratio is lower enables the execution of the margin call
@@ -167,7 +167,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function create(
         bytes32 _debtId,
         RateOracle _oracle,
-        IERC20 _token,
         uint256 _amount,
         uint32 _liquidationRatio,
         uint32 _balanceRatio,
@@ -175,7 +174,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint32 _rewardFee
     ) external returns (uint256 entryId) {
         // Check parameters
-        require(_oracle != RateOracle(0), "Invalid oracle, cant be address 0");
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
         uint256 totalFee = _burnFee.add(_rewardFee);
         require(totalFee < BASE, "Fee should be lower than BASE");
@@ -184,11 +182,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(totalFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
         // Check status of loan, should be open
         require(loanManager.getStatus(_debtId) == 0, "Debt request should be open");
+
+        IERC20 token = _oracle == RateOracle(0) ? loanManagerToken : IERC20(_oracle.token());
         // Create the entry, and push on entries array
         entryId = entries.push(
             Entry({
                 oracle: _oracle,
-                token: _token,
+                token: token,
                 debtId: _debtId,
                 amount: _amount,
                 liquidationRatio: _liquidationRatio,
@@ -198,7 +198,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             })
         ) - 1;
         // Take the ERC20 tokens
-        require(_token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+        require(token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
         // Generate the ERC721 Token
         _generate(entryId, msg.sender);
 
@@ -206,7 +206,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entryId,
             _debtId,
             _oracle,
-            _token,
+            token,
             _amount,
             _liquidationRatio,
             _balanceRatio,
