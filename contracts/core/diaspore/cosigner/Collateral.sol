@@ -317,48 +317,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @notice Redeem/Forgive an entry
-
-        @dev Send the balance of the entry to _to and delete the entry
-
-        @param _entryId Id of the entry
-        @param _to The beneficiary of the tokens
-        @param _emergency Boolean:
-            True, look in emergencyRedeem function
-            False, look in redeem function
-
-        @return The amount of transferred tokens
-    */
-    function _redeem(
-        uint256 _entryId,
-        address _to,
-        bool _emergency
-    ) internal returns(uint256 totalTransfer) {
-        Entry storage entry = entries[_entryId];
-        // Get debt status
-        uint256 status = loanManager.getStatus(entry.debtId);
-
-        if (_emergency) {
-            // The state of the debt must be ERROR(4)
-            require(status == 4, "Debt is not in error");
-            emit EmergencyRedeemed(_entryId, _to);
-        } else {
-            // The state of the debt must be request(0) or paid(2)
-            require(status == 0 || status == 2, "Debt not request or paid");
-            emit Redeemed(_entryId);
-        }
-
-        totalTransfer = entry.amount;
-        IERC20 token = entry.token;
-        // Destroy ERC721 collateral token
-        delete debtToEntry[entry.debtId];
-        delete entries[_entryId];
-
-        // Send the amount of ERC20 tokens to _to
-        require(token.safeTransfer(_to, totalTransfer), "Error sending tokens");
-    }
-
-    /**
         @notice Pay a debt with the entry balance, only an authorized can be use this function
 
         @dev Convert the necessary amount of Token of the entry in Loan Manager Token to try pay all the debt
@@ -551,6 +509,170 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
+        @param _entryId ID of the collateral entry
+        @param _oracleData Oracle Data for debt oracle
+
+        @return The minimum amount valuate in collateral token of:
+            collateral required to balance the entry
+            entry amount
+    */
+    function getTokenRequiredToTryBalance(
+        uint256 _entryId,
+        bytes memory _oracleData
+    ) public returns(uint256) {
+        Entry storage entry = entries[_entryId];
+
+        // Valuate the debt amount from debt currency to loanManagerToken
+        uint256 debt = debtInTokens(entry.debtId, _oracleData);
+
+        // If the debt amount its 0 dont need balance the entry
+        if (debt == 0) return 0;
+
+        OracleUtils.Sample memory sample = entry.oracle.read();
+        uint256 collateralInToken = sample.toTokens(entry.amount);
+
+        // If the entry is collateralized should not have collateral amount to pay
+        if (deltaCollateralRatio(
+            entry.liquidationRatio,
+            debt,
+            collateralInToken
+        ) >= 0) {
+            return 0;
+        }
+
+        uint256 cwithdraw = canWithdraw(_entryId, debt, collateralInToken).abs().toUint256();
+
+        // Check underflow when create the entry
+        uint256 collateralRequiredToBalance = cwithdraw.mult(BASE) / (entry.balanceRatio - BASE - entry.burnFee - entry.rewardFee);
+
+        uint256 min = Math.min(
+            // The collateral required to equilibrate the balance (the collateral should be more than the debt)
+            collateralRequiredToBalance,
+            // Pay all collateral amount (the collateral should be less than the debt)
+            entry.amount
+        );
+
+        return sample.toTokens(min);
+    }
+
+    /**
+        @param _entryId The index of entry, inside of entries array
+        @param _debtInToken The total amount of the debt valuate in loanManagerToken
+        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
+
+        @return The amount that can be withdraw of the collateral, valuate in collateral Token.
+            If the return its negative, the entry should be below of the balance ratio
+    */
+    function canWithdraw(
+        uint256 _entryId,
+        uint256 _debtInToken,
+        uint256 _collateralInToken
+    ) public view returns (int256) {
+        Entry storage entry = entries[_entryId];
+
+        int256 ratio = collateralRatio(_debtInToken, _collateralInToken).toInt256();
+        int256 collateral = entry.amount.toInt256();
+
+        // if the collateralRatio its 0 can withdraw all the collateral, because the debt amount its 0
+        if (ratio == 0) return collateral;
+
+        int256 delta = deltaCollateralRatio(
+            entry.balanceRatio,
+            _debtInToken,
+            _collateralInToken
+        );
+
+        return collateral.muldiv(delta, ratio);
+    }
+
+    /**
+        @param _ratio Ratio to substract collateralRatio
+        @param _debtInToken The total amount of the debt valuate in loanManagerToken
+        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
+
+        @return The collateral ratio minus the ratio
+    */
+    function deltaCollateralRatio(
+        uint256 _ratio,
+        uint256 _debtInToken,
+        uint256 _collateralInToken
+    ) public pure returns (int256) {
+        return collateralRatio(_debtInToken, _collateralInToken).toInt256().sub(int256(_ratio));
+    }
+
+    /**
+        @param _debtInToken The total amount of the debt valuate in loanManagerToken
+        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
+
+        @return The ratio of the collateral vs the debt
+    */
+    function collateralRatio(
+        uint256 _debtInToken,
+        uint256 _collateralInToken
+    ) public pure returns (uint256) {
+        // if the debt amount its 0 the collateral ratio its 0
+        if (_debtInToken == 0) return 0;
+
+        return _collateralInToken.multdiv(BASE, _debtInToken);
+    }
+
+    /**
+
+    */
+    function debtInTokens(
+        bytes32 debtId,
+        bytes memory _data
+    ) public returns (uint256) {
+        LoanManager _loanManager = loanManager;
+        return _loanManager
+            .oracle(debtId)
+            .read(_data)
+            .toTokens(_loanManager.getClosingObligation(debtId));
+    }
+
+    /**
+        @notice Redeem/Forgive an entry
+
+        @dev Send the balance of the entry to _to and delete the entry
+
+        @param _entryId Id of the entry
+        @param _to The beneficiary of the tokens
+        @param _emergency Boolean:
+            True, look in emergencyRedeem function
+            False, look in redeem function
+
+        @return The amount of transferred tokens
+    */
+    function _redeem(
+        uint256 _entryId,
+        address _to,
+        bool _emergency
+    ) internal returns(uint256 totalTransfer) {
+        Entry storage entry = entries[_entryId];
+        // Get debt status
+        uint256 status = loanManager.getStatus(entry.debtId);
+
+        if (_emergency) {
+            // The state of the debt must be ERROR(4)
+            require(status == 4, "Debt is not in error");
+            emit EmergencyRedeemed(_entryId, _to);
+        } else {
+            // The state of the debt must be request(0) or paid(2)
+            require(status == 0 || status == 2, "Debt not request or paid");
+            emit Redeemed(_entryId);
+        }
+
+        totalTransfer = entry.amount;
+        IERC20 token = entry.token;
+        // Destroy ERC721 collateral token
+        delete debtToEntry[entry.debtId];
+        delete entries[_entryId];
+
+        // Send the amount of ERC20 tokens to _to
+        require(token.safeTransfer(_to, totalTransfer), "Error sending tokens");
+    }
+
+    /**
         @param _entryId The index of entry, inside of entries array
         @param _burnFee The entry burn fee
         @param _rewardFee The entry reward fee
@@ -724,129 +846,5 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             );
 
         require(_bought >= minReturn, "converter return below minimun required");
-    }
-
-    // Collateral methods
-
-    /**
-        @param _entryId ID of the collateral entry
-        @param _oracleData Oracle Data for debt oracle
-
-        @return The minimum amount valuate in collateral token of:
-            collateral required to balance the entry
-            entry amount
-    */
-    function getTokenRequiredToTryBalance(
-        uint256 _entryId,
-        bytes memory _oracleData
-    ) public returns(uint256) {
-        Entry storage entry = entries[_entryId];
-
-        // Valuate the debt amount from debt currency to loanManagerToken
-        uint256 debt = debtInTokens(entry.debtId, _oracleData);
-
-        // If the debt amount its 0 dont need balance the entry
-        if (debt == 0) return 0;
-
-        OracleUtils.Sample memory sample = entry.oracle.read();
-        uint256 collateralInToken = sample.toTokens(entry.amount);
-
-        // If the entry is collateralized should not have collateral amount to pay
-        if (deltaCollateralRatio(
-            entry.liquidationRatio,
-            debt,
-            collateralInToken
-        ) >= 0) {
-            return 0;
-        }
-
-        uint256 cwithdraw = canWithdraw(_entryId, debt, collateralInToken).abs().toUint256();
-
-        // Check underflow when create the entry
-        uint256 collateralRequiredToBalance = cwithdraw.mult(BASE) / (entry.balanceRatio - BASE - entry.burnFee - entry.rewardFee);
-
-        uint256 min = Math.min(
-            // The collateral required to equilibrate the balance (the collateral should be more than the debt)
-            collateralRequiredToBalance,
-            // Pay all collateral amount (the collateral should be less than the debt)
-            entry.amount
-        );
-
-        return sample.toTokens(min);
-    }
-
-    /**
-        @param _entryId The index of entry, inside of entries array
-        @param _debtInToken The total amount of the debt valuate in loanManagerToken
-        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
-
-        @return The amount that can be withdraw of the collateral, valuate in collateral Token.
-            If the return its negative, the entry should be below of the balance ratio
-    */
-    function canWithdraw(
-        uint256 _entryId,
-        uint256 _debtInToken,
-        uint256 _collateralInToken
-    ) public view returns (int256) {
-        Entry storage entry = entries[_entryId];
-
-        int256 ratio = collateralRatio(_debtInToken, _collateralInToken).toInt256();
-        int256 collateral = entry.amount.toInt256();
-
-        // if the collateralRatio its 0 can withdraw all the collateral, because the debt amount its 0
-        if (ratio == 0) return collateral;
-
-        int256 delta = deltaCollateralRatio(
-            entry.balanceRatio,
-            _debtInToken,
-            _collateralInToken
-        );
-
-        return collateral.muldiv(delta, ratio);
-    }
-
-    /**
-        @param _ratio Ratio to substract collateralRatio
-        @param _debtInToken The total amount of the debt valuate in loanManagerToken
-        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
-
-        @return The collateral ratio minus the ratio
-    */
-    function deltaCollateralRatio(
-        uint256 _ratio,
-        uint256 _debtInToken,
-        uint256 _collateralInToken
-    ) public pure returns (int256) {
-        return collateralRatio(_debtInToken, _collateralInToken).toInt256().sub(int256(_ratio));
-    }
-
-    /**
-        @param _debtInToken The total amount of the debt valuate in loanManagerToken
-        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
-
-        @return The ratio of the collateral vs the debt
-    */
-    function collateralRatio(
-        uint256 _debtInToken,
-        uint256 _collateralInToken
-    ) public pure returns (uint256) {
-        // if the debt amount its 0 the collateral ratio its 0
-        if (_debtInToken == 0) return 0;
-
-        return _collateralInToken.multdiv(BASE, _debtInToken);
-    }
-
-    /**
-
-    */
-    function debtInTokens(
-        bytes32 debtId,
-        bytes memory _data
-    ) public returns (uint256) {
-        LoanManager _loanManager = loanManager;
-        return _loanManager
-            .oracle(debtId)
-            .read(_data)
-            .toTokens(_loanManager.getClosingObligation(debtId));
     }
 }
