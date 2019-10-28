@@ -8,6 +8,7 @@ import "../../utils/BytesUtils.sol";
 contract TestRateOracle is BytesUtils, ERC165, RateOracle {
     uint256 public constant VERSION = 5;
     bytes4 internal constant RATE_ORACLE_INTERFACE = 0xa265d8e0;
+    address internal _token;
 
     constructor() public {
         _registerInterface(RATE_ORACLE_INTERFACE);
@@ -19,7 +20,13 @@ contract TestRateOracle is BytesUtils, ERC165, RateOracle {
 
     function decimals() external view returns (uint256) {}
 
-    function token() external view returns (address) {}
+    function setToken(address token) external returns (address) {
+        _token = token;
+    }
+
+    function token() external view returns (address) {
+        return _token;
+    }
 
     function currency() external view returns (bytes32) {}
 
