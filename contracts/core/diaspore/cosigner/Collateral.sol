@@ -829,8 +829,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 _bought,
         uint256 _sold
     ) internal {
-        // _sold     - entryRateEquivalent
-        // minReturn - entryRateTokens
+        // _sold       - entryRateEquivalent
+        // expecBought - entryRateTokens
         // expecBought = _sold * entryRateTokens / entryRateEquivalent
 
         // expecBought - BASE
