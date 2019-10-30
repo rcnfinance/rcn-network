@@ -1593,7 +1593,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         it('Should pay debt using rcn collateral, without oracle', async () => {
             // Request a loan
             const modelData = await model.encodeData(
-                b(1000),
+                b(1100),
                 MAX_UINT64
             );
 
@@ -1650,6 +1650,11 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Pay debt using RCN collateral
             await collateral.payOffDebt(entryId, [], { from: user });
             expect(await loanManager.getStatus(debtId)).to.eq.BN(b(2));
+
+            expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(b(1100));
+            expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(1400));
+            const entry = await collateral.entries(b(1));
+            expect(entry.amount).to.eq.BN(b(1400));
         });
     });
 });
