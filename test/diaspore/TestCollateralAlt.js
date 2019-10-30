@@ -1192,4 +1192,464 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             );
         });
     });
+    describe('Redeem collateral', () => {
+        it('Should redeem a non lent loan', async () => {
+            // Random non-existent ID
+            const debtId = '0x8b8086ead1ced389ee1840a086fe6cd914bad57f064d4e176b29a830685dfc0a';
+
+            await rcn.setBalance(user, b(2500));
+            await rcn.approve(collateral.address, b(2500), { from: user });
+
+            // Create collateral entry
+            await collateral.create(
+                debtId,           // Debt ID
+                address0x,        // Oracle address
+                b(2500),          // Token Amount
+                b(10500),         // Liquidation Ratio
+                b(10600),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Redeem entry
+            await collateral.redeem(entryId, { from: user });
+
+            expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(0));
+            expect(await rcn.balanceOf(user)).to.eq.BN(b(2500));
+
+            // Inspect entry
+            const entry = await collateral.entries(entryId);
+            expect(entry.oracle).to.be.equal(address0x);
+            expect(entry.token).to.be.equal(address0x);
+            expect(entry.amount).to.eq.BN(b(0));
+            expect(entry.liquidationRatio).to.eq.BN(b(0));
+            expect(entry.balanceRatio).to.eq.BN(b(0));
+            expect(entry.burnFee).to.eq.BN(b(0));
+            expect(entry.rewardFee).to.eq.BN(b(0));
+        });
+        it('Should redeem a paid loan', async () => {
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(1000),
+                MAX_UINT64
+            );
+
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),          // Requested amount
+                model.address,    // Debt model
+                address0x,        // Oracle
+                user,             // Borrower
+                address0x,        // Callback
+                b(0),             // Salt
+                MAX_UINT64,       // Expiration
+                modelData,        // Model data
+                {
+                    from: user,
+                }
+            );
+
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+            // Create collateral entry
+            await rcn.setBalance(user, b(2500));
+            await rcn.approve(collateral.address, b(2500), { from: user });
+            await collateral.create(
+                debtId,           // Debt ID
+                address0x,        // Oracle address
+                b(2500),          // Token Amount
+                b(12000),         // Liquidation Ratio
+                b(15000),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(
+                debtId,             // Debt ID
+                [],                 // Oracle data
+                collateral.address, // Collateral cosigner
+                b(0),               // Cosigner limit
+                toBytes32(entryId), // Cosigner data
+                [],                 // Callback data
+                {
+                    from: anotherUser,
+                }
+            );
+
+            // Pay loan
+            await rcn.setBalance(user, b(1000));
+            await rcn.approve(debtEngine.address, b(1000), { from: user });
+            await debtEngine.pay(
+                debtId,
+                b(1000),
+                user,
+                [],
+                {
+                    from: user,
+                }
+            );
+
+            // Redeem entry
+            await collateral.redeem(entryId, { from: user });
+
+            expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(0));
+            expect(await rcn.balanceOf(user)).to.eq.BN(b(2500));
+
+            // Inspect entry
+            const entry = await collateral.entries(entryId);
+            expect(entry.oracle).to.be.equal(address0x);
+            expect(entry.token).to.be.equal(address0x);
+            expect(entry.amount).to.eq.BN(b(0));
+            expect(entry.liquidationRatio).to.eq.BN(b(0));
+            expect(entry.balanceRatio).to.eq.BN(b(0));
+            expect(entry.burnFee).to.eq.BN(b(0));
+            expect(entry.rewardFee).to.eq.BN(b(0));
+        });
+        it('Should emergency redeem a loan with an error', async () => {
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(1000),
+                MAX_UINT64
+            );
+
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),          // Requested amount
+                model.address,    // Debt model
+                address0x,        // Oracle
+                user,             // Borrower
+                address0x,        // Callback
+                b(0),             // Salt
+                MAX_UINT64,       // Expiration
+                modelData,        // Model data
+                {
+                    from: user,
+                }
+            );
+
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+            // Create collateral entry
+            await rcn.setBalance(user, b(2500));
+            await rcn.approve(collateral.address, b(2500), { from: user });
+            await collateral.create(
+                debtId,           // Debt ID
+                address0x,        // Oracle address
+                b(2500),          // Token Amount
+                b(12000),         // Liquidation Ratio
+                b(15000),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(
+                debtId,             // Debt ID
+                [],                 // Oracle data
+                collateral.address, // Collateral cosigner
+                b(0),               // Cosigner limit
+                toBytes32(entryId), // Cosigner data
+                [],                 // Callback data
+                {
+                    from: anotherUser,
+                }
+            );
+
+            // Simulate an error
+            await model.setErrorFlag(debtId, b(3), { from: owner });
+
+            // Redeem entry
+            await collateral.emergencyRedeem(entryId, anotherUser, { from: owner });
+
+            expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(0));
+            expect(await rcn.balanceOf(anotherUser)).to.eq.BN(b(2500));
+
+            // Inspect entry
+            const entry = await collateral.entries(entryId);
+            expect(entry.oracle).to.be.equal(address0x);
+            expect(entry.token).to.be.equal(address0x);
+            expect(entry.amount).to.eq.BN(b(0));
+            expect(entry.liquidationRatio).to.eq.BN(b(0));
+            expect(entry.balanceRatio).to.eq.BN(b(0));
+            expect(entry.burnFee).to.eq.BN(b(0));
+            expect(entry.rewardFee).to.eq.BN(b(0));
+        });
+    });
+    describe('Fail redeem collateral', () => {
+        it('Should fail to redeem if loan is not paid', async () => {
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(1000),
+                MAX_UINT64
+            );
+
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),          // Requested amount
+                model.address,    // Debt model
+                address0x,        // Oracle
+                user,             // Borrower
+                address0x,        // Callback
+                b(0),             // Salt
+                MAX_UINT64,       // Expiration
+                modelData,        // Model data
+                {
+                    from: user,
+                }
+            );
+
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+            // Create collateral entry
+            await rcn.setBalance(user, b(2500));
+            await rcn.approve(collateral.address, b(2500), { from: user });
+            await collateral.create(
+                debtId,           // Debt ID
+                address0x,        // Oracle address
+                b(2500),          // Token Amount
+                b(12000),         // Liquidation Ratio
+                b(15000),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(
+                debtId,             // Debt ID
+                [],                 // Oracle data
+                collateral.address, // Collateral cosigner
+                b(0),               // Cosigner limit
+                toBytes32(entryId), // Cosigner data
+                [],                 // Callback data
+                {
+                    from: anotherUser,
+                }
+            );
+
+            // Redeem entry
+            await tryCatchRevert(
+                collateral.redeem(entryId, { from: user }),
+                'Debt not request or paid'
+            );
+        });
+        it('Should fail emergency redeem a loan if status is not error', async () => {
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(1000),
+                MAX_UINT64
+            );
+
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),          // Requested amount
+                model.address,    // Debt model
+                address0x,        // Oracle
+                user,             // Borrower
+                address0x,        // Callback
+                b(0),             // Salt
+                MAX_UINT64,       // Expiration
+                modelData,        // Model data
+                {
+                    from: user,
+                }
+            );
+
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+            // Create collateral entry
+            await rcn.setBalance(user, b(2500));
+            await rcn.approve(collateral.address, b(2500), { from: user });
+            await collateral.create(
+                debtId,           // Debt ID
+                address0x,        // Oracle address
+                b(2500),          // Token Amount
+                b(12000),         // Liquidation Ratio
+                b(15000),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(
+                debtId,             // Debt ID
+                [],                 // Oracle data
+                collateral.address, // Collateral cosigner
+                b(0),               // Cosigner limit
+                toBytes32(entryId), // Cosigner data
+                [],                 // Callback data
+                {
+                    from: anotherUser,
+                }
+            );
+
+            // Redeem entry
+            await tryCatchRevert(
+                collateral.emergencyRedeem(entryId, anotherUser, { from: owner }),
+                'Debt is not in error'
+            );
+        });
+        it('Should fail emergency redeem a loan if caller is not the owner', async () => {
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(1000),
+                MAX_UINT64
+            );
+
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),          // Requested amount
+                model.address,    // Debt model
+                address0x,        // Oracle
+                user,             // Borrower
+                address0x,        // Callback
+                b(0),             // Salt
+                MAX_UINT64,       // Expiration
+                modelData,        // Model data
+                {
+                    from: user,
+                }
+            );
+
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+            // Create collateral entry
+            await rcn.setBalance(user, b(2500));
+            await rcn.approve(collateral.address, b(2500), { from: user });
+            await collateral.create(
+                debtId,           // Debt ID
+                address0x,        // Oracle address
+                b(2500),          // Token Amount
+                b(12000),         // Liquidation Ratio
+                b(15000),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(
+                debtId,             // Debt ID
+                [],                 // Oracle data
+                collateral.address, // Collateral cosigner
+                b(0),               // Cosigner limit
+                toBytes32(entryId), // Cosigner data
+                [],                 // Callback data
+                {
+                    from: anotherUser,
+                }
+            );
+
+            // Simulate an error
+            await model.setErrorFlag(debtId, b(3), { from: owner });
+
+            // Redeem entry
+            await tryCatchRevert(
+                collateral.emergencyRedeem(entryId, anotherUser, { from: user }),
+                'The owner should be the sender'
+            );
+        });
+    });
+    describe('Pay off debt', () => {
+        it('Should pay debt using rcn collateral, without oracle', async () => {
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(1000),
+                MAX_UINT64
+            );
+
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),          // Requested amount
+                model.address,    // Debt model
+                address0x,        // Oracle
+                user,             // Borrower
+                address0x,        // Callback
+                b(0),             // Salt
+                MAX_UINT64,       // Expiration
+                modelData,        // Model data
+                {
+                    from: user,
+                }
+            );
+
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+            // Create collateral entry
+            await rcn.setBalance(user, b(2500));
+            await rcn.approve(collateral.address, b(2500), { from: user });
+            await collateral.create(
+                debtId,           // Debt ID
+                address0x,        // Oracle address
+                b(2500),          // Token Amount
+                b(12000),         // Liquidation Ratio
+                b(15000),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(
+                debtId,             // Debt ID
+                [],                 // Oracle data
+                collateral.address, // Collateral cosigner
+                b(0),               // Cosigner limit
+                toBytes32(entryId), // Cosigner data
+                [],                 // Callback data
+                {
+                    from: anotherUser,
+                }
+            );
+
+            // Pay debt using RCN collateral
+            await collateral.payOffDebt(entryId, [], { from: user });
+            expect(await loanManager.getStatus(debtId)).to.eq.BN(b(3));
+        });
+    });
 });
