@@ -1648,8 +1648,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             );
 
             // Pay debt using RCN collateral
-            // await collateral.payOffDebt(entryId, [], { from: user });
-            // expect(await loanManager.getStatus(debtId)).to.eq.BN(b(3));
+            await collateral.payOffDebt(entryId, [], { from: user });
+            expect(await loanManager.getStatus(debtId)).to.eq.BN(b(2));
         });
     });
 });

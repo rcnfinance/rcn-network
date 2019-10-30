@@ -75,12 +75,12 @@ library SafeTokenConverter {
         uint256 _toAmount,
         uint256 _maxSpend
     ) internal returns (uint256 received, uint256 spend) {
-        uint256 maxReceive = _converter.getPriceConvertFrom(_fromToken, _toToken, _maxSpend);
-
         if (address(_fromToken) == address(_toToken)) {
             uint256 min = _maxSpend < _toAmount ? _maxSpend : _toAmount;
             return (min, min);
         }
+
+        uint256 maxReceive = _converter.getPriceConvertFrom(_fromToken, _toToken, _maxSpend);
 
         if (maxReceive < _toAmount) {
             spend = _maxSpend;
