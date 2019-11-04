@@ -1807,6 +1807,88 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             const entry = await collateral.entries(b(1));
             expect(entry.amount).to.eq.BN(b(1950));
         });
+        it('Should pay debt using token collateral, with loan oracle', async () => {
+            // Create oracle and alt token
+            const dai = await TestToken.new();
+            const oracle = await TestRateOracle.new();
+            await oracle.setToken(dai.address);
+            await oracle.setEquivalent(b('500000000000000000'));
+
+            // Create loan oracle
+            const loanOracle = await TestRateOracle.new();
+            await loanOracle.setEquivalent(b('4000000000000000000'));
+
+            // configure converter
+            await rcn.setBalance(converter.address, b(2).pow(b(64)));
+            await dai.setBalance(converter.address, b(2).pow(b(64)));
+            await converter.setRate(dai.address, rcn.address, b('2000000000000000000'));
+            await converter.setRate(rcn.address, dai.address, b('500000000000000000'));
+
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(1100),
+                MAX_UINT64
+            );
+
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),             // Requested amount
+                model.address,       // Debt model
+                loanOracle.address,  // Oracle
+                user,                // Borrower
+                address0x,           // Callback
+                b(0),                // Salt
+                MAX_UINT64,          // Expiration
+                modelData,           // Model data
+                {
+                    from: user,
+                }
+            );
+
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+            // Create collateral entry
+            await dai.setBalance(user, b(2500));
+            await dai.approve(collateral.address, b(2500), { from: user });
+            await collateral.create(
+                debtId,           // Debt ID
+                oracle.address,   // Oracle address
+                b(2500),          // Token Amount
+                b(12000),         // Liquidation Ratio
+                b(15000),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(
+                debtId,             // Debt ID
+                [],                 // Oracle data
+                collateral.address, // Collateral cosigner
+                b(0),               // Cosigner limit
+                toBytes32(entryId), // Cosigner data
+                [],                 // Callback data
+                {
+                    from: anotherUser,
+                }
+            );
+
+            // Pay debt using RCN collateral
+            await collateral.payOffDebt(entryId, [], { from: user });
+            expect(await loanManager.getStatus(debtId)).to.eq.BN(b(2));
+
+            expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(b(275));
+            expect(await dai.balanceOf(collateral.address)).to.eq.BN(b(2362));
+            const entry = await collateral.entries(b(1));
+            expect(entry.amount).to.eq.BN(b(2362));
+        });
         it('Should pay debt using token collateral, without loan oracle, using all the collateral', async () => {
             // Create oracle and alt token
             const dai = await TestToken.new();
@@ -1831,6 +1913,91 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 b(1000),             // Requested amount
                 model.address,       // Debt model
                 address0x,           // Oracle
+                user,                // Borrower
+                address0x,           // Callback
+                b(0),                // Salt
+                MAX_UINT64,          // Expiration
+                modelData,           // Model data
+                {
+                    from: user,
+                }
+            );
+
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+            // Create collateral entry
+            await dai.setBalance(user, b(2500));
+            await dai.approve(collateral.address, b(2500), { from: user });
+            await collateral.create(
+                debtId,           // Debt ID
+                oracle.address,   // Oracle address
+                b(2500),          // Token Amount
+                b(12000),         // Liquidation Ratio
+                b(15000),         // Balance ratio
+                b(9),             // Burn fee
+                b(1),             // Reward fee
+                {
+                    from: user,
+                }
+            );
+
+            const entryId = b(1);
+
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(
+                debtId,             // Debt ID
+                [],                 // Oracle data
+                collateral.address, // Collateral cosigner
+                b(0),               // Cosigner limit
+                toBytes32(entryId), // Cosigner data
+                [],                 // Callback data
+                {
+                    from: anotherUser,
+                }
+            );
+
+            // Increase the debt a lot
+            await model.setTotal(debtId, b(100000), { from: owner });
+
+            // Pay debt using RCN collateral
+            await collateral.payOffDebt(entryId, [], { from: user });
+            expect(await loanManager.getStatus(debtId)).to.eq.BN(b(1));
+
+            expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(b(5000));
+            expect(await dai.balanceOf(collateral.address)).to.eq.BN(b(0));
+            const entry = await collateral.entries(b(1));
+            expect(entry.amount).to.eq.BN(b(0));
+        });
+        it('Should pay debt using token collateral, with loan oracle, using all the collateral', async () => {
+            // Create oracle and alt token
+            const dai = await TestToken.new();
+            const oracle = await TestRateOracle.new();
+            await oracle.setToken(dai.address);
+            await oracle.setEquivalent(b('500000000000000000'));
+
+            // Create loan oracle
+            const loanOracle = await TestRateOracle.new();
+            await loanOracle.setEquivalent(b('4000000000000000000'));
+
+            // configure converter
+            await rcn.setBalance(converter.address, b(2).pow(b(64)));
+            await dai.setBalance(converter.address, b(2).pow(b(64)));
+            await converter.setRate(dai.address, rcn.address, b('2000000000000000000'));
+            await converter.setRate(rcn.address, dai.address, b('500000000000000000'));
+
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(1100),
+                MAX_UINT64
+            );
+
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),             // Requested amount
+                model.address,       // Debt model
+                loanOracle.address,  // Oracle
                 user,                // Borrower
                 address0x,           // Callback
                 b(0),                // Salt
