@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 
 interface IERC721Receiver {

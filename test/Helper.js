@@ -1,6 +1,7 @@
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
+module.exports.STATUS_REQUEST = '0';
 module.exports.STATUS_ONGOING = '1';
 module.exports.STATUS_PAID = '2';
 module.exports.STATUS_ERROR = '4';
@@ -63,7 +64,16 @@ module.exports.isRevertErrorMessage = (error) => {
 };
 
 module.exports.getBlockTime = async () => {
-    return (await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp;
+    const block = await web3.eth.getBlock(await web3.eth.getBlockNumber());
+    return block.timestamp;
+};
+
+module.exports.getTxTime = async (tx) => {
+   if (tx instanceof Promise)
+      tx = await tx;
+   const blockNumber = tx.receipt.blockNumber;
+   const block = await web3.eth.getBlock(blockNumber);
+   return block.timestamp;
 };
 
 module.exports.assertThrow = async (promise) => {
@@ -84,11 +94,10 @@ module.exports.assertThrow = async (promise) => {
 };
 
 // the promiseFunction should be a function
-module.exports.tryCatchRevert = async (promise, message) => {
-    let headMsg = 'revert ';
+module.exports.tryCatchRevert = async (promise, message, headMsg = 'revert ') => {
     if (message === '') {
-        headMsg = headMsg.slice(0, headMsg.length - 1);
-        console.warn('    \u001b[93m\u001b[2m\u001b[1m⬐ Warning:\u001b[0m\u001b[30m\u001b[1m There is an empty revert/require message');
+        headMsg = headMsg.slice(0, -1);
+        console.log('    \u001b[93m\u001b[2m\u001b[1m⬐ Warning:\u001b[0m\u001b[30m\u001b[1m There is an empty revert/require message');
     }
     try {
         if (promise instanceof Function) {
@@ -99,7 +108,7 @@ module.exports.tryCatchRevert = async (promise, message) => {
     } catch (error) {
         assert(
             error.message.search(headMsg + message) >= 0 || process.env.SOLIDITY_COVERAGE,
-            'Expected a revert \'' + headMsg + message + '\', got ' + error.message + '\' instead'
+            'Expected a revert \'' + headMsg + message + '\', got \'' + error.message + '\' instead'
         );
         return;
     }
@@ -125,23 +134,26 @@ module.exports.searchEvent = (tx, eventName) => {
     return event[0];
 };
 
-module.exports.toEvents = async (promise, ...events) => {
-    const logs = (await promise).logs;
+module.exports.toEvents = async (tx, ...events) => {
+   if (tx instanceof Promise)
+      tx = await tx;
 
-    let eventObjs = [].concat.apply(
-        [], events.map(
-            event => logs.filter(
-                log => log.event === event
-            )
-        )
-    );
+   const logs = tx.logs;
 
-    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
-        console.warn('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
-        assert.fail();
-    }
-    eventObjs = eventObjs.map(x => x.args);
-    return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
+   let eventObjs = [].concat.apply(
+      [], events.map(
+         event => logs.filter(
+            log => log.event === event
+         )
+      )
+   );
+
+   if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
+      console.log('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
+      assert.fail();
+   }
+   eventObjs = eventObjs.map(x => x.args);
+   return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
 };
 
 module.exports.eventNotEmitted = async (receipt, eventName) => {

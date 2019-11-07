@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "../utils/SafeMath.sol";
 import "./ERC165.sol";
@@ -27,8 +27,8 @@ contract ERC721Base is ERC165 {
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
     bytes4 private constant ERC721_RECEIVED_LEGACY = 0xf0b9e5ba;
 
-    event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
-    event Approval(address indexed _owner, address indexed _approved, uint256 _tokenId);
+    event Transfer(address indexed _from, address indexed _to, uint256 indexed _tokenId);
+    event Approval(address indexed _owner, address indexed _approved, uint256 indexed _tokenId);
     event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
 
     bytes4 private constant ERC_721_INTERFACE = 0x80ac58cd;
@@ -100,10 +100,23 @@ contract ERC721Base is ERC165 {
 
     uint256[] private _allTokens;
 
+    /**
+     * @dev Gets the total of assets stored by the contract
+     *      Warning: this method can consume all the gas of the transaction, it should not be
+     *               called from another contract, it should only be used in external calls
+     * @return an array with total assets
+     */
     function allTokens() external view returns (uint256[] memory) {
         return _allTokens;
     }
 
+    /**
+     * @dev Gets the total of assets of the owner
+     *      Warning: this method can consume all the gas of the transaction, it should not be
+     *               called from another contract, it should only be used in external calls
+     * @param _owner the address of owner
+     * @return an array with total assets of owner
+     */
     function assetsOf(address _owner) external view returns (uint256[] memory) {
         return _assetsOf[_owner];
     }
@@ -265,7 +278,7 @@ contract ERC721Base is ERC165 {
     // Internal Operations
     //
 
-    function _addAssetTo(address _to, uint256 _assetId) internal {
+    function _addAssetTo(address _to, uint256 _assetId) private {
         // Store asset owner
         _holderOf[_assetId] = _to;
 
@@ -278,7 +291,7 @@ contract ERC721Base is ERC165 {
         _allTokens.push(_assetId);
     }
 
-    function _transferAsset(address _from, address _to, uint256 _assetId) internal {
+    function _transferAsset(address _from, address _to, uint256 _assetId) private {
         uint256 assetIndex = _indexOfAsset[_assetId];
         uint256 lastAssetIndex = _balanceOf(_from).sub(1);
 
@@ -303,7 +316,7 @@ contract ERC721Base is ERC165 {
         _indexOfAsset[_assetId] = length;
     }
 
-    function _clearApproval(address _holder, uint256 _assetId) internal {
+    function _clearApproval(address _holder, uint256 _assetId) private {
         if (_approval[_assetId] != address(0)) {
             _approval[_assetId] = address(0);
             emit Approval(_holder, address(0), _assetId);
@@ -423,11 +436,9 @@ contract ERC721Base is ERC165 {
 
         if (_doCheck && _to.isContract()) {
             // Call dest contract
-            uint256 success;
-            bytes32 result;
             // Perform check with the new safe call
             // onERC721Received(address,address,uint256,bytes)
-            (success, result) = _noThrowCall(
+            (bool success, bytes4 result) = _noThrowCall(
                 _to,
                 abi.encodeWithSelector(
                     ERC721_RECEIVED,
@@ -438,7 +449,7 @@ contract ERC721Base is ERC165 {
                 )
             );
 
-            if (success != 1 || result != ERC721_RECEIVED) {
+            if (!success || result != ERC721_RECEIVED) {
                 // Try legacy safe call
                 // onERC721Received(address,uint256,bytes)
                 (success, result) = _noThrowCall(
@@ -452,7 +463,7 @@ contract ERC721Base is ERC165 {
                 );
 
                 require(
-                    success == 1 && result == ERC721_RECEIVED_LEGACY,
+                    success && result == ERC721_RECEIVED_LEGACY,
                     "Contract rejected the token"
                 );
             }
@@ -465,24 +476,21 @@ contract ERC721Base is ERC165 {
     // Utilities
     //
 
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
+     * relaxing the requirement on the return value
+     * @param _contract The contract that receives the ERC721
+     * @param _data The call data
+     * @return True if the call not reverts and the result of the call
+     */
     function _noThrowCall(
         address _contract,
         bytes memory _data
-    ) internal returns (uint256 success, bytes32 result) {
-        assembly {
-            let x := mload(0x40)
+    ) internal returns (bool success, bytes4 result) {
+        bytes memory returnData;
+        (success, returnData) = _contract.call(_data);
 
-            success := call(
-                            gas,                  // Send all gas
-                            _contract,            // To addr
-                            0,                    // Send ETH
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
-
-            result := mload(x)
-        }
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (bytes4));
     }
 }

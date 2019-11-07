@@ -71,10 +71,6 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Create migrations folder
-            - run:
-                name: Create migrations folder
-                command: mkdir migrations
             # Start ganache
             - run:
                 name: Start ganache instance
@@ -102,26 +98,25 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Create migrations folder
-            - run:
-                name: Create migrations folder
-                command: mkdir migrations
-            # Replace build target to byzantium
-            # Solidity coverage is not compatible with constantinople
-            - run:
-                name: Set compiler to Byzantium
-                command: sed s/constantinople/byzantium/g truffle.js > truffle_tmp.js && mv truffle_tmp.js truffle.js
             # Start test-rpc
             - run:
-                name: Start testrpc instance
-                command: node_modules/ganache-cli-coverage/cli.js --emitFreeLogs true --gasLimit 0xfffffffffffff --allowUnlimitedContractSize true
+                name: Start Macaron instance
+                no_output_timeout: 30m
                 background: true
+                command: |
+                    node_modules/.bin/macaron-cli \
+                    --emitFreeLogs true \
+                    --gasLimit 0xfffffffffffff \
+                    --allowUnlimitedContractSize true \
+                    --debugTopics ./.solidity_coverage/.source_topics \
+                    --dumpLogs ./.solidity_coverage/.all_events
             # Run coverage
             - run:
-                name: solidity-coverage
+                name: rp-solidity-coverage
                 environment:
                   SOLIDITY_COVERAGE: true
-                command: node_modules/.bin/solidity-coverage
+                no_output_timeout: 30m
+                command: node_modules/.bin/rp-solidity-coverage
             # Upload results
             - run:
                 name: Upload coverage to coveralls

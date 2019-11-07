@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "../../interfaces/IERC20.sol";
 import "./interfaces/Model.sol";
@@ -488,7 +488,7 @@ contract DebtEngine is ERC721Base, Ownable {
     ) internal returns (uint256) {
         require(_model != Model(0), "Debt does not exist");
 
-        (uint256 success, bytes32 paid) = _safeGasCall(
+        (bool success, bytes32 paid) = _safeGasCall(
             address(_model),
             abi.encodeWithSelector(
                 _model.addPaid.selector,
@@ -497,7 +497,7 @@ contract DebtEngine is ERC721Base, Ownable {
             )
         );
 
-        if (success == 1) {
+        if (success) {
             if (debts[_id].error) {
                 emit ErrorRecover({
                     _id: _id,
@@ -540,7 +540,7 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _tokens,
         uint256 _equivalent
     ) internal pure returns (uint256 _result) {
-        require(_tokens != 0, "Oracle provided invalid rate");
+        require(_tokens != 0 && _equivalent != 0, "Oracle provided invalid rate");
         uint256 aux = _tokens.mult(_amount);
         _result = aux / _equivalent;
         if (aux % _equivalent > 0) {
@@ -562,7 +562,7 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _tokens,
         uint256 _equivalent
     ) internal pure returns (uint256) {
-        require(_equivalent != 0, "Oracle provided invalid rate");
+        require(_tokens != 0 && _equivalent != 0, "Oracle provided invalid rate");
         return _amount.mult(_equivalent) / _tokens;
     }
 
@@ -570,7 +570,7 @@ contract DebtEngine is ERC721Base, Ownable {
         Debt storage debt = debts[_id];
         require(debt.model != Model(0), "Debt does not exist");
 
-        (uint256 success, bytes32 result) = _safeGasCall(
+        (bool success, bytes32 result) = _safeGasCall(
             address(debt.model),
             abi.encodeWithSelector(
                 debt.model.run.selector,
@@ -578,7 +578,7 @@ contract DebtEngine is ERC721Base, Ownable {
             )
         );
 
-        if (success == 1) {
+        if (success) {
             if (debt.error) {
                 emit ErrorRecover({
                     _id: _id,
@@ -664,14 +664,14 @@ contract DebtEngine is ERC721Base, Ownable {
         if (debt.error) {
             return 4;
         } else {
-            (uint256 success, bytes32 result) = _safeGasStaticCall(
+            (bool success, uint256 result) = _safeGasStaticCall(
                 address(debt.model),
                 abi.encodeWithSelector(
                     debt.model.getStatus.selector,
                     _id
                 )
             );
-            return success == 1 ? uint256(result) : 4;
+            return success ? result : 4;
         }
     }
 
@@ -692,29 +692,29 @@ contract DebtEngine is ERC721Base, Ownable {
                             0x20                  // Output is a single bytes32, has 32 bytes
                         )
 
-            result := mload(x)
-        }
+        (success, returnData) = _contract.staticcall.gas(gasleft() < _gas ? gasleft() : _gas)(_data);
+
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (uint256));
     }
 
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
+     * relaxing the requirement on the return value
+     * @param _contract The contract that receives the call
+     * @param _data The call data
+     * @return True if the call not reverts and the result of the call
+     */
     function _safeGasCall(
         address _contract,
         bytes memory _data
-    ) internal returns (uint256 success, bytes32 result) {
+    ) internal returns (bool success, bytes32 result) {
+        bytes memory returnData;
         uint256 _gas = (block.gaslimit * 80) / 100; // Cant overflow, the gas limit * 80 is lower than (2**256)-1
-        _gas = gasleft() < _gas ? gasleft() : _gas;
-        assembly {
-            let x := mload(0x40)
-            success := call(
-                            _gas,                 // Send almost all gas
-                            _contract,            // To addr
-                            0,                    // Send ETH
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
 
-            result := mload(x)
-        }
+        (success, returnData) = _contract.call.gas(gasleft() < _gas ? gasleft() : _gas)(_data);
+
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (bytes32));
     }
 }

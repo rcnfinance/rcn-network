@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "../../contracts/core/basalt/interfaces/Oracle.sol";
 import "../../contracts/utils/BytesUtils.sol";

@@ -1,19 +1,35 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.11;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 
 import "../../contracts/utils/SafeMath.sol";
-import "../../contracts/test_utils/SafeMathMock.sol";
 
 
-contract SafeMathTest {
+contract TestSafeMathMock {
     using SafeMath for uint256;
 
-    SafeMathMock safeMath;
+    function add(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.add(b);
+    }
+
+    function sub(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.sub(b);
+    }
+
+    function mult(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.mult(b);
+    }
+}
+
+
+contract TestSafeMath {
+    using SafeMath for uint256;
+
+    TestSafeMathMock safeMath;
 
     constructor() public {
-        safeMath = new SafeMathMock();
+        safeMath = new TestSafeMathMock();
     }
 
     function testAdd() external {
