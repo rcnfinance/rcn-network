@@ -790,6 +790,23 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _oracleData
         );
 
+        if (paidTokens < tokensToPay) {
+            // Buy back extra collateral
+            // TODO: Remove convertback, replace by raw RCN
+            uint256 remainder = tokensToPay - paidTokens;
+            uint256 rebought = converter.safeConvertFrom(
+                loanManagerToken,
+                token,
+                remainder,
+                0
+            );
+
+            sold = sold.sub(rebought);
+            bought = bought.sub(remainder);
+
+            emit Rebuy(_entryId, remainder, rebought);
+        }
+
         emit ConvertPay(
             _entryId,
             sold,
@@ -797,21 +814,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _oracleData
         );
 
-        if (paidTokens < tokensToPay) {
-            // Buy back extra collateral
-            sold = tokensToPay - paidTokens;
-            bought = converter.safeConvertFrom(
-                loanManagerToken,
-                token,
-                sold,
-                0
-            );
-            emit Rebuy(_entryId, sold, bought);
-        } else {
-            bought = 0;
-        }
-
-        entry.amount = entry.amount.sub(sold).add(bought);
+        entry.amount = entry.amount.sub(sold);
     }
 
     /**
