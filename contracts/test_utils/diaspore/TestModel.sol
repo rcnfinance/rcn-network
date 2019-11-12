@@ -42,6 +42,8 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     event SetEngine(address _engine);
     event SetErrorFlag(bytes32 _id, uint256 _flag);
     event SetGlobalErrorFlag(uint256 _flag);
+    event SetTotal(bytes32 _id, uint256 _total);
+    event SetDueTime(bytes32 _id, uint256 _time);
 
     mapping(bytes4 => bool) private _supportedInterface;
 
@@ -82,6 +84,16 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     function setErrorFlag(bytes32 _id, uint64 _flag) external onlyOwner {
         registry[_id].errorFlag = _flag;
         emit SetErrorFlag(_id, _flag);
+    }
+
+    function setTotal(bytes32 _id, uint128 _total) external onlyOwner {
+        registry[_id].total = _total;
+        emit SetTotal(_id, _total);
+    }
+
+    function setDueTime(bytes32 _id, uint64 _time) external onlyOwner {
+        registry[_id].dueTime = _time;
+        emit SetDueTime(_id, _time);
     }
 
     function setEngine(address _engine) external onlyOwner {
