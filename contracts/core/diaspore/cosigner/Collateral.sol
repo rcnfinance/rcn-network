@@ -41,9 +41,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         IERC20 _token,
         uint256 _amount,
         uint32 _liquidationRatio,
-        uint32 _balanceRatio,
-        uint32 _burnFee,
-        uint32 _rewardFee
+        uint32 _balanceRatio
     );
 
     event Deposited(uint256 indexed _entryId, uint256 _amount);
@@ -54,7 +52,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     event PayOffDebt(uint256 indexed _entryId, uint256 _closingObligationToken, uint256 _payTokens);
     event CancelDebt(uint256 indexed _entryId, uint256 _obligationInToken, uint256 _payTokens);
     event CollateralBalance(uint256 indexed _entryId, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
-    event TakeFee(uint256 indexed _entryId, uint256 _burned, address _rewardTo, uint256 _rewarded);
 
     event ConvertPay(uint256 indexed _entryId, uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
     event Rebuy(uint256 indexed _entryId, uint256 _fromAmount, uint256 _toAmount);
@@ -72,10 +69,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     // Define when cosign the debt on requestCosign function
     mapping(bytes32 => uint256) public debtToEntry;
 
-    // Associate a token to the max delta between the price of entry oracle vs converter oracle
-    // used during all collateral convertions
-    mapping(address => uint256) public tokenToMaxSpreadRatio;
-
     // Can change
     string private iurl;
     TokenConverter public converter;
@@ -91,8 +84,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 amount;
         uint32 liquidationRatio;
         uint32 balanceRatio;
-        uint32 burnFee;
-        uint32 rewardFee;
     }
 
     constructor(LoanManager _loanManager) public ERC721Base("RCN Collateral Cosigner", "RCC") {
@@ -116,27 +107,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @notice Set a new max spread ratio
-
-        @dev In _validateMinReturn function:
-            Spread ratio = 0 -> Accepts all bought amount
-            Spread ratio between 1 to 9999 -> When more low is the ratio more spread accepts
-                I.e.: 9000 reprecent a 10% of up spread
-            Spread ratio = 10000(BASE) -> Reprecent a 0% of spread
-            Spread ratio > 10000(BASE) -> When more high is the ratio less spread accepts(The converter should return more than oracle)
-                I.e.: 11000 reprecent a 10% of down spread
-
-        @param _maxSpreadRatio The max spread between the bought vs the expected bought
-    */
-    function setMaxSpreadRatio(
-        address _token,
-        uint256 _maxSpreadRatio
-    ) external onlyOwner {
-        tokenToMaxSpreadRatio[_token] = _maxSpreadRatio;
-        emit SetMaxSpreadRatio(_token, _maxSpreadRatio);
-    }
-
-    /**
         @notice Create an entry, previous need the approve of the ERC20 tokens
             Ratio: The ratio is expressed in order of BASE(10000), for example
                 1% is 100
@@ -146,8 +116,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @dev This generate an ERC721,
             The _liquidationRatio should be greater than BASE(10000)
             The _balanceRatio should be greater than _liquidationRatio
-            The sum of _burnFee and _rewardFee should be lower than BASE(10000)
-            The sum of _burnFee and _rewardFee should be less than the difference between balance ratio and liquidation ratio
             The debt should be in open status
 
         @param _debtId Id of the debt
@@ -159,9 +127,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @param _liquidationRatio Ratio, when collateral ratio is lower enables the execution of the margin call
         @param _balanceRatio Ratio, expected collateral ratio after margin call execution
 
-        @param _burnFee Ratio, The burn fee of execute a margin call or pay expired debt, this is sent to the address 0
-        @param _rewardFee Ratio, The reward fee of execute a margin call or pay expired debt, this is sent to the sender of the transaction
-
         @return The id of the entry
     */
     function create(
@@ -169,17 +134,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         RateOracle _oracle,
         uint256 _amount,
         uint32 _liquidationRatio,
-        uint32 _balanceRatio,
-        uint32 _burnFee,
-        uint32 _rewardFee
+        uint32 _balanceRatio
     ) external returns (uint256 entryId) {
         // Check parameters
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
-        uint256 totalFee = _burnFee.add(_rewardFee);
-        require(totalFee < BASE, "Fee should be lower than BASE");
         require(_balanceRatio > _liquidationRatio, "The balance ratio should be greater than liquidation ratio");
-        // Check underflow in previus require
-        require(totalFee < _balanceRatio - _liquidationRatio, "The fee should be less than the difference between balance ratio and liquidation ratio");
         // Check status of loan, should be open
         require(loanManager.getStatus(_debtId) == 0, "Debt request should be open");
 
@@ -193,8 +152,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
                 amount: _amount,
                 liquidationRatio: _liquidationRatio,
                 balanceRatio: _balanceRatio,
-                burnFee: _burnFee,
-                rewardFee: _rewardFee
             })
         ) - 1;
         // Take the ERC20 tokens
@@ -210,8 +167,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             _amount,
             _liquidationRatio,
             _balanceRatio,
-            _burnFee,
-            _rewardFee
         );
     }
 
@@ -543,7 +498,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint256 cwithdraw = canWithdraw(_entryId, debt, collateralInToken).abs().toUint256();
 
         // Check underflow when create the entry
-        uint256 collateralRequiredToBalance = cwithdraw.mult(BASE) / (entry.balanceRatio - BASE - entry.burnFee - entry.rewardFee);
+        uint256 collateralRequiredToBalance = cwithdraw.mult(BASE) / (entry.balanceRatio - BASE);
 
         uint256 min = Math.min(
             // The collateral required to equilibrate the balance (the collateral should be more than the debt)
@@ -674,69 +629,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     /**
         @param _entryId The index of entry, inside of entries array
-        @param _burnFee The entry burn fee
-        @param _rewardFee The entry reward fee
-        @param _amountInToken The amount(valuate in loanManagerToken)
-            from where the fee is taken
-
-        @return The total fee taken(burn plus reward)
-    */
-    function _takeFee(
-        uint256 _entryId,
-        uint256 _burnFee,
-        uint256 _rewardFee,
-        uint256 _amountInToken
-    ) internal returns(uint256 feeTaked) {
-        // Take the burn fee
-        uint256 burned = _takeFeeTo(
-            _amountInToken,
-            _burnFee,
-            address(0)
-        );
-        // Take the reward fee
-        uint256 reward = _takeFeeTo(
-            _amountInToken,
-            _rewardFee,
-            msg.sender
-        );
-
-        feeTaked = reward.add(burned);
-
-        if (feeTaked != 0)
-            emit TakeFee(
-                _entryId,
-                burned,
-                msg.sender,
-                reward
-            );
-    }
-
-    /**
-        @param _amountInToken The amount(valuate in loanManagerToken)
-            from where the fee is taken
-        @param _fee The fee ratio
-        @param _to The destination of the tokens
-
-        @return The total fee taken(burn plus reward)
-    */
-    function _takeFeeTo(
-        uint256 _amountInToken,
-        uint256 _fee,
-        address _to
-    ) internal returns(uint256 taked) {
-        if (_fee == 0) return 0;
-
-        taked = _fee.mult(_amountInToken) / BASE;
-
-        require(loanManagerToken.transfer(_to, taked), "Error sending tokens");
-    }
-
-    /**
-        @param _entryId The index of entry, inside of entries array
         @param _requiredToken The required amount to pay in loanManager token
         @param _oracleData Data of oracle to change the currency of debt
             to Token of debt engine
-        @param _chargeFee If charge fee
 
         @return The minimum amount valuate in collateral token of:
             collateral required to balance the entry
@@ -745,20 +640,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     function _convertPay(
         uint256 _entryId,
         uint256 _requiredToken,
-        bytes memory _oracleData,
-        bool _chargeFee
+        bytes memory _oracleData
     ) internal returns(uint256 paidTokens) {
         Entry storage entry = entries[_entryId];
         // Target buy
-        uint256 targetBuy;
-
-        if (_chargeFee) {
-            targetBuy = _requiredToken.mult(
-                BASE + entry.rewardFee + entry.burnFee
-            ) / BASE;
-        } else {
-            targetBuy = _requiredToken;
-        }
+        uint256 targetBuy = _requiredToken;
 
         // Load entry token
         IERC20 token = entry.token;
@@ -771,16 +657,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entry.amount      // Max amount to sell in sell token
         );
 
-        // Check spread ratio (oracle vs converter)
-        _validateMinReturn(
-            token,
-            entry.oracle,
-            bought,
-            sold
-        );
-
-        uint256 feeTaked = _chargeFee ? _takeFee(_entryId, entry.burnFee, entry.rewardFee, Math.min(bought, _requiredToken)) : 0;
-        uint256 tokensToPay = Math.min(bought, targetBuy).sub(feeTaked);
+        uint256 tokensToPay = Math.min(bought, targetBuy);
 
         // Pay debt
         (, paidTokens) = loanManager.safePayToken(
@@ -812,39 +689,5 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         }
 
         entry.amount = entry.amount.sub(sold).add(bought);
-    }
-
-    /**
-        @param _token To check the _minReturn
-        @param _oracle Oracle providing the reference rate
-        @param _bought Base token amount bought
-        @param _sold Token amount sold
-
-        @dev Reverts if the _token/_base rate of _bought/_sold differs
-            from the one provided by the Oracle
-    */
-    function _validateMinReturn(
-        IERC20 _token,
-        RateOracle _oracle,
-        uint256 _bought,
-        uint256 _sold
-    ) internal {
-        // _sold       - entryRateEquivalent
-        // expecBought - entryRateTokens
-        // expecBought = _sold * entryRateTokens / entryRateEquivalent
-
-        // expecBought - BASE
-        // minReturn   - tokenToMaxSpreadRatio[address(_token)]
-        // minReturn = expecBought * tokenToMaxSpreadRatio[address(_token)] / BASE
-
-        uint256 minReturn = _oracle
-            .read()
-            .toTokens(_sold)
-            .multdiv(
-                tokenToMaxSpreadRatio[address(_token)],
-                BASE
-            );
-
-        require(_bought >= minReturn, "converter return below minimun required");
     }
 }
