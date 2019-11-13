@@ -41,12 +41,8 @@ library SafeERC20 {
             abi.encodeWithSignature("transfer(address,uint256)", _to, _value)
         );
 
-        if (prevBalance - _value != _token.balanceOf(address(this))) {
-            // Transfer failed
-            return false;
-        }
-
-        return true;
+        // Fail if the new balance its not equal than previous balance sub _value
+        return prevBalance - _value == _token.balanceOf(address(this));
     }
 
     /**
@@ -66,13 +62,10 @@ library SafeERC20 {
     {
         uint256 prevBalance = _token.balanceOf(_from);
 
-        if (prevBalance < _value) {
-            // Insufficient funds
-            return false;
-        }
-
-        if (_token.allowance(_from, address(this)) < _value) {
-            // Insufficient allowance
+        if (
+          prevBalance < _value || // Insufficient funds
+          _token.allowance(_from, address(this)) < _value // Insufficient allowance
+        ) {
             return false;
         }
 
@@ -80,12 +73,8 @@ library SafeERC20 {
             abi.encodeWithSignature("transferFrom(address,address,uint256)", _from, _to, _value)
         );
 
-        if (prevBalance - _value != _token.balanceOf(_from)) {
-            // Transfer failed
-            return false;
-        }
-
-        return true;
+        // Fail if the new balance its not equal than previous balance sub _value
+        return prevBalance - _value == _token.balanceOf(_from);
     }
 
    /**
@@ -97,7 +86,7 @@ library SafeERC20 {
    * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
    *
    * @param _token erc20 The address of the ERC20 contract
-   * @param _spender The asafeTransferFromddress which will spend the funds.
+   * @param _spender The address which will spend the funds.
    * @param _value The amount of tokens to be spent.
    * @return bool whether the approve was successful or not
    */
@@ -106,12 +95,8 @@ library SafeERC20 {
             abi.encodeWithSignature("approve(address,uint256)",_spender, _value)
         );
 
-        if (_token.allowance(address(this), _spender) != _value) {
-            // Approve failed
-            return false;
-        }
-
-        return true;
+        // Fail if the new allowance its not equal than _value
+        return _token.allowance(address(this), _spender) == _value;
     }
 
    /**
