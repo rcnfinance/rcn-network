@@ -35,8 +35,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     uint256 private constant BASE = 10000;
 
     event Created(
-        uint256 indexed _entryId,
+        bytes32 indexed _entryId,
         bytes32 indexed _debtId,
+        uint256 _salt,
         RateOracle _oracle,
         IERC20 _token,
         uint256 _amount,
@@ -46,21 +47,22 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint32 _rewardFee
     );
 
-    event Deposited(uint256 indexed _entryId, uint256 _amount);
-    event Withdrawed(uint256 indexed _entryId, address _to, uint256 _amount);
 
-    event Started(uint256 indexed _entryId);
+    event Deposited(bytes32 indexed _entryId, uint256 _amount);
+    event Withdrawed(bytes32 indexed _entryId, address _to, uint256 _amount);
 
-    event PayOffDebt(uint256 indexed _entryId, uint256 _closingObligationToken, uint256 _payTokens);
-    event CancelDebt(uint256 indexed _entryId, uint256 _obligationInToken, uint256 _payTokens);
-    event CollateralBalance(uint256 indexed _entryId, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
-    event TakeFee(uint256 indexed _entryId, uint256 _burned, address _rewardTo, uint256 _rewarded);
+    event Started(bytes32 indexed _entryId);
 
-    event ConvertPay(uint256 indexed _entryId, uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
-    event Rebuy(uint256 indexed _entryId, uint256 _fromAmount, uint256 _toAmount);
+    event PayOffDebt(bytes32 indexed _entryId, uint256 _closingObligationToken, uint256 _payTokens);
+    event CancelDebt(bytes32 indexed _entryId, uint256 _obligationInToken, uint256 _payTokens);
+    event CollateralBalance(bytes32 indexed _entryId, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
+    event TakeFee(bytes32 indexed _entryId, uint256 _burned, address _rewardTo, uint256 _rewarded);
 
-    event Redeemed(uint256 indexed _entryId);
-    event EmergencyRedeemed(uint256 indexed _entryId, address _to);
+    event ConvertPay(bytes32 indexed _entryId, uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
+    event Rebuy(bytes32 indexed _entryId, uint256 _fromAmount, uint256 _toAmount);
+
+    event Redeemed(bytes32 indexed _entryId);
+    event EmergencyRedeemed(bytes32 indexed _entryId, address _to);
 
     event SetUrl(string _url);
     event SetConverter(TokenConverter _converter);
@@ -68,9 +70,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
     event ReadedOracle(RateOracle _oracle, uint256 _tokens, uint256 _equivalent);
 
-    Entry[] public entries;
+    mapping(bytes32 => Entry) public entries;
     // Define when cosign the debt on requestCosign function
-    mapping(bytes32 => uint256) public debtToEntry;
+    mapping(bytes32 => bytes32) public debtToEntry;
 
     // Associate a token to the max delta between the price of entry oracle vs converter oracle
     // used during all collateral convertions
@@ -99,11 +101,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(address(_loanManager) != address(0), "Error loading loan manager");
         loanManager = _loanManager;
         loanManagerToken = loanManager.token();
-        // Invalid entry of index 0
-        entries.length ++;
     }
-
-    function getEntriesLength() external view returns (uint256) { return entries.length; }
 
     /**
         @dev Sets the converter uses to convert from/to loanManagerToken to/from entry token
@@ -161,8 +159,6 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         @param _burnFee Ratio, The burn fee of execute a margin call or pay expired debt, this is sent to the address 0
         @param _rewardFee Ratio, The reward fee of execute a margin call or pay expired debt, this is sent to the sender of the transaction
-
-        @return The id of the entry
     */
     function create(
         bytes32 _debtId,
@@ -171,8 +167,24 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         uint32 _liquidationRatio,
         uint32 _balanceRatio,
         uint32 _burnFee,
-        uint32 _rewardFee
-    ) external returns (uint256 entryId) {
+        uint32 _rewardFee,
+        uint256 _salt
+    ) external returns (bytes32 entryId) {
+        entryId = keccak256(
+            abi.encodePacked(
+                address(this),
+                msg.sender,
+                _debtId,
+                _oracle,
+                _amount,
+                _liquidationRatio,
+                _balanceRatio,
+                _burnFee,
+                _rewardFee,
+                _salt
+            )
+        );
+
         // Check parameters
         require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
         uint256 totalFee = _burnFee.add(_rewardFee);
@@ -185,44 +197,70 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         IERC20 token = _oracle == RateOracle(0) ? loanManagerToken : IERC20(_oracle.token());
         // Create the entry, and push on entries array
-        entryId = entries.push(
-            Entry({
-                oracle: _oracle,
-                token: token,
-                debtId: _debtId,
-                amount: _amount,
-                liquidationRatio: _liquidationRatio,
-                balanceRatio: _balanceRatio,
-                burnFee: _burnFee,
-                rewardFee: _rewardFee
-            })
-        ) - 1;
+        entries[entryId] = Entry({
+            oracle: _oracle,
+            token: token,
+            debtId: _debtId,
+            amount: _amount,
+            liquidationRatio: _liquidationRatio,
+            balanceRatio: _balanceRatio,
+            burnFee: _burnFee,
+            rewardFee: _rewardFee
+        });
         // Take the ERC20 tokens
         require(token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
         // Generate the ERC721 Token
-        _generate(entryId, msg.sender);
+        _generate(uint256(entryId), msg.sender);
 
-        emit Created(
-            entryId,
-            _debtId,
-            _oracle,
-            token,
-            _amount,
-            _liquidationRatio,
-            _balanceRatio,
-            _burnFee,
-            _rewardFee
+        emit Created({
+            _entryId: entryId,
+            _debtId: _debtId,
+            _salt: _salt,
+            _oracle: _oracle,
+            _token: token,
+            _amount: _amount,
+            _liquidationRatio: _liquidationRatio,
+            _balanceRatio: _balanceRatio,
+            _burnFee: _burnFee,
+            _rewardFee: _rewardFee
+        });
+    }
+
+    function buildId(
+        address _creator,
+        bytes32 _debtId,
+        RateOracle _oracle,
+        uint256 _amount,
+        uint32 _liquidationRatio,
+        uint32 _balanceRatio,
+        uint32 _burnFee,
+        uint32 _rewardFee,
+        uint256 _salt
+    ) external view returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                address(this),
+                _creator,
+                _debtId,
+                _oracle,
+                _amount,
+                _liquidationRatio,
+                _balanceRatio,
+                _burnFee,
+                _rewardFee,
+                _salt
+            )
         );
     }
 
     /**
         @notice Deposit an amount in an entry, previous need the approve of the ERC20 tokens
 
-        @param _entryId The index of entry, inside of entries array
+        @param _entryId ID of the collateral entry
         @param _amount The amount to be transferred to the contract
     */
     function deposit(
-        uint256 _entryId,
+        bytes32 _entryId,
         uint256 _amount
     ) external {
         Entry storage entry = entries[_entryId];
@@ -237,18 +275,18 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     /**
         @notice Withdraw an amount of an entry
 
-        @param _entryId The index of entry, inside of entries array
+        @param _entryId ID of the collateral entry
         @param _to The beneficiary of the tokens
         @param _amount The amount to be subtract of the entry
         @param _oracleData Data of oracle to change the currency of debt
             to Token of debt engine
     */
     function withdraw(
-        uint256 _entryId,
+        bytes32 _entryId,
         address _to,
         uint256 _amount,
         bytes calldata _oracleData
-    ) external onlyAuthorized(_entryId) {
+    ) external onlyAuthorized(uint256(_entryId)) {
         Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
 
@@ -287,13 +325,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @dev call _redeem function with false in _emergency parameter
             * look in _redeem function documentation for more info
 
-        @param _entryId The index of entry, inside of entries array
+        @param _entryId ID of the collateral entry
 
         @return The amount of transferred tokens
     */
     function redeem(
-        uint256 _entryId
-    ) external onlyAuthorized(_entryId) returns(uint256) {
+        bytes32 _entryId
+    ) external onlyAuthorized(uint256(_entryId)) returns(uint256) {
         return _redeem(_entryId, msg.sender, false);
     }
 
@@ -304,13 +342,13 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @dev call _redeem function with true in _emergency parameter
             * look in _redeem function documentation for more info
 
-        @param _entryId The index of entry, inside of entries array
+        @param _entryId ID of the collateral entry
         @param _to The beneficiary of the tokens
 
         @return The amount of transferred tokens
     */
     function emergencyRedeem(
-        uint256 _entryId,
+        bytes32 _entryId,
         address _to
     ) external onlyOwner returns(uint256) {
         return _redeem(_entryId, _to, true);
@@ -321,16 +359,16 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         @dev Convert the necessary amount of Token of the entry in Loan Manager Token to try pay all the debt
 
-        @param _entryId Id of the entry
+        @param _entryId ID of the collateral entry
         @param _oracleData Data of oracle to change the currency of debt
             to Token of debt engine
 
         @return The amount of paid tokens
     */
     function payOffDebt(
-        uint256 _entryId,
+        bytes32 _entryId,
         bytes calldata _oracleData
-    ) external onlyAuthorized(_entryId) returns(uint256 payTokens) {
+    ) external onlyAuthorized(uint256(_entryId)) returns(uint256 payTokens) {
         Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
         Model model = Model(loanManager.getModel(uint256(debtId)));
@@ -413,7 +451,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         require(address(loanManager) == msg.sender, "Not the debt manager");
 
         // Load entryId and entry
-        uint256 entryId = abi.decode(_data, (uint256));
+        bytes32 entryId = abi.decode(_data, (bytes32));
         Entry storage entry = entries[entryId];
         require(entry.debtId == debtId, "Wrong debt id");
 
@@ -460,7 +498,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         bytes memory _oracleData
     ) public returns (bool change) {
         bytes32 debtId = bytes32(_debtId);
-        uint256 entryId = debtToEntry[debtId];
+        bytes32 entryId = debtToEntry[debtId];
         require(entryId != 0, "The loan dont lent");
 
         Model model = Model(loanManager.getModel(_debtId));
@@ -517,7 +555,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entry amount
     */
     function getTokenRequiredToTryBalance(
-        uint256 _entryId,
+        bytes32 _entryId,
         bytes memory _oracleData
     ) public returns(uint256) {
         Entry storage entry = entries[_entryId];
@@ -556,7 +594,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _entryId The index of entry, inside of entries array
+        @param _entryId ID of the collateral entry
         @param _debtInToken The total amount of the debt valuate in loanManagerToken
         @param _collateralInToken The total balance of the entry valuate in loanManagerToken
 
@@ -564,7 +602,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             If the return its negative, the entry should be below of the balance ratio
     */
     function canWithdraw(
-        uint256 _entryId,
+        bytes32 _entryId,
         uint256 _debtInToken,
         uint256 _collateralInToken
     ) public view returns (int256) {
@@ -635,7 +673,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
 
         @dev Send the balance of the entry to _to and delete the entry
 
-        @param _entryId Id of the entry
+        @param _entryId ID of the collateral entry
         @param _to The beneficiary of the tokens
         @param _emergency Boolean:
             True, look in emergencyRedeem function
@@ -644,7 +682,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @return The amount of transferred tokens
     */
     function _redeem(
-        uint256 _entryId,
+        bytes32 _entryId,
         address _to,
         bool _emergency
     ) internal returns(uint256 totalTransfer) {
@@ -673,7 +711,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _entryId The index of entry, inside of entries array
+        @param _entryId ID of the collateral entry
         @param _burnFee The entry burn fee
         @param _rewardFee The entry reward fee
         @param _amountInToken The amount(valuate in loanManagerToken)
@@ -682,7 +720,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
         @return The total fee taken(burn plus reward)
     */
     function _takeFee(
-        uint256 _entryId,
+        bytes32 _entryId,
         uint256 _burnFee,
         uint256 _rewardFee,
         uint256 _amountInToken
@@ -732,7 +770,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
     }
 
     /**
-        @param _entryId The index of entry, inside of entries array
+        @param _entryId ID of the collateral entry
         @param _requiredToken The required amount to pay in loanManager token
         @param _oracleData Data of oracle to change the currency of debt
             to Token of debt engine
@@ -743,7 +781,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base {
             entry amount
     */
     function _convertPay(
-        uint256 _entryId,
+        bytes32 _entryId,
         uint256 _requiredToken,
         bytes memory _oracleData,
         bool _chargeFee
