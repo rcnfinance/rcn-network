@@ -3,7 +3,7 @@ pragma solidity ^0.5.11;
 import "../../../interfaces/IERC20.sol";
 import "../../../utils/SafeERC20.sol";
 import "../../../commons/Ownable.sol";
-import "./AuctionCallback.sol";
+import "./interfaces/CollateralAuctionCallback.sol";
 
 
 contract CollateralAuction is Ownable {
@@ -15,9 +15,9 @@ contract CollateralAuction is Ownable {
     struct Auction {
         IERC20 fromToken;  // Token that we are intending to sell
         uint64 startTime;  // Start time of the auction
-        uint96 startOffer; // Start offer of `fromToken` for the requested `amount`
-        uint96 amount;     // Amount that we need to receive of `baseToken`
-        uint96 limit;      // Limit of how much are willing to spend of `fromToken`
+        uint256 startOffer; // Start offer of `fromToken` for the requested `amount`
+        uint256 amount;     // Amount that we need to receive of `baseToken`
+        uint256 limit;      // Limit of how much are willing to spend of `fromToken`
     }
 
     constructor(IERC20 _baseToken) public {
@@ -26,9 +26,9 @@ contract CollateralAuction is Ownable {
 
     function create(
         IERC20 _fromToken,
-        uint96 _startOffer,
-        uint96 _amount,
-        uint96 _limit
+        uint256 _startOffer,
+        uint256 _amount,
+        uint256 _limit
     ) external onlyOwner returns (uint256) {
         // Trust that the owner transfered the tokens
         // the `_limit` should be transfered
@@ -63,7 +63,7 @@ contract CollateralAuction is Ownable {
         require(auction.fromToken.safeTransfer(msg.sender, selling), "auction: error sending tokens");
 
         // Callback to owner
-        AuctionCallback(owner).auctionClosed(
+        CollateralAuctionCallback(owner).auctionClosed(
             _id,
             leftOver,
             expecting,
@@ -73,7 +73,7 @@ contract CollateralAuction is Ownable {
 
     function _offer(
         Auction memory _auction
-    ) private returns (uint256 _amount, uint256 _base) {
+    ) private pure returns (uint256 _amount, uint256 _base) {
         // TODO Return correct offer
     }
 }

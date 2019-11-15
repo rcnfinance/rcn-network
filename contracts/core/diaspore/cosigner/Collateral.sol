@@ -4,35 +4,30 @@ import "../../../interfaces/IERC20.sol";
 import "../../../interfaces/Cosigner.sol";
 import "../interfaces/Model.sol";
 import "../interfaces/RateOracle.sol";
-import "../utils/DiasporeUtils.sol";
 import "../LoanManager.sol";
 
+import "./interfaces/CollateralAuctionCallback.sol";
+import "./interfaces/CollateralHandler.sol";
+import "../../../commons/Fixed223x32.sol";
 import "../../../commons/Ownable.sol";
 import "../../../commons/ERC721Base.sol";
 import "../../../utils/SafeERC20.sol";
 import "../../../utils/SafeMath.sol";
-import "../../../utils/SafeCast.sol";
-import "../../../utils/SafeSignedMath.sol";
-import "../../../utils/SafeTokenConverter.sol";
-import "../../../utils/Math.sol";
+import "../utils/DiasporeUtils.sol";
 import "../utils/OracleUtils.sol";
 import "./CollateralAuction.sol";
-import "./AuctionCallback.sol";
+import "./CollateralLib.sol";
 
 
-contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
-    using DiasporeUtils for LoanManager;
+contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback {
+    using CollateralLib for CollateralLib.Entry;
     using OracleUtils for OracleUtils.Sample;
     using OracleUtils for RateOracle;
-    using SafeSignedMath for int256;
+    using DiasporeUtils for LoanManager;
+    using Fixed223x32 for bytes32;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using SafeMath for uint32;
-    using SafeCast for uint256;
-    using SafeCast for int256;
-
-    // This reprecent a 100.00%
-    uint256 private constant BASE = 10000;
 
     event Created(
         uint256 indexed _entryId,
@@ -40,50 +35,70 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         RateOracle _oracle,
         IERC20 _token,
         uint256 _amount,
-        uint32 _liquidationRatio,
-        uint32 _balanceRatio
+        uint96 _liquidationRatio,
+        uint96 _balanceRatio
     );
 
-    event Deposited(uint256 indexed _entryId, uint256 _amount);
-    event Withdrawed(uint256 indexed _entryId, address _to, uint256 _amount);
+    event Deposited(
+        uint256 indexed _entryId,
+        uint256 _amount
+    );
 
-    event Started(uint256 indexed _entryId);
+    event Withdraw(
+        uint256 indexed _entryId,
+        address _to,
+        uint256 _amount
+    );
 
-    event PayOffDebt(uint256 indexed _entryId, uint256 _closingObligationToken, uint256 _payTokens);
-    event CancelDebt(uint256 indexed _entryId, uint256 _obligationInToken, uint256 _payTokens);
-    event CollateralBalance(uint256 indexed _entryId, uint256 _tokenRequiredToTryBalance, uint256 _payTokens);
+    event Started(
+        uint256 indexed _entryId
+    );
 
-    event ConvertPay(uint256 indexed _entryId, uint256 _fromAmount, uint256 _toAmount, bytes _oracleData);
-    event Rebuy(uint256 indexed _entryId, uint256 _fromAmount, uint256 _toAmount);
+    event TriggerAuction(
+        uint256 indexed _entryId,
+        uint256 _reason
+    );
 
-    event Redeemed(uint256 indexed _entryId);
-    event EmergencyRedeemed(uint256 indexed _entryId, address _to);
+    event StartedAuction(
+        uint256 indexed _entryId,
+        uint256 _required,
+        uint256 _startOffer,
+        uint256 _limit
+    );
 
-    event SetUrl(string _url);
-    event SetMaxSpreadRatio(address _token, uint256 _maxSpreadRatio);
+    event ClosedAuction(
+        uint256 indexed _entryId,
+        uint256 _received,
+        uint256 _leftover
+    );
 
-    event ReadedOracle(RateOracle _oracle, uint256 _tokens, uint256 _equivalent);
+    event Redeemed(
+        uint256 indexed _entryId
+    );
 
-    Entry[] public entries;
+    event EmergencyRedeemed(
+        uint256 indexed _entryId,
+        address _to
+    );
+
+    event SetUrl(
+        string _url
+    );
+
+    // All collateral entries
+    CollateralLib.Entry[] public entries;
+
     // Define when cosign the debt on requestCosign function
     mapping(bytes32 => uint256) public debtToEntry;
 
-    // Can change
+    // URL With collateral offers
     string private iurl;
+
     // Constant, set in constructor
     LoanManager public loanManager;
     IERC20 public loanManagerToken;
 
-    // Set in create function
-    struct Entry {
-        RateOracle oracle;
-        IERC20 token;
-        bytes32 debtId;
-        uint256 amount;
-        uint32 liquidationRatio;
-        uint32 balanceRatio;
-    }
-
+    // Auction storage
     CollateralAuction public auction;
     mapping(uint256 => uint256) public entryToAuction;
     mapping(uint256 => uint256) public auctionToEntry;
@@ -98,7 +113,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         auction = new CollateralAuction(loanManagerToken);
     }
 
-    function getEntriesLength() external view returns (uint256) { return entries.length; }
+    function getEntriesLength() external view returns (uint256) {
+        return entries.length;
+    }
 
     /**
         @notice Create an entry, previous need the approve of the ERC20 tokens
@@ -127,29 +144,30 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         bytes32 _debtId,
         RateOracle _oracle,
         uint256 _amount,
-        uint32 _liquidationRatio,
-        uint32 _balanceRatio
+        uint96 _liquidationRatio,
+        uint96 _balanceRatio
     ) external returns (uint256 entryId) {
-        // Check parameters
-        require(_liquidationRatio > BASE, "The liquidation ratio should be greater than BASE");
-        require(_balanceRatio > _liquidationRatio, "The balance ratio should be greater than liquidation ratio");
         // Check status of loan, should be open
         require(loanManager.getStatus(_debtId) == 0, "Debt request should be open");
 
+        // Use the Oracle token
         IERC20 token = _oracle == RateOracle(0) ? loanManagerToken : IERC20(_oracle.token());
+
         // Create the entry, and push on entries array
         entryId = entries.push(
-            Entry({
-                oracle: _oracle,
-                token: token,
-                debtId: _debtId,
-                amount: _amount,
-                liquidationRatio: _liquidationRatio,
-                balanceRatio: _balanceRatio
-            })
+            CollateralLib.create(
+                _oracle,
+                token,
+                _debtId,
+                _amount,
+                _liquidationRatio,
+                _balanceRatio
+            )
         ) - 1;
+
         // Take the ERC20 tokens
         require(token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+
         // Generate the ERC721 Token
         _generate(entryId, msg.sender);
 
@@ -176,9 +194,12 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
     ) external {
         require(!inAuction(_entryId), "collateral: can deposit during auction");
 
-        Entry storage entry = entries[_entryId];
+        // Load entry from storage
+        CollateralLib.Entry storage entry = entries[_entryId];
+
         // Take the ERC20 tokens
         require(entry.token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+
         // Register the deposit of amount on the entry
         entry.amount = entry.amount.add(_amount);
 
@@ -202,9 +223,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
     ) external onlyAuthorized(_entryId) {
         require(!inAuction(_entryId), "collateral: can withdraw during auction");
 
-        Entry storage entry = entries[_entryId];
+        // Load entry from storage
+        CollateralLib.Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
-
         uint256 entryAmount = entry.amount;
 
         // Check if the entry is cosigned
@@ -213,11 +234,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         if (debtToEntry[debtId] != 0) {
             // Check if can withdraw the requested amount
             require(
-                _amount.toInt256() <= canWithdraw(
-                    _entryId,                                   // ID of the collateral entry
-                    debtInTokens(debtId, _oracleData),          // Value of the debt in tokens (debt oracle)
-                    entry.oracle.read().toTokens(entryAmount)   // Value of the collateral in tokens (collateral oracle)
-                ),
+                _amount <= entry.canWithdraw(_debtInTokens(debtId, _oracleData)),
                 "Dont have collateral to withdraw"
             );
         }
@@ -229,7 +246,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         // Send the amount of ERC20 tokens to _to
         require(entry.token.safeTransfer(_to, _amount), "Error sending tokens");
 
-        emit Withdrawed(_entryId, _to, _amount);
+        emit Withdraw(_entryId, _to, _amount);
     }
 
     /**
@@ -270,43 +287,83 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
     }
 
     /**
-        @notice Pay a debt with the entry balance, only an authorized can be use this function
+        Borrows collateral, with the condition of returning it at the end of the call.
 
-        @dev Convert the necessary amount of Token of the entry in Loan Manager Token to try pay all the debt
+        @dev Can be used to pay the loan using the collateral
 
         @param _entryId Id of the entry
-        @param _oracleData Data of oracle to change the currency of debt
-            to Token of debt engine
-
-        @return The amount of paid tokens
+        @param _handler Contract handler of the collateral
+        @param _data Arbitrary _data field for the handler
+        @param _oracleData Loan oracle data
     */
     function borrowCollateral(
         uint256 _entryId,
-        address _handler,
-        bytes calldata _data
-    ) external onlyAuthorized(_entryId) returns(uint256 payTokens) {
-        Entry storage entry = entries[_entryId];
+        CollateralHandler _handler,
+        bytes calldata _data,
+        bytes calldata _oracleData
+    ) external onlyAuthorized(_entryId) {
+        // Read entry
+        CollateralLib.Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
-        Model model = Model(loanManager.getModel(uint256(debtId)));
 
-        // Get the closing obligation
-        uint256 closingObligation = model.getClosingObligation(debtId);
+        // Get original collateral ratio
+        bytes32 ogRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
 
-        // Transform the closing obligation to tokens using the rate of oracle
-        uint256 closingObligationToken = loanManager
-            .oracle(debtId)
-            .read(_oracleData)
-            .toTokens(closingObligation, true);
+        // Send all colleteral to handler
+        entry.token.safeTransfer(address(_handler), entry.amount);
+        entry.amount = 0;
 
-        // Convert the tokens of the entry to LoanManager Token and pay the debt
-        payTokens = _convertPay(
-            _entryId,
-            closingObligationToken,
-            _oracleData,
-            false
+        // Call handler
+        // replace with interface
+        _handler.handle(_entryId, _data);
+
+        // Read ratio, should be better than previus one
+        bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
+        require(afRatio.gt(ogRatio), "collateral: ratio should increase");
+    }
+
+    function auctionClosed(
+        uint256 _id,
+        uint256 _leftover,
+        uint256 _received,
+        bytes calldata _data
+    ) external {
+        require(msg.sender == address(auction), "collateral: caller should be the auctioner");
+        uint256 entryId = auctionToEntry[_id];
+
+        require(entryId != 0, "collateral: entry does not exists");
+        CollateralLib.Entry storage entry = entries[entryId];
+
+        // Delete auction entry
+        delete entryToAuction[entryId];
+        delete auctionToEntry[entryId];
+
+        // Use received to pay loan
+        (, uint256 paidTokens) = loanManager.safePayToken(
+            entry.debtId,
+            _received,
+            address(this),
+            _data
         );
 
-        emit PayOffDebt(_entryId, closingObligationToken, payTokens);
+        // If we have exceeding tokens
+        // send them to the owner of the collateral
+        if (paidTokens < _received) {
+            loanManagerToken.transfer(
+                _ownerOf(entryId),
+                _received - paidTokens
+            );
+        }
+
+        // Return leftover collateral
+        entry.amount = entry.amount.add(_leftover);
+
+        // Emit closed auction event
+        emit ClosedAuction(
+            entryId,
+            _received,
+            _leftover
+        );
     }
 
     // ///
@@ -368,17 +425,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
 
         // Load entryId and entry
         uint256 entryId = abi.decode(_data, (uint256));
-        Entry storage entry = entries[entryId];
+        CollateralLib.Entry storage entry = entries[entryId];
         require(entry.debtId == debtId, "Wrong debt id");
 
         // Validate if the collateral is enough
         // and if the loan is collateralized
         require(
-            canWithdraw(
-                entryId,                                   // Collateral ID
-                debtInTokens(debtId, _oracleData),         // Value of debt in tokens (debt oracle)
-                entry.oracle.read().toTokens(entry.amount) // Value of collateral in tokens (collateral oracle)
-            ) >= 0, "The entry its not collateralized"
+            !entry.inLiquidation(_debtInTokens(debtId, _oracleData)),
+            "The entry its not collateralized"
         );
 
         // Save entryId
@@ -412,43 +466,61 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         address,
         uint256 _debtId,
         bytes memory _oracleData
-    ) public returns (bool change) {
+    ) public returns (bool) {
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = debtToEntry[debtId];
         require(entryId != 0, "The loan dont lent");
 
-        // Check if collateral is below liquidation ratio
-        uint256 tokenRequiredToTryBalance = getTokenRequiredToTryBalance(
-            entryId,
-            _oracleData
-        );
+        if (_claimLiquidation(entryId, debtId, _oracleData)) {
+            return true;
+        }
 
-        if (tokenRequiredToTryBalance > 0) {
-            // Create an auction for the tokens
-            triggerAuction(
-                entryId,
-                tokenRequiredToTryBalance
+        return _claimExpired(debtId, _oracleData);
+    }
+
+    function inAuction(uint256 _entryId) public view returns (bool) {
+        return entryToAuction[_entryId] != 0;
+    }
+
+    function _claimLiquidation(
+        uint256 _entryId,
+        bytes32 _debtId,
+        bytes memory _oracleData
+    ) internal returns (bool) {
+        CollateralLib.Entry memory entry = entries[_entryId];
+
+        // Check if collateral needs liquidation
+        uint256 debt = _debtInTokens(_debtId, _oracleData);
+        if (entry.inLiquidation(debt)) {
+            // Trigger auction
+            _triggerAuction(
+                _entryId,
+                entry.balance(debt)
             );
 
             return true;
         }
+    }
 
+    function _claimExpired(
+        bytes32 _debtId,
+        bytes memory _oracleData
+    ) private returns (bool) {
         // Check if debt is expired
         Model model = Model(loanManager.getModel(_debtId));
-        uint256 dueTime = model.getDueTime(debtId);
+        uint256 dueTime = model.getDueTime(_debtId);
+
         if (block.timestamp >= dueTime) {
             // Run payment of debt, use collateral to buy tokens
-            (uint256 obligation,) = model.getObligation(debtId, uint64(dueTime));
+            (uint256 obligation,) = model.getObligation(_debtId, uint64(dueTime));
 
             // Valuate the debt amount from debt currency to loanManagerToken
-            uint256 obligationToken = loanManager
-                .oracle(debtId)
-                .read(_oracleData)
-                .toTokens(obligation, true);
+            // request 5% extra to account for accrued interest during the auction
+            uint256 obligationToken = _toToken(_debtId, obligation, _oracleData);
 
-            // Create an auction for the tokens
-            triggerAuction(
-                entryId,
+            // Trigger the auction
+            _triggerAuction(
+                debtToEntry[_debtId],
                 obligationToken
             );
 
@@ -456,70 +528,57 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         }
     }
 
-    function auctionClosed(
-        uint256 _id,
-        uint256 _leftover,
-        uint256 _received,
-        bytes calldata _data
-    ) external {
-        require(msg.sender == address(auction), "collateral: caller should be the auctioner");
-        uint256 entryId = auctionToEntry[_id];
-
-        require(entryId != 0, "collateral: entry does not exists");
-        Entry storage entry = entries[entryId];
-
-        // Delete auction entry
-        delete entryToAuction[entryId];
-        delete auctionToEntry[entryId];
-
-        // Use received to pay loan
-        (, uint256 paidTokens) = loanManager.safePayToken(
-            entry.debtId,
-            _received,
-            address(this),
-            _data
-        );
-
-        // If we have exceeding tokens
-        // send them to the owner of the collateral
-        if (paidTokens < _received) {
-            loanManagerToken.transfer(
-                entry.owner,
-                _received - paidTokens
-            );
-        }
-
-        // Return leftover collateral
-        entry.amount = entry.amount.add(_leftover);
+    function _toToken(
+        bytes32 _debtId,
+        uint256 _amount,
+        bytes memory _data
+    ) private returns (uint256) {
+        return loanManager
+            .oracle(_debtId)
+            .read(_data)
+            .toTokens(_amount, true)
+            .mult(105)
+            .div(100);
     }
 
-    function triggerAuction(
+    function _debtInTokens(
+        bytes32 debtId,
+        bytes memory _data
+    ) internal returns (uint256) {
+        LoanManager _loanManager = loanManager;
+        return _loanManager
+            .oracle(debtId)
+            .read(_data)
+            .toTokens(_loanManager.getClosingObligation(debtId));
+    }
+
+    function _triggerAuction(
         uint256 _entryId,
         uint256 _targetAmount
-    ) private {
+    ) internal {
         // TODO: Maybe we can update the auction keeping the price?
         require(!inAuction(_entryId), "collateral: auction already exists");
 
-        Entry storage entry = entries[_entryId];
+        CollateralLib.Entry storage entry = entries[_entryId];
 
         // TODO: @audit reentrancy on oracle ?
         uint256 initialOffer = entry.oracle
             .read()
             .toBase(_targetAmount)
-            .mul(102)
+            .mult(102)
             .div(100);
 
         // Read storage
-        CollateralAuction t_auction = auction;
-        uint256 t_amount = entry.amount;
-        IERC20 t_token = entry.token;
+        CollateralAuction _auction = auction;
+        uint256 _amount = entry.amount;
+        IERC20 _token = entry.token;
 
         // Start auction
-        uint256 auctionId = t_auction.create(
-            t_token,       // Token we are selling
+        uint256 auctionId = _auction.create(
+            _token,        // Token we are selling
             initialOffer,  // Initial offer of tokens
             _targetAmount, // How much base tokens are needed
-            t_amount       // The maximun amount of token that we can sell
+            _amount        // The maximun amount of token that we can sell
         );
 
         // Save Auction ID
@@ -527,133 +586,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         auctionToEntry[auctionId] = _entryId;
 
         // Send tokens to auction contract
-        require(t_token.safeTransfer(address(t_auction), t_amount), "collatereal: error sending token to auction");
-    }
-
-    function inAuction(uint256 _entryId) public pure returns (bool) {
-        return entryToAuction[_entryId] != 0;
-    }
-
-    /**
-        @param _entryId ID of the collateral entry
-        @param _oracleData Oracle Data for debt oracle
-
-        @return The minimum amount valuate in collateral token of:
-            collateral required to balance the entry
-            entry amount
-    */
-    function getTokenRequiredToTryBalance(
-        uint256 _entryId,
-        bytes memory _oracleData
-    ) public returns(uint256) {
-        Entry storage entry = entries[_entryId];
-
-        // Valuate the debt amount from debt currency to loanManagerToken
-        uint256 debt = debtInTokens(entry.debtId, _oracleData);
-
-        // If the debt amount its 0 dont need balance the entry
-        if (debt == 0) return 0;
-
-        OracleUtils.Sample memory sample = entry.oracle.read();
-        uint256 collateralInToken = sample.toTokens(entry.amount);
-
-        // If the entry is collateralized should not have collateral amount to pay
-        if (deltaCollateralRatio(
-            entry.liquidationRatio,
-            debt,
-            collateralInToken
-        ) >= 0) {
-            return 0;
-        }
-
-        uint256 cwithdraw = canWithdraw(_entryId, debt, collateralInToken).abs().toUint256();
-
-        // Check underflow when create the entry
-        uint256 collateralRequiredToBalance = cwithdraw.mult(BASE) / (entry.balanceRatio - BASE);
-
-        uint256 min = Math.min(
-            // The collateral required to equilibrate the balance (the collateral should be more than the debt)
-            collateralRequiredToBalance,
-            // Pay all collateral amount (the collateral should be less than the debt)
-            entry.amount
-        );
-
-        return sample.toTokens(min);
-    }
-
-    /**
-        @param _entryId The index of entry, inside of entries array
-        @param _debtInToken The total amount of the debt valuate in loanManagerToken
-        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
-
-        @return The amount that can be withdraw of the collateral, valuate in collateral Token.
-            If the return its negative, the entry should be below of the balance ratio
-    */
-    function canWithdraw(
-        uint256 _entryId,
-        uint256 _debtInToken,
-        uint256 _collateralInToken
-    ) public view returns (int256) {
-        Entry storage entry = entries[_entryId];
-
-        int256 ratio = collateralRatio(_debtInToken, _collateralInToken).toInt256();
-        int256 collateral = entry.amount.toInt256();
-
-        // if the collateralRatio its 0 can withdraw all the collateral, because the debt amount its 0
-        if (ratio == 0) return collateral;
-
-        int256 delta = deltaCollateralRatio(
-            entry.balanceRatio,
-            _debtInToken,
-            _collateralInToken
-        );
-
-        return collateral.muldiv(delta, ratio);
-    }
-
-    /**
-        @param _ratio Ratio to substract collateralRatio
-        @param _debtInToken The total amount of the debt valuate in loanManagerToken
-        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
-
-        @return The collateral ratio minus the ratio
-    */
-    function deltaCollateralRatio(
-        uint256 _ratio,
-        uint256 _debtInToken,
-        uint256 _collateralInToken
-    ) public pure returns (int256) {
-        return collateralRatio(_debtInToken, _collateralInToken).toInt256().sub(int256(_ratio));
-    }
-
-    /**
-        @param _debtInToken The total amount of the debt valuate in loanManagerToken
-        @param _collateralInToken The total balance of the entry valuate in loanManagerToken
-
-        @return The ratio of the collateral vs the debt
-    */
-    function collateralRatio(
-        uint256 _debtInToken,
-        uint256 _collateralInToken
-    ) public pure returns (uint256) {
-        // if the debt amount its 0 the collateral ratio its 0
-        if (_debtInToken == 0) return 0;
-
-        return _collateralInToken.multdiv(BASE, _debtInToken);
-    }
-
-    /**
-
-    */
-    function debtInTokens(
-        bytes32 debtId,
-        bytes memory _data
-    ) public returns (uint256) {
-        LoanManager _loanManager = loanManager;
-        return _loanManager
-            .oracle(debtId)
-            .read(_data)
-            .toTokens(_loanManager.getClosingObligation(debtId));
+        require(_token.safeTransfer(address(_auction), _amount), "collatereal: error sending token to auction");
     }
 
     /**
@@ -674,7 +607,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
         address _to,
         bool _emergency
     ) internal returns(uint256 totalTransfer) {
-        Entry storage entry = entries[_entryId];
+        CollateralLib.Entry storage entry = entries[_entryId];
         // Get debt status
         uint256 status = loanManager.getStatus(entry.debtId);
 
@@ -690,6 +623,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, AuctionCallback {
 
         totalTransfer = entry.amount;
         IERC20 token = entry.token;
+
         // Destroy ERC721 collateral token
         delete debtToEntry[entry.debtId];
         delete entries[_entryId];
