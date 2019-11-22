@@ -5,6 +5,9 @@ import "../utils/SafeMath.sol";
 
 library Fixed223x32 {
     uint256 private constant BASE = 4294967296; // 2 ** 32
+    uint256 private constant DEC_BITS = 32;
+    uint256 private constant INT_BITS = 224;
+
     using Fixed223x32 for bytes32;
     using SafeMath for uint256;
 
@@ -23,7 +26,7 @@ library Fixed223x32 {
     function toUint256(
         bytes32 _a
     ) internal pure returns (uint256) {
-        return uint256(_a) / BASE;
+        return uint256(_a) >> DEC_BITS;
     }
 
     function add(
@@ -47,7 +50,25 @@ library Fixed223x32 {
         uint256 a = uint256(_a);
         uint256 b = uint256(_b);
 
-        return bytes32((a.mult(b) / BASE));
+        return bytes32((a.mult(b) >> DEC_BITS));
+    }
+
+    function floor(
+        bytes32 _a
+    ) internal pure returns (bytes32) {
+        return (_a >> DEC_BITS) << DEC_BITS;
+    }
+
+    function ceil(
+        bytes32 _a
+    ) internal pure returns (bytes32) {
+        uint256 rawDec = uint256(_a << INT_BITS);
+        if (rawDec != 0) {
+            uint256 diff = BASE.sub(rawDec >> INT_BITS);
+            return bytes32(uint256(_a).add(diff));
+        }
+
+        return _a;
     }
 
     function div(

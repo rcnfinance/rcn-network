@@ -60,7 +60,7 @@ library CollateralLib {
     ) internal returns (uint256) {
         return _col.oracle
             .read()
-            .toBase(_col.amount);
+            .toTokens(_col.amount);
     }
 
     /*
@@ -89,6 +89,7 @@ library CollateralLib {
         Entry memory _col,
         uint256 _debt
     ) internal returns (uint256) {
+
         // Create fixed point variables
         bytes32 balanceRatio = Fixed223x32.raw(_col.balanceRatio);
         bytes32 debt = Fixed223x32.from(_debt);
@@ -118,8 +119,10 @@ library CollateralLib {
         CollateralLib.Entry memory _col,
         uint256 _debt
     ) internal returns (uint256) {
+        OracleUtils.Sample memory sample = _col.oracle.read();
+
         // Load values and turn it into fixed point
-        bytes32 base = Fixed223x32.from(_col.toBase());
+        bytes32 base = Fixed223x32.from(sample.toTokens(_col.amount));
         bytes32 liquidationRatio = Fixed223x32.raw(_col.liquidationRatio);
 
         // Calculate _debt collateral liquidation limit
@@ -132,7 +135,7 @@ library CollateralLib {
         }
 
         // Return remaining to reach liquidation
-        return base.sub(limit).toUint256();
+        return sample.toBase(base.sub(limit.ceil()).toUint256());
     }
 
     /*

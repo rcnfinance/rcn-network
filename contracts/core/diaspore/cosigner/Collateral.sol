@@ -310,16 +310,20 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         bytes32 ogRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
 
         // Send all colleteral to handler
-        entry.token.safeTransfer(address(_handler), entry.amount);
+        uint256 lent = entry.amount;
+        entry.token.safeTransfer(address(_handler), lent);
         entry.amount = 0;
 
         // Call handler
         // replace with interface
-        _handler.handle(_entryId, _data);
+        _handler.handle(_entryId, lent, _data);
 
         // Read ratio, should be better than previus one
-        bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
-        require(afRatio.gt(ogRatio), "collateral: ratio should increase");
+        // only if the loan wasn’t fully paid
+        if (loanManager.getStatus(entry.debtId) != 2) {
+            bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
+            require(afRatio.gt(ogRatio), "collateral: ratio should increase");
+        }
     }
 
     function auctionClosed(
@@ -505,7 +509,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
     function _claimExpired(
         bytes32 _debtId,
         bytes memory _oracleData
-    ) private returns (bool) {
+    ) internal returns (bool) {
         // Check if debt is expired
         Model model = Model(loanManager.getModel(_debtId));
         uint256 dueTime = model.getDueTime(_debtId);
@@ -532,7 +536,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         bytes32 _debtId,
         uint256 _amount,
         bytes memory _data
-    ) private returns (uint256) {
+    ) internal returns (uint256) {
         return loanManager
             .oracle(_debtId)
             .read(_data)
@@ -562,11 +566,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         CollateralLib.Entry storage entry = entries[_entryId];
 
         // TODO: @audit reentrancy on oracle ?
-        uint256 initialOffer = entry.oracle
+        uint256 referenceOffer = entry.oracle
             .read()
-            .toBase(_targetAmount)
-            .mult(102)
-            .div(100);
+            .toBase(_targetAmount);
+
+        uint256 initialOffer = referenceOffer.mult(105).div(100);
 
         // Read storage
         CollateralAuction _auction = auction;
@@ -575,10 +579,11 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
 
         // Start auction
         uint256 auctionId = _auction.create(
-            _token,        // Token we are selling
-            initialOffer,  // Initial offer of tokens
-            _targetAmount, // How much base tokens are needed
-            _amount        // The maximun amount of token that we can sell
+            _token,          // Token we are selling
+            initialOffer,    // Initial offer of tokens
+            referenceOffer,  // Market reference offer provided by the Oracle
+            _targetAmount,   // How much base tokens are needed
+            _amount          // The maximun amount of token that we can sell
         );
 
         // Save Auction ID

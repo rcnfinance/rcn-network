@@ -4,6 +4,7 @@ const LoanManager = artifacts.require('LoanManager');
 const DebtEngine = artifacts.require('DebtEngine');
 const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
+const CollateralDebtPayer = artifacts.require('CollateralDebtPayer');
 
 const { tryCatchRevert, address0x, toBytes32 } = require('../Helper.js');
 const BN = web3.utils.BN;
@@ -15,6 +16,10 @@ function b (number) {
     return web3.utils.toBN(number);
 }
 
+function ratio (num) {
+    return b(num).mul(b(2).pow(b(32))).div(b(100));
+}
+
 const MAX_UINT64 = b(2).pow(b(64)).sub(b(1));
 // const BASE = bn(10000);
 
@@ -24,6 +29,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
     let loanManager;
     let model;
     let collateral;
+    let debtPayer;
 
     beforeEach(async () => {
         rcn = await TestToken.new({ from: owner });
@@ -34,6 +40,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         // Collateral deploy
         collateral = await Collateral.new(loanManager.address, { from: owner });
         // await collateral.setConverter(converter.address, { from: owner });
+        debtPayer = await CollateralDebtPayer.new();
     });
 
     describe('Request collateral', () => {
@@ -66,10 +73,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(13000),         // Balance ratio
-                b(7),             // Burn fee
-                b(5),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(130),       // Balance ratio
                 {
                     from: user,
                 }
@@ -81,10 +86,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             expect(entry.token).to.be.equal(rcn.address);
             expect(entry.debtId).to.be.equal(debtId);
             expect(entry.amount).to.eq.BN(b(2500));
-            expect(entry.liquidationRatio).to.eq.BN(b(12000));
-            expect(entry.balanceRatio).to.eq.BN(b(13000));
-            expect(entry.burnFee).to.eq.BN(b(7));
-            expect(entry.rewardFee).to.eq.BN(b(5));
+            expect(entry.liquidationRatio).to.eq.BN(ratio(120));
+            expect(entry.balanceRatio).to.eq.BN(ratio(130));
 
             // Inspect balances
             expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(2500));
@@ -128,10 +131,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(13000),         // Balance ratio
-                b(7),             // Burn fee
-                b(5),             // Reward fee
+                ratio(120),         // Liquidation Ratio
+                ratio(130),         // Balance ratio
                 {
                     from: user,
                 }
@@ -143,10 +144,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             expect(entry.token).to.be.equal(dai.address);
             expect(entry.debtId).to.be.equal(debtId);
             expect(entry.amount).to.eq.BN(b(2500));
-            expect(entry.liquidationRatio).to.eq.BN(b(12000));
-            expect(entry.balanceRatio).to.eq.BN(b(13000));
-            expect(entry.burnFee).to.eq.BN(b(7));
-            expect(entry.rewardFee).to.eq.BN(b(5));
+            expect(entry.liquidationRatio).to.eq.BN(ratio(120));
+            expect(entry.balanceRatio).to.eq.BN(ratio(130));
 
             // Inspect balances
             expect(await dai.balanceOf(collateral.address)).to.eq.BN(b(2500));
@@ -168,10 +167,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),         // Liquidation Ratio
+                ratio(106),         // Balance ratio
                 {
                     from: user,
                 }
@@ -183,10 +180,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             expect(entry.token).to.be.equal(rcn.address);
             expect(entry.debtId).to.be.equal(debtId);
             expect(entry.amount).to.eq.BN(b(2500));
-            expect(entry.liquidationRatio).to.eq.BN(b(10500));
-            expect(entry.balanceRatio).to.eq.BN(b(10600));
-            expect(entry.burnFee).to.eq.BN(b(9));
-            expect(entry.rewardFee).to.eq.BN(b(1));
+            expect(entry.liquidationRatio).to.eq.BN(ratio(105));
+            expect(entry.balanceRatio).to.eq.BN(ratio(106));
 
             // Inspect balances
             expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(2500));
@@ -198,7 +193,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         });
     });
     describe('Fail Request Collateral', () => {
-        it('Should fail to create oracle with no balance', async () => {
+        it('Should fail to create collateral with not enough balance', async () => {
             // Create oracle and alt token
             const dai = await TestToken.new();
             const oracle = await TestRateOracle.new();
@@ -233,10 +228,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(2500),          // Token Amount
-                    b(12000),         // Liquidation Ratio
-                    b(13000),         // Balance ratio
-                    b(7),             // Burn fee
-                    b(5),             // Reward fee
+                    ratio(120),       // Liquidation Ratio
+                    ratio(130),       // Balance ratio
                     {
                         from: user,
                     }
@@ -244,7 +237,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 'Error pulling tokens'
             );
         });
-        it('Should fail to create oracle if liquidation ratio is below BASE', async () => {
+        it('Should fail to create collateral if liquidation ratio is below BASE', async () => {
             // Create oracle and alt token
             const dai = await TestToken.new();
             const oracle = await TestRateOracle.new();
@@ -279,64 +272,16 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(2500),          // Token Amount
-                    b(500),           // Liquidation Ratio
-                    b(600),           // Balance ratio
-                    b(7),             // Burn fee
-                    b(5),             // Reward fee
+                    ratio(50),        // Liquidation Ratio
+                    ratio(60),        // Balance ratio
                     {
                         from: user,
                     }
                 ),
-                'The liquidation ratio should be greater than BASE'
+                'collateral-lib: _liquidationRatio should be above one'
             );
         });
-        it('Should fail to create oracle if fee sum is above BASE', async () => {
-            // Create oracle and alt token
-            const dai = await TestToken.new();
-            const oracle = await TestRateOracle.new();
-            await oracle.setToken(dai.address);
-
-            // Request a loan
-            const modelData = await model.encodeData(
-                b(2000),
-                MAX_UINT64
-            );
-
-            // Request  loan
-            const requestReceipt = await loanManager.requestLoan(
-                b(1000),          // Requested amount
-                model.address,    // Debt model
-                oracle.address,   // Oracle
-                user,             // Borrower
-                address0x,        // Callback
-                b(0),             // Salt
-                MAX_UINT64,       // Expiration
-                modelData         // Model data
-            );
-
-            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
-
-            await dai.setBalance(user, b(2500));
-            await dai.approve(collateral.address, b(2500), { from: user });
-
-            // Create collateral entry
-            await tryCatchRevert(
-                collateral.create(
-                    debtId,           // Debt ID
-                    oracle.address,   // Oracle address
-                    b(2500),          // Token Amount
-                    b(10500),         // Liquidation Ratio
-                    b(10700),         // Balance ratio
-                    b(9602),             // Burn fee
-                    b(3402),             // Reward fee
-                    {
-                        from: user,
-                    }
-                ),
-                'Fee should be lower than BASE'
-            );
-        });
-        it('Should fail to create oracle if base ratio is below liquidation ratio', async () => {
+        it('Should fail to create collateral if base ratio is below liquidation ratio', async () => {
             // Create oracle and alt token
             const dai = await TestToken.new();
             const oracle = await TestRateOracle.new();
@@ -371,61 +316,13 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(2500),          // Token Amount
-                    b(10700),         // Liquidation Ratio
-                    b(10600),         // Balance ratio
-                    b(9),             // Burn fee
-                    b(1),             // Reward fee
+                    ratio(107),       // Liquidation Ratio
+                    ratio(106),       // Balance ratio
                     {
                         from: user,
                     }
                 ),
-                'The balance ratio should be greater than liquidation ratio'
-            );
-        });
-        it('Should fail to create oracle if fee is above ratios delta', async () => {
-            // Create oracle and alt token
-            const dai = await TestToken.new();
-            const oracle = await TestRateOracle.new();
-            await oracle.setToken(dai.address);
-
-            // Request a loan
-            const modelData = await model.encodeData(
-                b(2000),
-                MAX_UINT64
-            );
-
-            // Request  loan
-            const requestReceipt = await loanManager.requestLoan(
-                b(1000),          // Requested amount
-                model.address,    // Debt model
-                oracle.address,   // Oracle
-                user,             // Borrower
-                address0x,        // Callback
-                b(0),             // Salt
-                MAX_UINT64,       // Expiration
-                modelData         // Model data
-            );
-
-            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
-
-            await dai.setBalance(user, b(2499));
-            await dai.approve(collateral.address, b(2500), { from: user });
-
-            // Create collateral entry
-            await tryCatchRevert(
-                collateral.create(
-                    debtId,           // Debt ID
-                    oracle.address,   // Oracle address
-                    b(2500),          // Token Amount
-                    b(10599),         // Liquidation Ratio
-                    b(10600),         // Balance ratio
-                    b(9),             // Burn fee
-                    b(1),             // Reward fee
-                    {
-                        from: user,
-                    }
-                ),
-                'The fee should be less than the difference between balance ratio and liquidation ratio'
+                'collateral-lib: _liquidationRatio should be below _balanceRatio'
             );
         });
         // it('Should fail to create collateral if loan was canceled', async () => {
@@ -491,10 +388,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -523,10 +418,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -560,10 +453,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -594,10 +485,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -631,10 +520,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -661,10 +548,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -690,10 +575,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -738,10 +621,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -808,10 +689,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -878,10 +757,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -952,10 +829,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1018,10 +893,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1047,7 +920,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             expect(await loanManager.getCosigner(debtId)).to.be.equal(collateral.address);
 
             await tryCatchRevert(
-                collateral.withdraw(entryId, anotherUser, b(1001), [], { from: user }),
+                collateral.withdraw(entryId, anotherUser, b(1301), [], { from: user }),
                 'Dont have collateral to withdraw'
             );
         });
@@ -1082,16 +955,15 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
             // Create collateral entry
+            // worth 5000 RCN
             await dai.setBalance(user, b(2500));
             await dai.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1115,7 +987,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             );
 
             await tryCatchRevert(
-                collateral.withdraw(entryId, user, b(1751), [], { from: user }),
+                collateral.withdraw(entryId, user, b(2201), [], { from: user }),
                 'Dont have collateral to withdraw'
             );
         });
@@ -1160,10 +1032,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1187,7 +1057,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             );
 
             await tryCatchRevert(
-                collateral.withdraw(entryId, user, b(2313), [], { from: user }),
+                collateral.withdraw(entryId, user, b(2351), [], { from: user }),
                 'Dont have collateral to withdraw'
             );
         });
@@ -1205,10 +1075,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(10500),         // Liquidation Ratio
-                b(10600),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1263,10 +1131,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1349,10 +1215,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1427,10 +1291,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1490,10 +1352,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1553,10 +1413,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1590,7 +1448,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         });
     });
     describe('Pay off debt', () => {
-        it('Should pay debt using rcn collateral, without oracle', async () => {
+        it('Should pay total debt using rcn collateral, without oracle', async () => {
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
@@ -1621,10 +1479,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                b(12000),         // Liquidation Ratio
-                b(15000),         // Balance ratio
-                b(9),             // Burn fee
-                b(1),             // Reward fee
+                ratio(120),       // Liquidation Ratio
+                ratio(150),       // Balance ratio
                 {
                     from: user,
                 }
@@ -1648,8 +1504,20 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             );
 
             // Pay debt using RCN collateral
-            await collateral.payOffDebt(entryId, [], { from: user });
-            expect(await loanManager.getStatus(debtId)).to.eq.BN(b(3));
+            const data = await debtPayer.encode(address0x, b(1000), b(0), []);
+            await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
+
+            expect(await loanManager.getStatus(debtId)).to.eq.BN(b(2));
+
+            // Debt entry should have extra collateral
+            // Inspect entry
+            const entry = await collateral.entries(entryId);
+            expect(entry.oracle).to.be.equal(address0x);
+            expect(entry.token).to.be.equal(rcn.address);
+            expect(entry.debtId).to.be.equal(debtId);
+            expect(entry.amount).to.eq.BN(b(1500));
+            expect(entry.liquidationRatio).to.eq.BN(ratio(120));
+            expect(entry.balanceRatio).to.eq.BN(ratio(150));
         });
     });
 });
