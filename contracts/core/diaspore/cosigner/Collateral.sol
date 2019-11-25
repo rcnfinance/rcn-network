@@ -570,7 +570,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
             .read()
             .toBase(_targetAmount);
 
-        uint256 initialOffer = referenceOffer.mult(105).div(100);
+        uint256 initialOffer = referenceOffer.mult(95).div(100);
 
         // Read storage
         CollateralAuction _auction = auction;
@@ -582,8 +582,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
             _token,          // Token we are selling
             initialOffer,    // Initial offer of tokens
             referenceOffer,  // Market reference offer provided by the Oracle
-            _targetAmount,   // How much base tokens are needed
-            _amount          // The maximun amount of token that we can sell
+            _amount,         // The maximun amount of token that we can sell
+            _targetAmount    // How much base tokens are needed
         );
 
         // Save Auction ID
