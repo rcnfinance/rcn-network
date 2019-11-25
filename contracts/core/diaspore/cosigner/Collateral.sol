@@ -311,8 +311,8 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
 
         // Send all colleteral to handler
         uint256 lent = entry.amount;
-        entry.token.safeTransfer(address(_handler), lent);
         entry.amount = 0;
+        entry.token.safeTransfer(address(_handler), lent);
 
         // Call handler
         // replace with interface
