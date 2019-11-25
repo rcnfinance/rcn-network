@@ -91,11 +91,10 @@ library CollateralLib {
     ) internal returns (uint256) {
         // Create fixed point variables
         bytes32 balanceRatio = Fixed223x32.raw(_col.balanceRatio);
-        bytes32 debt = Fixed223x32.from(_debt);
         bytes32 base = Fixed223x32.from(_col.toBase());
 
         // Calculate target limit to reach
-        bytes32 limit = debt.mul(balanceRatio);
+        bytes32 limit = Fixed223x32.from(_debt).mul(balanceRatio);
 
         // If current collateral is above limit
         // balance is not needed
@@ -121,8 +120,8 @@ library CollateralLib {
         OracleUtils.Sample memory sample = _col.oracle.read();
 
         // Load values and turn it into fixed point
-        bytes32 base = Fixed223x32.from(sample.toTokens(_col.amount));
         bytes32 liquidationRatio = Fixed223x32.raw(_col.liquidationRatio);
+        bytes32 base = Fixed223x32.from(sample.toTokens(_col.amount));
 
         // Calculate _debt collateral liquidation limit
         bytes32 limit = Fixed223x32.from(_debt).mul(liquidationRatio);
