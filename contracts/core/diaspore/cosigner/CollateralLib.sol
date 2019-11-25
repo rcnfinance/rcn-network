@@ -115,7 +115,7 @@ library CollateralLib {
         liquidation ratio.
     */
     function canWithdraw(
-        Entry memory _col,
+        CollateralLib.Entry memory _col,
         uint256 _debt
     ) internal returns (uint256) {
         OracleUtils.Sample memory sample = _col.oracle.read();
