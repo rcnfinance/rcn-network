@@ -150,13 +150,7 @@ contract CollateralAuction is Ownable {
 
         if (ogDeltaTime > _auction.limitDelta) {
             uint256 deltaTime = ogDeltaTime - _auction.limitDelta;
-            if (deltaTime < DELTA_FINISH) {
-                return _auction.amount.sub(_auction.amount.mult(deltaTime) / DELTA_FINISH);
-            } else {
-                // Panic, auction should have been closed at this point
-                // todo: cancel auction? restart auction?
-                return 1;
-            }
+            return _auction.amount.sub(_auction.amount.mult(deltaTime % DELTA_FINISH) / DELTA_FINISH);
         } else {
             return _auction.amount;
         }

@@ -354,5 +354,105 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             expect(await mock.lastReceived()).to.eq.BN(b(25));
             expect(await mock.lastData()).to.be.equal(data);
         });
+        it('Should take an auction requesting almost no base', async () => {
+            await base.setBalance(user, b(50));
+            await token.setBalance(auction.address, b(2000));
+
+            const mock = await MockCollateralAuctionCallback.new();
+
+            const tx = await auction.create(
+                token.address,
+                b(950),
+                b(1000),
+                b(2000),
+                b(50),
+                {
+                    from: owner,
+                }
+            );
+
+            await increaseTime(b(99000).sub(b(1)));
+
+            await auction.transferOwnership(mock.address, { from: owner });
+
+            const event = searchEvent(tx, 'CreatedAuction');
+            const id = event._id;
+
+            const offer = await auction.offer(id);
+
+            expect(offer[1]).to.eq.BN(b(1));
+            expect(offer[0]).to.eq.BN(b(2000));
+
+            const data = web3.utils.randomHex(100);
+
+            await base.approve(auction.address, b(1), { from: user });
+            const takeTx = await auction.take(id, data, { from: user });
+
+            expect(await base.balanceOf(user)).to.eq.BN(b(49));
+            expect(await base.balanceOf(mock.address)).to.eq.BN(b(1));
+            expect(await token.balanceOf(user)).to.eq.BN(b(2000));
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(0));
+
+            const takeEvent = searchEvent(takeTx, 'Take');
+            expect(takeEvent._id).to.eq.BN(id);
+            expect(takeEvent._taker).to.be.equal(user);
+            expect(takeEvent._selling).to.eq.BN(b(2000));
+            expect(takeEvent._requesting).to.eq.BN(b(1));
+
+            expect(await mock.lastId()).to.eq.BN(id);
+            expect(await mock.lastLeftover()).to.eq.BN(b(0));
+            expect(await mock.lastReceived()).to.eq.BN(b(1));
+            expect(await mock.lastData()).to.be.equal(data);
+        });
+        it('Should take an auction after restarting the auction', async () => {
+            await base.setBalance(user, b(50));
+            await token.setBalance(auction.address, b(2000));
+
+            const mock = await MockCollateralAuctionCallback.new();
+
+            const tx = await auction.create(
+                token.address,
+                b(950),
+                b(1000),
+                b(2000),
+                b(50),
+                {
+                    from: owner,
+                }
+            );
+
+            await increaseTime(b(99000).add(b(43200)));
+
+            await auction.transferOwnership(mock.address, { from: owner });
+
+            const event = searchEvent(tx, 'CreatedAuction');
+            const id = event._id;
+
+            const offer = await auction.offer(id);
+
+            expect(offer[1]).to.eq.BN(b(25));
+            expect(offer[0]).to.eq.BN(b(2000));
+
+            const data = web3.utils.randomHex(100);
+
+            await base.approve(auction.address, b(25), { from: user });
+            const takeTx = await auction.take(id, data, { from: user });
+
+            expect(await base.balanceOf(user)).to.eq.BN(b(25));
+            expect(await base.balanceOf(mock.address)).to.eq.BN(b(25));
+            expect(await token.balanceOf(user)).to.eq.BN(b(2000));
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(0));
+
+            const takeEvent = searchEvent(takeTx, 'Take');
+            expect(takeEvent._id).to.eq.BN(id);
+            expect(takeEvent._taker).to.be.equal(user);
+            expect(takeEvent._selling).to.eq.BN(b(2000));
+            expect(takeEvent._requesting).to.eq.BN(b(25));
+
+            expect(await mock.lastId()).to.eq.BN(id);
+            expect(await mock.lastLeftover()).to.eq.BN(b(0));
+            expect(await mock.lastReceived()).to.eq.BN(b(25));
+            expect(await mock.lastData()).to.be.equal(data);
+        });
     });
 });
