@@ -89,7 +89,6 @@ library CollateralLib {
         Entry memory _col,
         uint256 _debt
     ) internal returns (uint256) {
-
         // Create fixed point variables
         bytes32 balanceRatio = Fixed223x32.raw(_col.balanceRatio);
         bytes32 debt = Fixed223x32.from(_debt);
