@@ -26,6 +26,9 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
     describe('Create auctions', () => {
         it('Should create an auction', async () => {
+            await token.setBalance(owner, b(2000));
+            await token.approve(auction.address, b(2000), { from: owner });
+
             const tx = await auction.create(
                 token.address,
                 b(950),
@@ -36,6 +39,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     from: owner,
                 }
             );
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
             const timestamp = (await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp;
             const event = searchEvent(tx, 'CreatedAuction');
@@ -108,9 +113,11 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
     describe('Take an auction', async () => {
         it('Should take an auction just created', async () => {
             await base.setBalance(user, b(50));
-            await token.setBalance(auction.address, b(2000));
+            await token.setBalance(owner, b(2000));
 
             const mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
 
             const tx = await auction.create(
                 token.address,
@@ -122,6 +129,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     from: owner,
                 }
             );
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
             await auction.transferOwnership(mock.address, { from: owner });
 
@@ -156,9 +165,11 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         });
         it('Should take an auction at the reference price', async () => {
             await base.setBalance(user, b(50));
-            await token.setBalance(auction.address, b(2000));
+            await token.setBalance(owner, b(2000));
 
             const mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
 
             const tx = await auction.create(
                 token.address,
@@ -170,6 +181,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     from: owner,
                 }
             );
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
             await increaseTime(b(10).mul(b(60)));
 
@@ -206,9 +219,11 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         });
         it('Should take an auction at half the limit price', async () => {
             await base.setBalance(user, b(50));
-            await token.setBalance(auction.address, b(2000));
+            await token.setBalance(owner, b(2000));
 
             const mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
 
             const tx = await auction.create(
                 token.address,
@@ -222,6 +237,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             );
 
             await increaseTime(b(6300));
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
             await auction.transferOwnership(mock.address, { from: owner });
 
@@ -256,9 +273,11 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         });
         it('Should take an auction at the limit price', async () => {
             await base.setBalance(user, b(50));
-            await token.setBalance(auction.address, b(2000));
+            await token.setBalance(owner, b(2000));
 
             const mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
 
             const tx = await auction.create(
                 token.address,
@@ -272,6 +291,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             );
 
             await increaseTime(b(12600));
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
             await auction.transferOwnership(mock.address, { from: owner });
 
@@ -306,9 +327,11 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         });
         it('Should take an auction requesting half the base', async () => {
             await base.setBalance(user, b(50));
-            await token.setBalance(auction.address, b(2000));
+            await token.setBalance(owner, b(2000));
 
             const mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
 
             const tx = await auction.create(
                 token.address,
@@ -322,6 +345,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             );
 
             await increaseTime(b(55800));
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
             await auction.transferOwnership(mock.address, { from: owner });
 
@@ -356,9 +381,11 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         });
         it('Should take an auction requesting almost no base', async () => {
             await base.setBalance(user, b(50));
-            await token.setBalance(auction.address, b(2000));
+            await token.setBalance(owner, b(2000));
 
             const mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
 
             const tx = await auction.create(
                 token.address,
@@ -370,6 +397,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     from: owner,
                 }
             );
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
             await increaseTime(b(99000).sub(b(1)));
 
@@ -406,9 +435,11 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         });
         it('Should take an auction after restarting the auction', async () => {
             await base.setBalance(user, b(50));
-            await token.setBalance(auction.address, b(2000));
+            await token.setBalance(owner, b(2000));
 
             const mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
 
             const tx = await auction.create(
                 token.address,
@@ -420,6 +451,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     from: owner,
                 }
             );
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
             await increaseTime(b(99000).add(b(43200)));
 

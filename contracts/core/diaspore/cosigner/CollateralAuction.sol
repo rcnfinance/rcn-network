@@ -54,11 +54,14 @@ contract CollateralAuction is Ownable {
         uint256 _ref,
         uint256 _limit,
         uint256 _amount
-    ) external onlyOwner returns (uint256 id) {
+    ) external returns (uint256 id) {
         require(_start < _ref, "auction: offer should be below refence offer");
         require(_ref < _limit, "auction: reference offer should be below limit");
 
         uint32 limitDelta = ((_limit - _start).mult(DELTA_TO_MARKET) / (_ref - _start)).toUint32();
+
+        // Pull tokens for the auction
+        require(_fromToken.safeTransferFrom(msg.sender, address(this), _limit), "auction: error pulling _fromToken");
 
         // Trust that the owner transfered the tokens
         // the `_limit` should be transfered
@@ -120,7 +123,7 @@ contract CollateralAuction is Ownable {
 
     function offer(
         uint256 _id
-    ) external view returns (uint256, uint256) {
+    ) external view returns (uint256 selling, uint256 requesting) {
         return _offer(auctions[_id]);
     }
 

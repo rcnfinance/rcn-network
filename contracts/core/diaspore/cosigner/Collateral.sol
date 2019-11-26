@@ -577,6 +577,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         uint256 _amount = entry.amount;
         IERC20 _token = entry.token;
 
+        // Approve auction contract
+        _token.safeApprove(address(_auction), _amount);
+
         // Start auction
         uint256 auctionId = _auction.create(
             _token,          // Token we are selling
@@ -585,6 +588,9 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
             _amount,         // The maximun amount of token that we can sell
             _targetAmount    // How much base tokens are needed
         );
+
+        // Clear approve
+        _token.clearApprove(address(_auction));
 
         // Save Auction ID
         entryToAuction[_entryId] = auctionId;
