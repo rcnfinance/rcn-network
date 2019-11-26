@@ -3,6 +3,7 @@ pragma solidity ^0.5.11;
 import "../interfaces/RateOracle.sol";
 import "../../../interfaces/IERC20.sol";
 import "../../../commons/Fixed223x32.sol";
+import "../../../utils/Math.sol";
 
 import "../utils/OracleUtils.sol";
 import "../LoanManager.sol";
@@ -43,6 +44,7 @@ library CollateralLib {
     ) internal pure returns (Entry memory _col) {
         require(_liquidationRatio < _balanceRatio, "collateral-lib: _liquidationRatio should be below _balanceRatio");
         require(_liquidationRatio >= 2 ** 32, "collateral-lib: _liquidationRatio should be above one");
+        require(address(_token) != address(0), "collateral-lib: _token can't be address zero");
 
         _col.oracle = _oracle;
         _col.token = _token;
@@ -89,14 +91,16 @@ library CollateralLib {
         Entry memory _col,
         uint256 _debt
     ) internal returns (uint256) {
+        // Read oracle
+        OracleUtils.Sample memory sample = _col.oracle.read();
 
         // Create fixed point variables
-        bytes32 balanceRatio = Fixed223x32.raw(_col.balanceRatio);
+        bytes32 liquidationRatio = Fixed223x32.raw(_col.liquidationRatio);
+        bytes32 base = Fixed223x32.from(sample.toTokens(_col.amount));
         bytes32 debt = Fixed223x32.from(_debt);
-        bytes32 base = Fixed223x32.from(_col.toBase());
 
         // Calculate target limit to reach
-        bytes32 limit = debt.mul(balanceRatio);
+        bytes32 limit = debt.mul(liquidationRatio);
 
         // If current collateral is above limit
         // balance is not needed
@@ -104,11 +108,17 @@ library CollateralLib {
             return 0;
         }
 
+        // Load balance ratio to fixed point
+        bytes32 balanceRatio = Fixed223x32.raw(_col.balanceRatio);
+
         // Calculate diff between current collateral and the limit needed
         bytes32 diff = debt.mul(balanceRatio).sub(base);
 
         // Return how much collateral has to be sold
-        return diff.div(balanceRatio.sub(Fixed223x32.from(1))).toUint256();
+        return Math.min(
+            sample.toBase(diff.div(balanceRatio.sub(Fixed223x32.from(1))).toUint256()),
+            _col.amount
+        );
     }
 
     /*
@@ -145,6 +155,10 @@ library CollateralLib {
         Entry memory _col,
         uint256 _debt
     ) internal returns (bool) {
+        if (_debt == 0) {
+            return false;
+        }
+
         return _col.ratio(_debt).lt(Fixed223x32.raw(_col.liquidationRatio));
     }
 }
