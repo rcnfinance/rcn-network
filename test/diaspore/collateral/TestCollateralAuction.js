@@ -109,6 +109,38 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 'auction: reference offer should be below limit'
             );
         });
+        it('Should fail to create if creator has not enough tokens', async () => {
+            await tryCatchRevert(
+                auction.create(
+                    token.address,
+                    b(900),
+                    b(950),
+                    b(1800),
+                    b(50),
+                    {
+                        from: owner,
+                    }
+                ),
+                'auction: error pulling _fromToken'
+            );
+        });
+        it('Should fail to create if creator did not approve the contract', async () => {
+            await token.setBalance(owner, b(2000));
+
+            await tryCatchRevert(
+                auction.create(
+                    token.address,
+                    b(900),
+                    b(950),
+                    b(1800),
+                    b(50),
+                    {
+                        from: owner,
+                    }
+                ),
+                'auction: error pulling _fromToken'
+            );
+        });
     });
     describe('Take an auction', async () => {
         it('Should take an auction just created', async () => {
