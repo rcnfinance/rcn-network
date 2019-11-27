@@ -340,7 +340,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
 
         // Delete auction entry
         delete entryToAuction[entryId];
-        delete auctionToEntry[entryId];
+        delete auctionToEntry[_id];
 
         // Use received to pay loan
         (, uint256 paidTokens) = loanManager.safePayToken(
