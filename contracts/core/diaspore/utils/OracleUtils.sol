@@ -38,6 +38,47 @@ library OracleUtils {
         s = _oracle.read("");
     }
 
+    /*
+        @dev Will fail if the oracle change the contract state
+    */
+    function readStatic(
+        RateOracle _oracle,
+        bytes memory data
+    ) internal view returns (Sample memory s) {
+        if (address(_oracle) == address(0)) {
+            s.tokens = 1;
+            s.equivalent = 1;
+        } else {
+            (
+                bool success,
+                bytes memory returnData
+            ) = address(_oracle).staticcall(
+                abi.encodeWithSelector(
+                    _oracle.readSample.selector,
+                    data
+                )
+            );
+
+            require(success, "readSample fails on readStatic");
+
+            (
+                s.tokens,
+                s.equivalent
+            ) = abi.decode(returnData, (uint256, uint256));
+        }
+    }
+
+    /*
+        @dev Will fail with oracles that required oracle data and
+            if the oracle change the contract state
+    */
+    function readStatic(
+        RateOracle _oracle
+    ) internal view returns (Sample memory s) {
+        s = _oracle.readStatic("");
+    }
+
+
     function encode(
         uint256 _tokens,
         uint256 _equivalent
