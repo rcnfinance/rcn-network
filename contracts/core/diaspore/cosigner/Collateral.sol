@@ -340,7 +340,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
 
         // Delete auction entry
         delete entryToAuction[entryId];
-        delete auctionToEntry[entryId];
+        delete auctionToEntry[_id];
 
         // Use received to pay loan
         (, uint256 paidTokens) = loanManager.safePayToken(
@@ -570,21 +570,27 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
             .read()
             .toBase(_targetAmount);
 
-        uint256 initialOffer = referenceOffer.mult(105).div(100);
+        uint256 initialOffer = referenceOffer.mult(95).div(100);
 
         // Read storage
         CollateralAuction _auction = auction;
         uint256 _amount = entry.amount;
         IERC20 _token = entry.token;
 
+        // Approve auction contract
+        _token.safeApprove(address(_auction), _amount);
+
         // Start auction
         uint256 auctionId = _auction.create(
             _token,          // Token we are selling
             initialOffer,    // Initial offer of tokens
             referenceOffer,  // Market reference offer provided by the Oracle
-            _targetAmount,   // How much base tokens are needed
-            _amount          // The maximun amount of token that we can sell
+            _amount,         // The maximun amount of token that we can sell
+            _targetAmount    // How much base tokens are needed
         );
+
+        // Clear approve
+        _token.clearApprove(address(_auction));
 
         // Save Auction ID
         entryToAuction[_entryId] = auctionId;

@@ -6,7 +6,7 @@ const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
 const CollateralDebtPayer = artifacts.require('CollateralDebtPayer');
 
-const { tryCatchRevert, address0x, toBytes32 } = require('../Helper.js');
+const { tryCatchRevert, address0x, toBytes32 } = require('../../../Helper.js');
 const BN = web3.utils.BN;
 const expect = require('chai')
     .use(require('bn-chai')(BN))
