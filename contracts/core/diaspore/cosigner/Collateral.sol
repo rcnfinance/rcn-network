@@ -307,7 +307,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         bytes32 debtId = entry.debtId;
 
         // Get original collateral ratio
-        bytes32 ogRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
+        bytes32 ogRatio = entry.ratio(_staticDebtInTokens(debtId, _oracleData));
 
         // Send all colleteral to handler
         uint256 lent = entry.amount;
@@ -321,7 +321,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         // Read ratio, should be better than previus one
         // only if the loan wasn’t fully paid
         if (loanManager.getStatus(entry.debtId) != 2) {
-            bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
+            bytes32 afRatio = entry.ratio(_staticDebtInTokens(debtId, _oracleData));
             require(afRatio.gt(ogRatio), "collateral: ratio should increase");
         }
     }
@@ -553,6 +553,17 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         return _loanManager
             .oracle(debtId)
             .read(_data)
+            .toTokens(_loanManager.getClosingObligation(debtId));
+    }
+
+    function _staticDebtInTokens(
+        bytes32 debtId,
+        bytes memory _data
+    ) internal returns (uint256) {
+        LoanManager _loanManager = loanManager;
+        return _loanManager
+            .oracle(debtId)
+            .readStatic(_data)
             .toTokens(_loanManager.getClosingObligation(debtId));
     }
 
