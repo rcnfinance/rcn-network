@@ -29,7 +29,7 @@ contract CollateralDebtPayer is CollateralHandler {
         uint256 _entryId,
         uint256 _total,
         bytes calldata _data
-    ) external {
+    ) external returns (uint256 surplus) {
         (
             TokenConverter converter,
             uint256 amount,
@@ -44,14 +44,6 @@ contract CollateralDebtPayer is CollateralHandler {
         // Read debt info
         DebtEngine debtEngine = collateral.loanManager().debtEngine();
         IERC20 base = debtEngine.token();
-
-        // Deposit back extra collateral
-        uint256 surplus = _total - amount;
-
-        token.approve(address(collateral), surplus);
-        collateral.deposit(_entryId, surplus);
-
-        token.clearApprove(address(collateral));
 
         // Convert amount before payment
         uint256 paying;
@@ -84,5 +76,9 @@ contract CollateralDebtPayer is CollateralHandler {
             //     "collateral-debt-payer: error sending base surplus"
             // );
         }
+
+        // Approve surplus return to collateral
+        surplus = _total - amount;
+        token.approve(address(collateral), surplus);
     }
 }

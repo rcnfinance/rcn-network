@@ -6,5 +6,5 @@ interface CollateralHandler {
         uint256 _entryId,
         uint256 _amount,
         bytes calldata _data
-    ) external;
+    ) external returns (uint256 surplus);
 }

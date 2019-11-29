@@ -8,6 +8,7 @@ import "../LoanManager.sol";
 
 import "./interfaces/CollateralAuctionCallback.sol";
 import "./interfaces/CollateralHandler.sol";
+import "../../../commons/ReentrancyGuard.sol";
 import "../../../commons/Fixed223x32.sol";
 import "../../../commons/Ownable.sol";
 import "../../../commons/ERC721Base.sol";
@@ -19,7 +20,7 @@ import "./CollateralAuction.sol";
 import "./CollateralLib.sol";
 
 
-contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback {
+contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, CollateralAuctionCallback {
     using CollateralLib for CollateralLib.Entry;
     using OracleUtils for OracleUtils.Sample;
     using OracleUtils for RateOracle;
@@ -103,14 +104,17 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
     mapping(uint256 => uint256) public entryToAuction;
     mapping(uint256 => uint256) public auctionToEntry;
 
-    constructor(LoanManager _loanManager) public ERC721Base("RCN Collateral Cosigner", "RCC") {
+    constructor(
+        LoanManager _loanManager,
+        CollateralAuction _auction
+    ) public ERC721Base("RCN Collateral Cosigner", "RCC") {
         require(address(_loanManager) != address(0), "Error loading loan manager");
         loanManager = _loanManager;
         loanManagerToken = loanManager.token();
         // Invalid entry of index 0
         entries.length ++;
         // Create auction contract
-        auction = new CollateralAuction(loanManagerToken);
+        auction = _auction;
     }
 
     function getEntriesLength() external view returns (uint256) {
@@ -146,7 +150,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         uint256 _amount,
         uint96 _liquidationRatio,
         uint96 _balanceRatio
-    ) external returns (uint256 entryId) {
+    ) external nonReentrant() returns (uint256 entryId) {
         // Check status of loan, should be open
         require(loanManager.getStatus(_debtId) == 0, "Debt request should be open");
 
@@ -191,7 +195,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
     function deposit(
         uint256 _entryId,
         uint256 _amount
-    ) external {
+    ) external nonReentrant() {
         require(!inAuction(_entryId), "collateral: can deposit during auction");
 
         // Load entry from storage
@@ -220,7 +224,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         address _to,
         uint256 _amount,
         bytes calldata _oracleData
-    ) external onlyAuthorized(_entryId) {
+    ) external nonReentrant() onlyAuthorized(_entryId) {
         require(!inAuction(_entryId), "collateral: can withdraw during auction");
 
         // Load entry from storage
@@ -263,7 +267,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
     */
     function redeem(
         uint256 _entryId
-    ) external onlyAuthorized(_entryId) returns(uint256) {
+    ) external nonReentrant() onlyAuthorized(_entryId) returns(uint256) {
         return _redeem(_entryId, msg.sender, false);
     }
 
@@ -282,7 +286,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
     function emergencyRedeem(
         uint256 _entryId,
         address _to
-    ) external onlyOwner returns(uint256) {
+    ) external nonReentrant() onlyOwner returns(uint256) {
         return _redeem(_entryId, _to, true);
     }
 
@@ -301,7 +305,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         CollateralHandler _handler,
         bytes calldata _data,
         bytes calldata _oracleData
-    ) external onlyAuthorized(_entryId) {
+    ) external nonReentrant() onlyAuthorized(_entryId) {
         // Read entry
         CollateralLib.Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
@@ -311,12 +315,14 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
 
         // Send all colleteral to handler
         uint256 lent = entry.amount;
-        entry.token.safeTransfer(address(_handler), lent);
         entry.amount = 0;
+        entry.token.safeTransfer(address(_handler), lent);
 
         // Call handler
         // replace with interface
-        _handler.handle(_entryId, lent, _data);
+        uint256 surplus = _handler.handle(_entryId, lent, _data);
+        entry.token.safeTransferFrom(address(_handler), address(this), surplus);
+        entry.amount = surplus;
 
         // Read ratio, should be better than previus one
         // only if the loan wasn’t fully paid
@@ -331,7 +337,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         uint256 _leftover,
         uint256 _received,
         bytes calldata _data
-    ) external {
+    ) external nonReentrant() {
         require(msg.sender == address(auction), "collateral: caller should be the auctioner");
         uint256 entryId = auctionToEntry[_id];
 
@@ -379,7 +385,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
 
         @param _url New url
     */
-    function setUrl(string calldata _url) external onlyOwner {
+    function setUrl(string calldata _url) external nonReentrant() onlyOwner {
         iurl = _url;
         emit SetUrl(_url);
     }
@@ -421,7 +427,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         uint256 _debtId,
         bytes memory _data,
         bytes memory _oracleData
-    ) public returns (bool) {
+    ) public nonReentrant() returns (bool) {
         bytes32 debtId = bytes32(_debtId);
 
         // Validate call from loan manager
@@ -470,7 +476,7 @@ contract Collateral is Ownable, Cosigner, ERC721Base, CollateralAuctionCallback 
         address,
         uint256 _debtId,
         bytes memory _oracleData
-    ) public returns (bool) {
+    ) public nonReentrant() returns (bool) {
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = debtToEntry[debtId];
         require(entryId != 0, "The loan dont lent");
