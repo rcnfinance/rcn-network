@@ -59,9 +59,9 @@ library CollateralLib {
     */
     function toBase(
         Entry memory _col
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         return _col.oracle
-            .read()
+            .readStatic()
             .toTokens(_col.amount);
     }
 
@@ -74,7 +74,7 @@ library CollateralLib {
     function ratio(
         Entry memory _col,
         uint256 _debt
-    ) internal returns (bytes32) {
+    ) internal view returns (bytes32) {
         bytes32 dividend = Fixed223x32.from(_col.toBase());
         bytes32 divisor = Fixed223x32.from(_debt);
 
@@ -90,9 +90,9 @@ library CollateralLib {
     function balance(
         Entry memory _col,
         uint256 _debt
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         // Read oracle
-        OracleUtils.Sample memory sample = _col.oracle.read();
+        OracleUtils.Sample memory sample = _col.oracle.readStatic();
 
         // Create fixed point variables
         bytes32 liquidationRatio = Fixed223x32.raw(_col.liquidationRatio);
@@ -128,8 +128,8 @@ library CollateralLib {
     function canWithdraw(
         Entry memory _col,
         uint256 _debt
-    ) internal returns (uint256) {
-        OracleUtils.Sample memory sample = _col.oracle.read();
+    ) internal view returns (uint256) {
+        OracleUtils.Sample memory sample = _col.oracle.readStatic();
 
         // Load values and turn it into fixed point
         bytes32 base = Fixed223x32.from(sample.toTokens(_col.amount));
@@ -154,7 +154,7 @@ library CollateralLib {
     function inLiquidation(
         Entry memory _col,
         uint256 _debt
-    ) internal returns (bool) {
+    ) internal view returns (bool) {
         if (_debt == 0) {
             return false;
         }
