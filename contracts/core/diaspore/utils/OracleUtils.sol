@@ -39,7 +39,7 @@ library OracleUtils {
     }
 
     /*
-        @dev Will fail if the oracle change the contract state
+        @dev Will fail if the oracle changes the contract state
     */
     function readStatic(
         RateOracle _oracle,
@@ -59,7 +59,7 @@ library OracleUtils {
                 )
             );
 
-            require(success, "readSample fails on readStatic");
+            require(success, "oracle-utils: error static reading oracle");
 
             (
                 s.tokens,
@@ -70,14 +70,13 @@ library OracleUtils {
 
     /*
         @dev Will fail with oracles that required oracle data and
-            if the oracle change the contract state
+            if the oracle changes the contract state
     */
     function readStatic(
         RateOracle _oracle
     ) internal view returns (Sample memory s) {
         s = _oracle.readStatic("");
     }
-
 
     function encode(
         uint256 _tokens,
