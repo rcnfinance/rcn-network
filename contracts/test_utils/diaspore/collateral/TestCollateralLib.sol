@@ -29,23 +29,23 @@ contract TestCollateralLib {
         );
     }
 
-    function toBase() external returns (uint256) {
+    function toBase() external view returns (uint256) {
         return entry.toBase();
     }
 
-    function ratio(uint256 _debt) external returns (uint256) {
+    function ratio(uint256 _debt) external view returns (uint256) {
         return uint256(entry.ratio(_debt));
     }
 
-    function balance(uint256 _debt) external returns (uint256) {
+    function balance(uint256 _debt) external view returns (uint256) {
         return entry.balance(_debt);
     }
 
-    function canWithdraw(uint256 _debt) external returns (uint256) {
+    function canWithdraw(uint256 _debt) external view returns (uint256) {
         return entry.canWithdraw(_debt);
     }
 
-    function inLiquidation(uint256 _debt) external returns (bool) {
+    function inLiquidation(uint256 _debt) external view returns (bool) {
         return entry.inLiquidation(_debt);
     }
 }
