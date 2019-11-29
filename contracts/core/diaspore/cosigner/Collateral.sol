@@ -346,7 +346,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Delete auction entry
         delete entryToAuction[entryId];
-        delete auctionToEntry[entryId];
+        delete auctionToEntry[_id];
 
         // Use received to pay loan
         (, uint256 paidTokens) = loanManager.safePayToken(
