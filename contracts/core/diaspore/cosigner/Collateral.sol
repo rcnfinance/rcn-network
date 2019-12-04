@@ -55,11 +55,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 indexed _entryId
     );
 
-    event TriggerAuction(
-        uint256 indexed _entryId,
-        uint256 _reason
-    );
-
     event StartedAuction(
         uint256 indexed _entryId,
         uint256 _required,
