@@ -1087,20 +1087,14 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             const entryId = b(1);
 
             // Redeem entry
-            await collateral.redeem(entryId, { from: user });
+            await collateral.withdraw(entryId, user, b(2500), [], { from: user });
 
             expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(0));
             expect(await rcn.balanceOf(user)).to.eq.BN(b(2500));
 
             // Inspect entry
             const entry = await collateral.entries(entryId);
-            expect(entry.oracle).to.be.equal(address0x);
-            expect(entry.token).to.be.equal(address0x);
             expect(entry.amount).to.eq.BN(b(0));
-            expect(entry.liquidationRatio).to.eq.BN(b(0));
-            expect(entry.balanceRatio).to.eq.BN(b(0));
-            expect(entry.burnFee).to.eq.BN(b(0));
-            expect(entry.rewardFee).to.eq.BN(b(0));
         });
         it('Should redeem a paid loan', async () => {
             // Request a loan
@@ -1171,20 +1165,14 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             );
 
             // Redeem entry
-            await collateral.redeem(entryId, { from: user });
+            await collateral.withdraw(entryId, user, b(2500), [], { from: user });
 
             expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(0));
             expect(await rcn.balanceOf(user)).to.eq.BN(b(2500));
 
             // Inspect entry
             const entry = await collateral.entries(entryId);
-            expect(entry.oracle).to.be.equal(address0x);
-            expect(entry.token).to.be.equal(address0x);
             expect(entry.amount).to.eq.BN(b(0));
-            expect(entry.liquidationRatio).to.eq.BN(b(0));
-            expect(entry.balanceRatio).to.eq.BN(b(0));
-            expect(entry.burnFee).to.eq.BN(b(0));
-            expect(entry.rewardFee).to.eq.BN(b(0));
         });
         it('Should emergency redeem a loan with an error', async () => {
             // Request a loan
@@ -1245,7 +1233,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await model.setErrorFlag(debtId, b(3), { from: owner });
 
             // Redeem entry
-            await collateral.emergencyRedeem(entryId, anotherUser, { from: owner });
+            await collateral.redeem(entryId, anotherUser, { from: owner });
 
             expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(0));
             expect(await rcn.balanceOf(anotherUser)).to.eq.BN(b(2500));
@@ -1319,8 +1307,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Redeem entry
             await tryCatchRevert(
-                collateral.redeem(entryId, { from: user }),
-                'Debt not request or paid'
+                collateral.withdraw(entryId, user, b(2500), [], { from: user }),
+                'Dont have collateral to withdraw'
             );
         });
         it('Should fail emergency redeem a loan if status is not error', async () => {
@@ -1380,8 +1368,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Redeem entry
             await tryCatchRevert(
-                collateral.emergencyRedeem(entryId, anotherUser, { from: owner }),
-                'Debt is not in error'
+                collateral.redeem(entryId, anotherUser, { from: owner }),
+                'collateral: debt should be have status error'
             );
         });
         it('Should fail emergency redeem a loan if caller is not the owner', async () => {
@@ -1444,7 +1432,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Redeem entry
             await tryCatchRevert(
-                collateral.emergencyRedeem(entryId, anotherUser, { from: user }),
+                collateral.redeem(entryId, anotherUser, { from: user }),
                 'The owner should be the sender'
             );
         });
