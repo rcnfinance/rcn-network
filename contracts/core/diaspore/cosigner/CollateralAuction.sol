@@ -4,12 +4,14 @@ import "../../../interfaces/IERC20.sol";
 import "../../../utils/SafeERC20.sol";
 import "../../../utils/SafeMath.sol";
 import "../../../utils/SafeCast.sol";
+import "../../../utils/IsContract.sol";
 import "../../../commons/Ownable.sol";
 import "../../../commons/ReentrancyGuard.sol";
 import "./interfaces/CollateralAuctionCallback.sol";
 
 
 contract CollateralAuction is ReentrancyGuard, Ownable {
+    using IsContract for address payable;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using SafeCast for uint256;
@@ -87,7 +89,8 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
     function take(
         uint256 _id,
-        bytes calldata _data
+        bytes calldata _data,
+        bool _callback
     ) external nonReentrant() {
         Auction memory auction = auctions[_id];
         require(auction.amount != 0, "auction: does not exists");
@@ -99,12 +102,25 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // Delete auction entry
         delete auctions[_id];
 
+        // Send the auctioned tokens to the sender
+        // this is done first, because the sender may be doing arbitrage
+        // and for that, it needs the tokens that's going to sell
+        require(auction.fromToken.safeTransfer(msg.sender, selling), "auction: error sending tokens");
+
+        // If msg.sender is a contract, we ping it so it can perform any arbitrage
+        // if such arbitrage is neccesary
+        if (_callback) {
+            /* solium-disable-next-line */
+            (bool success, ) = msg.sender.call(abi.encodeWithSignature("onTake()"));
+            require(success, "auction: error during callback onTake()");
+        }
+
         // Swap tokens for base
         // baseToken should have already been transfered during create
         // of the auction, that's trusted because only the owner can create auctions
         require(baseToken.transferFrom(msg.sender, owner, requesting), "auction: error pulling tokens");
         require(auction.fromToken.safeTransfer(owner, auction.limit - selling), "auction: error sending leftover tokens");
-        require(auction.fromToken.safeTransfer(msg.sender, selling), "auction: error sending tokens");
+
 
         // Callback to owner
         CollateralAuctionCallback(owner).auctionClosed(

@@ -177,7 +177,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(50), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(0));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
@@ -231,7 +231,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(50), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(0));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
@@ -285,7 +285,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(50), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(0));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
@@ -339,7 +339,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(50), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(0));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
@@ -393,7 +393,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(25), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(25));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(25));
@@ -447,7 +447,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(1), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(49));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(1));
@@ -501,7 +501,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(25), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(25));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(25));
