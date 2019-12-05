@@ -42,7 +42,7 @@ function rand (min = 0, max = 2 ** 53) {
 const WEI = bn(10).pow(bn(18));
 const BASE = bn(10000);
 
-contract('Test Collateral cosigner Diaspore', function (accounts) {
+contract.skip('Test Collateral cosigner Diaspore', function (accounts) {
     const owner = accounts[1];
     const creator = accounts[2];
     const borrower = accounts[3];
