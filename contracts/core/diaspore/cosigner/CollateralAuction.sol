@@ -5,10 +5,11 @@ import "../../../utils/SafeERC20.sol";
 import "../../../utils/SafeMath.sol";
 import "../../../utils/SafeCast.sol";
 import "../../../commons/Ownable.sol";
+import "../../../commons/ReentrancyGuard.sol";
 import "./interfaces/CollateralAuctionCallback.sol";
 
 
-contract CollateralAuction is Ownable {
+contract CollateralAuction is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using SafeCast for uint256;
@@ -54,7 +55,7 @@ contract CollateralAuction is Ownable {
         uint256 _ref,
         uint256 _limit,
         uint256 _amount
-    ) external returns (uint256 id) {
+    ) external nonReentrant() returns (uint256 id) {
         require(_start < _ref, "auction: offer should be below refence offer");
         require(_ref < _limit, "auction: reference offer should be below limit");
 
@@ -87,7 +88,7 @@ contract CollateralAuction is Ownable {
     function take(
         uint256 _id,
         bytes calldata _data
-    ) external {
+    ) external nonReentrant() {
         Auction memory auction = auctions[_id];
         require(auction.amount != 0, "auction: does not exists");
 
