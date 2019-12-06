@@ -15,6 +15,14 @@ module.exports.bn = (number) => {
     return web3.utils.toBN(number);
 }
 
+module.exports.random32 = () => {
+  return this.bn(web3.utils.randomHex(32));
+};
+
+module.exports.random32bn = () => {
+  return this.bn(this.random32());
+};
+
 module.exports.arrayToBytesOfBytes32 = (array) => {
     let bytes = '0x';
     for (let i = 0; i < array.length; i++) {
