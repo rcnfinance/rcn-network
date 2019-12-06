@@ -390,7 +390,7 @@ contract('NanoLoanEngine', function (accounts) {
 
         const r = `0x${approveSignature.slice(0, 64)}`;
         const s = `0x${approveSignature.slice(64, 128)}`;
-        const v = web3.utils.toDecimal(approveSignature.slice(128, 130)) + 27;
+        const v = web3.utils.toDecimal('0x' + approveSignature.slice(128, 130)) + 27;
 
         await engine.registerApprove(loanIdIdentifier, v, r, s);
         assert.isTrue(await engine.isApproved(loanId));
@@ -409,7 +409,7 @@ contract('NanoLoanEngine', function (accounts) {
 
         const r = `0x${approveSignature.slice(0, 64)}`;
         const s = `0x${approveSignature.slice(64, 128)}`;
-        const v = web3.utils.toDecimal(approveSignature.slice(128, 130)) + 27;
+        const v = web3.utils.toDecimal('0x' + approveSignature.slice(128, 130)) + 27;
 
         await Helper.tryCatchRevert(() => engine.registerApprove(loanIdIdentifier, v, r, s), '');
         assert.isFalse(await engine.isApproved(loanId));

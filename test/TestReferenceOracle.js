@@ -38,7 +38,7 @@ contract('ReferenceOracle', function (accounts) {
         const approveSignature = (await web3.eth.sign(sign, signer)).slice(2);
         const r = '0x' + approveSignature.slice(0, 64);
         const s = '0x' + approveSignature.slice(64, 128);
-        const v = web3.utils.toDecimal(approveSignature.slice(128, 130)) + 27;
+        const v = web3.utils.toDecimal('0x' + approveSignature.slice(128, 130)) + 27;
         return [v, r, s];
     }
 
