@@ -598,9 +598,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         entryToAuction[_entryId] = auctionId;
         auctionToEntry[auctionId] = _entryId;
 
-        // Send tokens to auction contract
-        require(_token.safeTransfer(address(_auction), _amount), "collatereal: error sending token to auction");
-
         emit StartedAuction(
             _entryId,
             initialOffer,
