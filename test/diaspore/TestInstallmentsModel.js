@@ -27,7 +27,7 @@ contract('Installments model test', function (accounts) {
 
     async function ping () {
         try {
-            await model.transferOwnership(await model.owner());
+            await model.transferOwnership(await model.owner(), { from: owner });
         } catch (ignored) {
             console.log(ignored);
         }
