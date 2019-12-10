@@ -1,5 +1,9 @@
-const OwnableBasalt = artifacts.require('./basalt/utils/OwnableBasalt.sol');
-const Helper = require('../Helper.js');
+const OwnableBasalt = artifacts.require('OwnableBasalt');
+
+const {
+    address0x,
+    tryCatchRevert,
+} = require('../Helper.js');
 
 contract('OwnableBasalt', function (accounts) {
     const owner = accounts[1];
@@ -12,13 +16,12 @@ contract('OwnableBasalt', function (accounts) {
 
         assert.equal(await ownable.owner(), secondOwner);
     });
-
     it('Should revert if try to transfer to 0x0', async function () {
         const ownable = await OwnableBasalt.new({ from: owner });
 
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => ownable.transferTo(
-                Helper.address0x,
+                address0x,
                 { from: owner }
             ),
             '0x0 Is not a valid owner'
@@ -26,11 +29,10 @@ contract('OwnableBasalt', function (accounts) {
 
         assert.equal(await ownable.owner(), owner);
     });
-
     it('Should revert if another account tries to transfer', async function () {
         const ownable = await OwnableBasalt.new({ from: owner });
 
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => ownable.transferTo(
                 secondOwner,
                 { from: secondOwner }
@@ -38,7 +40,7 @@ contract('OwnableBasalt', function (accounts) {
             'The owner should be the sender'
         );
 
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => ownable.transferTo(
                 thirdOwner,
                 { from: secondOwner }
@@ -48,7 +50,6 @@ contract('OwnableBasalt', function (accounts) {
 
         assert.equal(await ownable.owner(), owner);
     });
-
     it('Should be creator with caller as owner', async function () {
         const ownable = await OwnableBasalt.new({ from: accounts[7] });
         assert.equal(await ownable.owner(), accounts[7]);

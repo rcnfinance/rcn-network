@@ -1,17 +1,19 @@
-const TestToken = artifacts.require('./utils/test/TestToken.sol');
-const NanoLoanEngine = artifacts.require('./basalt/NanoLoanEngine.sol');
-const TestOracle = artifacts.require('./utils/test/TestOracle.sol');
-const TestCosigner = artifacts.require('./utils/test/TestCosigner.sol');
+const TestToken = artifacts.require('TestToken');
+const NanoLoanEngine = artifacts.require('NanoLoanEngine');
+const TestOracle = artifacts.require('TestOracle');
+const TestCosigner = artifacts.require('TestCosigner');
 
-const Helper = require('./Helper.js');
-const BN = web3.utils.BN;
-const expect = require('chai')
-    .use(require('bn-chai')(BN))
-    .expect;
-
-function bn (number) {
-    return new BN(number);
-}
+const {
+    expect,
+    bn,
+    address0x,
+    bytes320x,
+    tryCatchRevert,
+    toInterestRate,
+    increaseTime,
+    buyTokens,
+    assertThrow,
+} = require('./Helper.js');
 
 contract('NanoLoanEngine', function (accounts) {
     let rcn;
@@ -48,9 +50,9 @@ contract('NanoLoanEngine', function (accounts) {
     }
 
     async function lendLoan (rcn, engine, account, index, max) {
-        await Helper.buyTokens(rcn, max, account);
+        await buyTokens(rcn, max, account);
         await rcn.approve(engine.address, max, { from: account });
-        await engine.lend(index, [], Helper.address0x, [], { from: account });
+        await engine.lend(index, [], address0x, [], { from: account });
     }
 
     it('Should work as a ERC721 token', async () => {
@@ -58,13 +60,13 @@ contract('NanoLoanEngine', function (accounts) {
         expect(await engine.totalSupply()).to.eq.BN('0', 'Total supply should start at 0');
 
         // Create 5 loans
-        const loanId1 = await createLoan(engine, Helper.address0x, accounts[0], Helper.bytes320x, 4000, Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId1 = await createLoan(engine, address0x, accounts[0], bytes320x, 4000, toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], 'Loan 1');
-        const loanId2 = await createLoan(engine, Helper.address0x, accounts[0], Helper.bytes320x, 4000, Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId2 = await createLoan(engine, address0x, accounts[0], bytes320x, 4000, toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], 'Loan 2');
-        const loanId3 = await createLoan(engine, Helper.address0x, accounts[0], Helper.bytes320x, 4000, Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId3 = await createLoan(engine, address0x, accounts[0], bytes320x, 4000, toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], 'Loan 3');
-        const loanId4 = await createLoan(engine, Helper.address0x, accounts[0], Helper.bytes320x, 4000, Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId4 = await createLoan(engine, address0x, accounts[0], bytes320x, 4000, toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], 'Loan 4');
 
         // Total supply should remain 0 until one loan activates
@@ -132,7 +134,7 @@ contract('NanoLoanEngine', function (accounts) {
         await lendLoan(rcn, engine, accounts[5], loanId4, 4000);
 
         // fully pay a loan
-        await Helper.buyTokens(rcn, 8000, accounts[0]);
+        await buyTokens(rcn, 8000, accounts[0]);
         await rcn.approve(engine.address, 8000, { from: accounts[0] });
         await engine.pay(loanId1, 8000, accounts[0], [], { from: accounts[0] });
 
@@ -145,7 +147,7 @@ contract('NanoLoanEngine', function (accounts) {
         expect(allLoans3[0]).to.eq.BN(loanId3, 'Should have loan 3');
 
         // try pull loan witout approval, should fail
-        await Helper.tryCatchRevert(() => engine.takeOwnership(loanId3, { from: accounts[2] }), '');
+        await tryCatchRevert(() => engine.takeOwnership(loanId3, { from: accounts[2] }), '');
 
         // approve transfer for the loan and try again
         await engine.approve(accounts[2], loanId3, { from: accounts[3] });
@@ -158,27 +160,26 @@ contract('NanoLoanEngine', function (accounts) {
         assert.equal(await engine.ownerOf(loanId3), accounts[1]);
 
         // but not in reverse
-        await Helper.tryCatchRevert(() => engine.takeOwnership(loanId3, { from: accounts[2] }), '');
+        await tryCatchRevert(() => engine.takeOwnership(loanId3, { from: accounts[2] }), '');
         assert.equal(await engine.ownerOf(loanId3), accounts[1]);
 
         // and we should be able to disable it
         await engine.transferFrom(accounts[1], accounts[2], loanId3, { from: accounts[1] });
         assert.equal(await engine.ownerOf(loanId3), accounts[2]);
         await engine.setApprovalForAll(accounts[1], false, { from: accounts[2] });
-        await Helper.tryCatchRevert(() => engine.takeOwnership(loanId3, { from: accounts[1] }), '');
+        await tryCatchRevert(() => engine.takeOwnership(loanId3, { from: accounts[1] }), '');
         assert.equal(await engine.ownerOf(loanId3), accounts[2]);
     });
-
     it('It should fail creating two identical loans', async () => {
         // create a new loan
         await createLoan(
             engine,
-            Helper.address0x,
+            address0x,
             accounts[1],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('2'),
-            Helper.toInterestRate(27),
-            Helper.toInterestRate(40),
+            toInterestRate(27),
+            toInterestRate(40),
             bn('86400'),
             '0',
             bn('10').pow(bn('21')),
@@ -189,12 +190,12 @@ contract('NanoLoanEngine', function (accounts) {
         // create one a little bit different
         await createLoan(
             engine,
-            Helper.address0x,
+            address0x,
             accounts[1],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('2'),
-            Helper.toInterestRate(27),
-            Helper.toInterestRate(40),
+            toInterestRate(27),
+            toInterestRate(40),
             bn('86400'),
             '0',
             bn('10').pow(bn('21')),
@@ -203,15 +204,15 @@ contract('NanoLoanEngine', function (accounts) {
         );
 
         // create a new identical
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => createLoan(
                 engine,
-                Helper.address0x,
+                address0x,
                 accounts[1],
-                Helper.bytes320x,
+                bytes320x,
                 web3.utils.toWei('2'),
-                Helper.toInterestRate(27),
-                Helper.toInterestRate(40),
+                toInterestRate(27),
+                toInterestRate(40),
                 bn('86400'),
                 0,
                 bn('10').pow(bn('21')),
@@ -221,7 +222,6 @@ contract('NanoLoanEngine', function (accounts) {
             ''
         );
     });
-
     it('Should allow reference loans with their identifier', async () => {
         const sampleOracle = accounts[2];
         const sampleCurrency = '0x4d414e4100000000000000000000000000000000000000000000000000000000';
@@ -233,8 +233,8 @@ contract('NanoLoanEngine', function (accounts) {
             accounts[0],
             sampleCurrency,
             web3.utils.toWei('2'),
-            Helper.toInterestRate(27),
-            Helper.toInterestRate(40),
+            toInterestRate(27),
+            toInterestRate(40),
             bn('86400'),
             0,
             bn('10').pow(bn('21')),
@@ -247,8 +247,8 @@ contract('NanoLoanEngine', function (accounts) {
             accounts[1],
             sampleCurrency,
             web3.utils.toWei('2'),
-            Helper.toInterestRate(27),
-            Helper.toInterestRate(40),
+            toInterestRate(27),
+            toInterestRate(40),
             bn('86400'),
             0,
             bn('10').pow(bn('21')),
@@ -262,12 +262,12 @@ contract('NanoLoanEngine', function (accounts) {
         // create one a little bit different
         const loanId2 = await createLoan(
             engine,
-            Helper.address0x,
+            address0x,
             accounts[3],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('4'),
-            Helper.toInterestRate(17),
-            Helper.toInterestRate(46),
+            toInterestRate(17),
+            toInterestRate(46),
             bn('86405'),
             bn('2'),
             bn('11').mul(bn('10').pow(bn('20'))),
@@ -276,13 +276,13 @@ contract('NanoLoanEngine', function (accounts) {
         );
 
         const loanId2Identifier = await engine.buildIdentifier(
-            Helper.address0x,
+            address0x,
             accounts[3],
             accounts[3],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('4'),
-            Helper.toInterestRate(17),
-            Helper.toInterestRate(46),
+            toInterestRate(17),
+            toInterestRate(46),
             bn('86405'),
             2,
             bn('11').mul(bn('10').pow(bn('20'))),
@@ -291,16 +291,15 @@ contract('NanoLoanEngine', function (accounts) {
         expect(await engine.identifierToIndex(loanId2Identifier)).to.eq.BN((await engine.getTotalLoans()).sub(bn('1')));
         assert.equal(await engine.getIdentifier(loanId2), loanId2Identifier);
     });
-
     it('Should approve a loan using it\'s identifier', async () => {
         const loanIdIdentifier = await engine.buildIdentifier(
-            Helper.address0x,
+            address0x,
             accounts[3],
             accounts[4],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('4'),
-            Helper.toInterestRate(17),
-            Helper.toInterestRate(46),
+            toInterestRate(17),
+            toInterestRate(46),
             bn('86405'),
             '2',
             bn('11').mul(bn('10').pow(bn('20'))),
@@ -309,12 +308,12 @@ contract('NanoLoanEngine', function (accounts) {
 
         const loanId = await createLoan(
             engine,
-            Helper.address0x,
+            address0x,
             accounts[3],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('4'),
-            Helper.toInterestRate(17),
-            Helper.toInterestRate(46),
+            toInterestRate(17),
+            toInterestRate(46),
             bn('86405'),
             2,
             bn('11').mul(bn('10').pow(bn('20'))),
@@ -329,16 +328,15 @@ contract('NanoLoanEngine', function (accounts) {
         expect(await engine.getIdentifier(loanId)).to.eq.BN(loanIdIdentifier);
         assert.isTrue(await engine.isApproved(loanId));
     });
-
     it('Should destroy a loan using it\'s identifier', async () => {
         const loanIdIdentifier = await engine.buildIdentifier(
-            Helper.address0x,
+            address0x,
             accounts[3],
             accounts[4],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('4'),
-            Helper.toInterestRate(17),
-            Helper.toInterestRate(46),
+            toInterestRate(17),
+            toInterestRate(46),
             bn('86405'),
             2,
             bn('11').mul(bn('10').pow(bn('20'))),
@@ -347,12 +345,12 @@ contract('NanoLoanEngine', function (accounts) {
 
         const loanId = await createLoan(
             engine,
-            Helper.address0x,
+            address0x,
             accounts[3],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('4'),
-            Helper.toInterestRate(17),
-            Helper.toInterestRate(46),
+            toInterestRate(17),
+            toInterestRate(46),
             bn('86405'),
             2,
             bn('11').mul(bn('10').pow(bn('20'))),
@@ -365,23 +363,22 @@ contract('NanoLoanEngine', function (accounts) {
         expect(await engine.getIdentifier(loanId)).to.eq.BN(loanIdIdentifier);
         expect(await engine.getStatus(loanId)).to.eq.BN('3');
     });
-
     it('Should register an approve', async () => {
         const loanIdIdentifier = await engine.buildIdentifier(
-            Helper.address0x,
+            address0x,
             accounts[3],
             accounts[4],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('4'),
-            Helper.toInterestRate(17),
-            Helper.toInterestRate(46),
+            toInterestRate(17),
+            toInterestRate(46),
             bn('86405'),
             2,
             bn('11').mul(bn('10').pow(bn('20'))),
             'Test3'
         );
 
-        const loanId = await createLoan(engine, Helper.address0x, accounts[3], Helper.bytes320x, web3.utils.toWei('4'), Helper.toInterestRate(17), Helper.toInterestRate(46),
+        const loanId = await createLoan(engine, address0x, accounts[3], bytes320x, web3.utils.toWei('4'), toInterestRate(17), toInterestRate(46),
             bn('86405'), 2, bn('11').mul(bn('10').pow(bn('20'))), accounts[4], 'Test3');
 
         assert.isFalse(await engine.isApproved(loanId));
@@ -395,12 +392,11 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.registerApprove(loanIdIdentifier, v, r, s);
         assert.isTrue(await engine.isApproved(loanId));
     });
-
     it('Should reject an invalid approve', async () => {
-        const loanIdIdentifier = await engine.buildIdentifier(Helper.address0x, accounts[3], accounts[4], Helper.bytes320x, web3.utils.toWei('4'),
-            Helper.toInterestRate(17), Helper.toInterestRate(46), bn('86405'), 2, bn('11').mul(bn('10').pow(bn('20'))), 'Test4');
+        const loanIdIdentifier = await engine.buildIdentifier(address0x, accounts[3], accounts[4], bytes320x, web3.utils.toWei('4'),
+            toInterestRate(17), toInterestRate(46), bn('86405'), 2, bn('11').mul(bn('10').pow(bn('20'))), 'Test4');
 
-        const loanId = await createLoan(engine, Helper.address0x, accounts[3], Helper.bytes320x, web3.utils.toWei('4'), Helper.toInterestRate(17), Helper.toInterestRate(46),
+        const loanId = await createLoan(engine, address0x, accounts[3], bytes320x, web3.utils.toWei('4'), toInterestRate(17), toInterestRate(46),
             bn('86405'), 2, bn('11').mul(bn('10').pow(bn('20'))), accounts[4], 'Test4');
 
         assert.isFalse(await engine.isApproved(loanId));
@@ -411,13 +407,12 @@ contract('NanoLoanEngine', function (accounts) {
         const s = `0x${approveSignature.slice(64, 128)}`;
         const v = web3.utils.toDecimal('0x' + approveSignature.slice(128, 130)) + 27;
 
-        await Helper.tryCatchRevert(() => engine.registerApprove(loanIdIdentifier, v, r, s), '');
+        await tryCatchRevert(() => engine.registerApprove(loanIdIdentifier, v, r, s), '');
         assert.isFalse(await engine.isApproved(loanId));
     });
-
     it('Lend should fail if loan not approved', async () => {
         // create a new loan
-        const loanId = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '23234');
 
         // check that the loan is not approved
@@ -425,22 +420,21 @@ contract('NanoLoanEngine', function (accounts) {
         assert.isFalse(isApproved, 'Should not be approved');
 
         // buy RCN and approve the token transfer
-        await Helper.buyTokens(rcn, web3.utils.toWei('20'), accounts[2]);
+        await buyTokens(rcn, web3.utils.toWei('20'), accounts[2]);
         await rcn.approve(engine.address, web3.utils.toWei('20'), { from: accounts[2] });
 
         // try to lend and expect an exception
-        await Helper.tryCatchRevert(() => engine.lend(loanId, [], Helper.address0x, [], { from: accounts[2] }), '');
+        await tryCatchRevert(() => engine.lend(loanId, [], address0x, [], { from: accounts[2] }), '');
 
         // check that the status didn't change
         expect(await engine.getStatus(loanId)).to.eq.BN('0', 'Status should be initial');
     });
-
     it('Should handle a loan with an oracle', async () => {
         const ethCurrency = '0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861';
 
         // create a new loan
-        const loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.utils.toWei('1'), Helper.toInterestRate(27),
-            Helper.toInterestRate(40), bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '2312321');
+        const loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.utils.toWei('1'), toInterestRate(27),
+            toInterestRate(40), bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '2312321');
 
         // the borrower should approve the loan
         await engine.approveLoan(loanId, { from: accounts[1] });
@@ -453,11 +447,11 @@ contract('NanoLoanEngine', function (accounts) {
         const dummyData = await oracle.dummyDataBytes1();
 
         // buy RCN and approve the token transfer
-        await Helper.buyTokens(rcn, web3.utils.toWei('7000'), accounts[2]);
+        await buyTokens(rcn, web3.utils.toWei('7000'), accounts[2]);
         await rcn.approve(engine.address, web3.utils.toWei('7000'), { from: accounts[2] });
 
         // execute the lend
-        await engine.lend(loanId, dummyData, Helper.address0x, [], { from: accounts[2] });
+        await engine.lend(loanId, dummyData, address0x, [], { from: accounts[2] });
 
         // check the lender of the loan
         const loanOwner = await engine.ownerOf(loanId);
@@ -477,20 +471,19 @@ contract('NanoLoanEngine', function (accounts) {
         expect(await engine.getLenderBalance(loanId)).to.eq.BN(bn(web3.utils.toWei('1')).div(bn('2')).mul(bn('6000')), 'The lender should have received 3000 RCN');
 
         // pay the total of the loan
-        await Helper.buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
+        await buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
         await rcn.approve(engine.address, web3.utils.toWei('5000'), { from: accounts[1] });
         await engine.pay(loanId, web3.utils.toWei('1'), accounts[1], dummyData, { from: accounts[1] });
 
         // check the status of the loan, should be paid
         expect(await engine.getStatus(loanId)).to.eq.BN('2', 'Status should be paid');
     });
-
     it('Should handle a loan with an oracle if RCN is more expensive than ETH', async () => {
         const ethCurrency = '0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861';
 
         // create a new loan
-        const loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.utils.toWei('1'), Helper.toInterestRate(27),
-            Helper.toInterestRate(40), bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '2131321');
+        const loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.utils.toWei('1'), toInterestRate(27),
+            toInterestRate(40), bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '2131321');
 
         // the borrower should approve the loan
         await engine.approveLoan(loanId, { from: accounts[1] });
@@ -503,12 +496,12 @@ contract('NanoLoanEngine', function (accounts) {
         const dummyData = await oracle.dummyDataBytes2();
 
         // buy RCN and approve the token transfer
-        await Helper.buyTokens(rcn, web3.utils.toWei('7000'), accounts[2]);
+        await buyTokens(rcn, web3.utils.toWei('7000'), accounts[2]);
         await rcn.approve(engine.address, web3.utils.toWei('7000'), { from: accounts[2] });
 
         await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[1]), { from: accounts[1] });
         // execute the lend
-        await engine.lend(loanId, dummyData, Helper.address0x, [], { from: accounts[2] });
+        await engine.lend(loanId, dummyData, address0x, [], { from: accounts[2] });
 
         // check the lender of the loan
         const loanOwner = await engine.ownerOf(loanId);
@@ -529,20 +522,19 @@ contract('NanoLoanEngine', function (accounts) {
         expect(await engine.getLenderBalance(loanId)).to.eq.BN(prevLenderBalance.add(bn(web3.utils.toWei('0.25'))), 'The lender should have received 0.25 RCN');
 
         // pay the total of the loan
-        await Helper.buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
+        await buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
         await rcn.approve(engine.address, web3.utils.toWei('5000'), { from: accounts[1] });
         await engine.pay(loanId, web3.utils.toWei('1'), accounts[1], dummyData, { from: accounts[1] });
 
         // check the status of the loan, should be paid
         expect(await engine.getStatus(loanId)).to.eq.BN('2', 'Status should be paid');
     });
-
     it('Should handle a loan with an oracle if RCN changes rate', async () => {
         const ethCurrency = '0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861';
 
         // create a new loan
-        const loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.utils.toWei('1'), Helper.toInterestRate(27),
-            Helper.toInterestRate(40), bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '21312');
+        const loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.utils.toWei('1'), toInterestRate(27),
+            toInterestRate(40), bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '21312');
 
         // the borrower should approve the loan
         await engine.approveLoan(loanId, { from: accounts[1] });
@@ -555,12 +547,12 @@ contract('NanoLoanEngine', function (accounts) {
         let dummyData = await oracle.dummyDataBytes1();
 
         // buy RCN and approve the token transfer
-        await Helper.buyTokens(rcn, web3.utils.toWei('7000'), accounts[2]);
+        await buyTokens(rcn, web3.utils.toWei('7000'), accounts[2]);
         await rcn.approve(engine.address, web3.utils.toWei('7000'), { from: accounts[2] });
 
         await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[1]), { from: accounts[1] });
         // execute the lend
-        await engine.lend(loanId, dummyData, Helper.address0x, [], { from: accounts[2] });
+        await engine.lend(loanId, dummyData, address0x, [], { from: accounts[2] });
 
         // check the lender of the loan
         assert.equal(await engine.ownerOf(loanId), accounts[2], 'The lender should be account 2');
@@ -582,42 +574,40 @@ contract('NanoLoanEngine', function (accounts) {
         expect(await engine.getLenderBalance(loanId)).to.eq.BN(web3.utils.toWei('0.25'), 'The lender should have received 3000 RCN');
 
         // pay the total of the loan
-        await Helper.buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
+        await buyTokens(rcn, web3.utils.toWei('5000'), accounts[1]);
         await rcn.approve(engine.address, web3.utils.toWei('5000'), { from: accounts[1] });
         await engine.pay(loanId, web3.utils.toWei('1'), accounts[1], dummyData, { from: accounts[1] });
 
         // check the status of the loan, should be paid
         expect(await engine.getStatus(loanId)).to.eq.BN('2', 'Status should be paid');
     });
-
     it('Should fail if the oracle has the wrong data', async () => {
         const ethCurrency = '0x8c6f08340fe41ebd7f0ea4db20676287304e34258458cd9ed2d9fba8f39f6861';
 
         // create a new loan
-        const loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.utils.toWei('1'), Helper.toInterestRate(27),
-            Helper.toInterestRate(40), bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], '');
+        const loanId = await createLoan(engine, oracle.address, accounts[1], ethCurrency, web3.utils.toWei('1'), toInterestRate(27),
+            toInterestRate(40), bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], '');
 
         // buy RCN and approve the token transfer
-        await Helper.buyTokens(rcn, web3.utils.toWei('7000'), accounts[2]);
+        await buyTokens(rcn, web3.utils.toWei('7000'), accounts[2]);
         await rcn.approve(engine.address, web3.utils.toWei('7000'), { from: accounts[2] });
 
         // execute the lend but with a wrong oracle data
-        await Helper.tryCatchRevert(() => engine.lend(loanId, [0x23, 0x12, 0x4a], Helper.address0x, [], { from: accounts[2] }), '');
+        await tryCatchRevert(() => engine.lend(loanId, [0x23, 0x12, 0x4a], address0x, [], { from: accounts[2] }), '');
 
         // check that the status didn't change
         expect(await engine.getStatus(loanId)).to.eq.BN('0', 'Status should be initial');
     });
-
     it('Should not allow the withdraw of lender tokens, but permit a emergency withdrawal', async () => {
         // create a new loan and lend it
         const loanId = await createLoan(
             engine,
-            Helper.address0x,
+            address0x,
             accounts[1],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('2'),
-            Helper.toInterestRate(27),
-            Helper.toInterestRate(40),
+            toInterestRate(27),
+            toInterestRate(40),
             bn('86400'),
             0,
             bn('10').pow(bn('21')),
@@ -627,20 +617,20 @@ contract('NanoLoanEngine', function (accounts) {
         await lendLoan(rcn, engine, accounts[2], loanId, web3.utils.toWei('2'));
 
         // pay the loan
-        await Helper.buyTokens(rcn, web3.utils.toWei('2'), accounts[1]);
+        await buyTokens(rcn, web3.utils.toWei('2'), accounts[1]);
         await rcn.approve(engine.address, web3.utils.toWei('2'), { from: accounts[1] });
         await engine.pay(loanId, web3.utils.toWei('2'), accounts[1], [], { from: accounts[1] });
 
         // try and fail to withdraw tokens as the owner of the engine
-        await Helper.tryCatchRevert(() => engine.withdrawTokens(rcn.address, accounts[3], web3.utils.toWei('1'), { from: accounts[0] }), '');
+        await tryCatchRevert(() => engine.withdrawTokens(rcn.address, accounts[3], web3.utils.toWei('1'), { from: accounts[0] }), '');
 
         // deposit some RCN "by mistake"
-        await Helper.buyTokens(rcn, web3.utils.toWei('1'), accounts[4]);
+        await buyTokens(rcn, web3.utils.toWei('1'), accounts[4]);
         await rcn.transfer(engine.address, web3.utils.toWei('1'), { from: accounts[4] });
 
         // lender trying to withdraw more of his balance should fail
         await rcn.transfer(rcn.address, await rcn.balanceOf(accounts[2]), { from: accounts[2] });
-        await Helper.tryCatchRevert(() => engine.withdrawal(loanId, accounts[2], web3.utils.toWei('2.5'), { from: accounts[2] }), '');
+        await tryCatchRevert(() => engine.withdrawal(loanId, accounts[2], web3.utils.toWei('2.5'), { from: accounts[2] }), '');
         expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0', 'Lender should have no balance');
 
         // test the emergency withdraw function
@@ -652,29 +642,27 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.withdrawal(loanId, accounts[2], 2000, { from: accounts[2] });
         expect(await rcn.balanceOf(accounts[2])).to.eq.BN('2000', 'Lender should have his RCN');
     });
-
     it('Test fix error pay all', async () => {
         // create a loan and paid it
-        const loanId = await createLoan(engine, Helper.address0x, accounts[0], Helper.bytes320x, 4000, Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId = await createLoan(engine, address0x, accounts[0], bytes320x, 4000, toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '');
         await lendLoan(rcn, engine, accounts[1], loanId, 4000);
 
         // fully pay a loan
-        await Helper.buyTokens(rcn, 8000, accounts[0]);
+        await buyTokens(rcn, 8000, accounts[0]);
         await rcn.approve(engine.address, 8000, { from: accounts[0] });
         await engine.pay(loanId, 8000, accounts[0], [], { from: accounts[0] });
     });
-
     it('Should work with a cosigner', async () => {
         // Create loan
-        const loanId = await createLoan(engine, Helper.address0x, accounts[0], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId = await createLoan(engine, address0x, accounts[0], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '');
 
         // get cosigner data
         const cosignerData = await cosigner.data();
 
         // lend with cosigner
-        await Helper.buyTokens(rcn, web3.utils.toWei('3'), accounts[1]);
+        await buyTokens(rcn, web3.utils.toWei('3'), accounts[1]);
         await rcn.approve(engine.address, web3.utils.toWei('3'), { from: accounts[1] });
         await engine.lend(loanId, [], cosigner.address, cosignerData, { from: accounts[1] });
 
@@ -687,14 +675,13 @@ contract('NanoLoanEngine', function (accounts) {
         // the loan should be in lent status
         expect(await engine.getStatus(loanId)).to.eq.BN('1', 'The status should be lent');
     });
-
     it('Should not work with the wrong cosigner data', async () => {
         // Create loan
-        const loanId = await createLoan(engine, Helper.address0x, accounts[0], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const loanId = await createLoan(engine, address0x, accounts[0], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[0], '2');
 
         // cosigner should be empty
-        assert.equal(await engine.getCosigner(loanId), Helper.address0x, 'Cosigner should be empty');
+        assert.equal(await engine.getCosigner(loanId), address0x, 'Cosigner should be empty');
 
         // get cosigner data
         const cosignerData = await cosigner.badData();
@@ -702,24 +689,23 @@ contract('NanoLoanEngine', function (accounts) {
         // lend with cosigner, should fail because of the bad data
         const prevCosignerBalance = await rcn.balanceOf(cosigner.address);
         await rcn.approve(engine.address, web3.utils.toWei('3'), { from: accounts[1] });
-        await Helper.tryCatchRevert(() => engine.lend(loanId, [], cosigner.address, cosignerData, { from: accounts[1] }), '');
+        await tryCatchRevert(() => engine.lend(loanId, [], cosigner.address, cosignerData, { from: accounts[1] }), '');
 
         // cosigner should have 0 RCN
         expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(prevCosignerBalance);
 
         // the cosigner of the loan should not be the test cosigner
-        assert.equal(await engine.getCosigner(loanId), Helper.address0x, 'The cosigner should not be the test cosigner');
+        assert.equal(await engine.getCosigner(loanId), address0x, 'The cosigner should not be the test cosigner');
 
         // the loan should be in initial status
         expect(await engine.getStatus(loanId)).to.eq.BN('0', 'The status should be initial');
     });
-
     it('Should withdraw batch', async function () {
-        const id1 = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const id1 = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], '11');
-        const id2 = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const id2 = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], '22');
-        const id3 = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const id3 = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], '44');
 
         await lendLoan(rcn, engine, accounts[2], id1, web3.utils.toWei('2'));
@@ -727,7 +713,7 @@ contract('NanoLoanEngine', function (accounts) {
         await lendLoan(rcn, engine, accounts[2], id3, web3.utils.toWei('2'));
 
         // pay the loans
-        await Helper.buyTokens(rcn, web3.utils.toWei('20'), accounts[0]);
+        await buyTokens(rcn, web3.utils.toWei('20'), accounts[0]);
         await rcn.increaseApproval(engine.address, web3.utils.toWei('20'));
         await engine.pay(id1, bn(web3.utils.toWei('2')), accounts[1], []);
         await engine.pay(id2, bn(web3.utils.toWei('1')), accounts[1], []);
@@ -744,15 +730,14 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.withdrawalList([id1, id3], accounts[4], { from: accounts[2] });
         expect(await rcn.balanceOf(accounts[4])).to.eq.BN(bn(web3.utils.toWei('35')).div(bn('10')));
     });
-
     it('Should withdraw only from owned loans', async function () {
         const id1 = await createLoan(engine,
-            Helper.address0x,
+            address0x,
             accounts[1],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('2'),
-            Helper.toInterestRate(27),
-            Helper.toInterestRate(40),
+            toInterestRate(27),
+            toInterestRate(40),
             bn('86400'),
             0,
             bn('10').pow(bn('21')),
@@ -760,12 +745,12 @@ contract('NanoLoanEngine', function (accounts) {
             '621'
         );
         const id2 = await createLoan(engine,
-            Helper.address0x,
+            address0x,
             accounts[1],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('2'),
-            Helper.toInterestRate(27),
-            Helper.toInterestRate(40),
+            toInterestRate(27),
+            toInterestRate(40),
             bn('86400'),
             0,
             bn('10').pow(bn('21')),
@@ -773,12 +758,12 @@ contract('NanoLoanEngine', function (accounts) {
             '211'
         );
         const id3 = await createLoan(engine,
-            Helper.address0x,
+            address0x,
             accounts[1],
-            Helper.bytes320x,
+            bytes320x,
             web3.utils.toWei('2'),
-            Helper.toInterestRate(27),
-            Helper.toInterestRate(40),
+            toInterestRate(27),
+            toInterestRate(40),
             bn('86400'),
             0,
             bn('10').pow(bn('21')),
@@ -793,7 +778,7 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.transfer(accounts[9], id2, { from: accounts[2] });
 
         // pay the loans
-        await Helper.buyTokens(rcn, web3.utils.toWei('20'), accounts[0]);
+        await buyTokens(rcn, web3.utils.toWei('20'), accounts[0]);
         await rcn.increaseApproval(engine.address, web3.utils.toWei('20'));
         await engine.pay(id1, web3.utils.toWei('2'), accounts[1], []);
         await engine.pay(id2, web3.utils.toWei('1'), accounts[1], []);
@@ -810,9 +795,8 @@ contract('NanoLoanEngine', function (accounts) {
         await engine.withdrawalList([id1, id3], accounts[4], { from: accounts[2] });
         expect(await rcn.balanceOf(accounts[4])).to.eq.BN(web3.utils.toWei('2.5'));
     });
-
     it('Should remove approve after transfer', async function () {
-        const id1 = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const id1 = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], 'Remove approve');
 
         await lendLoan(rcn, engine, accounts[0], id1, web3.utils.toWei('2'));
@@ -821,14 +805,13 @@ contract('NanoLoanEngine', function (accounts) {
 
         await engine.transfer(accounts[2], id1);
 
-        await Helper.assertThrow(engine.transferFrom(accounts[0], accounts[7], id1, { from: accounts[7] }));
-        await Helper.assertThrow(engine.transferFrom(accounts[2], accounts[7], id1, { from: accounts[7] }));
+        await assertThrow(engine.transferFrom(accounts[0], accounts[7], id1, { from: accounts[7] }));
+        await assertThrow(engine.transferFrom(accounts[2], accounts[7], id1, { from: accounts[7] }));
 
         assert.equal(await engine.ownerOf(id1), accounts[2]);
     });
-
     it('Should transfer using approve', async function () {
-        const id1 = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const id1 = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], '9');
 
         await lendLoan(rcn, engine, accounts[0], id1, web3.utils.toWei('2'));
@@ -839,55 +822,51 @@ contract('NanoLoanEngine', function (accounts) {
 
         assert.equal(await engine.ownerOf(id1), accounts[7]);
     });
-
     it('Only current owner can approve', async function () {
-        const id1 = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const id1 = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], 'Only current owner can approve');
 
         await lendLoan(rcn, engine, accounts[0], id1, web3.utils.toWei('2'));
 
         await engine.transfer(accounts[2], id1);
 
-        await Helper.assertThrow(engine.approve(accounts[7], id1));
-        await Helper.assertThrow(engine.transferFrom(accounts[2], accounts[7], id1, { from: accounts[7] }));
+        await assertThrow(engine.approve(accounts[7], id1));
+        await assertThrow(engine.transferFrom(accounts[2], accounts[7], id1, { from: accounts[7] }));
 
         assert.equal(await engine.ownerOf(id1), accounts[2]);
     });
-
     it('Transfer to 0x0 should fail', async function () {
-        const id1 = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const id1 = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], 'Fail transfer to 0x0');
 
         await lendLoan(rcn, engine, accounts[0], id1, web3.utils.toWei('2'));
 
         await engine.approve(accounts[7], id1, { from: accounts[0] });
 
-        await Helper.assertThrow(engine.transferFrom(accounts[0], Helper.address0x, id1, { from: accounts[7] }));
+        await assertThrow(engine.transferFrom(accounts[0], address0x, id1, { from: accounts[7] }));
 
         assert.equal(await engine.ownerOf(id1), accounts[0]);
     });
-
     it('Transfer from should check from', async function () {
-        const id1 = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, web3.utils.toWei('2'), Helper.toInterestRate(27), Helper.toInterestRate(40),
+        const id1 = await createLoan(engine, address0x, accounts[1], bytes320x, web3.utils.toWei('2'), toInterestRate(27), toInterestRate(40),
             bn('86400'), 0, bn('10').pow(bn('21')), accounts[1], 'Fail transfer from');
 
         await lendLoan(rcn, engine, accounts[0], id1, web3.utils.toWei('2'));
 
-        await Helper.assertThrow(engine.transferFrom(accounts[1], accounts[2], id1));
+        await assertThrow(engine.transferFrom(accounts[1], accounts[2], id1));
         assert.equal(await engine.ownerOf(id1), accounts[0]);
     });
-
     it('Create loan should fail if deprecated', async function () {
         await engine.setDeprecated(true);
-        await Helper.assertThrow(
+        await assertThrow(
             createLoan(
                 engine,
-                Helper.address0x,
+                address0x,
                 accounts[1],
-                Helper.bytes320x,
+                bytes320x,
                 web3.utils.toWei('2'),
-                Helper.toInterestRate(27),
-                Helper.toInterestRate(40),
+                toInterestRate(27),
+                toInterestRate(40),
                 bn('86400'),
                 bn('0'),
                 bn('10').pow(bn('21')),
@@ -897,11 +876,9 @@ contract('NanoLoanEngine', function (accounts) {
         );
         await engine.setDeprecated(false);
     });
-
     it('Should revert destroy invalid identifier', async function () {
-        await Helper.assertThrow(engine.destroyIdentifier('0x123'));
+        await assertThrow(engine.destroyIdentifier('0x123'));
     });
-
     it('Test E2 28% Anual interest, 91 days', eTest(
         bn('10000'),
         bn('11108571428571'),
@@ -914,7 +891,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('91'),
         bn('11469')
     ));
-
     it('Test E3 28% Anual interest, 30 days', eTest(
         bn('800000'),
         bn('11108571428571'),
@@ -927,7 +903,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('837768')
     ));
-
     it('Test E4 27% Anual interest, 30 days', eTest(
         bn('10000'),
         bn('11520000000000'),
@@ -940,7 +915,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('10455')
     ));
-
     it('Test E5 40% Anual interest, 30 days', eTest(
         bn('500000'),
         bn('7776000000000'),
@@ -953,7 +927,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('533888')
     ));
-
     it('Test E6 40% Anual interest, 30 days', eTest(
         bn('80000'),
         bn('7776000000000'),
@@ -966,7 +939,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('85422')
     ));
-
     it('Test E7 42% Anual interest, 30 days', eTest(
         bn('1000000'),
         bn('7405714285714'),
@@ -979,7 +951,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('1071225')
     ));
-
     it('Test E8 27% Anual interset, 30 days', eTest(
         bn('70000'),
         bn('11520000000000'),
@@ -992,7 +963,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('73185')
     ));
-
     it('Test E9 42% Anual interset, 30 days', eTest(
         bn('500000'),
         bn('7405714285714'),
@@ -1005,7 +975,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('535613')
     ));
-
     it('Test E10 30% Anual interset, 30 days', eTest(
         bn('300000'),
         bn('10368000000000'),
@@ -1018,7 +987,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('315188')
     ));
-
     it('Test E8 27% Anual interset, 30 days', eTest2(
         bn('70000'),
         bn('11520000000000'),
@@ -1031,7 +999,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('73185')
     ));
-
     it('Test E9 42% Anual interset, 30 days', eTest2(
         bn('500000'),
         bn('7405714285714'),
@@ -1044,7 +1011,6 @@ contract('NanoLoanEngine', function (accounts) {
         bn('30'),
         bn('535613')
     ));
-
     it('Test E10 30% Anual interset, 30 days', eTest2(
         bn('300000'),
         bn('10368000000000'),
@@ -1064,7 +1030,7 @@ contract('NanoLoanEngine', function (accounts) {
             const prevBal = await rcn.balanceOf(accounts[1]);
 
             // Create a new loan with the received params
-            const loanId = await createLoan(engine, Helper.address0x, accounts[1], Helper.bytes320x, amount, interest, punitoryInterest,
+            const loanId = await createLoan(engine, address0x, accounts[1], bytes320x, amount, interest, punitoryInterest,
                 duesIn, 0, bn('10').pow(bn('21')), accounts[1], 'e1');
 
             // test configuration params
@@ -1090,7 +1056,7 @@ contract('NanoLoanEngine', function (accounts) {
             const expirationRequest = await engine.getExpirationRequest(loanId);
 
             expect(expirationRequest).to.eq.BN(bn('10').pow(bn('21')), 'Should had the defined expiration');
-            assert.equal(approvedTransfer, Helper.address0x, 'Approved transfer should start empty');
+            assert.equal(approvedTransfer, address0x, 'Approved transfer should start empty');
             expect(cancelableAt).to.eq.BN('0', 'Cancelable at should be 0');
             expect(lenderBalance).to.eq.BN('0', 'Lender balance should start at 0');
             expect(dueTime).to.eq.BN('0', 'Due time should start at 0');
@@ -1103,30 +1069,30 @@ contract('NanoLoanEngine', function (accounts) {
             expect(loanPunitoryInterest).to.eq.BN('0', 'Punitory interest should start at 0');
             expect(loanAmount).to.eq.BN(amount, 'Amount should be the defined amount');
             expect(status).to.eq.BN('0', 'Status should be initial');
-            assert.equal(cosigner, Helper.address0x, 'Cosigner should be empty');
+            assert.equal(cosigner, address0x, 'Cosigner should be empty');
             assert.equal(borrower, accounts[1], 'Borrower should be account 1');
             assert.equal(creator, accounts[1], 'Creator should be account 0');
-            assert.equal(lender, Helper.address0x, 'Lender should be empty');
-            assert.equal(currency, Helper.bytes320x, 'Currency should be empty');
-            assert.equal(oracle, Helper.address0x, 'Oracle should be empty');
+            assert.equal(lender, address0x, 'Lender should be empty');
+            assert.equal(currency, bytes320x, 'Currency should be empty');
+            assert.equal(oracle, address0x, 'Oracle should be empty');
 
             // Check if the loan is approved
             const isApproved = await engine.isApproved(loanId);
             assert.isTrue(isApproved, 'Should be approved');
 
             // Buy tokens and prepare the lender to do the lent
-            await Helper.buyTokens(rcn, web3.utils.toWei('100'), accounts[2]);
+            await buyTokens(rcn, web3.utils.toWei('100'), accounts[2]);
             await rcn.approve(engine.address, web3.utils.toWei('100'), { from: accounts[2] });
 
             // accounts[2] lends to the borrower
-            await engine.lend(loanId, [], Helper.address0x, [], { from: accounts[2] });
+            await engine.lend(loanId, [], address0x, [], { from: accounts[2] });
 
             // check that the borrower received the RCN
             const received = (await rcn.balanceOf(accounts[1])).sub(prevBal);
             expect(received).to.eq.BN(amount, 'The borrower should have the RCN');
 
             // forward time, d1 days
-            await Helper.increaseTime(d1.mul(secondsInDay).toNumber());
+            await increaseTime(d1.mul(secondsInDay).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await engine.addInterest(loanId);
@@ -1135,7 +1101,7 @@ contract('NanoLoanEngine', function (accounts) {
             assert.isBelow(d1Diff, 2, 'The v1 should aprox the interest rate in the d1 timestamp');
 
             // forward time, d2 days
-            await Helper.increaseTime(d2.mul(secondsInDay).toNumber());
+            await increaseTime(d2.mul(secondsInDay).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await engine.addInterest(loanId);
@@ -1144,7 +1110,7 @@ contract('NanoLoanEngine', function (accounts) {
             assert.isBelow(d2Diff, 2, 'The v2 should aprox the interest rate in the d2 timestamp');
 
             // forward time, d3 days
-            await Helper.increaseTime(d3.mul(secondsInDay).toNumber());
+            await increaseTime(d3.mul(secondsInDay).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await engine.addInterest(loanId);
@@ -1162,9 +1128,9 @@ contract('NanoLoanEngine', function (accounts) {
             // Create a new loan with the received params
             const loanId = await createLoan(
                 engine,
-                Helper.address0x,
+                address0x,
                 accounts[1],
-                Helper.bytes320x,
+                bytes320x,
                 amount,
                 interest,
                 punitoryInterest,
@@ -1198,7 +1164,7 @@ contract('NanoLoanEngine', function (accounts) {
             const expirationRequest = await engine.getExpirationRequest(loanId);
 
             expect(expirationRequest).to.eq.BN(bn('10').pow(bn('21')), 'Should had the defined expiration');
-            assert.equal(approvedTransfer, Helper.address0x, 'Approved transfer should start empty');
+            assert.equal(approvedTransfer, address0x, 'Approved transfer should start empty');
             expect(cancelableAt).to.eq.BN(d1.mul(secondsInDay), 'Cancelable at should be 0');
             expect(lenderBalance).to.eq.BN('0', 'Lender balance should start at 0');
             expect(dueTime).to.eq.BN('0', 'Due time should start at 0');
@@ -1211,23 +1177,23 @@ contract('NanoLoanEngine', function (accounts) {
             expect(loanPunitoryInterest).to.eq.BN('0', 'Punitory interest should start at 0');
             expect(loanAmount).to.eq.BN(amount, 'Amount should be the defined amount');
             expect(status).to.eq.BN('0', 'Status should be initial');
-            assert.equal(cosigner, Helper.address0x, 'Cosigner should be empty');
+            assert.equal(cosigner, address0x, 'Cosigner should be empty');
             assert.equal(borrower, accounts[1], 'Borrower should be account 1');
             assert.equal(creator, accounts[1], 'Creator should be account 0');
-            assert.equal(lender, Helper.address0x, 'Lender should be empty');
-            assert.equal(currency, Helper.bytes320x, 'Currency should be empty');
-            assert.equal(oracle, Helper.address0x, 'Oracle should be empty');
+            assert.equal(lender, address0x, 'Lender should be empty');
+            assert.equal(currency, bytes320x, 'Currency should be empty');
+            assert.equal(oracle, address0x, 'Oracle should be empty');
 
             // Check if the loan is approved
             const isApproved = await engine.isApproved(loanId);
             assert.isTrue(isApproved, 'Should be approved');
 
             // Buy tokens and prepare the lender to do the lent
-            await Helper.buyTokens(rcn, web3.utils.toWei('100'), accounts[2]);
+            await buyTokens(rcn, web3.utils.toWei('100'), accounts[2]);
             await rcn.approve(engine.address, web3.utils.toWei('100'), { from: accounts[2] });
 
             // accounts[2] lends to the borrower
-            await engine.lend(loanId, [], Helper.address0x, [], { from: accounts[2] });
+            await engine.lend(loanId, [], address0x, [], { from: accounts[2] });
 
             // check that the borrower received the RCN
             const received = (await rcn.balanceOf(accounts[1])).sub(prevBal);
@@ -1239,7 +1205,7 @@ contract('NanoLoanEngine', function (accounts) {
             assert.isBelow(d1Diff.toNumber(), 2, 'The v1 should aprox the interest rate in the d1 timestamp');
 
             // forward time, d1 days
-            await Helper.increaseTime(d1.mul(secondsInDay).toNumber());
+            await increaseTime(d1.mul(secondsInDay).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await engine.addInterest(loanId);
@@ -1248,7 +1214,7 @@ contract('NanoLoanEngine', function (accounts) {
             assert.isBelow(d1Diff.toNumber(), 2, 'The v1 should aprox the interest rate in the d1 timestamp');
 
             // forward time, d2 days
-            await Helper.increaseTime(d2.mul(secondsInDay).toNumber());
+            await increaseTime(d2.mul(secondsInDay).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await engine.addInterest(loanId);
@@ -1257,7 +1223,7 @@ contract('NanoLoanEngine', function (accounts) {
             assert.isBelow(d2Diff.toNumber(), 2, 'The v2 should aprox the interest rate in the d2 timestamp');
 
             // forward time, d3 days
-            await Helper.increaseTime(d3.mul(secondsInDay).toNumber());
+            await increaseTime(d3.mul(secondsInDay).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await engine.addInterest(loanId);

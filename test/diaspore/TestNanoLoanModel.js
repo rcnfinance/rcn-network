@@ -1,14 +1,14 @@
-const NanoLoanModel = artifacts.require('./diaspore/model/NanoLoanModel.sol');
+const NanoLoanModel = artifacts.require('NanoLoanModel');
 
-const Helper = require('../Helper.js');
-const BN = web3.utils.BN;
-const expect = require('chai')
-    .use(require('bn-chai')(BN))
-    .expect;
-
-function bn (number) {
-    return new BN(number);
-}
+const {
+    expect,
+    bn,
+    STATUS_PAID,
+    tryCatchRevert,
+    toInterestRate,
+    increaseTime,
+    toBytes32,
+} = require('../Helper.js');
 
 function maxUint (base) {
     return bn('2').pow(bn(base)).sub(bn('1'));
@@ -21,8 +21,8 @@ contract('NanoLoanModel', function (accounts) {
 
     const monthInSec = bn('30').mul(bn('86400'));
     const amount = bn('10000');
-    const interestRate = Helper.toInterestRate(30);
-    const interestRatePunitory = Helper.toInterestRate(60);
+    const interestRate = toInterestRate(30);
+    const interestRatePunitory = toInterestRate(60);
     const cancelableAt = monthInSec.div(bn('2'));
 
     const defaultParams = {
@@ -49,7 +49,7 @@ contract('NanoLoanModel', function (accounts) {
     });
 
     it('Test get obligations functions', async function () {
-        const id = Helper.toBytes32(idCounter++);
+        const id = toBytes32(idCounter++);
         // if the loan its no create the obligation should be 0
         expect(await model.getClosingObligation(id)).to.eq.BN('0', 'should be 0');
         expect(await model.getEstimateObligation(id)).to.eq.BN('0', 'should be 0');
@@ -57,7 +57,6 @@ contract('NanoLoanModel', function (accounts) {
         expect(obligation.amount).to.eq.BN('0', 'should be 0');
         assert.equal(obligation.defined, true, 'should be false');
     });
-
     it('Test validate function', async function () {
         let data;
         // Try validate:
@@ -70,14 +69,14 @@ contract('NanoLoanModel', function (accounts) {
             cancelableAt
         );
 
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => model.validate(
                 data.slice(0, -2)
             ),
             'Invalid data length'
         );
 
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => model.validate(
                 data + '00'
             ),
@@ -92,7 +91,7 @@ contract('NanoLoanModel', function (accounts) {
             1,
             2
         );
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => model.validate(
                 data
             ),
@@ -107,7 +106,7 @@ contract('NanoLoanModel', function (accounts) {
             monthInSec,
             cancelableAt
         );
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => model.validate(
                 data
             ),
@@ -122,7 +121,7 @@ contract('NanoLoanModel', function (accounts) {
             monthInSec,
             cancelableAt
         );
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => model.validate(
                 data
             ),
@@ -137,7 +136,7 @@ contract('NanoLoanModel', function (accounts) {
             monthInSec,
             cancelableAt
         );
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => model.validate(
                 data
             ),
@@ -152,7 +151,7 @@ contract('NanoLoanModel', function (accounts) {
             0,
             0
         );
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => model.validate(
                 data
             ),
@@ -167,16 +166,15 @@ contract('NanoLoanModel', function (accounts) {
             maxUint(64),
             cancelableAt
         );
-        await Helper.tryCatchRevert(
+        await tryCatchRevert(
             () => model.validate(
                 data
             ),
             'duesIn should be not 0 or overflow now plus duesIn'
         );
     });
-
     it('Test create function', async function () {
-        const id = Helper.toBytes32(idCounter++);
+        const id = toBytes32(idCounter++);
         const tx = await model.create(id, defaultData, { from: owner });
         const timestamp = bn((await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp.toString());
 
@@ -195,13 +193,12 @@ contract('NanoLoanModel', function (accounts) {
         // expect(state.interestTimestamp).to.eq.BN(timestamp.add(cancelableAt), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
         expect(state.status).to.eq.BN('0', 'The status should not be paid');
     });
-
     it('Test addPaid without punitory', async function () {
-        const id = Helper.toBytes32(idCounter++);
+        const id = toBytes32(idCounter++);
         /* const tx = */await model.create(id, defaultData, { from: owner });
         // const timestamp = bn((await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp.toString());
 
-        await Helper.increaseTime(1000000);
+        await increaseTime(1000000);
 
         await model.addPaid(id, 1000, { from: owner });
 
@@ -213,12 +210,11 @@ contract('NanoLoanModel', function (accounts) {
         // expect(state.interestTimestamp).to.eq.BN(timestamp.add(cancelableAt), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
         expect(state.status).to.eq.BN('0', 'The status should not be paid');
     });
-
     it('Test pay total with interest and interestPunitory', async function () {
-        const id = Helper.toBytes32(idCounter++);
+        const id = toBytes32(idCounter++);
         await model.create(id, defaultData, { from: owner });
 
-        await Helper.increaseTime(monthInSec.toNumber() * 2);
+        await increaseTime(monthInSec.toNumber() * 2);
 
         const interestTotal = amount.mul(bn('30')).div(bn('12')).div(bn('100')); // 250
         const interestPTotal = amount.add(interestTotal).mul(bn('60')).div(bn('12')).div(bn('100')); // 512.5
@@ -232,9 +228,8 @@ contract('NanoLoanModel', function (accounts) {
         expect(state.punitoryInterest).to.eq.BN(interestPTotal, 'The punitoryInterest should be 512');
         // we need check the realDelta timestamp
         // assert.equal(state.interestTimestamp, timestamp.add(cancelableAt).toString(), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
-        expect(state.status).to.eq.BN(Helper.STATUS_PAID, 'The status should be paid');
+        expect(state.status).to.eq.BN(STATUS_PAID, 'The status should be paid');
     });
-
     //                                              amount, interest, pInterest, duesIn, d1, v1, d2, v2, d3, v3, d4, v4
     it('Test E1 28% Anual interest, 91 days', eTest(10000, 28, 42, 91, 30, 10233, 31, 10474, 91, 11469, 5, 11530));
     it('Test E2 28% Anual interest, 30 days', eTest(800000, 28, 42, 30, 10, 806222, 10, 812444, 30, 837768, 5, 842543));
@@ -264,18 +259,18 @@ contract('NanoLoanModel', function (accounts) {
             d4 = bn(d4.toString());
             v4 = bn(v4.toString());
             // Create a new loan with the received params
-            const id = Helper.toBytes32(idCounter++);
+            const id = toBytes32(idCounter++);
             const params = await model.encodeData(
                 amount,                                  // amount
-                Helper.toInterestRate(interest),         // interest rate
-                Helper.toInterestRate(punitoryInterest), // interest rate punitory
+                toInterestRate(interest),         // interest rate
+                toInterestRate(punitoryInterest), // interest rate punitory
                 duesIn.mul(sd),                          // dues in
                 0,                                       // cancelable at
             );
             await model.create(id, params, { from: owner });
 
             // forward time, d1 days
-            await Helper.increaseTime(d1.mul(sd).toNumber());
+            await increaseTime(d1.mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await model.run(id);
@@ -285,7 +280,7 @@ contract('NanoLoanModel', function (accounts) {
             assert.isBelow(d1Diff.toNumber(), 2, 'The v1 should aprox the interest rate in the d1 timestamp');
 
             // forward time, d2 days
-            await Helper.increaseTime(d2.mul(sd).toNumber());
+            await increaseTime(d2.mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             const d2PendingAmount = await model.getClosingObligation(id);
@@ -293,7 +288,7 @@ contract('NanoLoanModel', function (accounts) {
             assert.isBelow(d2Diff.toNumber(), 2, 'The v2 should aprox the interest rate in the d2 timestamp');
 
             // forward time, d3 days
-            await Helper.increaseTime(d3.mul(sd).toNumber());
+            await increaseTime(d3.mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await model.run(id);
@@ -302,7 +297,7 @@ contract('NanoLoanModel', function (accounts) {
             assert.isBelow(d3Diff.toNumber(), 2, 'The v3 should aprox the interest rate in the d3 timestamp');
 
             // forward time, d4 days
-            await Helper.increaseTime(d4.mul(sd).toNumber());
+            await increaseTime(d4.mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             const d4PendingAmount = await model.getClosingObligation(id);
@@ -314,7 +309,7 @@ contract('NanoLoanModel', function (accounts) {
 
             const state = await model.states(id);
             expect(state.paid).to.eq.BN(d4PendingAmount, 'The paid should be ' + d4PendingAmount.toString());
-            expect(state.status).to.eq.BN(Helper.STATUS_PAID, 'The status should be paid');
+            expect(state.status).to.eq.BN(STATUS_PAID, 'The status should be paid');
         };
     }
 
