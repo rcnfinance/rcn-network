@@ -3445,7 +3445,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         await rcn.approve(debtEngine.address, 100);
 
         // Try to pay with different gas limits
-        for (let i = 20000; i < 8000000; i += 1010) {
+        const minGas = await debtEngine.methods['payToken(bytes32,uint256,address,bytes)'].estimateGas(id, 100, accounts[3], []);
+        const blockGasLimit = (await web3.eth.getBlock('latest')).gasLimit;
+        for (let i = minGas; i < blockGasLimit; i += 1010) {
             try {
                 await debtEngine.payToken(id, 100, accounts[3], [], { gas: i });
             } catch (ignored) {
