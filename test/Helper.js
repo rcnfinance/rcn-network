@@ -13,14 +13,14 @@ module.exports.STATUS_ERROR = '4';
 
 module.exports.bn = (number) => {
     return web3.utils.toBN(number);
-}
+};
 
 module.exports.random32 = () => {
-  return this.bn(web3.utils.randomHex(32));
+    return this.bn(web3.utils.randomHex(32));
 };
 
 module.exports.random32bn = () => {
-  return this.bn(this.random32());
+    return this.bn(this.random32());
 };
 
 module.exports.arrayToBytesOfBytes32 = (array) => {
@@ -48,24 +48,24 @@ module.exports.toBytes32 = (source) => {
     return '0x' + source;
 };
 
-module.exports.increaseTime = function increaseTime(duration) {
+module.exports.increaseTime = function increaseTime (duration) {
     const id = Date.now();
     const delta = duration.toNumber !== undefined ? duration.toNumber() : duration;
 
     return new Promise((resolve, reject) => {
         web3.currentProvider.send({
-            jsonrpc: "2.0",
-            method: "evm_increaseTime",
+            jsonrpc: '2.0',
+            method: 'evm_increaseTime',
             params: [delta],
-            id: id
+            id: id,
         },
         err1 => {
             if (err1) return reject(err1);
 
             web3.currentProvider.send({
-                jsonrpc: "2.0",
-                method: "evm_mine",
-                id: id + 1
+                jsonrpc: '2.0',
+                method: 'evm_mine',
+                id: id + 1,
             },
             (err2, res) => {
                 return err2 ? reject(err2) : resolve(res);
@@ -87,11 +87,13 @@ module.exports.getBlockTime = async () => {
 };
 
 module.exports.getTxTime = async (tx) => {
-   if (tx instanceof Promise)
-      tx = await tx;
-   const blockNumber = tx.receipt.blockNumber;
-   const block = await web3.eth.getBlock(blockNumber);
-   return block.timestamp;
+    if (tx instanceof Promise) {
+        tx = await tx;
+    }
+
+    const blockNumber = tx.receipt.blockNumber;
+    const block = await web3.eth.getBlock(blockNumber);
+    return block.timestamp;
 };
 
 module.exports.assertThrow = async (promise) => {
@@ -153,25 +155,27 @@ module.exports.searchEvent = (tx, eventName) => {
 };
 
 module.exports.toEvents = async (tx, ...events) => {
-   if (tx instanceof Promise)
-      tx = await tx;
+    if (tx instanceof Promise) {
+        tx = await tx;
+    }
 
-   const logs = tx.logs;
+    const logs = tx.logs;
 
-   let eventObjs = [].concat.apply(
-      [], events.map(
-         event => logs.filter(
-            log => log.event === event
-         )
-      )
-   );
+    let eventObjs = [].concat.apply(
+        [],
+        events.map(
+            event => logs.filter(
+                log => log.event === event
+            )
+        )
+    );
 
-   if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
-      console.log('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
-      assert.fail();
-   }
-   eventObjs = eventObjs.map(x => x.args);
-   return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
+    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
+        console.log('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
+        assert.fail();
+    }
+    eventObjs = eventObjs.map(x => x.args);
+    return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
 };
 
 module.exports.eventNotEmitted = async (receipt, eventName) => {
