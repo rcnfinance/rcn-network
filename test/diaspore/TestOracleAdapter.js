@@ -1,15 +1,11 @@
-const TestOracle = artifacts.require('./examples/TestOracle.sol');
-const OracleAdapter = artifacts.require('./diaspore/utils/OracleAdapter.sol');
+const TestOracle = artifacts.require('TestOracle');
+const OracleAdapter = artifacts.require('OracleAdapter');
 
-const Helper = require('../Helper.js');
-const BN = web3.utils.BN;
-const expect = require('chai')
-    .use(require('bn-chai')(BN))
-    .expect;
-
-function bn (number) {
-    return new BN(number);
-}
+const {
+    expect,
+    bn,
+    assertThrow,
+} = require('../Helper.js');
 
 contract('Test Oracle adapter', function (accounts) {
     let legacyOracle;
@@ -38,7 +34,6 @@ contract('Test Oracle adapter', function (accounts) {
         assert.equal(await oracle.maintainer(), 'Test oracle, ripiocredit.network');
         assert.equal(await oracle.url(), 'https://oracle.rcn.loans/');
     });
-
     it('Should convert legacy oracle getReturn, data 1', async function () {
         const data = await legacyOracle.dummyData1();
         const rate = await legacyOracle.getRate.call('0x415253', data);
@@ -46,7 +41,6 @@ contract('Test Oracle adapter', function (accounts) {
         expect(rate[0]).to.eq.BN(sample[0]);
         expect(bn('10').pow(rate[1])).to.eq.BN(sample[1]);
     });
-
     it('Should convert legacy oracle getReturn, data 2', async function () {
         const data = await legacyOracle.dummyData2();
         const rate = await legacyOracle.getRate.call('0x415253', data);
@@ -54,10 +48,9 @@ contract('Test Oracle adapter', function (accounts) {
         expect(rate[0]).to.eq.BN(sample[0]);
         expect(bn('10').pow(rate[1])).to.eq.BN(sample[1]);
     });
-
     it('Should fail with invalid data', async function () {
         const data = await legacyOracle.invalidData();
-        await Helper.assertThrow(legacyOracle.getRate('0x415253', data));
-        await Helper.assertThrow(oracle.readSample(data));
+        await assertThrow(legacyOracle.getRate('0x415253', data));
+        await assertThrow(oracle.readSample(data));
     });
 });

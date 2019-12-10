@@ -1,5 +1,10 @@
-const Ownable = artifacts.require('./basalt/Ownable.sol');
-const Helper = require('../Helper.js');
+const Ownable = artifacts.require('Ownable');
+
+const {
+    address0x,
+    toEvents,
+    tryCatchRevert,
+} = require('../Helper.js');
 
 contract('Ownable', function (accounts) {
     const owner = accounts[1];
@@ -17,7 +22,7 @@ contract('Ownable', function (accounts) {
         it('Should change owner on transfer', async function () {
             const ownable = await Ownable.new({ from: owner });
 
-            const OwnershipTransferred = await Helper.toEvents(
+            const OwnershipTransferred = await toEvents(
                 ownable.transferOwnership(
                     secondOwner,
                     { from: owner }
@@ -34,9 +39,9 @@ contract('Ownable', function (accounts) {
         it('Try to transfer ownership to 0x0', async function () {
             const ownable = await Ownable.new({ from: owner });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => ownable.transferOwnership(
-                    Helper.address0x,
+                    address0x,
                     { from: owner }
                 ),
                 '0x0 Is not a valid owner'
@@ -49,7 +54,7 @@ contract('Ownable', function (accounts) {
         it('Should revert if account without ownership tries to transfer', async function () {
             const ownable = await Ownable.new({ from: owner });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => ownable.transferOwnership(
                     secondOwner,
                     { from: secondOwner }
@@ -57,7 +62,7 @@ contract('Ownable', function (accounts) {
                 'The owner should be the sender'
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => ownable.transferOwnership(
                     thirdOwner,
                     { from: secondOwner }
@@ -69,7 +74,7 @@ contract('Ownable', function (accounts) {
 
             await ownable.transferOwnership(secondOwner, { from: owner });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => ownable.transferOwnership(
                     secondOwner,
                     { from: owner }

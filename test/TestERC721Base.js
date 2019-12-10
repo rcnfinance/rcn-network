@@ -1,20 +1,19 @@
-const TestERC721 = artifacts.require('./utils/test/TestERC721.sol');
-const TestERC721Receiver = artifacts.require('./utils/test/TestERC721Receiver.sol');
-const TestERC721ReceiverLegacy = artifacts.require('./utils/test/TestERC721ReceiverLegacy.sol');
-const TestERC721ReceiverLegacyRaw = artifacts.require('./utils/test/TestERC721ReceiverLegacyRaw.sol');
-const TestERC721ReceiverMultiple = artifacts.require('./utils/test/TestERC721ReceiverMultiple.sol');
-const TestNoReceive = artifacts.require('./utils/test/TokenLockable.sol');
-const TestURIProvider = artifacts.require('./utils/test/TestURIProvider.sol');
+const TestERC721 = artifacts.require('TestERC721');
+const TestERC721Receiver = artifacts.require('TestERC721Receiver');
+const TestERC721ReceiverLegacy = artifacts.require('TestERC721ReceiverLegacy');
+const TestERC721ReceiverLegacyRaw = artifacts.require('TestERC721ReceiverLegacyRaw');
+const TestERC721ReceiverMultiple = artifacts.require('TestERC721ReceiverMultiple');
+const TestNoReceive = artifacts.require('TokenLockable');
+const TestURIProvider = artifacts.require('TestURIProvider');
 
-const Helper = require('./Helper.js');
-const BN = web3.utils.BN;
-const expect = require('chai')
-    .use(require('bn-chai')(BN))
-    .expect;
-
-function bn (number) {
-    return new BN(number);
-}
+const {
+    expect,
+    bn,
+    address0x,
+    toEvents,
+    tryCatchRevert,
+    eventNotEmitted,
+} = require('./Helper.js');
 
 function inc (number) {
     return number.add(bn('1'));
@@ -39,6 +38,26 @@ contract('ERC721 Base', function (accounts) {
         token = await TestERC721.new();
     });
 
+    it('Test functions that get information of tokens and owners', async function () {
+        assert.equal(await token.name(), 'Test ERC721');
+        assert.equal(await token.symbol(), 'TST');
+        const prevTotalSupply = await token.totalSupply();
+        const prevAllTokens = (await token.allTokens()).length;
+
+        const assetId = bn('2335');
+
+        await token.generate(assetId, user);
+
+        const totalSupply = await token.totalSupply();
+        const tokenAtIndex = await token.tokenByIndex(dec(totalSupply));
+        const assetsOfOWner = await token.assetsOf(user);
+        const auxOwnerIndex = assetsOfOWner.length - 1;
+        const tokenOfOwnerByIndex = await token.tokenOfOwnerByIndex(user, auxOwnerIndex);
+
+        expect(totalSupply).to.eq.BN(inc(prevTotalSupply));
+        expect(tokenAtIndex).to.eq.BN(tokenOfOwnerByIndex, 'Tokens Id of owner and allTokens at indexes should be equal');
+        assert.equal((await token.allTokens()).length, prevAllTokens + 1);
+    });
     describe('Function tokenByIndex', async function () {
         it('Should get asset id by the index', async function () {
             const assetId = bn('51651851');
@@ -60,7 +79,7 @@ contract('ERC721 Base', function (accounts) {
                 user
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.tokenByIndex(
                     maxUint('256')
                 ),
@@ -68,7 +87,6 @@ contract('ERC721 Base', function (accounts) {
             );
         });
     });
-
     describe('Function tokenOfOwnerByIndex', async function () {
         it('Should get asset id of the owner by index of the asset', async function () {
             const assetId = bn('959652');
@@ -96,9 +114,9 @@ contract('ERC721 Base', function (accounts) {
 
             const lastUserToken = dec(await token.balanceOf(user));
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.tokenOfOwnerByIndex(
-                    Helper.address0x,
+                    address0x,
                     lastUserToken
                 ),
                 '0x0 Is not a valid owner'
@@ -113,7 +131,7 @@ contract('ERC721 Base', function (accounts) {
                 user
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.tokenOfOwnerByIndex(
                     user,
                     maxUint('256')
@@ -122,7 +140,6 @@ contract('ERC721 Base', function (accounts) {
             );
         });
     });
-
     describe('Function isAuthorized', async function () {
         it('Should be authorized to be the owner', async function () {
             const assetId = bn('23442342');
@@ -165,9 +182,9 @@ contract('ERC721 Base', function (accounts) {
                 user
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.isAuthorized(
-                    Helper.address0x,
+                    address0x,
                     assetId
                 ),
                 '0x0 is an invalid operator'
@@ -186,7 +203,6 @@ contract('ERC721 Base', function (accounts) {
             }
         });
     });
-
     describe('Function _doTransferFrom, safeTransfer, safeTransferFrom and safeTransferFrom with _userData', async function () {
         it('Perform a transferFrom with approval', async function () {
             const assetId = bn('561651561');
@@ -207,7 +223,7 @@ contract('ERC721 Base', function (accounts) {
                 { from: user }
             );
 
-            const events = await Helper.toEvents(
+            const events = await toEvents(
                 token.transferFrom(
                     user,
                     otherUser,
@@ -219,14 +235,14 @@ contract('ERC721 Base', function (accounts) {
             );
             const Approval = events[0];
             assert.equal(Approval._owner, user);
-            assert.equal(Approval._approved, Helper.address0x);
+            assert.equal(Approval._approved, address0x);
             expect(Approval._tokenId).to.eq.BN(assetId);
             const Transfer = events[1];
             assert.equal(Transfer._from, user);
             assert.equal(Transfer._to, otherUser);
             expect(Transfer._tokenId).to.eq.BN(assetId);
 
-            assert.equal(await token.getApproved(assetId), Helper.address0x);
+            assert.equal(await token.getApproved(assetId), address0x);
             assert.equal((await token.assetsOf(user)).length, prevLengthUser - 1);
             expect(await token.balanceOf(user)).to.eq.BN(dec(prevBalUser));
 
@@ -245,7 +261,7 @@ contract('ERC721 Base', function (accounts) {
                 { from: user }
             );
 
-            const Transfer = await Helper.toEvents(
+            const Transfer = await toEvents(
                 token.transferFrom(
                     user,
                     otherUser,
@@ -266,7 +282,7 @@ contract('ERC721 Base', function (accounts) {
             await token.generate(assetId, user);
             await token.setApprovalForAll(approved, true, { from: user });
 
-            const Transfer = await Helper.toEvents(
+            const Transfer = await toEvents(
                 token.transferFrom(
                     user,
                     otherUser,
@@ -287,10 +303,10 @@ contract('ERC721 Base', function (accounts) {
             const assetId = bn('65161');
             await token.generate(assetId, user);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.transferFrom(
                     user,
-                    Helper.address0x,
+                    address0x,
                     assetId,
                     { from: user }
                 ),
@@ -302,7 +318,7 @@ contract('ERC721 Base', function (accounts) {
             const assetId = bn('111199876543');
             await token.generate(assetId, user);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.transferFrom(
                     user,
                     otherUser,
@@ -319,7 +335,7 @@ contract('ERC721 Base', function (accounts) {
 
             await token.generate(assetId, user);
 
-            const Transfer = await Helper.toEvents(
+            const Transfer = await toEvents(
                 token.safeTransferFrom(
                     user,
                     receiverLegacy.address,
@@ -362,7 +378,7 @@ contract('ERC721 Base', function (accounts) {
             const receiver = await TestNoReceive.new();
 
             await token.generate(assetId, user);
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.safeTransferFrom(
                     user,
                     receiver.address,
@@ -381,7 +397,7 @@ contract('ERC721 Base', function (accounts) {
 
             await token.generate(assetId, user);
 
-            const Transfer = await Helper.toEvents(
+            const Transfer = await toEvents(
                 token.safeTransferFrom(
                     user,
                     receiver.address,
@@ -411,7 +427,7 @@ contract('ERC721 Base', function (accounts) {
             await token.generate(assetId, user);
             await token.setApprovalForAll(otherUser, true, { from: user });
 
-            const Transfer = await Helper.toEvents(
+            const Transfer = await toEvents(
                 token.methods['safeTransferFrom(address,address,uint256,bytes)'](
                     user,
                     receiver.address,
@@ -470,14 +486,13 @@ contract('ERC721 Base', function (accounts) {
             expect(assetsOfAddr5After).to.eq.BN(assetsOfAddr5Before.add(bn('1')));
         });
     });
-
     describe('Function _generate', async function () {
         it('Should generate a new NFT', async function () {
             const assetId = bn('62329');
             const prevBalUser = await token.balanceOf(user);
             const totalNFT = await token.totalSupply();
 
-            const Transfer = await Helper.toEvents(
+            const Transfer = await toEvents(
                 token.generate(
                     assetId,
                     user
@@ -485,7 +500,7 @@ contract('ERC721 Base', function (accounts) {
                 'Transfer'
             );
 
-            assert.equal(Transfer._from, Helper.address0x);
+            assert.equal(Transfer._from, address0x);
             assert.equal(Transfer._to, user);
             expect(Transfer._tokenId).to.eq.BN(assetId);
 
@@ -503,7 +518,7 @@ contract('ERC721 Base', function (accounts) {
                 user
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.generate(
                     assetId,
                     user
@@ -512,14 +527,13 @@ contract('ERC721 Base', function (accounts) {
             );
         });
     });
-
     describe('Function approve', async function () {
         it('Test approve a third party operator to manage one particular asset', async function () {
             const assetId = bn('3123331');
 
             await token.generate(assetId, user);
 
-            const Approval = await Helper.toEvents(
+            const Approval = await toEvents(
                 token.approve(
                     otherUser,
                     assetId,
@@ -568,7 +582,7 @@ contract('ERC721 Base', function (accounts) {
             const assetId = bn('123132129831981329');
             await token.generate(assetId, user);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.approve(
                     otherUser,
                     assetId,
@@ -584,7 +598,7 @@ contract('ERC721 Base', function (accounts) {
 
             await token.approve(otherUser, assetId, { from: user });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.approve(
                     otherUser,
                     assetId,
@@ -594,7 +608,6 @@ contract('ERC721 Base', function (accounts) {
             );
         });
     });
-
     describe('Function setApprovalForAll', async function () {
         it('Test approve a third party operator to manage all asset', async function () {
             const assetId = bn('9991831');
@@ -602,7 +615,7 @@ contract('ERC721 Base', function (accounts) {
 
             await token.generate(assetId, user);
 
-            const ApprovalForAll = await Helper.toEvents(
+            const ApprovalForAll = await toEvents(
                 token.setApprovalForAll(
                     otherUser,
                     true,
@@ -636,12 +649,11 @@ contract('ERC721 Base', function (accounts) {
             await token.setApprovalForAll(otherUser, true);
 
             const receipt = await token.setApprovalForAll(otherUser, true);
-            await Helper.eventNotEmitted(receipt, 'ApprovalForAll');
+            await eventNotEmitted(receipt, 'ApprovalForAll');
 
             await token.setApprovalForAll(otherUser, false, { from: user });
         });
     });
-
     describe('Functions setURIProvider and tokenURI', async function () {
         it('test setURIProvider and tokenURI functions', async function () {
             const assetId = bn('443');
@@ -649,7 +661,7 @@ contract('ERC721 Base', function (accounts) {
 
             await testURIProvider.generate(assetId, user);
 
-            const SetURIProvider = await Helper.toEvents(
+            const SetURIProvider = await toEvents(
                 testURIProvider.setURIProvider(testURIProvider.address),
                 'SetURIProvider'
             );
@@ -667,7 +679,7 @@ contract('ERC721 Base', function (accounts) {
         });
 
         it('Try get tokenURI of a inexist token', async function () {
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => token.tokenURI(
                     bn('9999999999999991'),
                     { from: accounts[9] }
@@ -676,7 +688,6 @@ contract('ERC721 Base', function (accounts) {
             );
         });
     });
-
     describe('Functional tests', async function () {
         it('Should generate a new NFTs and tansfer randomly', async function () {
             const assetIds = [];
@@ -723,26 +734,5 @@ contract('ERC721 Base', function (accounts) {
                 );
             }
         });
-    });
-
-    it('Test functions that get information of tokens and owners', async function () {
-        assert.equal(await token.name(), 'Test ERC721');
-        assert.equal(await token.symbol(), 'TST');
-        const prevTotalSupply = await token.totalSupply();
-        const prevAllTokens = (await token.allTokens()).length;
-
-        const assetId = bn('2335');
-
-        await token.generate(assetId, user);
-
-        const totalSupply = await token.totalSupply();
-        const tokenAtIndex = await token.tokenByIndex(dec(totalSupply));
-        const assetsOfOWner = await token.assetsOf(user);
-        const auxOwnerIndex = assetsOfOWner.length - 1;
-        const tokenOfOwnerByIndex = await token.tokenOfOwnerByIndex(user, auxOwnerIndex);
-
-        expect(totalSupply).to.eq.BN(inc(prevTotalSupply));
-        expect(tokenAtIndex).to.eq.BN(tokenOfOwnerByIndex, 'Tokens Id of owner and allTokens at indexes should be equal');
-        assert.equal((await token.allTokens()).length, prevAllTokens + 1);
     });
 });
