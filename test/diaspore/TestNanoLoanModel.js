@@ -246,62 +246,50 @@ contract('NanoLoanModel', function (accounts) {
     const sd = bn('86400');// seconds in a day
     function eTest (amount, interest, punitoryInterest, duesIn, d1, v1, d2, v2, d3, v3, d4, v4) {
         return async () => {
-            amount = bn(amount.toString());
-            interest = bn(interest.toString());
-            punitoryInterest = bn(punitoryInterest.toString());
-            duesIn = bn(duesIn.toString());
-            d1 = bn(d1.toString());
-            v1 = bn(v1.toString());
-            d2 = bn(d2.toString());
-            v2 = bn(v2.toString());
-            d3 = bn(d3.toString());
-            v3 = bn(v3.toString());
-            d4 = bn(d4.toString());
-            v4 = bn(v4.toString());
             // Create a new loan with the received params
             const id = toBytes32(idCounter++);
             const params = await model.encodeData(
-                amount,                                  // amount
+                amount,                           // amount
                 toInterestRate(interest),         // interest rate
                 toInterestRate(punitoryInterest), // interest rate punitory
-                duesIn.mul(sd),                          // dues in
-                0,                                       // cancelable at
+                bn(duesIn).mul(sd),               // dues in
+                0,                                // cancelable at
             );
             await model.create(id, params, { from: owner });
 
             // forward time, d1 days
-            await increaseTime(d1.mul(sd).toNumber());
+            await increaseTime(bn(d1).mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await model.run(id);
 
             const d1PendingAmount = await model.getClosingObligation(id);
-            const d1Diff = d1PendingAmount.sub(v1);
+            const d1Diff = d1PendingAmount.sub(bn(v1));
             assert.isBelow(d1Diff.toNumber(), 2, 'The v1 should aprox the interest rate in the d1 timestamp');
 
             // forward time, d2 days
-            await increaseTime(d2.mul(sd).toNumber());
+            await increaseTime(bn(d2).mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             const d2PendingAmount = await model.getClosingObligation(id);
-            const d2Diff = d2PendingAmount.sub(v2);
+            const d2Diff = d2PendingAmount.sub(bn(v2));
             assert.isBelow(d2Diff.toNumber(), 2, 'The v2 should aprox the interest rate in the d2 timestamp');
 
             // forward time, d3 days
-            await increaseTime(d3.mul(sd).toNumber());
+            await increaseTime(bn(d3).mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await model.run(id);
             const d3PendingAmount = await model.getClosingObligation(id);
-            const d3Diff = d3PendingAmount.sub(v3);
+            const d3Diff = d3PendingAmount.sub(bn(v3));
             assert.isBelow(d3Diff.toNumber(), 2, 'The v3 should aprox the interest rate in the d3 timestamp');
 
             // forward time, d4 days
-            await increaseTime(d4.mul(sd).toNumber());
+            await increaseTime(bn(d4).mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             const d4PendingAmount = await model.getClosingObligation(id);
-            const d4Diff = d4PendingAmount.sub(v4);
+            const d4Diff = d4PendingAmount.sub(bn(v4));
             assert.isBelow(d4Diff.toNumber(), 2, 'The v4 should aprox the interest rate in the d4 timestamp');
 
             // pay total amount
@@ -312,7 +300,6 @@ contract('NanoLoanModel', function (accounts) {
             expect(state.status).to.eq.BN(STATUS_PAID, 'The status should be paid');
         };
     }
-
     it('get modelId', async function () {
         const nameModel = 'NanoLoanModel 1.0';
         const calcModelId = web3.utils.toTwosComplement(web3.utils.asciiToHex(nameModel));
