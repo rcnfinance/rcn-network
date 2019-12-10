@@ -22,7 +22,7 @@ const {
 } = require('../Helper.js');
 
 function toWei (stringNumber) {
-    return bn(stringNumber).mul(bn('10').pow(bn('18')));
+    return bn(stringNumber).mul(bn(10).pow(bn(18)));
 }
 
 contract('Test DebtEngine Diaspore', function (accounts) {
