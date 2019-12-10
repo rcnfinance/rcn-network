@@ -18,7 +18,7 @@ const {
     toEvents,
     tryCatchRevert,
     assertThrow,
-} = require('../../Helper.js');
+} = require('../Helper.js');
 
 function toWei (stringNumber) {
     return bn(stringNumber).mul(bn('10').pow(bn('18')));
