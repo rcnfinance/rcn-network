@@ -1,3 +1,8 @@
+const BN = web3.utils.BN;
+module.exports.expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
+
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
@@ -5,6 +10,18 @@ module.exports.STATUS_REQUEST = '0';
 module.exports.STATUS_ONGOING = '1';
 module.exports.STATUS_PAID = '2';
 module.exports.STATUS_ERROR = '4';
+
+module.exports.bn = (number) => {
+    return web3.utils.toBN(number);
+}
+
+module.exports.random32 = () => {
+  return this.bn(web3.utils.randomHex(32));
+};
+
+module.exports.random32bn = () => {
+  return this.bn(this.random32());
+};
 
 module.exports.arrayToBytesOfBytes32 = (array) => {
     let bytes = '0x';
@@ -33,12 +50,13 @@ module.exports.toBytes32 = (source) => {
 
 module.exports.increaseTime = function increaseTime(duration) {
     const id = Date.now();
+    const delta = duration.toNumber !== undefined ? duration.toNumber() : duration;
 
     return new Promise((resolve, reject) => {
         web3.currentProvider.send({
             jsonrpc: "2.0",
             method: "evm_increaseTime",
-            params: [duration],
+            params: [delta],
             id: id
         },
         err1 => {
@@ -90,7 +108,7 @@ module.exports.assertThrow = async (promise) => {
         );
         return;
     }
-    assert.fail('Expected throw not received');
+    throw new Error('Expected throw not received');
 };
 
 // the promiseFunction should be a function
@@ -112,7 +130,7 @@ module.exports.tryCatchRevert = async (promise, message, headMsg = 'revert ') =>
         );
         return;
     }
-    assert.fail('Expected throw not received');
+    throw new Error('Expected throw not received');
 };
 
 module.exports.toInterestRate = (interest) => {
