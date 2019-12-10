@@ -180,9 +180,10 @@ module.exports.eventNotEmitted = async (receipt, eventName) => {
 };
 
 module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
-    assert.isBelow(
-        Math.abs((await p1).toNumber() - (await p2)),
-        margin,
-        reason
-    );
+    margin = this.bn(margin);
+    const a = this.bn(await p1);
+    const b = this.bn(await p2);
+    const diff = a.sub(b).abs();
+
+    assert.isTrue(diff.lt(margin), reason);
 };
