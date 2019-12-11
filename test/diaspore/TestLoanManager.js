@@ -1,22 +1,26 @@
-const LoanManager = artifacts.require('./diaspore/LoanManager.sol');
-const TestModel = artifacts.require('./diaspore/utils/test/TestModel.sol');
-const DebtEngine = artifacts.require('./diaspore/DebtEngine.sol');
-const TestToken = artifacts.require('./utils/test/TestToken.sol');
-const TestDebtEngine = artifacts.require('./diaspore/utils/test/TestDebtEngine.sol');
-const TestCosigner = artifacts.require('./utils/test/TestCosigner.sol');
-const TestRateOracle = artifacts.require('./utils/test/TestRateOracle.sol');
-const TestLoanApprover = artifacts.require('./diaspore/utils/test/TestLoanApprover.sol');
-const TestLoanCallback = artifacts.require('./diaspore/utils/test/TestLoanCallback.sol');
+const LoanManager = artifacts.require('LoanManager');
+const TestModel = artifacts.require('TestModel');
+const DebtEngine = artifacts.require('DebtEngine');
+const TestToken = artifacts.require('TestToken');
+const TestDebtEngine = artifacts.require('TestDebtEngine');
+const TestCosigner = artifacts.require('TestCosigner');
+const TestRateOracle = artifacts.require('TestRateOracle');
+const TestLoanApprover = artifacts.require('TestLoanApprover');
+const TestLoanCallback = artifacts.require('TestLoanCallback');
 
-const Helper = require('../Helper.js');
-const BN = web3.utils.BN;
-const expect = require('chai')
-    .use(require('bn-chai')(BN))
-    .expect;
-
-function bn (number) {
-    return new BN(number);
-}
+const {
+    expect,
+    bn,
+    address0x,
+    bytes320x,
+    STATUS_ONGOING,
+    STATUS_REQUEST,
+    getBlockTime,
+    toEvents,
+    tryCatchRevert,
+    increaseTime,
+    toBytes32,
+} = require('../Helper.js');
 
 const MAX_UINT256 = bn('2').pow(bn('256')).sub(bn('1'));
 
@@ -36,7 +40,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         return event.args._id;
     }
 
-    async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data, _callback = Helper.address0x) {
+    async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data, _callback = address0x) {
         const _two = '0x02';
         const controlId = await loanManager.calcId(
             _amount,
@@ -94,7 +98,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         _salt,
         _expiration,
         _data,
-        _callback = Helper.address0x
+        _callback = address0x
     ) {
         const _two = '0x02';
         const encodeData = await loanManager.encodeRequest(
@@ -177,15 +181,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
     describe('Constructor', function () {
         it('Try instance a LoanManager instance with token == 0x0', async function () {
-            const testDebtEngine = await TestDebtEngine.new(Helper.address0x);
+            const testDebtEngine = await TestDebtEngine.new(address0x);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => LoanManager.new(testDebtEngine.address),
                 'Error loading token'
             );
         });
     });
-
     describe('Getters', function () {
         it('The getters legacy(uint256) and actual(bytes32) should be equals', async function () {
             const creator = accounts[1];
@@ -193,7 +196,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('13132123');
             const amount = bn('1');
-            const expiration = (await Helper.getBlockTime()) + 11100;
+            const expiration = (await getBlockTime()) + 11100;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -212,7 +215,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 oracle.address,   // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -247,8 +250,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await loanManager.getCosigner(id), cosigner.address);
             assert.equal(await loanManager.methods['getCosigner(bytes32)'](id), cosigner.address);
 
-            assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
-            assert.equal(await loanManager.methods['getCurrency(bytes32)'](id), Helper.bytes320x);
+            assert.equal(await loanManager.getCurrency(id), bytes320x);
+            assert.equal(await loanManager.methods['getCurrency(bytes32)'](id), bytes320x);
 
             expect(await loanManager.getAmount(id)).to.eq.BN('1');
             expect(await loanManager.methods['getAmount(bytes32)'](id)).to.eq.BN('1');
@@ -268,21 +271,20 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(await loanManager.getLoanData(id), loanData);
             assert.equal(await loanManager.methods['getLoanData(bytes32)'](id), loanData);
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
-            expect(await loanManager.methods['getStatus(bytes32)'](id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+            expect(await loanManager.methods['getStatus(bytes32)'](id)).to.eq.BN(STATUS_ONGOING);
 
             assert.equal(await loanManager.ownerOf(id), lender);
             assert.equal(await loanManager.methods['ownerOf(bytes32)'](id), lender);
         });
     });
-
     describe('Function internalSalt', function () {
         it('Should return future internal salt', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const salt = bn('3');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
@@ -290,7 +292,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 amount,
                 borrower,
                 creator,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration
             );
@@ -298,9 +300,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -311,7 +313,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         });
 
         it('Should fail internal salt if id does not exist', async function () {
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 loanManager.internalSalt(
                     web3.utils.padLeft('0x2', 32)
                 ),
@@ -319,14 +321,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function requestLoan', function () {
         it('Should request a loan using requestLoan', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const salt = bn('1');
             const amount = bn('1031230');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -334,19 +335,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
             );
 
-            const Requested = await Helper.toEvents(
+            const Requested = await toEvents(
                 loanManager.requestLoan(
                     amount,           // Amount
                     model.address,    // Model
-                    Helper.address0x, // Oracle
+                    address0x, // Oracle
                     borrower,         // Borrower
-                    Helper.address0x, // Callback
+                    address0x, // Callback
                     salt,             // salt
                     expiration,       // Expiration
                     loanData,         // Loan data
@@ -359,7 +360,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(Requested._amount).to.eq.BN(amount);
             assert.equal(Requested._model, model.address);
             assert.equal(Requested._creator, creator);
-            assert.equal(Requested._oracle, Helper.address0x);
+            assert.equal(Requested._oracle, address0x);
             assert.equal(Requested._borrower, borrower);
             expect(Requested._salt).to.eq.BN(salt);
             assert.equal(Requested._loanData, loanData);
@@ -375,12 +376,12 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(await loanManager.getAmount(id)).to.eq.BN(amount);
             expect(request.amount).to.eq.BN(amount);
             assert.equal(await loanManager.getCosigner(id), 0x0);
-            assert.equal(request.cosigner, Helper.address0x);
+            assert.equal(request.cosigner, address0x);
             assert.equal(request.model, model.address);
             assert.equal(await loanManager.getCreator(id), creator);
             assert.equal(request.creator, creator);
-            assert.equal(await loanManager.getOracle(id), Helper.address0x);
-            assert.equal(request.oracle, Helper.address0x);
+            assert.equal(await loanManager.getOracle(id), address0x);
+            assert.equal(request.oracle, address0x);
             assert.equal(await loanManager.getBorrower(id), borrower);
             assert.equal(request.borrower, borrower);
             expect(request.salt).to.eq.BN(salt);
@@ -397,16 +398,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('2');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id1 = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -416,9 +417,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const id2 = await getId(loanManager2.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -430,19 +431,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
         it('Try request loan with address0x as borrower', async function () {
             const creator = accounts[1];
-            const borrower = Helper.address0x;
+            const borrower = address0x;
             const salt = bn('319');
             const amount = bn('143441230');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.requestLoan(
                     amount,
                     model.address,
-                    Helper.address0x,
+                    address0x,
                     borrower,
-                    Helper.address0x,
+                    address0x,
                     salt,
                     expiration,
                     loanData,
@@ -459,7 +460,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('23');
             const amount = bn('30');
-            const expiration = (await Helper.getBlockTime()) + 900;
+            const expiration = (await getBlockTime()) + 900;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await loanManager2.calcId(
@@ -467,8 +468,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
-                Helper.address0x,
+                address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -477,9 +478,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager2.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -489,11 +490,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager2.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager2.lend(
                     id,
                     [],
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -508,16 +509,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('11319');
             const amount = bn('441230');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
             const loanData = await model.encodeData('0', expiration);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.requestLoan(
                     amount,
                     model.address,
-                    Helper.address0x,
+                    address0x,
                     borrower,
-                    Helper.address0x,
+                    address0x,
                     salt,
                     expiration,
                     loanData,
@@ -532,28 +533,28 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('19');
             const amount = bn('1431230');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
                 { from: creator }
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.requestLoan(
                     amount,
                     model.address,
-                    Helper.address0x,
+                    address0x,
                     borrower,
-                    Helper.address0x,
+                    address0x,
                     salt,
                     expiration,
                     loanData,
@@ -568,7 +569,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const creator = accounts[4];
             const salt = bn('33422');
             const amount = bn('4555');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -576,7 +577,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -585,9 +586,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -608,13 +609,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: borrower }
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.requestLoan(
                     amount,
                     model.address,
-                    Helper.address0x,
+                    address0x,
                     borrower,
-                    Helper.address0x,
+                    address0x,
                     salt,
                     expiration,
                     loanData,
@@ -628,7 +629,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('1');
             const amount = bn('1031230');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -636,19 +637,19 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
             );
 
-            const Requested = await Helper.toEvents(
+            const Requested = await toEvents(
                 loanManager.requestLoan(
                     amount,            // Amount
                     model.address,     // Model
-                    Helper.address0x,  // Oracle
+                    address0x,  // Oracle
                     borrower,          // Borrower
-                    Helper.address0x,  // Callback
+                    address0x,  // Callback
                     salt,              // salt
                     expiration,        // Expiration
                     loanData,          // Loan data
@@ -661,7 +662,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(Requested._amount).to.eq.BN(amount);
             assert.equal(Requested._model, model.address);
             assert.equal(Requested._creator, borrower);
-            assert.equal(Requested._oracle, Helper.address0x);
+            assert.equal(Requested._oracle, address0x);
             assert.equal(Requested._borrower, borrower);
             expect(Requested._salt).to.eq.BN(salt);
             assert.equal(Requested._loanData, loanData);
@@ -674,16 +675,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.isTrue(request.open, 'The request should be open');
             expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
             expect(request.expiration).to.eq.BN(expiration);
-            assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
+            assert.equal(await loanManager.getCurrency(id), bytes320x);
             expect(await loanManager.getAmount(id)).to.eq.BN(amount);
             expect(request.amount).to.eq.BN(amount);
-            assert.equal(await loanManager.getCosigner(id), Helper.address0x);
-            assert.equal(request.cosigner, Helper.address0x);
+            assert.equal(await loanManager.getCosigner(id), address0x);
+            assert.equal(request.cosigner, address0x);
             assert.equal(request.model, model.address);
             assert.equal(await loanManager.getCreator(id), borrower);
             assert.equal(request.creator, borrower);
-            assert.equal(await loanManager.getOracle(id), Helper.address0x);
-            assert.equal(request.oracle, Helper.address0x);
+            assert.equal(await loanManager.getOracle(id), address0x);
+            assert.equal(request.oracle, address0x);
             assert.equal(await loanManager.getBorrower(id), borrower);
             assert.equal(request.borrower, borrower);
             expect(request.salt).to.eq.BN(salt);
@@ -693,14 +694,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(await loanManager.getDueTime(id)).to.eq.BN('0');
         });
     });
-
     describe('Function approveRequest', function () {
         it('Should approve a request using approveRequest', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const salt = bn('13132123');
             const amount = bn('10230');
-            const expiration = (await Helper.getBlockTime()) + 11100;
+            const expiration = (await getBlockTime()) + 11100;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -708,7 +708,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -717,16 +717,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
                 { from: creator } // Creator
             );
 
-            const approved = await Helper.toEvents(
+            const approved = await toEvents(
                 loanManager.approveRequest(
                     id, { from: borrower }
                 ),
@@ -744,7 +744,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('1312123');
             const amount = bn('130');
-            const expiration = (await Helper.getBlockTime()) + 1100;
+            const expiration = (await getBlockTime()) + 1100;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -752,7 +752,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -761,16 +761,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
                 { from: creator } // Creator
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.approveRequest(
                     id,
                     { from: creator }
@@ -779,23 +779,22 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function registerApproveRequest', function () {
         it('Should register approve using the borrower signature', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const salt = bn('4');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -805,7 +804,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // Sign loan id
             const signature = await web3.eth.sign(calcSignature(id, 'sign approve request'), borrower);
 
-            const events = await Helper.toEvents(
+            const events = await toEvents(
                 loanManager.registerApproveRequest(
                     id,
                     signature,
@@ -830,16 +829,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('5');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -847,7 +846,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ));
 
             // Sign loan id
-            const signature = await web3.eth.sign(calcSignature(Helper.toBytes32(accounts[3]), 'sign approve request'), borrower);
+            const signature = await web3.eth.sign(calcSignature(toBytes32(accounts[3]), 'sign approve request'), borrower);
 
             const receipt = await loanManager.registerApproveRequest(
                 id,
@@ -868,16 +867,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('6');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -887,7 +886,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             // Sign loan id
             const signature = await web3.eth.sign(calcSignature(id, 'sign approve request'), borrower);
 
-            const Approved = await Helper.toEvents(
+            const Approved = await toEvents(
                 loanManager.registerApproveRequest(
                     id,
                     signature,
@@ -917,16 +916,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('4');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -953,16 +952,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('5');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -987,16 +986,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('6');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -1021,16 +1020,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('7');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -1055,16 +1054,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('1561561');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -1072,7 +1071,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             ));
 
             await loanApprover.setExpectedApprove(id);
-            const Approved = await Helper.toEvents(
+            const Approved = await toEvents(
                 loanManager.registerApproveRequest(
                     id,
                     [],
@@ -1100,16 +1099,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = debtEngine.address;
             const salt = bn('7');
             const amount = bn('1000');
-            const expiration = (await Helper.getBlockTime()) + 1000;
+            const expiration = (await getBlockTime()) + 1000;
 
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
                 model.address,    // Model
-                Helper.address0x, // Oracle
+                address0x, // Oracle
                 borrower,         // Borrower
-                Helper.address0x, // Callback
+                address0x, // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -1127,14 +1126,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.notOk(event);
         });
     });
-
     describe('Function lend and cosign(internal function)', function () {
         it('Should lend a request using lend', async function () {
             const borrower = accounts[2];
             const lender = accounts[3];
             const salt = bn('23');
             const amount = bn('30');
-            const expiration = (await Helper.getBlockTime()) + 900;
+            const expiration = (await getBlockTime()) + 900;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1142,7 +1140,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1151,9 +1149,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1163,11 +1161,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const lent = await Helper.toEvents(
+            const lent = await toEvents(
                 loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
-                    Helper.address0x,   // Cosigner
+                    address0x,   // Cosigner
                     '0',                // Cosigner limit
                     [],                 // Cosigner data
                     [],                 // Callback data
@@ -1185,11 +1183,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const debt = await debtEngine.debts(id);
             assert.isFalse(debt.error, 'The debt should not have error');
-            assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
+            assert.equal(await loanManager.getCurrency(id), bytes320x);
             expect(debt.balance).to.eq.BN('0', 'The debt should not be balance');
             assert.equal(debt.model, model.address, 'The model should be the model');
             assert.equal(debt.creator, loanManager.address, 'The creator should be the loanManager');
-            assert.equal(debt.oracle, Helper.address0x, 'The debt should not have oracle');
+            assert.equal(debt.oracle, address0x, 'The debt should not have oracle');
 
             assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
             assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
@@ -1200,7 +1198,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('19982229');
             const amount = bn('90880');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1208,7 +1206,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1217,9 +1215,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1231,7 +1229,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await cosigner.setCustomData(id, bn('1'));
             const id0x0Data = await cosigner.customData();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
@@ -1255,7 +1253,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('213');
             const amount = bn('300');
-            const expiration = (await Helper.getBlockTime()) + 9010;
+            const expiration = (await getBlockTime()) + 9010;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1263,7 +1261,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1272,9 +1270,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1284,11 +1282,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -1303,7 +1301,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('313');
             const amount = bn('440');
-            const expiration = (await Helper.getBlockTime()) + 1010;
+            const expiration = (await getBlockTime()) + 1010;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1311,7 +1309,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1320,9 +1318,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1334,13 +1332,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             // approve requests
             await loanManager.approveRequest(id, { from: borrower });
-            await Helper.increaseTime(2000);
+            await increaseTime(2000);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -1354,7 +1352,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('763');
             const amount = bn('700');
-            const expiration = (await Helper.getBlockTime()) + 9010;
+            const expiration = (await getBlockTime()) + 9010;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1362,7 +1360,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1371,20 +1369,20 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
                 { from: borrower }
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -1399,7 +1397,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2223');
             const amount = bn('32231');
-            const expiration = (await Helper.getBlockTime()) + 3300;
+            const expiration = (await getBlockTime()) + 3300;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1407,7 +1405,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1416,9 +1414,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1431,18 +1429,18 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.lend(
                 id,                 // Index
                 [],                 // OracleData
-                Helper.address0x,   // Cosigner
+                address0x,   // Cosigner
                 '0',                // Cosigner limit
                 [],                 // Cosigner data
                 [],                 // Callback data
                 { from: lender }    // Owner/Lender
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -1465,7 +1463,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amountETH = bn('6545');
             const amountRCN = amountETH.mul(tokens).div(equivalent);
 
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amountETH, expiration);
 
             const id = await calcId(
@@ -1484,7 +1482,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 oracle.address,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1497,7 +1495,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.lend(
                 id,
                 oracleData,
-                Helper.address0x,
+                address0x,
                 '0',
                 [],
                 [],
@@ -1511,8 +1509,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const request = await loanManager.requests(id);
             assert.equal(request.oracle, oracle.address);
-            assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
-            assert.equal(request.cosigner, Helper.address0x);
+            assert.equal(await loanManager.getCurrency(id), bytes320x);
+            assert.equal(request.cosigner, address0x);
             expect(request.salt).to.eq.BN(salt);
         });
 
@@ -1523,7 +1521,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('5545');
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1531,7 +1529,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1540,9 +1538,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1553,7 +1551,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, totalCost, { from: lender });
             const data = await cosigner.data();
 
-            const cosigned = await Helper.toEvents(
+            const cosigned = await toEvents(
                 loanManager.lend(
                     id,
                     [],
@@ -1587,7 +1585,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('1998');
             const amount = bn('90880');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1595,7 +1593,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1604,9 +1602,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1615,10 +1613,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
-            await cosigner.setCustomData(Helper.bytes320x, '0');
+            await cosigner.setCustomData(bytes320x, '0');
             const id0x0Data = await cosigner.customData();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
@@ -1641,7 +1639,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('546546');
             const amount = bn('11');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1649,7 +1647,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1658,9 +1656,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1672,7 +1670,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await cosigner.setCustomData(id, MAX_UINT256);
 
             const maxCostData = await cosigner.customData();
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
@@ -1695,7 +1693,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('57476');
             const amount = bn('574');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1703,7 +1701,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1712,9 +1710,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1725,7 +1723,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
             const badData = await cosigner.badData();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
@@ -1748,7 +1746,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('42342');
             const amount = bn('44444');
-            const expiration = (await Helper.getBlockTime()) + 1600;
+            const expiration = (await getBlockTime()) + 1600;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1756,7 +1754,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1765,9 +1763,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1777,7 +1775,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
@@ -1799,7 +1797,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('87868');
             const amount = bn('456345');
-            const expiration = (await Helper.getBlockTime()) + 1600;
+            const expiration = (await getBlockTime()) + 1600;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1807,7 +1805,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1816,9 +1814,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1829,7 +1827,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
             const noCosignData = await cosigner.noCosignData();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
@@ -1854,7 +1852,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('5545');
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1862,7 +1860,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1871,9 +1869,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -1884,7 +1882,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
             const data = await cosigner.data();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,
                     [],
@@ -1902,14 +1900,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(await rcn.balanceOf(lender)).to.eq.BN(totalCost);
         });
     });
-
     describe('Function cancel', function () {
         it('The creator should cancel a request using cancel', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const salt = bn('3434225');
             const amount = bn('55');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1917,7 +1914,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1926,16 +1923,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
                 { from: creator }
             );
 
-            const canceled = await Helper.toEvents(
+            const canceled = await toEvents(
                 loanManager.cancel(
                     id,
                     { from: creator }
@@ -1950,11 +1947,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.isFalse(request.approved);
             expect(request.expiration).to.eq.BN('0');
             expect(request.amount).to.eq.BN('0');
-            assert.equal(request.cosigner, Helper.address0x);
-            assert.equal(request.model, Helper.address0x);
-            assert.equal(request.creator, Helper.address0x);
-            assert.equal(request.oracle, Helper.address0x);
-            assert.equal(request.borrower, Helper.address0x);
+            assert.equal(request.cosigner, address0x);
+            assert.equal(request.model, address0x);
+            assert.equal(request.creator, address0x);
+            assert.equal(request.oracle, address0x);
+            assert.equal(request.borrower, address0x);
             expect(request.salt).to.eq.BN('0');
             assert.equal(request.loanData, null);
 
@@ -1966,7 +1963,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('3522');
             const amount = bn('5000');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -1974,7 +1971,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -1983,16 +1980,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
                 { from: borrower }
             );
 
-            const canceled = await Helper.toEvents(
+            const canceled = await toEvents(
                 loanManager.cancel(
                     id,
                     { from: borrower }
@@ -2008,11 +2005,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.isFalse(request.approved);
             expect(request.expiration).to.eq.BN('0');
             expect(request.amount).to.eq.BN('0');
-            assert.equal(request.cosigner, Helper.address0x);
-            assert.equal(request.model, Helper.address0x);
-            assert.equal(request.creator, Helper.address0x);
-            assert.equal(request.oracle, Helper.address0x);
-            assert.equal(request.borrower, Helper.address0x);
+            assert.equal(request.cosigner, address0x);
+            assert.equal(request.model, address0x);
+            assert.equal(request.creator, address0x);
+            assert.equal(request.oracle, address0x);
+            assert.equal(request.borrower, address0x);
             expect(request.salt).to.eq.BN('0');
             assert.equal(request.loanData, null);
 
@@ -2026,7 +2023,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('6000');
             const amount = bn('6000');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -2034,7 +2031,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2043,16 +2040,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
                 { from: creator }
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.cancel(
                     id,
                     { from: lender }
@@ -2066,7 +2063,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('33422');
             const amount = bn('4555');
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -2074,7 +2071,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2083,9 +2080,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -2098,14 +2095,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.lend(
                 id,
                 [],
-                Helper.address0x,
+                address0x,
                 '0',
                 [],
                 [],
                 { from: lender }
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.cancel(
                     id,
                     { from: lender }
@@ -2114,7 +2111,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
         });
     });
-
     describe('Function settleLend and cosign(internal function)', function () {
         it('Should lend a request using settleLend', async function () {
             const creator = accounts[1];
@@ -2122,7 +2118,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2130,7 +2126,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2144,11 +2140,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const settledLend = await Helper.toEvents(
+            const settledLend = await toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2177,7 +2173,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(request.cosigner, 0x0);
             assert.equal(request.model, model.address);
             assert.equal(request.creator, creator);
-            assert.equal(request.oracle, Helper.address0x);
+            assert.equal(request.oracle, address0x);
             assert.equal(request.borrower, borrower);
             expect(request.salt).to.eq.BN(salt);
 
@@ -2191,7 +2187,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2199,7 +2195,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2213,11 +2209,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const events = await Helper.toEvents(
+            const events = await toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2245,7 +2241,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2011');
             const amount = bn('666');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2253,7 +2249,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2267,11 +2263,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2295,7 +2291,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('33');
             const amount = bn('666');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2303,7 +2299,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2317,11 +2313,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2345,7 +2341,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2353,7 +2349,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2367,11 +2363,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const events = await Helper.toEvents(
+            const events = await toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2399,7 +2395,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2407,7 +2403,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2419,11 +2415,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            const borrowerByCallback = await Helper.toEvents(
+            const borrowerByCallback = await toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2448,7 +2444,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2');
             const amount = bn('33622');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2456,7 +2452,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2477,11 +2473,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2504,7 +2500,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2');
             const amount = bn('33622');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2512,7 +2508,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2533,11 +2529,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2560,7 +2556,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2568,7 +2564,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2582,11 +2578,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2609,7 +2605,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2617,7 +2613,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2631,11 +2627,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2668,15 +2664,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await loanManager2.encodeRequest(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 creator,
@@ -2692,11 +2688,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager2.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager2.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2723,7 +2719,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amountETH = bn('3320');
             const amountRCN = amountETH.mul(tokens).div(equivalent);
 
-            const expiration = (await Helper.getBlockTime()) + 1700;
+            const expiration = (await getBlockTime()) + 1700;
             const loanData = await model.encodeData(amountETH, expiration);
 
             const encodeData = await calcSettleId(
@@ -2748,7 +2744,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.settleLend(
                 settleData,
                 loanData,
-                Helper.address0x,
+                address0x,
                 '0',
                 [],
                 oracleData,
@@ -2768,14 +2764,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(request.expiration).to.eq.BN(expiration);
             assert.equal(request.oracle, oracle.address);
             expect(request.amount).to.eq.BN(amountETH);
-            assert.equal(request.cosigner, Helper.address0x);
+            assert.equal(request.cosigner, address0x);
             assert.equal(request.model, model.address);
             assert.equal(request.creator, creator);
             assert.equal(request.oracle, oracle.address);
             assert.equal(request.borrower, borrower);
             expect(request.salt).to.eq.BN(salt);
 
-            assert.equal(await loanManager.getCurrency(id), Helper.bytes320x);
+            assert.equal(await loanManager.getCurrency(id), bytes320x);
             assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
             assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
         });
@@ -2786,7 +2782,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2794,7 +2790,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration - 10000,
                 loanData
@@ -2809,11 +2805,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2836,7 +2832,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2844,7 +2840,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2858,11 +2854,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await rcn.setBalance(lender, amount);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2885,7 +2881,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2893,7 +2889,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2910,7 +2906,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.settleLend(
                 settleData,
                 loanData,
-                Helper.address0x,
+                address0x,
                 '0',
                 [],
                 [],
@@ -2920,11 +2916,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: lender }
             );
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -2949,7 +2945,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('355320');
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -2957,7 +2953,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -2972,7 +2968,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, totalCost, { from: lender });
             const data = await cosigner.data();
 
-            const cosigned = await Helper.toEvents(
+            const cosigned = await toEvents(
                 loanManager.settleLend(
                     settleData,
                     loanData,
@@ -3009,7 +3005,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('273263');
             const amount = bn('32134');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3017,7 +3013,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3030,10 +3026,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
-            await cosigner.setCustomData(Helper.bytes320x, '0');
+            await cosigner.setCustomData(bytes320x, '0');
             const id0x0Data = await cosigner.customData();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
@@ -3062,7 +3058,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('432354');
             const amount = bn('66');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3070,7 +3066,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3086,7 +3082,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await cosigner.setCustomData(id, MAX_UINT256);
             const maxCostData = await cosigner.customData();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
@@ -3115,7 +3111,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('273263');
             const amount = bn('32134');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3123,7 +3119,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3138,7 +3134,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
             const badData = await cosigner.badData();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
@@ -3167,7 +3163,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('273263');
             const amount = bn('32134');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3175,7 +3171,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3189,7 +3185,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
@@ -3217,7 +3213,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('273263');
             const amount = bn('32134');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3225,7 +3221,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3240,7 +3236,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
             const noCosignData = await cosigner.noCosignData();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
@@ -3271,7 +3267,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('74575');
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3279,7 +3275,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3294,7 +3290,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
             const data = await cosigner.data();
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
@@ -3317,14 +3313,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(await rcn.balanceOf(lender)).to.eq.BN(totalCost);
         });
     });
-
     describe('Function settleCancel', function () {
         it('The creator should cancel a request using settleCancel', async function () {
             const creator = accounts[1];
             const borrower = accounts[2];
             const salt = bn('2956');
             const amount = bn('9320');
-            const expiration = (await Helper.getBlockTime()) + 3400;
+            const expiration = (await getBlockTime()) + 3400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3332,7 +3327,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3340,7 +3335,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const settledCancel = await Helper.toEvents(
+            const settledCancel = await toEvents(
                 loanManager.settleCancel(
                     settleData,
                     loanData,
@@ -3359,7 +3354,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('564465');
             const amount = bn('9999');
-            const expiration = (await Helper.getBlockTime()) + 3400;
+            const expiration = (await getBlockTime()) + 3400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3367,7 +3362,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3376,7 +3371,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
             const id = encodeData[1];
 
-            const settledCancel = await Helper.toEvents(
+            const settledCancel = await toEvents(
                 loanManager.settleCancel(
                     settleData,
                     loanData,
@@ -3396,7 +3391,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const otherAcc = accounts[7];
             const salt = bn('5345');
             const amount = bn('9977699');
-            const expiration = (await Helper.getBlockTime()) + 3400;
+            const expiration = (await getBlockTime()) + 3400;
             const loanData = await model.encodeData(amount, expiration);
 
             const encodeData = await calcSettleId(
@@ -3404,7 +3399,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData
@@ -3412,7 +3407,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const settleData = encodeData[0];
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleCancel(
                     settleData,
                     loanData,
@@ -3429,7 +3424,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await Helper.getBlockTime()) + 900;
+            const expiration = (await getBlockTime()) + 900;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -3437,7 +3432,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3447,7 +3442,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
                 callback.address,
                 salt,
@@ -3462,11 +3457,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireId(id);
             await callback.setRequireLender(lender);
 
-            const lent = await Helper.toEvents(
+            const lent = await toEvents(
                 loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
-                    Helper.address0x,   // Cosigner
+                    address0x,   // Cosigner
                     '0',                // Cosigner limit
                     [],                 // Cosigner data
                     [],                 // Callback data
@@ -3478,7 +3473,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(lent._id, id);
             assert.equal(lent._lender, lender);
             expect(lent._tokens).to.eq.BN(amount);
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             assert.equal(await loanManager.getCallback(id), callback.address);
 
             assert.equal(await callback.caller(), loanManager.address);
@@ -3489,7 +3484,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await Helper.getBlockTime()) + 900;
+            const expiration = (await getBlockTime()) + 900;
             const loanData = await model.encodeData(amount, expiration);
             const callbackData = web3.utils.randomHex(120);
 
@@ -3498,7 +3493,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3508,7 +3503,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
                 callback.address,
                 salt,
@@ -3524,11 +3519,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireLender(lender);
             await callback.setRequireData(callbackData);
 
-            const lent = await Helper.toEvents(
+            const lent = await toEvents(
                 loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
-                    Helper.address0x,   // Cosigner
+                    address0x,   // Cosigner
                     '0',                // Cosigner limit
                     [],                 // Cosigner data
                     callbackData,       // Callback data
@@ -3540,7 +3535,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(lent._id, id);
             assert.equal(lent._lender, lender);
             expect(lent._tokens).to.eq.BN(amount);
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             assert.equal(await loanManager.getCallback(id), callback.address);
 
             assert.equal(await callback.caller(), loanManager.address);
@@ -3551,7 +3546,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await Helper.getBlockTime()) + 900;
+            const expiration = (await getBlockTime()) + 900;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -3559,7 +3554,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3569,7 +3564,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
                 callback.address,
                 salt,
@@ -3585,11 +3580,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireLender(lender);
             await callback.setReturn(false);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
-                    Helper.address0x,   // Cosigner
+                    address0x,   // Cosigner
                     '0',                // Cosigner limit
                     [],                 // Cosigner data
                     [],                 // Callback data
@@ -3597,8 +3592,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'Rejected by loan callback'
             );
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
-            assert.equal(await callback.caller(), Helper.address0x);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);
+            assert.equal(await callback.caller(), address0x);
             assert.equal(await loanManager.getCallback(id), callback.address);
         });
         it('Should fail if callback reverts', async function () {
@@ -3607,7 +3602,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await Helper.getBlockTime()) + 900;
+            const expiration = (await getBlockTime()) + 900;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -3615,7 +3610,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3625,7 +3620,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
                 callback.address,
                 salt,
@@ -3640,11 +3635,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireId(id);
             await callback.setRequireLender(lender);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
-                    Helper.address0x,   // Cosigner
+                    address0x,   // Cosigner
                     '0',                // Cosigner limit
                     [],                 // Cosigner data
                     ['0x01'],           // Callback data
@@ -3652,8 +3647,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'callback: wrong data'
             );
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
-            assert.equal(await callback.caller(), Helper.address0x);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);
+            assert.equal(await callback.caller(), address0x);
             assert.equal(await loanManager.getCallback(id), callback.address);
         });
         it('Should call loan callback on settleLend', async function () {
@@ -3662,7 +3657,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -3671,7 +3666,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3694,7 +3689,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.settleLend(
                 settleData,
                 loanData,
-                Helper.address0x,
+                address0x,
                 '0',
                 [],
                 [],
@@ -3706,7 +3701,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             assert.equal(await callback.caller(), loanManager.address);
             assert.equal(await loanManager.getCallback(id), callback.address);
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
         });
         it('Should send callback data to callback on settleLend', async function () {
             const creator = accounts[1];
@@ -3714,7 +3709,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
             const callback = await TestLoanCallback.new();
             const callbackdata = web3.utils.randomHex(260);
@@ -3724,7 +3719,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3748,7 +3743,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.settleLend(
                 settleData,
                 loanData,
-                Helper.address0x,
+                address0x,
                 '0',
                 [],
                 [],
@@ -3758,7 +3753,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: lender }
             );
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             assert.equal(await loanManager.getCallback(id), callback.address);
             assert.equal(await callback.caller(), loanManager.address);
         });
@@ -3768,7 +3763,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -3777,7 +3772,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3798,11 +3793,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireLender(lender);
             await callback.setReturn(false);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -3813,8 +3808,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'Rejected by loan callback'
             );
 
-            expect(await loanManager.getStatus(id)).to.not.eq.BN(Helper.STATUS_ONGOING);
-            assert.equal(await loanManager.getCallback(id), Helper.address0x);
+            expect(await loanManager.getStatus(id)).to.not.eq.BN(STATUS_ONGOING);
+            assert.equal(await loanManager.getCallback(id), address0x);
         });
         it('Should fail if callback reverts on settleLend', async function () {
             const creator = accounts[1];
@@ -3822,7 +3817,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -3831,7 +3826,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3848,11 +3843,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount.mul(bn('2')));
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -3863,8 +3858,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'callback: wrong id'
             );
 
-            expect(await loanManager.getStatus(id)).to.not.eq.BN(Helper.STATUS_ONGOING);
-            assert.equal(await loanManager.getCallback(id), Helper.address0x);
+            expect(await loanManager.getStatus(id)).to.not.eq.BN(STATUS_ONGOING);
+            assert.equal(await loanManager.getCallback(id), address0x);
         });
         it('Should limit gas usage on callback', async function () {
             const callback = await TestLoanCallback.new();
@@ -3872,7 +3867,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('991231');
             const amount = bn('30');
-            const expiration = (await Helper.getBlockTime()) + 900;
+            const expiration = (await getBlockTime()) + 900;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -3880,7 +3875,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3890,7 +3885,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
                 callback.address,
                 salt,
@@ -3906,11 +3901,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireLender(lender);
             await callback.setBurnGas(300001);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
-                    Helper.address0x,   // Cosigner
+                    address0x,   // Cosigner
                     '0',                // Cosigner limit
                     [],                 // Cosigner data
                     [],                 // Callback data
@@ -3918,8 +3913,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'Returned error: VM Exception while processing transaction: revert', ''
             );
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_REQUEST);
-            assert.equal(await callback.caller(), Helper.address0x);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);
+            assert.equal(await callback.caller(), address0x);
             assert.equal(await loanManager.getCallback(id), callback.address);
         });
         it('Should limit gas usage on callback using settleLend', async function () {
@@ -3928,7 +3923,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -3937,7 +3932,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -3958,11 +3953,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireLender(lender);
             await callback.setBurnGas(300001);
 
-            await Helper.tryCatchRevert(
+            await tryCatchRevert(
                 () => loanManager.settleLend(
                     settleData,
                     loanData,
-                    Helper.address0x,
+                    address0x,
                     '0',
                     [],
                     [],
@@ -3973,8 +3968,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 ), 'Returned error: VM Exception while processing transaction: revert', ''
             );
 
-            expect(await loanManager.getStatus(id)).to.not.eq.BN(Helper.STATUS_ONGOING);
-            assert.equal(await loanManager.getCallback(id), Helper.address0x);
+            expect(await loanManager.getStatus(id)).to.not.eq.BN(STATUS_ONGOING);
+            assert.equal(await loanManager.getCallback(id), address0x);
         });
         it('Should allow low gas usage on callback', async function () {
             const callback = await TestLoanCallback.new();
@@ -3982,7 +3977,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await Helper.getBlockTime()) + 900;
+            const expiration = (await getBlockTime()) + 900;
             const loanData = await model.encodeData(amount, expiration);
 
             const id = await calcId(
@@ -3990,7 +3985,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 borrower,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -4000,7 +3995,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.requestLoan(
                 amount,
                 model.address,
-                Helper.address0x,
+                address0x,
                 borrower,
                 callback.address,
                 salt,
@@ -4016,11 +4011,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireLender(lender);
             await callback.setBurnGas(250000);
 
-            const lent = await Helper.toEvents(
+            const lent = await toEvents(
                 loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
-                    Helper.address0x,   // Cosigner
+                    address0x,   // Cosigner
                     '0',                // Cosigner limit
                     [],                 // Cosigner data
                     [],                 // Callback data
@@ -4032,7 +4027,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             assert.equal(lent._id, id);
             assert.equal(lent._lender, lender);
             expect(lent._tokens).to.eq.BN(amount);
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             assert.equal(await loanManager.getCallback(id), callback.address);
 
             assert.equal(await callback.caller(), loanManager.address);
@@ -4043,7 +4038,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await Helper.getBlockTime()) + 7400;
+            const expiration = (await getBlockTime()) + 7400;
             const loanData = await model.encodeData(amount, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -4052,7 +4047,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 borrower,
                 creator,
                 model.address,
-                Helper.address0x,
+                address0x,
                 salt,
                 expiration,
                 loanData,
@@ -4076,7 +4071,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await loanManager.settleLend(
                 settleData,
                 loanData,
-                Helper.address0x,
+                address0x,
                 '0',
                 [],
                 [],
@@ -4086,7 +4081,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 { from: lender }
             );
 
-            expect(await loanManager.getStatus(id)).to.eq.BN(Helper.STATUS_ONGOING);
+            expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             assert.equal(await loanManager.getCallback(id), callback.address);
             assert.equal(await callback.caller(), loanManager.address);
         });

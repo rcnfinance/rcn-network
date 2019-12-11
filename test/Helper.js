@@ -1,3 +1,8 @@
+const BN = web3.utils.BN;
+module.exports.expect = require('chai')
+    .use(require('bn-chai')(BN))
+    .expect;
+
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
@@ -5,6 +10,18 @@ module.exports.STATUS_REQUEST = '0';
 module.exports.STATUS_ONGOING = '1';
 module.exports.STATUS_PAID = '2';
 module.exports.STATUS_ERROR = '4';
+
+module.exports.bn = (number) => {
+    return web3.utils.toBN(number);
+};
+
+module.exports.random32 = () => {
+    return this.bn(web3.utils.randomHex(32));
+};
+
+module.exports.random32bn = () => {
+    return this.bn(this.random32());
+};
 
 module.exports.arrayToBytesOfBytes32 = (array) => {
     let bytes = '0x';
@@ -31,23 +48,24 @@ module.exports.toBytes32 = (source) => {
     return '0x' + source;
 };
 
-module.exports.increaseTime = function increaseTime(duration) {
+module.exports.increaseTime = function increaseTime (duration) {
     const id = Date.now();
+    const delta = duration.toNumber !== undefined ? duration.toNumber() : duration;
 
     return new Promise((resolve, reject) => {
         web3.currentProvider.send({
-            jsonrpc: "2.0",
-            method: "evm_increaseTime",
-            params: [duration],
-            id: id
+            jsonrpc: '2.0',
+            method: 'evm_increaseTime',
+            params: [delta],
+            id: id,
         },
         err1 => {
             if (err1) return reject(err1);
 
             web3.currentProvider.send({
-                jsonrpc: "2.0",
-                method: "evm_mine",
-                id: id + 1
+                jsonrpc: '2.0',
+                method: 'evm_mine',
+                id: id + 1,
             },
             (err2, res) => {
                 return err2 ? reject(err2) : resolve(res);
@@ -69,11 +87,13 @@ module.exports.getBlockTime = async () => {
 };
 
 module.exports.getTxTime = async (tx) => {
-   if (tx instanceof Promise)
-      tx = await tx;
-   const blockNumber = tx.receipt.blockNumber;
-   const block = await web3.eth.getBlock(blockNumber);
-   return block.timestamp;
+    if (tx instanceof Promise) {
+        tx = await tx;
+    }
+
+    const blockNumber = tx.receipt.blockNumber;
+    const block = await web3.eth.getBlock(blockNumber);
+    return block.timestamp;
 };
 
 module.exports.assertThrow = async (promise) => {
@@ -90,7 +110,7 @@ module.exports.assertThrow = async (promise) => {
         );
         return;
     }
-    assert.fail('Expected throw not received');
+    throw new Error('Expected throw not received');
 };
 
 // the promiseFunction should be a function
@@ -112,7 +132,7 @@ module.exports.tryCatchRevert = async (promise, message, headMsg = 'revert ') =>
         );
         return;
     }
-    assert.fail('Expected throw not received');
+    throw new Error('Expected throw not received');
 };
 
 module.exports.toInterestRate = (interest) => {
@@ -135,25 +155,27 @@ module.exports.searchEvent = (tx, eventName) => {
 };
 
 module.exports.toEvents = async (tx, ...events) => {
-   if (tx instanceof Promise)
-      tx = await tx;
+    if (tx instanceof Promise) {
+        tx = await tx;
+    }
 
-   const logs = tx.logs;
+    const logs = tx.logs;
 
-   let eventObjs = [].concat.apply(
-      [], events.map(
-         event => logs.filter(
-            log => log.event === event
-         )
-      )
-   );
+    let eventObjs = [].concat.apply(
+        [],
+        events.map(
+            event => logs.filter(
+                log => log.event === event
+            )
+        )
+    );
 
-   if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
-      console.log('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
-      assert.fail();
-   }
-   eventObjs = eventObjs.map(x => x.args);
-   return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
+    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
+        console.log('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
+        assert.fail();
+    }
+    eventObjs = eventObjs.map(x => x.args);
+    return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
 };
 
 module.exports.eventNotEmitted = async (receipt, eventName) => {
@@ -162,9 +184,10 @@ module.exports.eventNotEmitted = async (receipt, eventName) => {
 };
 
 module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
-    assert.isBelow(
-        Math.abs((await p1).toNumber() - (await p2)),
-        margin,
-        reason
-    );
+    margin = this.bn(margin);
+    const a = this.bn(await p1);
+    const b = this.bn(await p2);
+    const diff = a.sub(b).abs();
+
+    assert.isTrue(diff.lt(margin), reason);
 };
