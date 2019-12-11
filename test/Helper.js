@@ -1,5 +1,5 @@
 const BN = web3.utils.BN;
-const expect = require('chai')
+module.exports.expect = require('chai')
     .use(require('bn-chai')(BN))
     .expect;
 
@@ -10,6 +10,18 @@ module.exports.STATUS_REQUEST = '0';
 module.exports.STATUS_ONGOING = '1';
 module.exports.STATUS_PAID = '2';
 module.exports.STATUS_ERROR = '4';
+
+module.exports.bn = (number) => {
+    return web3.utils.toBN(number);
+}
+
+module.exports.random32 = () => {
+  return this.bn(web3.utils.randomHex(32));
+};
+
+module.exports.random32bn = () => {
+  return this.bn(this.random32());
+};
 
 module.exports.arrayToBytesOfBytes32 = (array) => {
     let bytes = '0x';

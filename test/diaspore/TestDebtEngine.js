@@ -18,6 +18,7 @@ const {
     toEvents,
     tryCatchRevert,
     assertThrow,
+    random32bn,
 } = require('../Helper.js');
 
 function toWei (stringNumber) {
@@ -342,7 +343,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         it('Should create a debt using create2', async function () {
             const owner = accounts[1];
             const creator = accounts[2];
-            const salt = bn('1283712983789');
+            const salt = random32bn();
             const data = await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000);
             const calcId = await debtEngine.buildId2(
                 creator,
@@ -511,7 +512,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         it('Should create a debt using create3', async function () {
             const owner = accounts[1];
             const creator = accounts[2];
-            const salt = bn('1283712983789');
+            const salt = random32bn();
             const data = await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000);
             const calcId = await debtEngine.buildId3(
                 creator,
