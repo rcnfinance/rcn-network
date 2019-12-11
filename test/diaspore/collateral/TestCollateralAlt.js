@@ -5,6 +5,7 @@ const DebtEngine = artifacts.require('DebtEngine');
 const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
 const CollateralDebtPayer = artifacts.require('CollateralDebtPayer');
+const CollateralAuction = artifacts.require('CollateralAuction');
 
 const { tryCatchRevert, address0x, toBytes32 } = require('../../Helper.js');
 const BN = web3.utils.BN;
@@ -38,8 +39,9 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
         // Collateral deploy
-        collateral = await Collateral.new(loanManager.address, { from: owner });
-        // await collateral.setConverter(converter.address, { from: owner });
+        const auction = await CollateralAuction.new(rcn.address, { from: owner });
+        collateral = await Collateral.new(loanManager.address, loanManager.address, { from: owner });
+        await auction.transferOwnership(auction.address, { from: owner });
         debtPayer = await CollateralDebtPayer.new();
     });
 
