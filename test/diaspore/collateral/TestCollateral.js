@@ -15,6 +15,8 @@ const {
     getBlockTime,
     toEvents,
     tryCatchRevert,
+    toBytes32,
+    increaseTime,
 } = require('../../Helper.js');
 
 contract('Test Collateral cosigner Diaspore', function (accounts) {
@@ -66,7 +68,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
     async function createDefaultCollateral () {
         const loanId = await createDefaultLoan();
-        const entryAmount = WEI;
+        const entryAmount = WEI.mul(bn(2));
 
         await auxToken.setBalance(creator, entryAmount, { from: owner });
         await auxToken.approve(collateral.address, entryAmount, { from: creator });
@@ -83,13 +85,37 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             'Created'
         );
 
-        return Created._entryId;
+        return {
+            entryId: Created._entryId,
+            loanId: loanId,
+        };
+    }
+
+    async function lendDefaultCollateral () {
+        const ids = await createDefaultCollateral();
+
+        const loanAmount = (await loanManager.requests(ids.loanId)).amount;
+        await rcn.setBalance(creator, loanAmount);
+        await rcn.approve(loanManager.address, loanAmount, { from: creator });
+
+        await loanManager.lend(
+            ids.loanId,             // Loan ID
+            [],                     // Oracle data
+            collateral.address,     // Collateral cosigner address
+            bn(0),                  // Collateral cosigner cost
+            toBytes32(ids.entryId), // Collateral ID reference
+            [],                     // Callback data
+            { from: creator }
+        );
+
+        return ids;
     }
 
     before('Create contracts', async function () {
         rcn = await TestToken.new({ from: owner });
         auxToken = await TestToken.new({ from: owner });
         oracle = await TestRateOracle.new({ from: owner });
+        await oracle.setEquivalent(WEI, { from: owner });
         await oracle.setToken(auxToken.address, { from: owner });
         debtEngine = await DebtEngine.new(rcn.address, { from: owner });
         loanManager = await LoanManager.new(debtEngine.address, { from: owner });
@@ -285,9 +311,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
     describe('Function deposit', function () {
         it('Should deposit an amount in a collateral', async function () {
-            const collId = await createDefaultCollateral();
+            const ids = await createDefaultCollateral();
 
-            const prevEntry = await collateral.entries(collId);
+            const prevEntry = await collateral.entries(ids.entryId);
 
             const depositAmount = bn(10000);
             await auxToken.setBalance(creator, depositAmount, { from: owner });
@@ -298,7 +324,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const Deposited = await toEvents(
                 collateral.deposit(
-                    collId,
+                    ids.entryId,
                     depositAmount,
                     { from: creator }
                 ),
@@ -306,10 +332,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
 
             // Test event
-            expect(Deposited._entryId).to.eq.BN(collId);
+            expect(Deposited._entryId).to.eq.BN(ids.entryId);
             expect(Deposited._amount).to.eq.BN(depositAmount);
             // Test collateral entry
-            const entry = await collateral.entries(collId);
+            const entry = await collateral.entries(ids.entryId);
             // Should remain the same
             expect(entry.liquidationRatio).to.eq.BN(prevEntry.liquidationRatio);
             expect(entry.balanceRatio).to.eq.BN(prevEntry.balanceRatio);
@@ -324,17 +350,15 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBalance.sub(depositAmount));
         });
         it('Try deposit collateral in a inAuction entry', async function () {
-            const collId = await createDefaultCollateral();
+            const ids = await lendDefaultCollateral();
 
-            // TODO lent and claim to set inAuction the entry
-
-            await auxToken.setBalance(creator, 1, { from: owner });
-            await auxToken.approve(collateral.address, 1, { from: creator });
+            await increaseTime(60 * 60);
+            await collateral.claim(address0x, ids.loanId, []);
 
             await tryCatchRevert(
-                async () => collateral.deposit(
-                    (await collateral.entries(collId)).debtId,
-                    1,
+                () => collateral.deposit(
+                    ids.entryId,
+                    0,
                     { from: creator }
                 ),
                 'collateral: can deposit during auction'
