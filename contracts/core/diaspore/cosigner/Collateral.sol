@@ -250,24 +250,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     }
 
     /**
-        @notice Redeem/Forgive an entry, only an authorized can be use this function
-            The state of the debt must be request(0)
-            The state of the debt must be paid(2)
-
-        @dev call _redeem function with false in _emergency parameter
-            * look in _redeem function documentation for more info
-
-        @param _entryId The index of entry, inside of entries array
-
-        @return The amount of transferred tokens
-    */
-    function redeem(
-        uint256 _entryId
-    ) external nonReentrant() onlyAuthorized(_entryId) returns(uint256) {
-        return _redeem(_entryId, msg.sender, false);
-    }
-
-    /**
         @notice Redeem/Forgive an entry, only owner of contract can be use this function
             The state of the debt must be ERROR(4)
 
@@ -279,11 +261,26 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         @return The amount of transferred tokens
     */
-    function emergencyRedeem(
+    function redeem(
         uint256 _entryId,
         address _to
-    ) external nonReentrant() onlyOwner returns(uint256) {
-        return _redeem(_entryId, _to, true);
+    ) external nonReentrant() onlyOwner {
+        CollateralLib.Entry storage entry = entries[_entryId];
+
+        // Check status, should be `error`
+        require(loanManager.getStatus(entry.debtId) == 4, "collateral: debt should be have status error");
+        emit EmergencyRedeemed(_entryId, _to);
+
+        // Load amount and token
+        uint256 amount = entry.amount;
+        IERC20 token = entry.token;
+
+        // Destroy ERC721 collateral token
+        delete debtToEntry[entry.debtId];
+        delete entries[_entryId];
+
+        // Send the amount of ERC20 tokens to _to
+        require(token.safeTransfer(_to, amount), "collateral: error sending tokens");
     }
 
     /**
@@ -605,48 +602,5 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             _amount,
             _targetAmount
         );
-    }
-
-    /**
-        @notice Redeem/Forgive an entry
-
-        @dev Send the balance of the entry to _to and delete the entry
-
-        @param _entryId Id of the entry
-        @param _to The beneficiary of the tokens
-        @param _emergency Boolean:
-            True, look in emergencyRedeem function
-            False, look in redeem function
-
-        @return The amount of transferred tokens
-    */
-    function _redeem(
-        uint256 _entryId,
-        address _to,
-        bool _emergency
-    ) internal returns(uint256 totalTransfer) {
-        CollateralLib.Entry storage entry = entries[_entryId];
-        // Get debt status
-        uint256 status = loanManager.getStatus(entry.debtId);
-
-        if (_emergency) {
-            // The state of the debt must be ERROR(4)
-            require(status == 4, "Debt is not in error");
-            emit EmergencyRedeemed(_entryId, _to);
-        } else {
-            // The state of the debt must be request(0) or paid(2)
-            require(status == 0 || status == 2, "Debt not request or paid");
-            emit Redeemed(_entryId);
-        }
-
-        totalTransfer = entry.amount;
-        IERC20 token = entry.token;
-
-        // Destroy ERC721 collateral token
-        delete debtToEntry[entry.debtId];
-        delete entries[_entryId];
-
-        // Send the amount of ERC20 tokens to _to
-        require(token.safeTransfer(_to, totalTransfer), "Error sending tokens");
     }
 }
