@@ -6,12 +6,14 @@ const TestModel = artifacts.require('TestModel');
 const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
 const TestCollateralAuction = artifacts.require('TestCollateralAuction');
+const TestCollateralHandler = artifacts.require('TestCollateralHandler');
 
 const {
     expect,
     bn,
     random32bn,
     address0x,
+    bytes320x,
     getBlockTime,
     toEvents,
     tryCatchRevert,
@@ -32,6 +34,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     let collateral;
     let oracle;
     let testCollateralAuction;
+    let testCollateralHandler;
 
     const WEI = bn(web3.utils.toWei('1'));
 
@@ -124,6 +127,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         // Collateral deploy
         testCollateralAuction = await TestCollateralAuction.new(rcn.address, { from: owner });
         collateral = await Collateral.new(loanManager.address, testCollateralAuction.address, { from: owner });
+        testCollateralHandler = await TestCollateralHandler.new(loanManager.address, collateral.address, { from: owner });
     });
 
     it('Set new url', async function () {
@@ -149,9 +153,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         )).to.eq.BN(0);
     });
     describe('Functions onlyOwner', async function () {
-        it('Try emergency redeem an entry without being the owner', async function () {
+        it('Try redeem an entry without being the owner', async function () {
             await tryCatchRevert(
-                () => collateral.emergencyRedeem(
+                () => collateral.redeem(
                     0,
                     creator,
                     { from: creator }
@@ -341,8 +345,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.balanceRatio).to.eq.BN(prevEntry.balanceRatio);
             expect(entry.burnFee).to.eq.BN(prevEntry.burnFee);
             expect(entry.rewardFee).to.eq.BN(prevEntry.rewardFee);
-            expect(entry.token).to.equal(prevEntry.token);
-            expect(entry.debtId).to.equal(prevEntry.debtId);
+            assert.equal(entry.token, prevEntry.token);
+            assert.equal(entry.debtId, prevEntry.debtId);
             // Should increase by amount
             expect(entry.amount).to.eq.BN(prevEntry.amount.add(depositAmount));
             // Balance of collateral
@@ -362,6 +366,276 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     { from: creator }
                 ),
                 'collateral: can deposit during auction'
+            );
+        });
+    });
+    describe('Function withdraw', function () {
+        it('Should withdraw token', async function () {
+            const ids = await createDefaultCollateral();
+
+            const prevEntry = await collateral.entries(ids.entryId);
+
+            const withdrawAmount = bn(1);
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevBorrowerBalance = await auxToken.balanceOf(borrower);
+
+            const Withdraw = await toEvents(
+                collateral.withdraw(
+                    ids.entryId,
+                    borrower,
+                    withdrawAmount,
+                    [],
+                    { from: creator }
+                ),
+                'Withdraw'
+            );
+
+            // Test event
+            expect(Withdraw._entryId).to.eq.BN(ids.entryId);
+            assert.equal(Withdraw._to, borrower);
+            expect(Withdraw._amount).to.eq.BN(withdrawAmount);
+
+            // Test collateral entry
+            const entry = await collateral.entries(ids.entryId);
+            // Should remain the same
+            expect(entry.liquidationRatio).to.eq.BN(prevEntry.liquidationRatio);
+            expect(entry.balanceRatio).to.eq.BN(prevEntry.balanceRatio);
+            expect(entry.burnFee).to.eq.BN(prevEntry.burnFee);
+            expect(entry.rewardFee).to.eq.BN(prevEntry.rewardFee);
+            assert.equal(entry.token, prevEntry.token);
+            assert.equal(entry.debtId, prevEntry.debtId);
+            expect(entry.amount).to.eq.BN(prevEntry.amount.sub(withdrawAmount));
+
+            // Balance of collateral
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(withdrawAmount));
+            expect(await auxToken.balanceOf(borrower)).to.eq.BN(prevBorrowerBalance.add(withdrawAmount));
+        });
+        it('Try withdraw high balance', async function () {
+            const ids = await createDefaultCollateral();
+
+            await tryCatchRevert(
+                async () => collateral.withdraw(
+                    ids.entryId,
+                    borrower,
+                    (await collateral.entries(ids.entryId)).amount.add(bn(1)),
+                    [],
+                    { from: creator }
+                ),
+                'Don\'t have collateral to withdraw'
+            );
+        });
+        it('Should withdraw token on lent entry', async function () {
+            const ids = await lendDefaultCollateral();
+
+            const prevEntry = await collateral.entries(ids.entryId);
+
+            const withdrawAmount = bn(1);
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevBorrowerBalance = await auxToken.balanceOf(borrower);
+
+            const Withdraw = await toEvents(
+                collateral.withdraw(
+                    ids.entryId,
+                    borrower,
+                    withdrawAmount,
+                    [],
+                    { from: creator }
+                ),
+                'Withdraw'
+            );
+
+            // Test event
+            expect(Withdraw._entryId).to.eq.BN(ids.entryId);
+            assert.equal(Withdraw._to, borrower);
+            expect(Withdraw._amount).to.eq.BN(withdrawAmount);
+
+            // Test collateral entry
+            const entry = await collateral.entries(ids.entryId);
+            // Should remain the same
+            expect(entry.liquidationRatio).to.eq.BN(prevEntry.liquidationRatio);
+            expect(entry.balanceRatio).to.eq.BN(prevEntry.balanceRatio);
+            expect(entry.burnFee).to.eq.BN(prevEntry.burnFee);
+            expect(entry.rewardFee).to.eq.BN(prevEntry.rewardFee);
+            assert.equal(entry.token, prevEntry.token);
+            assert.equal(entry.debtId, prevEntry.debtId);
+            expect(entry.amount).to.eq.BN(prevEntry.amount.sub(withdrawAmount));
+
+            // Balance of collateral
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(withdrawAmount));
+            expect(await auxToken.balanceOf(borrower)).to.eq.BN(prevBorrowerBalance.add(withdrawAmount));
+        });
+        it('Try withdraw total balance on lent entry', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await tryCatchRevert(
+                async () => collateral.withdraw(
+                    ids.entryId,
+                    borrower,
+                    (await collateral.entries(ids.entryId)).amount,
+                    [],
+                    { from: creator }
+                ),
+                'Dont have collateral to withdraw'
+            );
+        });
+        it('Try withdraw collateral in a inAuction entry', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await increaseTime(60 * 60);
+            await collateral.claim(address0x, ids.loanId, []);
+
+            await tryCatchRevert(
+                () => collateral.withdraw(
+                    ids.entryId,
+                    address0x,
+                    0,
+                    [],
+                    { from: creator }
+                ),
+                'collateral: can withdraw during auction'
+            );
+        });
+        it('Try withdraw an entry without being authorized', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await tryCatchRevert(
+                () => collateral.withdraw(
+                    ids.entryId,
+                    address0x,
+                    0,
+                    [],
+                    { from: borrower }
+                ),
+                'msg.sender Not authorized'
+            );
+        });
+    });
+    describe('Function redeem', function () {
+        it('Should redeem an entry with a loan in ERROR status', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await model.setErrorFlag(ids.loanId, 4, { from: owner });
+
+            const collAmount = (await collateral.entries(ids.entryId)).amount;
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prev7Balance = await auxToken.balanceOf(creator);
+
+            const Redeemed = await toEvents(
+                collateral.redeem(
+                    ids.entryId,
+                    accounts[7],
+                    { from: owner }
+                ),
+                'Redeemed'
+            );
+
+            expect(Redeemed._entryId).to.eq.BN(ids.entryId);
+            assert.equal(Redeemed._to, accounts[7]);
+
+            const entry = await collateral.entries(ids.entryId);
+            // Should remain the same
+            expect(entry.liquidationRatio).to.eq.BN(0);
+            expect(entry.balanceRatio).to.eq.BN(0);
+            expect(entry.burnFee).to.eq.BN(0);
+            expect(entry.rewardFee).to.eq.BN(0);
+            assert.equal(entry.token, address0x);
+            assert.equal(entry.debtId, bytes320x);
+            expect(entry.amount).to.eq.BN(0);
+            // Balance of collateral
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(collAmount));
+            expect(await auxToken.balanceOf(accounts[7])).to.eq.BN(prev7Balance.add(collAmount));
+        });
+        it('Try redeem an entry with a loan in not ERROR status', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await tryCatchRevert(
+                () => collateral.redeem(
+                    ids.entryId,
+                    creator,
+                    { from: owner }
+                ),
+                'collateral: debt should be have status error'
+            );
+        });
+    });
+    describe('Function borrowCollateral', function () {
+        it('Should pay the total loan amount', async function () {
+            const ids = await lendDefaultCollateral();
+
+            const prevEntry = await collateral.entries(ids.entryId);
+
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevBorrowerBalance = await auxToken.balanceOf(borrower);
+
+            const amountToPay = await loanManager.getClosingObligation(ids.loanId);
+            await rcn.setBalance(testCollateralHandler.address, amountToPay, { from: owner });
+            await testCollateralHandler.setHandlerConst(
+                amountToPay,
+                prevEntry.amount
+            );
+            const BorrowCollateral = await toEvents(
+                collateral.borrowCollateral(
+                    ids.entryId,
+                    testCollateralHandler.address,
+                    [],
+                    [],
+                    { from: creator }
+                ),
+                'BorrowCollateral'
+            );
+
+            // Test event
+            assert.equal(BorrowCollateral._handler, testCollateralHandler.address);
+            expect(BorrowCollateral._newAmount).to.eq.BN(prevEntry.amount);
+
+            // Test collateral entry
+            const entry = await collateral.entries(ids.entryId);
+            // Should remain the same
+            expect(entry.liquidationRatio).to.eq.BN(prevEntry.liquidationRatio);
+            expect(entry.balanceRatio).to.eq.BN(prevEntry.balanceRatio);
+            expect(entry.burnFee).to.eq.BN(prevEntry.burnFee);
+            expect(entry.rewardFee).to.eq.BN(prevEntry.rewardFee);
+            assert.equal(entry.token, prevEntry.token);
+            assert.equal(entry.debtId, prevEntry.debtId);
+            expect(entry.amount).to.eq.BN(prevEntry.amount);
+
+            // Balance of collateral
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance);
+            expect(await auxToken.balanceOf(borrower)).to.eq.BN(prevBorrowerBalance);
+        });
+        it('Try hack with handler contract', async function () {
+            const ids = await lendDefaultCollateral();
+
+            const entryAmount = (await collateral.entries(ids.entryId)).amount;
+            const amountToPay = await loanManager.getClosingObligation(ids.loanId);
+            await rcn.setBalance(testCollateralHandler.address, 0, { from: owner });
+            await testCollateralHandler.setHandlerConst(
+                amountToPay,
+                entryAmount
+            );
+            await tryCatchRevert(
+                () => collateral.borrowCollateral(
+                    ids.entryId,
+                    testCollateralHandler.address,
+                    [],
+                    [],
+                    { from: creator }
+                ),
+                'Error pulling tokens'
+            );
+        });
+        it('Try borrowCollateral an entry without being authorized', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await tryCatchRevert(
+                () => collateral.borrowCollateral(
+                    ids.entryId,
+                    address0x,
+                    [],
+                    [],
+                    { from: borrower }
+                ),
+                'msg.sender Not authorized'
             );
         });
     });
