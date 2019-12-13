@@ -74,11 +74,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         address _to
     );
 
-    event BorrowCollateral(
-        CollateralHandler _handler,
-        uint256 _newAmount
-    );
-
     event SetUrl(
         string _url
     );
@@ -324,8 +319,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
             require(afRatio.gt(ogRatio), "collateral: ratio should increase");
         }
-
-        emit BorrowCollateral(_handler, surplus);
     }
 
     function auctionClosed(
