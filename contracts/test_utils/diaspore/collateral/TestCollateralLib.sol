@@ -8,7 +8,6 @@ import "../../../interfaces/IERC20.sol";
 contract TestCollateralLib {
     using CollateralLib for CollateralLib.Entry;
 
-
     CollateralLib.Entry public entry;
 
     function create(
