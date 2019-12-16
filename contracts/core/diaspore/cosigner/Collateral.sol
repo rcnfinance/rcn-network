@@ -70,13 +70,12 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     );
 
     event Redeemed(
-        uint256 indexed _entryId,
-        address _to
+        uint256 indexed _entryId
     );
 
-    event BorrowCollateral(
-        CollateralHandler _handler,
-        uint256 _newAmount
+    event EmergencyRedeemed(
+        uint256 indexed _entryId,
+        address _to
     );
 
     event SetUrl(
@@ -270,7 +269,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Check status, should be `error`
         require(loanManager.getStatus(entry.debtId) == 4, "collateral: debt should be have status error");
-        emit Redeemed(_entryId, _to);
+        emit EmergencyRedeemed(_entryId, _to);
 
         // Load amount and token
         uint256 amount = entry.amount;
@@ -324,8 +323,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
             require(afRatio.gt(ogRatio), "collateral: ratio should increase");
         }
-
-        emit BorrowCollateral(_handler, surplus);
     }
 
     function auctionClosed(
