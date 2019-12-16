@@ -1,6 +1,7 @@
 const MockCollateralAuctionCallback = artifacts.require('MockCollateralAuctionCallback');
 const CollateralAuction = artifacts.require('CollateralAuction');
 const TestToken = artifacts.require('TestToken');
+const TestAuctionCallback = artifacts.require('TestAuctionCallback');
 
 const { tryCatchRevert, searchEvent, increaseTime } = require('../../Helper.js');
 
@@ -177,7 +178,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(50), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(0));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
@@ -231,7 +232,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(50), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(0));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
@@ -285,7 +286,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(50), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(0));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
@@ -339,7 +340,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(50), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(0));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
@@ -393,7 +394,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(25), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(25));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(25));
@@ -447,7 +448,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(1), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(49));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(1));
@@ -501,7 +502,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const data = web3.utils.randomHex(100);
 
             await base.approve(auction.address, b(25), { from: user });
-            const takeTx = await auction.take(id, data, { from: user });
+            const takeTx = await auction.take(id, data, false, { from: user });
 
             expect(await base.balanceOf(user)).to.eq.BN(b(25));
             expect(await base.balanceOf(mock.address)).to.eq.BN(b(25));
@@ -519,5 +520,100 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             expect(await mock.lastReceived()).to.eq.BN(b(25));
             expect(await mock.lastData()).to.be.equal(data);
         });
+    });
+    describe('Take and callback', () => {
+        it('Should call taker callback', async () => {
+            const callback = await TestAuctionCallback.new();
+            await base.setBalance(callback.address, b(50));
+            await token.setBalance(owner, b(2000));
+
+            const mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
+
+            const tx = await auction.create(
+                token.address,
+                b(950),
+                b(1000),
+                b(2000),
+                b(50),
+                {
+                    from: owner,
+                }
+            );
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
+
+            await auction.transferOwnership(mock.address, { from: owner });
+
+            const event = searchEvent(tx, 'CreatedAuction');
+            const id = event._id;
+
+            const offer = await auction.offer(id);
+
+            expect(offer[0]).to.eq.BN(b(950));
+            expect(offer[1]).to.eq.BN(b(50));
+
+            const data = web3.utils.randomHex(100);
+
+            // Take auction with callback contract
+            await callback.take(auction.address, id, data);
+
+            expect(await callback.callbackCalled()).to.be.equal(true);
+
+            expect(await base.balanceOf(callback.address)).to.eq.BN(b(0));
+            expect(await base.balanceOf(mock.address)).to.eq.BN(b(50));
+            expect(await token.balanceOf(callback.address)).to.eq.BN(b(950));
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(0));
+
+            expect(await mock.lastId()).to.eq.BN(id);
+            expect(await mock.lastLeftover()).to.eq.BN(b(1050));
+            expect(await mock.lastReceived()).to.eq.BN(b(50));
+            expect(await mock.lastData()).to.be.equal(data);
+        });
+    });
+    it('Should fail call taker callback on reentrancy', async () => {
+        const callback = await TestAuctionCallback.new();
+        await callback.setTryReentrancy(true);
+
+        await base.setBalance(callback.address, b(50));
+        await token.setBalance(owner, b(2000));
+
+        const mock = await MockCollateralAuctionCallback.new();
+
+        await token.approve(auction.address, b(2000), { from: owner });
+
+        const tx = await auction.create(
+            token.address,
+            b(950),
+            b(1000),
+            b(2000),
+            b(50),
+            {
+                from: owner,
+            }
+        );
+
+        expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
+
+        await auction.transferOwnership(mock.address, { from: owner });
+
+        const event = searchEvent(tx, 'CreatedAuction');
+        const id = event._id;
+
+        const offer = await auction.offer(id);
+
+        expect(offer[0]).to.eq.BN(b(950));
+        expect(offer[1]).to.eq.BN(b(50));
+
+        const data = web3.utils.randomHex(100);
+
+        // Take auction with callback contract
+        await tryCatchRevert(
+            callback.take(auction.address, id, data),
+            'auction: error during callback onTake()'
+        );
+
+        expect(await callback.callbackCalled()).to.be.equal(false);
     });
 });
