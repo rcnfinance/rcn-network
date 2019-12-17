@@ -1,5 +1,5 @@
 const BN = web3.utils.BN;
-module.exports.expect = require('chai')
+const expect = require('chai')
     .use(require('bn-chai')(BN))
     .expect;
 

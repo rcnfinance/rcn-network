@@ -92,7 +92,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                         from: owner,
                     }
                 ),
-                'auction: reference offer should be below limit'
+                'auction: reference offer should be below or equal to limit'
             );
         });
         it('Should fail to create with limit below offer', async () => {
@@ -107,7 +107,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                         from: owner,
                     }
                 ),
-                'auction: reference offer should be below limit'
+                'auction: reference offer should be below or equal to limit'
             );
         });
         it('Should fail to create if creator has not enough tokens', async () => {

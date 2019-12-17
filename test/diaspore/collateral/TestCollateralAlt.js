@@ -7,7 +7,7 @@ const TestRateOracle = artifacts.require('TestRateOracle');
 const CollateralDebtPayer = artifacts.require('CollateralDebtPayer');
 const CollateralAuction = artifacts.require('CollateralAuction');
 
-const { tryCatchRevert, address0x, toBytes32 } = require('../../Helper.js');
+const { tryCatchRevert, address0x, toBytes32, balanceSnap, searchEvent } = require('../../Helper.js');
 const BN = web3.utils.BN;
 const expect = require('chai')
     .use(require('bn-chai')(BN))
@@ -31,6 +31,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
     let model;
     let collateral;
     let debtPayer;
+    let auction;
 
     beforeEach(async () => {
         rcn = await TestToken.new({ from: owner });
@@ -39,8 +40,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
         // Collateral deploy
-        const auction = await CollateralAuction.new(rcn.address, { from: owner });
-        collateral = await Collateral.new(loanManager.address, loanManager.address, { from: owner });
+        auction = await CollateralAuction.new(rcn.address, { from: owner });
+        collateral = await Collateral.new(loanManager.address, auction.address, { from: owner });
         await auction.transferOwnership(auction.address, { from: owner });
         debtPayer = await CollateralDebtPayer.new();
     });
@@ -1508,6 +1509,205 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             expect(entry.amount).to.eq.BN(b(1500));
             expect(entry.liquidationRatio).to.eq.BN(ratio(120));
             expect(entry.balanceRatio).to.eq.BN(ratio(150));
+        });
+    });
+    describe('Should open an auction', () => {
+        context('With under-collateralized loan with oracle', () => {
+            let dai;
+            let debtId;
+            let entryId;
+
+            beforeEach(async () => {
+                // Create oracle and alt token
+                dai = await TestToken.new();
+                const oracle = await TestRateOracle.new();
+
+                await oracle.setToken(dai.address);
+                await oracle.setEquivalent(b('500000000000000000'));
+
+                // Request a loan
+                const modelData = await model.encodeData(
+                    b(1000),
+                    MAX_UINT64
+                );
+
+                // Request  loan
+                const requestReceipt = await loanManager.requestLoan(
+                    b(1000),          // Requested amount
+                    model.address,    // Debt model
+                    address0x,        // Oracle
+                    user,             // Borrower
+                    address0x,        // Callback
+                    b(0),             // Salt
+                    MAX_UINT64,       // Expiration
+                    modelData,        // Model data
+                    {
+                        from: user,
+                    }
+                );
+
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+                await dai.setBalance(user, b(2400));
+                await dai.approve(collateral.address, b(2400), { from: user });
+
+                // Create collateral entry
+                await collateral.create(
+                    debtId,           // Debt ID
+                    oracle.address,   // Oracle address
+                    b(600),           // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
+
+                entryId = b(1);
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+                await loanManager.lend(
+                    debtId,             // Debt ID
+                    [],                 // Oracle data
+                    collateral.address, // Collateral cosigner
+                    b(0),               // Cosigner limit
+                    toBytes32(entryId), // Cosigner data
+                    [],                 // Callback data
+                    {
+                        from: anotherUser,
+                    }
+                );
+            });
+
+            it('should not trigger a liquidation', async () => {
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
+            });
+
+            it('should trigger a small liquidation', async () => {
+                await model.addDebt(debtId, b(1));
+
+                // call claim method, should return true
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(true);
+
+                // perform the actual claim and start the auction
+                const colSnap = await balanceSnap(dai, collateral.address, 'collateral');
+                const aucSnap = await balanceSnap(dai, auction.address, 'auction');
+                const claimTx = await collateral.claim(user, debtId, []);
+
+                await colSnap.requireDecrease(b(600));
+                await aucSnap.requireIncrease(b(600));
+
+                // Started auction event
+                const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
+                expect(claimedEvent._entryId).to.eq.BN(entryId);
+                expect(claimedEvent._debt).to.eq.BN(b(1001));
+                expect(claimedEvent._required).to.eq.BN(b(603));
+                expect(claimedEvent._marketValue).to.eq.BN(b(301));
+
+                const auctionId = claimedEvent._auctionId;
+
+                // validate auction parameters
+                const auctionEntry = await auction.auctions(auctionId);
+                expect(auctionEntry.fromToken).to.be.equal(dai.address);
+                expect(auctionEntry.startOffer).to.eq.BN(b(285));
+                expect(auctionEntry.amount).to.eq.BN(b(603));
+                expect(auctionEntry.limit).to.eq.BN(b(600));
+            });
+
+            it('should trigger half liquidation', async () => {
+                await model.addDebt(debtId, b(100));
+
+                // call claim method, should return true
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(true);
+
+                // perform the actual claim and start the auction
+                const colSnap = await balanceSnap(dai, collateral.address, 'collateral');
+                const aucSnap = await balanceSnap(dai, auction.address, 'auction');
+                const claimTx = await collateral.claim(user, debtId, []);
+
+                await colSnap.requireDecrease(b(600));
+                await aucSnap.requireIncrease(b(600));
+
+                // Started auction event
+                const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
+                expect(claimedEvent._entryId).to.eq.BN(entryId);
+                expect(claimedEvent._debt).to.eq.BN(b(1100));
+                expect(claimedEvent._required).to.eq.BN(b(900));
+                expect(claimedEvent._marketValue).to.eq.BN(b(450));
+
+                const auctionId = claimedEvent._auctionId;
+
+                // validate auction parameters
+                const auctionEntry = await auction.auctions(auctionId);
+                expect(auctionEntry.fromToken).to.be.equal(dai.address);
+                expect(auctionEntry.startOffer).to.eq.BN(b(427));
+                expect(auctionEntry.amount).to.eq.BN(b(900));
+                expect(auctionEntry.limit).to.eq.BN(b(600));
+            });
+
+            it('should trigger a full liquidation', async () => {
+                await model.addDebt(debtId, b(200));
+
+                // call claim method, should return true
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(true);
+
+                // perform the actual claim and start the auction
+                const colSnap = await balanceSnap(dai, collateral.address, 'collateral');
+                const aucSnap = await balanceSnap(dai, auction.address, 'auction');
+                const claimTx = await collateral.claim(user, debtId, []);
+
+                await colSnap.requireDecrease(b(600));
+                await aucSnap.requireIncrease(b(600));
+
+                // Started auction event
+                const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
+                expect(claimedEvent._entryId).to.eq.BN(entryId);
+                expect(claimedEvent._debt).to.eq.BN(b(1200));
+                expect(claimedEvent._required).to.eq.BN(b(1200));
+                expect(claimedEvent._marketValue).to.eq.BN(b(600));
+
+                const auctionId = claimedEvent._auctionId;
+
+                // validate auction parameters
+                const auctionEntry = await auction.auctions(auctionId);
+                expect(auctionEntry.fromToken).to.be.equal(dai.address);
+                expect(auctionEntry.startOffer).to.eq.BN(b(570));
+                expect(auctionEntry.amount).to.eq.BN(b(1200));
+                expect(auctionEntry.limit).to.eq.BN(b(600));
+            });
+
+            it('should trigger a full liquidation under collateral', async () => {
+                await model.addDebt(debtId, b(1000));
+
+                // call claim method, should return true
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(true);
+
+                // perform the actual claim and start the auction
+                const colSnap = await balanceSnap(dai, collateral.address, 'collateral');
+                const aucSnap = await balanceSnap(dai, auction.address, 'auction');
+                const claimTx = await collateral.claim(user, debtId, []);
+
+                await colSnap.requireDecrease(b(600));
+                await aucSnap.requireIncrease(b(600));
+
+                // Started auction event
+                const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
+                expect(claimedEvent._entryId).to.eq.BN(entryId);
+                expect(claimedEvent._debt).to.eq.BN(b(2000));
+                expect(claimedEvent._required).to.eq.BN(b(1200));
+                expect(claimedEvent._marketValue).to.eq.BN(b(600));
+
+                const auctionId = claimedEvent._auctionId;
+
+                // validate auction parameters
+                const auctionEntry = await auction.auctions(auctionId);
+                expect(auctionEntry.fromToken).to.be.equal(dai.address);
+                expect(auctionEntry.startOffer).to.eq.BN(b(570));
+                expect(auctionEntry.amount).to.eq.BN(b(1200));
+                expect(auctionEntry.limit).to.eq.BN(b(600));
+            });
         });
     });
 });
