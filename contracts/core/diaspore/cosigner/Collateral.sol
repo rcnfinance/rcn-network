@@ -309,12 +309,12 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Send all colleteral to handler
         uint256 lent = entry.amount;
         entry.amount = 0;
-        entry.token.safeTransfer(address(_handler), lent);
+        require(entry.token.safeTransfer(address(_handler), lent), "Error sending tokens");
 
         // Call handler
         // replace with interface
         uint256 surplus = _handler.handle(_entryId, lent, _data);
-        entry.token.safeTransferFrom(address(_handler), address(this), surplus);
+        require(entry.token.safeTransferFrom(address(_handler), address(this), surplus), "Error pulling tokens");
         entry.amount = surplus;
 
         // Read ratio, should be better than previus one
@@ -352,9 +352,12 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // If we have exceeding tokens
         // send them to the owner of the collateral
         if (paidTokens < _received) {
-            loanManagerToken.transfer(
-                _ownerOf(entryId),
-                _received - paidTokens
+            require(
+                loanManagerToken.safeTransfer(
+                    _ownerOf(entryId),
+                    _received - paidTokens
+                ),
+                "Error sending tokens"
             );
         }
 
@@ -577,7 +580,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         IERC20 _token = entry.token;
 
         // Approve auction contract
-        _token.safeApprove(address(_auction), _amount);
+        require(_token.safeApprove(address(_auction), _amount), "error approving auctioner");
 
         // Start auction
         uint256 auctionId = _auction.create(
@@ -589,7 +592,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         );
 
         // Clear approve
-        _token.clearApprove(address(_auction));
+        require(_token.clearApprove(address(_auction)), "error clearing approve");
 
         // Save Auction ID
         entryToAuction[_entryId] = auctionId;
