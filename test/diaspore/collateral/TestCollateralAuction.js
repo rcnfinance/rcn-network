@@ -1,9 +1,9 @@
 const MockCollateralAuctionCallback = artifacts.require('MockCollateralAuctionCallback');
-const CollateralAuction = artifacts.require('CollateralAuction');
+const CollateralAuction = artifacts.require('TestCollateralAuction');
 const TestToken = artifacts.require('TestToken');
 const TestAuctionCallback = artifacts.require('TestAuctionCallback');
 
-const { tryCatchRevert, searchEvent, increaseTime } = require('../../Helper.js');
+const { tryCatchRevert, searchEvent } = require('../../Helper.js');
 
 const BN = web3.utils.BN;
 const expect = require('chai')
@@ -204,6 +204,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             await token.approve(auction.address, b(2000), { from: owner });
 
+            await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
             const tx = await auction.create(
                 token.address,
                 b(950),
@@ -217,7 +219,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
-            await increaseTime(b(10).mul(b(60)));
+            await auction.increaseTime(b(10).mul(b(60)));
 
             await auction.transferOwnership(mock.address, { from: owner });
 
@@ -258,6 +260,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             await token.approve(auction.address, b(2000), { from: owner });
 
+            await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
             const tx = await auction.create(
                 token.address,
                 b(950),
@@ -269,7 +273,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 }
             );
 
-            await increaseTime(b(6300));
+            await auction.increaseTime(b(6300));
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
@@ -312,6 +316,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             await token.approve(auction.address, b(2000), { from: owner });
 
+            await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
             const tx = await auction.create(
                 token.address,
                 b(950),
@@ -323,7 +329,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 }
             );
 
-            await increaseTime(b(12600));
+            await auction.increaseTime(b(12600));
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
@@ -366,6 +372,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             await token.approve(auction.address, b(2000), { from: owner });
 
+            await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
             const tx = await auction.create(
                 token.address,
                 b(950),
@@ -377,7 +385,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 }
             );
 
-            await increaseTime(b(55800));
+            await auction.increaseTime(b(55800));
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
@@ -420,6 +428,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             await token.approve(auction.address, b(2000), { from: owner });
 
+            await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
             const tx = await auction.create(
                 token.address,
                 b(950),
@@ -433,7 +443,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
-            await increaseTime(b(99000).sub(b(1)));
+            await auction.increaseTime(b(99000).sub(b(1)));
 
             await auction.transferOwnership(mock.address, { from: owner });
 
@@ -474,6 +484,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             await token.approve(auction.address, b(2000), { from: owner });
 
+            await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
             const tx = await auction.create(
                 token.address,
                 b(950),
@@ -487,7 +499,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
 
-            await increaseTime(b(99000).add(b(43200)));
+            await auction.increaseTime(b(99000).add(b(43200)));
 
             await auction.transferOwnership(mock.address, { from: owner });
 
