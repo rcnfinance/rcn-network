@@ -2280,5 +2280,108 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 expect(auctionEntry.limit).to.eq.BN(b(600));
             });
         });
+        context('With undue payments and base collateral', () => {
+            let debtId;
+            let entryId;
+
+            beforeEach(async () => {
+                // Request a loan
+                const modelData = await model.encodeData(
+                    b(1000),
+                    MAX_UINT64
+                );
+
+                // Request  loan
+                const requestReceipt = await loanManager.requestLoan(
+                    b(1000),          // Requested amount
+                    model.address,    // Debt model
+                    address0x,        // Oracle
+                    user,             // Borrower
+                    address0x,        // Callback
+                    b(0),             // Salt
+                    MAX_UINT64,       // Expiration
+                    modelData,        // Model data
+                    {
+                        from: user,
+                    }
+                );
+
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+                await rcn.setBalance(user, b(1200));
+                await rcn.setBalance(user, b(1200));
+                await rcn.approve(collateral.address, b(1200), { from: user });
+
+                // Create collateral entry
+                await collateral.create(
+                    debtId,           // Debt ID
+                    address0x,        // Oracle address
+                    b(1200),           // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
+
+                entryId = b(1);
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+                await loanManager.lend(
+                    debtId,             // Debt ID
+                    [],                 // Oracle data
+                    collateral.address, // Collateral cosigner
+                    b(0),               // Cosigner limit
+                    toBytes32(entryId), // Cosigner data
+                    [],                 // Callback data
+                    {
+                        from: anotherUser,
+                    }
+                );
+            });
+            it('should not trigger a liquidation', async () => {
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
+            });
+            it('should trigger a liquidation for the undue payments', async () => {
+                await model.setRelativeDueTime(debtId, true, b(60));
+                const dueTime = await model.getDueTime(debtId);
+
+                // call claim method, should return true
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(true);
+
+                // perform the actual claim and start the auction
+                const colSnap = await balanceSnap(rcn, collateral.address, 'collateral');
+                const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
+                const claimTx = await collateral.claim(user, debtId, []);
+
+                await colSnap.requireDecrease(b(1200));
+                await aucSnap.requireIncrease(b(1200));
+
+                // Started auction event
+                const claimedEvent = searchEvent(claimTx, 'ClaimedUndue');
+                expect(claimedEvent._entryId).to.eq.BN(entryId);
+                expect(claimedEvent._dueTime).to.eq.BN(dueTime);
+                expect(claimedEvent._obligation).to.eq.BN(b(1050));
+                expect(claimedEvent._marketValue).to.eq.BN(b(1050));
+
+                const auctionId = claimedEvent._auctionId;
+
+                // validate auction parameters
+                const auctionEntry = await auction.auctions(auctionId);
+                expect(auctionEntry.fromToken).to.be.equal(rcn.address);
+                expect(auctionEntry.amount).to.eq.BN(b(1050));
+                expect(auctionEntry.limit).to.eq.BN(b(1200));
+            });
+            it('should not trigger a liquidation if already is in liquidation', async () => {
+                await model.setRelativeDueTime(debtId, true, b(60));
+
+                // perform the actual claim and start the auction
+                await collateral.claim(user, debtId, []);
+
+                await tryCatchRevert(collateral.claim(user, debtId, []), 'collateral: auction already exists');
+            });
+        });
     });
 });
