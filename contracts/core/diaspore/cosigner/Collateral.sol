@@ -362,7 +362,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         }
 
         // Return leftover collateral
-        entry.amount = entry.amount.add(_leftover);
+        entry.amount = _leftover;
 
         // Emit closed auction event
         emit ClosedAuction(
@@ -578,6 +578,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralAuction _auction = auction;
         uint256 _amount = entry.amount;
         IERC20 _token = entry.token;
+
+        delete entry.amount;
 
         // Approve auction contract
         require(_token.safeApprove(address(_auction), _amount), "collateral: error approving auctioneer");
