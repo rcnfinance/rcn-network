@@ -5,7 +5,7 @@ const DebtEngine = artifacts.require('DebtEngine');
 const TestModel = artifacts.require('TestModel');
 const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
-const TestCollateralAuctionMock = artifacts.require('TestCollateralAuctionMock');
+const TestCollateralAuction = artifacts.require('TestCollateralAuction');
 const TestCollateralHandler = artifacts.require('TestCollateralHandler');
 
 const {
@@ -33,7 +33,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     let model;
     let collateral;
     let oracle;
-    let testCollateralAuctionMock;
+    let testCollateralAuction;
     let testCollateralHandler;
 
     const WEI = bn(web3.utils.toWei('1'));
@@ -125,9 +125,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
         // Collateral deploy
-        testCollateralAuctionMock = await TestCollateralAuctionMock.new(loanManager.address, { from: owner });
-        collateral = await Collateral.new(loanManager.address, testCollateralAuctionMock.address, { from: owner });
-        await testCollateralAuctionMock.setCollateral(collateral.address);
+        testCollateralAuction = await TestCollateralAuction.new(rcn.address, { from: owner });
+        collateral = await Collateral.new(loanManager.address, testCollateralAuction.address, { from: owner });
         testCollateralHandler = await TestCollateralHandler.new(loanManager.address, collateral.address, { from: owner });
     });
 
@@ -176,18 +175,18 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
     describe('Constructor', function () {
         it('Check the loanManager and loanManagerToken', async function () {
-            const collateral = await Collateral.new(loanManager.address, testCollateralAuctionMock.address, { from: owner });
+            const collateral = await Collateral.new(loanManager.address, testCollateralAuction.address, { from: owner });
 
             assert.equal(await collateral.loanManager(), loanManager.address);
             assert.equal(await collateral.loanManagerToken(), await loanManager.token());
-            assert.equal(await collateral.auction(), testCollateralAuctionMock.address);
+            assert.equal(await collateral.auction(), testCollateralAuction.address);
             expect(await collateral.getEntriesLength()).to.eq.BN(bn(1));
         });
         it('Creation should fail if loan manager is the address 0', async function () {
             await tryCatchRevert(
                 () => Collateral.new(
                     address0x,
-                    testCollateralAuctionMock.address
+                    testCollateralAuction.address
                 ), 'Error loading loan manager'
             );
         });
@@ -637,55 +636,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     { from: borrower }
                 ),
                 'msg.sender Not authorized'
-            );
-        });
-    });
-    describe('Function auctionClosed', function () {
-        it.only('Should close an auction', async function () {
-            const ids = await lendDefaultCollateral();
-
-            await increaseTime(60 * 60);
-            await collateral.claim(address0x, ids.loanId, []);
-
-            const leftover = bn(1000);
-            const received = bn(1000);
-            await rcn.setBalance(testCollateralAuctionMock.address, received, { from: owner });
-
-            const auctionId = await collateral.entryToAuction(ids.entryId);
-
-            await testCollateralAuctionMock.toAuctionClosed(
-                auctionId,
-                leftover,
-                received,
-                []
-            );
-
-            expect(await collateral.entryToAuction(ids.entryId)).to.eq.BN(0);
-            expect(await collateral.auctionToEntry(auctionId)).to.eq.BN(0);
-
-            const entryAmount = (await collateral.entries(ids.entryId)).amount;
-            expect(entryAmount).to.eq.BN(leftover);
-        });
-        it('Try close an auction without be the auction contract', async function () {
-            await tryCatchRevert(
-                () => collateral.auctionClosed(
-                    bytes320x,
-                    0,
-                    0,
-                    []
-                ),
-                'collateral: caller should be the auctioner'
-            );
-        });
-        it('Try close an inexist auction', async function () {
-            await tryCatchRevert(
-                () => testCollateralAuctionMock.toAuctionClosed(
-                    bytes320x,
-                    0,
-                    0,
-                    []
-                ),
-                'collateral: entry does not exists'
             );
         });
     });
