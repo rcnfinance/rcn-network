@@ -309,12 +309,12 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Send all colleteral to handler
         uint256 lent = entry.amount;
         entry.amount = 0;
-        require(entry.token.safeTransfer(address(_handler), lent), "Error sending tokens");
+        require(entry.token.safeTransfer(address(_handler), lent), "collateral: error sending tokens");
 
         // Call handler
         // replace with interface
         uint256 surplus = _handler.handle(_entryId, lent, _data);
-        require(entry.token.safeTransferFrom(address(_handler), address(this), surplus), "Error pulling tokens");
+        require(entry.token.safeTransferFrom(address(_handler), address(this), surplus), "collateral: error pulling tokens");
         entry.amount = surplus;
 
         // Read ratio, should be better than previus one
@@ -357,7 +357,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
                     _ownerOf(entryId),
                     _received - paidTokens
                 ),
-                "Error sending tokens"
+                "collateral: error sending tokens"
             );
         }
 
@@ -580,7 +580,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         IERC20 _token = entry.token;
 
         // Approve auction contract
-        require(_token.safeApprove(address(_auction), _amount), "error approving auctioner");
+        require(_token.safeApprove(address(_auction), _amount), "collateral: error approving auctioneer");
 
         // Start auction
         uint256 auctionId = _auction.create(
@@ -592,7 +592,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         );
 
         // Clear approve
-        require(_token.clearApprove(address(_auction)), "error clearing approve");
+        require(_token.clearApprove(address(_auction)), "collateral: error clearing approve");
 
         // Save Auction ID
         entryToAuction[_entryId] = auctionId;
