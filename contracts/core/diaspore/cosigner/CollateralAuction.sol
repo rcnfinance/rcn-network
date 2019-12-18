@@ -70,7 +70,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // the `_limit` should be transfered
         id = auctions.push(Auction({
             fromToken: _fromToken,
-            startTime: uint64(now),
+            startTime: uint64(_now()),
             limitDelta: limitDelta,
             startOffer: _start,
             amount: _amount,
@@ -144,6 +144,10 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         return _offer(auctions[_id]);
     }
 
+    function _now() internal view returns (uint256) {
+        return now;
+    }
+
     function _offer(
         Auction memory _auction
     ) private view returns (uint256, uint256) {
@@ -154,7 +158,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         Auction memory _auction
     ) private view returns (uint256 _amount) {
         uint256 deltaAmount = _auction.limit - _auction.startOffer;
-        uint256 deltaTime = now - _auction.startTime;
+        uint256 deltaTime = _now() - _auction.startTime;
 
         if (deltaTime < _auction.limitDelta) {
             _amount = _auction.startOffer.add(deltaAmount.mult(deltaTime) / _auction.limitDelta);
@@ -166,7 +170,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     function _requesting(
         Auction memory _auction
     ) private view returns (uint256 _amount) {
-        uint256 ogDeltaTime = now - _auction.startTime;
+        uint256 ogDeltaTime = _now() - _auction.startTime;
 
         if (ogDeltaTime > _auction.limitDelta) {
             uint256 deltaTime = ogDeltaTime - _auction.limitDelta;
@@ -175,5 +179,4 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
             return _auction.amount;
         }
     }
-
 }

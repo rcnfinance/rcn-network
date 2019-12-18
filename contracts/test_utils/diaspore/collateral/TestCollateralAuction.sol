@@ -4,7 +4,7 @@ import "../../../interfaces/IERC20.sol";
 import "../../../core/diaspore/cosigner/Collateral.sol";
 
 
-contract TestCollateralAuction {
+contract TestCollateralAuction is CollateralAuction {
     LoanManager public loanManager;
     IERC20 public loanManagerToken;
     Collateral public collateral;
@@ -12,9 +12,29 @@ contract TestCollateralAuction {
     mapping(uint256 => IERC20) public entryToToken;
     uint256 auctionId;
 
-    constructor(LoanManager _loanManager) public {
+    uint256 public time;
+
+    constructor(LoanManager _loanManager) public CollateralAuction(loanManager.token()) {
         loanManager = _loanManager;
         loanManagerToken = loanManager.token();
+    }
+
+    function setTime(uint256 _t) external {
+        time = _t;
+    }
+
+    function increaseTime(uint256 _seconds) external {
+        time += _seconds;
+    }
+
+    function _now() internal view returns (uint256) {
+        uint256 t = time;
+
+        if (t == 0) {
+            return super._now();
+        } else {
+            return t;
+        }
     }
 
     function setCollateral(Collateral _collateral) external {
@@ -50,3 +70,4 @@ contract TestCollateralAuction {
         );
     }
 }
+
