@@ -665,6 +665,29 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const entryAmount = (await collateral.entries(ids.entryId)).amount;
             expect(entryAmount).to.eq.BN(leftover);
+            expect((await debtEngine.debts(ids.loanId)).balance).to.eq.BN(received);
+        });
+        it('Should close an auction, pay the loan and received more tokens', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await increaseTime(60 * 60);
+            await collateral.claim(address0x, ids.loanId, []);
+
+            const received = WEI.mul(bn(2));
+            await rcn.setBalance(testCollateralAuctionMock.address, received, { from: owner });
+
+            const auctionId = await collateral.entryToAuction(ids.entryId);
+
+            const prevCreatorBalance = await rcn.balanceOf(creator);
+
+            await testCollateralAuctionMock.toAuctionClosed(
+                auctionId,
+                0,
+                received,
+                []
+            );
+
+            expect(await rcn.balanceOf(creator)).to.eq.BN(prevCreatorBalance.add(WEI));
         });
         it('Try close an auction without be the auction contract', async function () {
             await tryCatchRevert(
