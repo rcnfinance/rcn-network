@@ -55,12 +55,17 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 indexed _entryId
     );
 
-    event StartedAuction(
+    event ClaimedLiquidation(
         uint256 indexed _entryId,
-        uint256 _startOffer,
-        uint256 _referenceOffer,
-        uint256 _limit,
-        uint256 _required
+        uint256 indexed _auctionId,
+        uint256 _debt,
+        uint256 _required,
+        uint256 _marketValue
+    );
+
+    event ClaimedUndue(
+        uint256 indexed _entryId,
+        uint256 indexed _auctionId
     );
 
     event ClosedAuction(
@@ -497,11 +502,23 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Check if collateral needs liquidation
         uint256 debt = _debtInTokens(_debtId, _oracleData);
+
         if (entry.inLiquidation(debt)) {
+            (uint256 marketValue, uint256 required) = entry.balance(debt);
+
             // Trigger auction
-            _triggerAuction(
+            uint256 auctionId = _triggerAuction(
                 _entryId,
-                entry.balance(debt)
+                required,
+                marketValue
+            );
+
+            emit ClaimedLiquidation(
+                _entryId,
+                auctionId,
+                debt,
+                required,
+                marketValue
             );
 
             return true;
@@ -527,6 +544,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             // Trigger the auction
             _triggerAuction(
                 debtToEntry[_debtId],
+                obligation,
                 obligationToken
             );
 
@@ -560,19 +578,15 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
     function _triggerAuction(
         uint256 _entryId,
-        uint256 _targetAmount
-    ) internal {
+        uint256 _targetAmount,
+        uint256 _marketValue
+    ) internal returns (uint256 _auctionId) {
         // TODO: Maybe we can update the auction keeping the price?
         require(!inAuction(_entryId), "collateral: auction already exists");
 
         CollateralLib.Entry storage entry = entries[_entryId];
 
-        // TODO: @audit reentrancy on oracle ?
-        uint256 referenceOffer = entry.oracle
-            .read()
-            .toBase(_targetAmount);
-
-        uint256 initialOffer = referenceOffer.mult(95).div(100);
+        uint256 initialOffer = _marketValue.mult(95).div(100);
 
         // Read storage
         CollateralAuction _auction = auction;
@@ -585,10 +599,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         require(_token.safeApprove(address(_auction), _amount), "collateral: error approving auctioneer");
 
         // Start auction
-        uint256 auctionId = _auction.create(
+        _auctionId = _auction.create(
             _token,          // Token we are selling
             initialOffer,    // Initial offer of tokens
-            referenceOffer,  // Market reference offer provided by the Oracle
+            _marketValue,    // Market reference offer provided by the Oracle
             _amount,         // The maximun amount of token that we can sell
             _targetAmount    // How much base tokens are needed
         );
@@ -597,15 +611,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         require(_token.clearApprove(address(_auction)), "collateral: error clearing approve");
 
         // Save Auction ID
-        entryToAuction[_entryId] = auctionId;
-        auctionToEntry[auctionId] = _entryId;
-
-        emit StartedAuction(
-            _entryId,
-            initialOffer,
-            referenceOffer,
-            _amount,
-            _targetAmount
-        );
+        entryToAuction[_entryId] = _auctionId;
+        auctionToEntry[_auctionId] = _entryId;
     }
 }

@@ -5,6 +5,7 @@ import "../../../utils/SafeERC20.sol";
 import "../../../utils/SafeMath.sol";
 import "../../../utils/SafeCast.sol";
 import "../../../utils/IsContract.sol";
+import "../../../utils/Math.sol";
 import "../../../commons/Ownable.sol";
 import "../../../commons/ReentrancyGuard.sol";
 import "./interfaces/CollateralAuctionCallback.sol";
@@ -49,6 +50,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
     constructor(IERC20 _baseToken) public {
         baseToken = _baseToken;
+        auctions.length++;
     }
 
     function create(
@@ -59,7 +61,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         uint256 _amount
     ) external nonReentrant() returns (uint256 id) {
         require(_start < _ref, "auction: offer should be below refence offer");
-        require(_ref < _limit, "auction: reference offer should be below limit");
+        require(_ref <= _limit, "auction: reference offer should be below or equal to limit");
 
         uint32 limitDelta = ((_limit - _start).mult(DELTA_TO_MARKET) / (_ref - _start)).toUint32();
 
@@ -151,7 +153,16 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     function _offer(
         Auction memory _auction
     ) private view returns (uint256, uint256) {
-        return (_selling(_auction), _requesting(_auction));
+        if (_auction.fromToken == baseToken) {
+            // if the offered token is the same as the base token
+            // the auction is skipped, and the requesting and selling amount are the same
+            uint256 min = Math.min(_auction.limit, _auction.amount);
+            return (min, min);
+        } else {
+            // Calculate selling and requesting amounts
+            // for the current timestamp
+            return (_selling(_auction), _requesting(_auction));
+        }
     }
 
     function _selling(

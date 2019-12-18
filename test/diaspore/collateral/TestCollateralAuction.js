@@ -47,7 +47,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const event = searchEvent(tx, 'CreatedAuction');
 
             // Validate event
-            expect(event._id).to.eq.BN(b(0));
+            expect(event._id).to.eq.BN(b(1));
             expect(event._fromToken).to.be.equal(token.address);
             expect(event._startOffer).to.eq.BN(b(950));
             expect(event._refOffer).to.eq.BN(b(1000));
@@ -92,7 +92,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                         from: owner,
                     }
                 ),
-                'auction: reference offer should be below limit'
+                'auction: reference offer should be below or equal to limit'
             );
         });
         it('Should fail to create with limit below offer', async () => {
@@ -107,7 +107,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                         from: owner,
                     }
                 ),
-                'auction: reference offer should be below limit'
+                'auction: reference offer should be below or equal to limit'
             );
         });
         it('Should fail to create if creator has not enough tokens', async () => {
@@ -144,6 +144,206 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         });
     });
     describe('Take an auction', async () => {
+        context('with same token', async () => {
+            let id;
+            let mock;
+            beforeEach(async () => {
+                await base.setBalance(owner, b(2000));
+
+                mock = await MockCollateralAuctionCallback.new();
+
+                await base.approve(auction.address, b(2000), { from: owner });
+                await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
+                const tx = await auction.create(
+                    base.address,
+                    b(950),
+                    b(1000),
+                    b(2000),
+                    b(250),
+                    {
+                        from: owner,
+                    }
+                );
+
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(2000));
+
+                await auction.transferOwnership(mock.address, { from: owner });
+
+                const event = searchEvent(tx, 'CreatedAuction');
+                id = event._id;
+            });
+            it('Should take same token auction just created', async () => {
+                await base.setBalance(anotherUser, b(0));
+                await base.approve(auction.address, b(250), { from: anotherUser });
+
+                const data = web3.utils.randomHex(100);
+                await auction.take(id, data, false, { from: anotherUser });
+
+                expect(await base.balanceOf(mock.address)).to.eq.BN(b(2000));
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(0));
+                expect(await base.balanceOf(anotherUser)).to.eq.BN(b(0));
+
+                expect(await mock.lastId()).to.eq.BN(id);
+                expect(await mock.lastLeftover()).to.eq.BN(b(1750));
+                expect(await mock.lastReceived()).to.eq.BN(b(250));
+                expect(await mock.lastData()).to.be.equal(data);
+            });
+            it('Should take same token auction after 10 minutes', async () => {
+                await base.setBalance(anotherUser, b(0));
+                await base.approve(auction.address, b(2000), { from: anotherUser });
+
+                await auction.increaseTime(b(10).mul(b(60)));
+
+                const data = web3.utils.randomHex(100);
+                await auction.take(id, data, false, { from: anotherUser });
+
+                expect(await base.balanceOf(mock.address)).to.eq.BN(b(2000));
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(0));
+                expect(await base.balanceOf(anotherUser)).to.eq.BN(b(0));
+
+                expect(await mock.lastId()).to.eq.BN(id);
+                expect(await mock.lastLeftover()).to.eq.BN(b(1750));
+                expect(await mock.lastReceived()).to.eq.BN(b(250));
+                expect(await mock.lastData()).to.be.equal(data);
+            });
+            it('Should take same token auction after 10 days', async () => {
+                await base.setBalance(anotherUser, b(0));
+                await base.approve(auction.address, b(2000), { from: anotherUser });
+
+                await auction.increaseTime(b(10).mul(b(86400)));
+
+                const data = web3.utils.randomHex(100);
+                await auction.take(id, data, false, { from: anotherUser });
+
+                expect(await base.balanceOf(mock.address)).to.eq.BN(b(2000));
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(0));
+                expect(await base.balanceOf(anotherUser)).to.eq.BN(b(0));
+
+                expect(await mock.lastId()).to.eq.BN(id);
+                expect(await mock.lastLeftover()).to.eq.BN(b(1750));
+                expect(await mock.lastReceived()).to.eq.BN(b(250));
+                expect(await mock.lastData()).to.be.equal(data);
+            });
+            it('Should take same token auction after 1 year', async () => {
+                await base.setBalance(anotherUser, b(0));
+                await base.approve(auction.address, b(2000), { from: anotherUser });
+
+                await auction.increaseTime(b(365).mul(b(86400)));
+
+                const data = web3.utils.randomHex(100);
+                await auction.take(id, data, false, { from: anotherUser });
+
+                expect(await base.balanceOf(mock.address)).to.eq.BN(b(2000));
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(0));
+                expect(await base.balanceOf(anotherUser)).to.eq.BN(b(0));
+
+                expect(await mock.lastId()).to.eq.BN(id);
+                expect(await mock.lastLeftover()).to.eq.BN(b(1750));
+                expect(await mock.lastReceived()).to.eq.BN(b(250));
+                expect(await mock.lastData()).to.be.equal(data);
+            });
+        });
+        context('with same token and _amount above _limit', async () => {
+            let id;
+            let mock;
+            beforeEach(async () => {
+                await base.setBalance(owner, b(2000));
+
+                mock = await MockCollateralAuctionCallback.new();
+
+                await base.approve(auction.address, b(2000), { from: owner });
+                await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
+                const tx = await auction.create(
+                    base.address,
+                    b(950),
+                    b(1000),
+                    b(2000),
+                    b(4000),
+                    {
+                        from: owner,
+                    }
+                );
+
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(2000));
+
+                await auction.transferOwnership(mock.address, { from: owner });
+
+                const event = searchEvent(tx, 'CreatedAuction');
+                id = event._id;
+            });
+            it('Should take same token auction just created', async () => {
+                await base.setBalance(anotherUser, b(0));
+                await base.approve(auction.address, b(2000), { from: anotherUser });
+
+                const data = web3.utils.randomHex(100);
+                await auction.take(id, data, false, { from: anotherUser });
+
+                expect(await base.balanceOf(mock.address)).to.eq.BN(b(2000));
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(0));
+                expect(await base.balanceOf(anotherUser)).to.eq.BN(b(0));
+
+                expect(await mock.lastId()).to.eq.BN(id);
+                expect(await mock.lastLeftover()).to.eq.BN(b(0));
+                expect(await mock.lastReceived()).to.eq.BN(b(2000));
+                expect(await mock.lastData()).to.be.equal(data);
+            });
+            it('Should take same token auction after 10 minutes', async () => {
+                await base.setBalance(anotherUser, b(0));
+                await base.approve(auction.address, b(2000), { from: anotherUser });
+
+                await auction.increaseTime(b(10).mul(b(60)));
+
+                const data = web3.utils.randomHex(100);
+                await auction.take(id, data, false, { from: anotherUser });
+
+                expect(await base.balanceOf(mock.address)).to.eq.BN(b(2000));
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(0));
+                expect(await base.balanceOf(anotherUser)).to.eq.BN(b(0));
+
+                expect(await mock.lastId()).to.eq.BN(id);
+                expect(await mock.lastLeftover()).to.eq.BN(b(0));
+                expect(await mock.lastReceived()).to.eq.BN(b(2000));
+                expect(await mock.lastData()).to.be.equal(data);
+            });
+            it('Should take same token auction after 10 days', async () => {
+                await base.setBalance(anotherUser, b(0));
+                await base.approve(auction.address, b(2000), { from: anotherUser });
+
+                await auction.increaseTime(b(10).mul(b(86400)));
+
+                const data = web3.utils.randomHex(100);
+                await auction.take(id, data, false, { from: anotherUser });
+
+                expect(await base.balanceOf(mock.address)).to.eq.BN(b(2000));
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(0));
+                expect(await base.balanceOf(anotherUser)).to.eq.BN(b(0));
+
+                expect(await mock.lastId()).to.eq.BN(id);
+                expect(await mock.lastLeftover()).to.eq.BN(b(0));
+                expect(await mock.lastReceived()).to.eq.BN(b(2000));
+                expect(await mock.lastData()).to.be.equal(data);
+            });
+            it('Should take same token auction after 1 year', async () => {
+                await base.setBalance(anotherUser, b(0));
+                await base.approve(auction.address, b(2000), { from: anotherUser });
+
+                await auction.increaseTime(b(365).mul(b(86400)));
+
+                const data = web3.utils.randomHex(100);
+                await auction.take(id, data, false, { from: anotherUser });
+
+                expect(await base.balanceOf(mock.address)).to.eq.BN(b(2000));
+                expect(await base.balanceOf(auction.address)).to.eq.BN(b(0));
+                expect(await base.balanceOf(anotherUser)).to.eq.BN(b(0));
+
+                expect(await mock.lastId()).to.eq.BN(id);
+                expect(await mock.lastLeftover()).to.eq.BN(b(0));
+                expect(await mock.lastReceived()).to.eq.BN(b(2000));
+                expect(await mock.lastData()).to.be.equal(data);
+            });
+        });
         it('Should take an auction just created', async () => {
             await base.setBalance(user, b(50));
             await token.setBalance(owner, b(2000));

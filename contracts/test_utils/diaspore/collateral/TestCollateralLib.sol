@@ -36,7 +36,7 @@ contract TestCollateralLib {
         return uint256(entry.ratio(_debt));
     }
 
-    function balance(uint256 _debt) external view returns (uint256) {
+    function balance(uint256 _debt) external view returns (uint256, uint256) {
         return entry.balance(_debt);
     }
 
