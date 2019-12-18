@@ -47,7 +47,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             const event = searchEvent(tx, 'CreatedAuction');
 
             // Validate event
-            expect(event._id).to.eq.BN(b(0));
+            expect(event._id).to.eq.BN(b(1));
             expect(event._fromToken).to.be.equal(token.address);
             expect(event._startOffer).to.eq.BN(b(950));
             expect(event._refOffer).to.eq.BN(b(1000));

@@ -50,6 +50,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
     constructor(IERC20 _baseToken) public {
         baseToken = _baseToken;
+        auctions.length++;
     }
 
     function create(
