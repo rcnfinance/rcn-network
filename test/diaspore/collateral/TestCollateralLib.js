@@ -21,6 +21,12 @@ function unratio (enc) {
     return b(enc).mul(b(100)).div(b(2).pow(b(32)));
 }
 
+async function expectTuple (promise, v0, v1) {
+    const result = await promise;
+    expect(result[0]).to.eq.BN(b(v0));
+    expect(result[1]).to.eq.BN(b(v1));
+}
+
 contract('Test Collateral lib', function ([_]) {
     it('Should create a collateral entry', async () => {
         const lib = await TestCollateralLib.new();
@@ -212,21 +218,46 @@ contract('Test Collateral lib', function ([_]) {
         );
 
         // Balance is not required
-        expect(await lib.balance(b(0))).to.eq.BN(b(0));
-        expect(await lib.balance(b(100))).to.eq.BN(b(0));
-        expect(await lib.balance(b(250))).to.eq.BN(b(0));
-        expect(await lib.balance(b(500))).to.eq.BN(b(0));
-        expect(await lib.balance(b(909))).to.eq.BN(b(0));
+        await expectTuple(lib.balance(b(0)), 0, 0);
+        await expectTuple(lib.balance(b(100)), 0, 0);
+        await expectTuple(lib.balance(b(250)), 0, 0);
+        await expectTuple(lib.balance(b(500)), 0, 0);
+        await expectTuple(lib.balance(b(909)), 0, 0);
 
         // Balance is required
-        expect(await lib.balance(b(910))).to.eq.BN(b(730));
-        expect(await lib.balance(b(920))).to.eq.BN(b(760));
-        expect(await lib.balance(b(990))).to.eq.BN(b(970));
-        expect(await lib.balance(b(999))).to.eq.BN(b(997));
-        expect(await lib.balance(b(1000))).to.eq.BN(b(1000));
-        expect(await lib.balance(b(1200))).to.eq.BN(b(1000));
-        expect(await lib.balance(b(2000))).to.eq.BN(b(1000));
-        expect(await lib.balance(b(2000000))).to.eq.BN(b(1000));
+        await expectTuple(lib.balance(b(910)), 730, 730);
+        await expectTuple(lib.balance(b(920)), 760, 760);
+        await expectTuple(lib.balance(b(990)), 970, 970);
+        await expectTuple(lib.balance(b(999)), 997, 997);
+        await expectTuple(lib.balance(b(1000)), 1000, 1000);
+        await expectTuple(lib.balance(b(1200)), 1000, 1000);
+        await expectTuple(lib.balance(b(2000)), 1000, 1000);
+        await expectTuple(lib.balance(b(2000000)), 1000, 1000);
+    });
+    it('Should return required to balance without RateOracle - biz', async () => {
+        const lib = await TestCollateralLib.new();
+        const token = await TestToken.new();
+        const debtId = web3.utils.randomHex(32);
+
+        await lib.create(
+            address0x,
+            token.address,
+            debtId,
+            b(1200),
+            ratio(120),
+            ratio(150)
+        );
+
+        // Balance is not required
+        await expectTuple(lib.balance(b(0)), 0, 0);
+        await expectTuple(lib.balance(b(100)), 0, 0);
+        await expectTuple(lib.balance(b(250)), 0, 0);
+        await expectTuple(lib.balance(b(500)), 0, 0);
+        await expectTuple(lib.balance(b(909)), 0, 0);
+        await expectTuple(lib.balance(b(1000)), 0, 0);
+
+        // Balance is required
+        await expectTuple(lib.balance(b(1001)), 603, 603);
     });
     it('Should return required to balance with RateOracle', async () => {
         const lib = await TestCollateralLib.new();
@@ -247,21 +278,49 @@ contract('Test Collateral lib', function ([_]) {
         await oracle.setEquivalent(b(500000000000000000));
 
         // Balance is not required
-        expect(await lib.balance(b(0))).to.eq.BN(b(0));
-        expect(await lib.balance(b(100))).to.eq.BN(b(0));
-        expect(await lib.balance(b(250))).to.eq.BN(b(0));
-        expect(await lib.balance(b(500))).to.eq.BN(b(0));
-        expect(await lib.balance(b(909))).to.eq.BN(b(0));
+        await expectTuple(lib.balance(b(0)), 0, 0);
+        await expectTuple(lib.balance(b(100)), 0, 0);
+        await expectTuple(lib.balance(b(250)), 0, 0);
+        await expectTuple(lib.balance(b(500)), 0, 0);
+        await expectTuple(lib.balance(b(909)), 0, 0);
 
         // Balance is required
-        expect(await lib.balance(b(910))).to.eq.BN(b(365));
-        expect(await lib.balance(b(920))).to.eq.BN(b(380));
-        expect(await lib.balance(b(990))).to.eq.BN(b(485));
-        expect(await lib.balance(b(999))).to.eq.BN(b(498));
-        expect(await lib.balance(b(1000))).to.eq.BN(b(500));
-        expect(await lib.balance(b(1200))).to.eq.BN(b(500));
-        expect(await lib.balance(b(2000))).to.eq.BN(b(500));
-        expect(await lib.balance(b(2000000))).to.eq.BN(b(500));
+        await expectTuple(lib.balance(b(910)), 365, 730);
+        await expectTuple(lib.balance(b(920)), 380, 760);
+        await expectTuple(lib.balance(b(990)), 485, 970);
+        await expectTuple(lib.balance(b(999)), 498, 997);
+        await expectTuple(lib.balance(b(1000)), 500, 1000);
+        await expectTuple(lib.balance(b(1200)), 500, 1000);
+        await expectTuple(lib.balance(b(2000)), 500, 1000);
+        await expectTuple(lib.balance(b(2000000)), 500, 1000);
+    });
+    it('Should return required to balance with RateOracle - biz', async () => {
+        const lib = await TestCollateralLib.new();
+        const token = await TestToken.new();
+        const debtId = web3.utils.randomHex(32);
+        const oracle = await TestRateOracle.new();
+
+        await lib.create(
+            oracle.address,
+            token.address,
+            debtId,
+            b(600),
+            ratio(120),
+            ratio(150)
+        );
+
+        // 1 BASE == 0.5 TOKEN
+        await oracle.setEquivalent(b(500000000000000000));
+
+        // Balance is not required
+        await expectTuple(lib.balance(b(0)), 0, 0);
+        await expectTuple(lib.balance(b(100)), 0, 0);
+        await expectTuple(lib.balance(b(250)), 0, 0);
+        await expectTuple(lib.balance(b(500)), 0, 0);
+        await expectTuple(lib.balance(b(909)), 0, 0);
+
+        // Balance is required
+        await expectTuple(lib.balance(b(1001)), 301, 603);
     });
     it('Should return can withdraw without RateOracle', async () => {
         const lib = await TestCollateralLib.new();

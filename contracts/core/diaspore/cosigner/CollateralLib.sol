@@ -90,7 +90,7 @@ library CollateralLib {
     function balance(
         Entry memory _col,
         uint256 _debt
-    ) internal view returns (uint256) {
+    ) internal view returns (uint256 _sell, uint256 _buy) {
         // Read oracle
         OracleUtils.Sample memory sample = _col.oracle.readStatic();
 
@@ -105,7 +105,7 @@ library CollateralLib {
         // If current collateral is above limit
         // balance is not needed
         if (limit.lt(base)) {
-            return 0;
+            return (0, 0);
         }
 
         // Load balance ratio to fixed point
@@ -114,11 +114,14 @@ library CollateralLib {
         // Calculate diff between current collateral and the limit needed
         bytes32 diff = debt.mul(balanceRatio).sub(base);
 
-        // Return how much collateral has to be sold
-        return Math.min(
-            sample.toBase(diff.div(balanceRatio.sub(Fixed223x32.from(1))).toUint256()),
-            _col.amount
-        );
+        _buy = diff.div(balanceRatio.sub(Fixed223x32.from(1))).toUint256();
+        _sell = sample.toBase(_buy);
+
+        if (_sell > _col.amount) {
+            return (_col.amount, sample.toTokens(_col.amount));
+        }
+
+        return (_sell, _buy);
     }
 
     /*

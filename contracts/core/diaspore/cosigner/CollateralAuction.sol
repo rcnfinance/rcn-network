@@ -61,7 +61,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         uint256 _amount
     ) external nonReentrant() returns (uint256 id) {
         require(_start < _ref, "auction: offer should be below refence offer");
-        require(_ref < _limit, "auction: reference offer should be below limit");
+        require(_ref <= _limit, "auction: reference offer should be below or equal to limit");
 
         uint32 limitDelta = ((_limit - _start).mult(DELTA_TO_MARKET) / (_ref - _start)).toUint32();
 
