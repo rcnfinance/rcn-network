@@ -2383,5 +2383,233 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await tryCatchRevert(collateral.claim(user, debtId, []), 'collateral: auction already exists');
             });
         });
+        context('With undue payments and token collateral', () => {
+            let dai;
+            let debtId;
+            let entryId;
+
+            beforeEach(async () => {
+                // Create oracle and alt token
+                dai = await TestToken.new();
+                const oracle = await TestRateOracle.new();
+
+                await oracle.setToken(dai.address);
+                await oracle.setEquivalent(b('500000000000000000'));
+
+                // Request a loan
+                const modelData = await model.encodeData(
+                    b(1000),
+                    MAX_UINT64
+                );
+
+                // Request  loan
+                const requestReceipt = await loanManager.requestLoan(
+                    b(1000),          // Requested amount
+                    model.address,    // Debt model
+                    address0x,        // Oracle
+                    user,             // Borrower
+                    address0x,        // Callback
+                    b(0),             // Salt
+                    MAX_UINT64,       // Expiration
+                    modelData,        // Model data
+                    {
+                        from: user,
+                    }
+                );
+
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+                await dai.setBalance(user, b(600));
+                await dai.setBalance(user, b(600));
+                await dai.approve(collateral.address, b(600), { from: user });
+
+                // Create collateral entry
+                await collateral.create(
+                    debtId,           // Debt ID
+                    oracle.address,   // Oracle address
+                    b(600),           // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
+
+                entryId = b(1);
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+                await loanManager.lend(
+                    debtId,             // Debt ID
+                    [],                 // Oracle data
+                    collateral.address, // Collateral cosigner
+                    b(0),               // Cosigner limit
+                    toBytes32(entryId), // Cosigner data
+                    [],                 // Callback data
+                    {
+                        from: anotherUser,
+                    }
+                );
+            });
+            it('should not trigger a liquidation', async () => {
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
+            });
+            it('should trigger a liquidation for the undue payments', async () => {
+                await model.setRelativeDueTime(debtId, true, b(60));
+                const dueTime = await model.getDueTime(debtId);
+
+                // call claim method, should return true
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(true);
+
+                // perform the actual claim and start the auction
+                const colSnap = await balanceSnap(dai, collateral.address, 'collateral');
+                const aucSnap = await balanceSnap(dai, auction.address, 'auction');
+                const claimTx = await collateral.claim(user, debtId, []);
+
+                await colSnap.requireDecrease(b(600));
+                await aucSnap.requireIncrease(b(600));
+
+                // Started auction event
+                const claimedEvent = searchEvent(claimTx, 'ClaimedUndue');
+                expect(claimedEvent._entryId).to.eq.BN(entryId);
+                expect(claimedEvent._dueTime).to.eq.BN(dueTime);
+                expect(claimedEvent._obligation).to.eq.BN(b(1050));
+                expect(claimedEvent._obligationTokens).to.eq.BN(b(1050));
+                expect(claimedEvent._marketValue).to.eq.BN(b(525));
+
+                const auctionId = claimedEvent._auctionId;
+
+                // validate auction parameters
+                const auctionEntry = await auction.auctions(auctionId);
+                expect(auctionEntry.fromToken).to.be.equal(dai.address);
+                expect(auctionEntry.amount).to.eq.BN(b(1050));
+                expect(auctionEntry.limit).to.eq.BN(b(600));
+            });
+            it('should not trigger a liquidation if already is in liquidation', async () => {
+                await model.setRelativeDueTime(debtId, true, b(60));
+
+                // perform the actual claim and start the auction
+                await collateral.claim(user, debtId, []);
+
+                await tryCatchRevert(collateral.claim(user, debtId, []), 'collateral: auction already exists');
+            });
+        });
+        context('With undue payments loan with oracle, and token collateral', () => {
+            let dai;
+            let debtId;
+            let entryId;
+            let loanOracledata;
+
+            beforeEach(async () => {
+                const oracleLoan = await TestRateOracle.new();
+                loanOracledata = await oracleLoan.encodeRate(b('1000000000000000000'), b('2000000000000000000'));
+
+                // Create oracle and alt token
+                dai = await TestToken.new();
+                const oracle = await TestRateOracle.new();
+
+                await oracle.setToken(dai.address);
+                await oracle.setEquivalent(b('500000000000000000'));
+
+                // Request a loan
+                const modelData = await model.encodeData(
+                    b(2000),
+                    MAX_UINT64
+                );
+
+                // Request  loan
+                const requestReceipt = await loanManager.requestLoan(
+                    b(2000),            // Requested amount
+                    model.address,      // Debt model
+                    oracleLoan.address, // Oracle
+                    user,               // Borrower
+                    address0x,          // Callback
+                    b(0),               // Salt
+                    MAX_UINT64,         // Expiration
+                    modelData,          // Model data
+                    {
+                        from: user,
+                    }
+                );
+
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+                await dai.setBalance(user, b(600));
+                await dai.setBalance(user, b(600));
+                await dai.approve(collateral.address, b(600), { from: user });
+
+                // Create collateral entry
+                await collateral.create(
+                    debtId,           // Debt ID
+                    oracle.address,   // Oracle address
+                    b(600),           // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
+
+                entryId = b(1);
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(2000));
+                await rcn.approve(loanManager.address, b(2000), { from: anotherUser });
+                await loanManager.lend(
+                    debtId,             // Debt ID
+                    loanOracledata,     // Oracle data
+                    collateral.address, // Collateral cosigner
+                    b(0),               // Cosigner limit
+                    toBytes32(entryId), // Cosigner data
+                    [],                 // Callback data
+                    {
+                        from: anotherUser,
+                    }
+                );
+            });
+            it('should not trigger a liquidation', async () => {
+                expect(await collateral.claim.call(user, debtId, loanOracledata)).to.be.equal(false);
+            });
+            it('should trigger a liquidation for the undue payments', async () => {
+                await model.setRelativeDueTime(debtId, true, b(60));
+                const dueTime = await model.getDueTime(debtId);
+
+                // call claim method, should return true
+                expect(await collateral.claim.call(user, debtId, loanOracledata)).to.be.equal(true);
+
+                // perform the actual claim and start the auction
+                const colSnap = await balanceSnap(dai, collateral.address, 'collateral');
+                const aucSnap = await balanceSnap(dai, auction.address, 'auction');
+                const claimTx = await collateral.claim(user, debtId, loanOracledata);
+
+                await colSnap.requireDecrease(b(600));
+                await aucSnap.requireIncrease(b(600));
+
+                // Started auction event
+                const claimedEvent = searchEvent(claimTx, 'ClaimedUndue');
+                expect(claimedEvent._entryId).to.eq.BN(entryId);
+                expect(claimedEvent._dueTime).to.eq.BN(dueTime);
+                expect(claimedEvent._obligation).to.eq.BN(b(2100));
+                expect(claimedEvent._obligationTokens).to.eq.BN(b(1050));
+                expect(claimedEvent._marketValue).to.eq.BN(b(525));
+
+                const auctionId = claimedEvent._auctionId;
+
+                // validate auction parameters
+                const auctionEntry = await auction.auctions(auctionId);
+                expect(auctionEntry.fromToken).to.be.equal(dai.address);
+                expect(auctionEntry.amount).to.eq.BN(b(1050));
+                expect(auctionEntry.limit).to.eq.BN(b(600));
+            });
+            it('should not trigger a liquidation if already is in liquidation', async () => {
+                await model.setRelativeDueTime(debtId, true, b(60));
+
+                // perform the actual claim and start the auction
+                await collateral.claim(user, debtId, loanOracledata);
+
+                await tryCatchRevert(collateral.claim(user, debtId, loanOracledata), 'collateral: auction already exists');
+            });
+        });
     });
 });

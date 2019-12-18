@@ -68,6 +68,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 indexed _auctionId,
         uint256 _dueTime,
         uint256 _obligation,
+        uint256 _obligationTokens,
         uint256 _marketValue
     );
 
@@ -545,13 +546,14 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             obligation = obligation.mult(105).div(100);
 
             // Valuate the debt amount from debt currency to loanManagerToken
-            uint256 obligationToken = _toToken(_debtId, obligation, _oracleData);
+            uint256 obligationTokens = _toToken(_debtId, obligation, _oracleData);
+            uint256 marketValue = entries[_entryId].oracle.read().toBase(obligationTokens);
 
             // Trigger the auction
             uint256 auctionId = _triggerAuction(
-                debtToEntry[_debtId],
-                obligation,
-                obligationToken
+                _entryId,
+                obligationTokens,
+                marketValue
             );
 
             emit ClaimedUndue(
@@ -559,7 +561,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
                 auctionId,
                 dueTime,
                 obligation,
-                obligationToken
+                obligationTokens,
+                marketValue
             );
 
             return true;
