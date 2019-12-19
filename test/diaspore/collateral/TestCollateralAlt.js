@@ -5,7 +5,7 @@ const DebtEngine = artifacts.require('DebtEngine');
 const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
 const CollateralDebtPayer = artifacts.require('CollateralDebtPayer');
-const CollateralAuction = artifacts.require('CollateralAuction');
+const TestCollateralAuction = artifacts.require('TestCollateralAuction');
 
 const { tryCatchRevert, address0x, toBytes32, balanceSnap, searchEvent } = require('../../Helper.js');
 const BN = web3.utils.BN;
@@ -15,6 +15,10 @@ const expect = require('chai')
 
 function b (number) {
     return web3.utils.toBN(number);
+}
+
+function e (number) {
+    return b(number).mul(b(10).pow(b(18)));
 }
 
 function ratio (num) {
@@ -40,9 +44,9 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
         // Collateral deploy
-        auction = await CollateralAuction.new(rcn.address, { from: owner });
+        auction = await TestCollateralAuction.new(rcn.address, { from: owner });
         collateral = await Collateral.new(loanManager.address, auction.address, { from: owner });
-        await auction.transferOwnership(auction.address, { from: owner });
+        await auction.transferOwnership(collateral.address, { from: owner });
         debtPayer = await CollateralDebtPayer.new();
     });
 
@@ -2609,6 +2613,544 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await collateral.claim(user, debtId, loanOracledata);
 
                 await tryCatchRevert(collateral.claim(user, debtId, loanOracledata), 'collateral: auction already exists');
+            });
+        });
+    });
+    describe('Close an auction', () => {
+        context('With partial payment token collateral', () => {
+            let dai;
+            let debtId;
+            let entryId;
+
+            beforeEach(async () => {
+                // Create oracle and alt token
+                dai = await TestToken.new();
+                const oracle = await TestRateOracle.new();
+
+                await oracle.setToken(dai.address);
+                await oracle.setEquivalent(b('500000000000000000'));
+
+                // Request a loan
+                const modelData = await model.encodeData(
+                    b(1000),
+                    MAX_UINT64
+                );
+
+                // Request  loan
+                const requestReceipt = await loanManager.requestLoan(
+                    b(1000),          // Requested amount
+                    model.address,    // Debt model
+                    address0x,        // Oracle
+                    user,             // Borrower
+                    address0x,        // Callback
+                    b(0),             // Salt
+                    MAX_UINT64,       // Expiration
+                    modelData,        // Model data
+                    {
+                        from: user,
+                    }
+                );
+
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+                await dai.setBalance(user, b(2400));
+                await dai.approve(collateral.address, b(2400), { from: user });
+
+                // Create collateral entry
+                await collateral.create(
+                    debtId,           // Debt ID
+                    oracle.address,   // Oracle address
+                    b(600),           // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
+
+                entryId = b(1);
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+                await loanManager.lend(
+                    debtId,             // Debt ID
+                    [],                 // Oracle data
+                    collateral.address, // Collateral cosigner
+                    b(0),               // Cosigner limit
+                    toBytes32(entryId), // Cosigner data
+                    [],                 // Callback data
+                    {
+                        from: anotherUser,
+                    }
+                );
+
+                // Freeze time of the auction
+                await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
+                // Generate an action by liquidation
+                await model.addDebt(debtId, b(100));
+                await collateral.claim(address0x, debtId, []);
+
+                // Collateral should be in auction
+                const auctionId = await collateral.entryToAuction(entryId);
+                expect(auctionId).to.not.eq.BN(b(0));
+                expect(await collateral.auctionToEntry(auctionId)).to.eq.BN(entryId);
+                expect(await collateral.inAuction(entryId)).to.be.equal(true);
+            });
+
+            it('Should close auction above market', async () => {
+                await rcn.setBalance(anotherUser, b(900));
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+
+                // Pay auction
+                await rcn.approve(auction.address, b(900), { from: anotherUser });
+                await auction.take(entryId, [], false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(b(900));
+                await userRcnSnap.requireDecrease(b(900));
+                await userDaiSnap.requireIncrease(b(427));
+                await collateralDaiSnap.requireIncrease(b(173));
+                await auctionDaiSnap.requireDecrease(b(600));
+
+                // Should no longer be under-collateral
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(900));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(173));
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
+            });
+
+            it('Should close auction at market rate', async () => {
+                await rcn.setBalance(anotherUser, b(900));
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+
+                // Move clock 10 minutes
+                await auction.increaseTime(b(60).mul(b(10)));
+
+                // Pay auction
+                await rcn.approve(auction.address, b(900), { from: anotherUser });
+                await auction.take(entryId, [], false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(b(900));
+                await userRcnSnap.requireDecrease(b(900));
+                await userDaiSnap.requireIncrease(b(450));
+                await collateralDaiSnap.requireIncrease(b(150));
+                await auctionDaiSnap.requireDecrease(b(600));
+
+                // Should no longer be under-collateral
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(900));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(150));
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
+            });
+
+            it('Should close auction 5% below market rate', async () => {
+                await rcn.setBalance(anotherUser, b(900));
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+
+                // Move clock 20 minutes
+                await auction.increaseTime(b(60).mul(b(20)));
+
+                // Pay auction
+                await rcn.approve(auction.address, b(900), { from: anotherUser });
+                await auction.take(entryId, [], false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(b(900));
+                await userRcnSnap.requireDecrease(b(900));
+                await userDaiSnap.requireIncrease(b(473));
+                await collateralDaiSnap.requireIncrease(b(127));
+                await auctionDaiSnap.requireDecrease(b(600));
+
+                // Should no longer be under-collateral
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(900));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(127));
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
+            });
+
+            it('Should close auction aprox 40% below market rate', async () => {
+                await rcn.setBalance(anotherUser, b(900));
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+
+                // Move clock aprox 30 minutes
+                await auction.increaseTime(b(1956));
+
+                // Pay auction
+                await rcn.approve(auction.address, b(900), { from: anotherUser });
+                await auction.take(entryId, [], false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(b(900));
+                await userRcnSnap.requireDecrease(b(900));
+                await userDaiSnap.requireIncrease(b(501));
+                await collateralDaiSnap.requireIncrease(b(99));
+                await auctionDaiSnap.requireDecrease(b(600));
+
+                // Should no longer be under-collateral
+                expect(await collateral.claim.call(user, debtId, [])).to.be.equal(true);
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(900));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(99));
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
+            });
+
+            it('Should close auction using all the collateral', async () => {
+                await rcn.setBalance(anotherUser, b(900));
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+
+                // Move clock aprox 75 minutes
+                await auction.increaseTime(b(4513));
+
+                // Pay auction
+                await rcn.approve(auction.address, b(900), { from: anotherUser });
+                await auction.take(entryId, [], false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(b(900));
+                await userRcnSnap.requireDecrease(b(900));
+                await userDaiSnap.requireIncrease(b(600));
+                await collateralDaiSnap.requireIncrease(b(0));
+                await auctionDaiSnap.requireDecrease(b(600));
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(900));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(0));
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
+            });
+
+            it('Should close auction all the collateral, for half the base', async () => {
+                await rcn.setBalance(anotherUser, b(450));
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+
+                // Move clock aprox 75 minutes + 12 hours
+                await auction.increaseTime(b(4513).add(b(43200)));
+
+                // Pay auction
+                await rcn.approve(auction.address, b(450), { from: anotherUser });
+                await auction.take(entryId, [], false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(b(450));
+                await userRcnSnap.requireDecrease(b(450));
+                await userDaiSnap.requireIncrease(b(600));
+                await collateralDaiSnap.requireIncrease(b(0));
+                await auctionDaiSnap.requireDecrease(b(600));
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(450));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(0));
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
+            });
+
+            it('Should close auction all the collateral, after looping the base', async () => {
+                await rcn.setBalance(anotherUser, b(450));
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+
+                // Move clock aprox 75 minutes + 36 hours
+                await auction.increaseTime(b(4513).add(b(129600)));
+
+                // Pay auction
+                await rcn.approve(auction.address, b(900), { from: anotherUser });
+                await auction.take(entryId, [], false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(b(450));
+                await userRcnSnap.requireDecrease(b(450));
+                await userDaiSnap.requireIncrease(b(600));
+                await collateralDaiSnap.requireIncrease(b(0));
+                await auctionDaiSnap.requireDecrease(b(600));
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(450));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(0));
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
+            });
+        });
+        context('With partial payment token collateral and loan with oracle', () => {
+            let dai;
+            let debtId;
+            let entryId;
+            let loanOracleData;
+
+            let requestedRcn;
+            let collateralDai;
+            let offeredDai;
+            let isUnderCollateral;
+
+            beforeEach(async () => {
+                const oracleLoan = await TestRateOracle.new();
+                loanOracleData = await oracleLoan.encodeRate(b('1000000000000000000'), b('2000000000000000000'));
+
+                // Create oracle and alt token
+                dai = await TestToken.new();
+                const oracle = await TestRateOracle.new();
+
+                await oracle.setToken(dai.address);
+                await oracle.setEquivalent(b('500000000000000000'));
+
+                // Request a loan
+                const modelData = await model.encodeData(
+                    e(2000),
+                    MAX_UINT64
+                );
+
+                // Request  loan
+                const requestReceipt = await loanManager.requestLoan(
+                    e(2000),            // Requested amount
+                    model.address,      // Debt model
+                    oracleLoan.address, // Oracle
+                    user,               // Borrower
+                    address0x,          // Callback
+                    b(0),               // Salt
+                    MAX_UINT64,         // Expiration
+                    modelData,          // Model data
+                    {
+                        from: user,
+                    }
+                );
+
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+                await dai.setBalance(user, e(600));
+                await dai.approve(collateral.address, e(600), { from: user });
+
+                // Create collateral entry
+                await collateral.create(
+                    debtId,           // Debt ID
+                    oracle.address,   // Oracle address
+                    e(600),           // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
+
+                entryId = b(1);
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, e(1000));
+                await rcn.approve(loanManager.address, e(1000), { from: anotherUser });
+                await loanManager.lend(
+                    debtId,             // Debt ID
+                    loanOracleData,     // Oracle data
+                    collateral.address, // Collateral cosigner
+                    b(0),               // Cosigner limit
+                    toBytes32(entryId), // Cosigner data
+                    [],                 // Callback data
+                    {
+                        from: anotherUser,
+                    }
+                );
+
+                // Freeze time of the auction
+                await auction.setTime(b(Math.floor(new Date().getTime() / 1000)));
+
+                // Generate an action by liquidation
+                await model.addDebt(debtId, e(200));
+                await collateral.claim(address0x, debtId, loanOracleData);
+
+                // Collateral should be in auction
+                const auctionId = await collateral.entryToAuction(entryId);
+                expect(auctionId).to.not.eq.BN(b(0));
+                expect(await collateral.auctionToEntry(auctionId)).to.eq.BN(entryId);
+                expect(await collateral.inAuction(entryId)).to.be.equal(true);
+            });
+
+            it('Should close auction above market', async () => {
+                requestedRcn = e(900);
+                collateralDai = e(600);
+                offeredDai = e(427).add(b('500000000000000000'));
+                isUnderCollateral = false;
+            });
+
+            it('Should close auction at market level', async () => {
+                // Advance time 10 minutes
+                await auction.increaseTime(b(10).mul(b(60)));
+
+                requestedRcn = e(900);
+                collateralDai = e(600);
+                offeredDai = e(450);
+                isUnderCollateral = false;
+            });
+
+            it('Should close auction 5% below market rate', async () => {
+                // Move clock 20 minutes
+                await auction.increaseTime(b(60).mul(b(20)));
+
+                requestedRcn = e(900);
+                collateralDai = e(600);
+                offeredDai = e(472).add(b('500000000000000000'));
+                isUnderCollateral = false;
+            });
+
+            it('Should close auction aprox 40% below market rate', async () => {
+                // Move clock aprox 30 minutes
+                await auction.increaseTime(b(1956));
+
+                requestedRcn = e(900);
+                collateralDai = e(600);
+                offeredDai = e(500).add(b('850000000000000000'));
+                isUnderCollateral = true;
+            });
+
+            it('Should close auction using all the collateral', async () => {
+                // Move clock aprox 75 minutes
+                await auction.increaseTime(b(4600));
+
+                requestedRcn = e(900);
+                collateralDai = e(600);
+                offeredDai = e(600);
+                isUnderCollateral = true;
+            });
+
+            it('Should close auction all the collateral, for half the base', async () => {
+                // Move clock aprox 75 minutes + 12 hours
+                await auction.increaseTime(b(4600).add(b(43200)));
+
+                requestedRcn = e(450);
+                collateralDai = e(600);
+                offeredDai = e(600);
+                isUnderCollateral = true;
+            });
+
+            it('Should close auction all the collateral, after looping the base', async () => {
+                // Move clock aprox 75 minutes + 36 hours
+                await auction.increaseTime(b(4600).add(b(129600)));
+
+                requestedRcn = e(450);
+                collateralDai = e(600);
+                offeredDai = e(600);
+                isUnderCollateral = true;
+            });
+
+            afterEach(async () => {
+                const leftoverDai = collateralDai.sub(offeredDai);
+
+                await rcn.setBalance(anotherUser, requestedRcn);
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+
+                // Pay auction
+                await rcn.approve(auction.address, requestedRcn, { from: anotherUser });
+                await auction.take(entryId, loanOracleData, false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(requestedRcn);
+                await userRcnSnap.requireDecrease(requestedRcn);
+                await userDaiSnap.requireIncrease(offeredDai);
+                await collateralDaiSnap.requireIncrease(leftoverDai);
+                await auctionDaiSnap.requireDecrease(collateralDai);
+
+                // Check if the contract is under collateralized
+                try {
+                    expect(await collateral.claim.call(user, debtId, loanOracleData)).to.be.equal(isUnderCollateral);
+                } catch (e) {
+                    expect(isUnderCollateral).to.be.equal(true);
+                    expect(leftoverDai).to.eq.BN(b(0));
+                }
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(requestedRcn.mul(b(2)));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(leftoverDai);
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
             });
         });
     });
