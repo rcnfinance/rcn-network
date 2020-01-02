@@ -570,10 +570,12 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const amountToPay = await loanManager.getClosingObligation(ids.loanId);
             await rcn.setBalance(testCollateralHandler.address, amountToPay, { from: owner });
+
             await testCollateralHandler.setHandlerConst(
                 amountToPay,
-                prevEntry.amount
+                prevEntry.amount.sub(amountToPay)
             );
+
             const BorrowCollateral = await toEvents(
                 collateral.borrowCollateral(
                     ids.entryId,
@@ -587,7 +589,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             // Test event
             assert.equal(BorrowCollateral._handler, testCollateralHandler.address);
-            expect(BorrowCollateral._newAmount).to.eq.BN(prevEntry.amount);
+            expect(BorrowCollateral._newAmount).to.eq.BN(prevEntry.amount.sub(amountToPay));
 
             // Test collateral entry
             const entry = await collateral.entries(ids.entryId);
@@ -598,10 +600,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.rewardFee).to.eq.BN(prevEntry.rewardFee);
             assert.equal(entry.token, prevEntry.token);
             assert.equal(entry.debtId, prevEntry.debtId);
-            expect(entry.amount).to.eq.BN(prevEntry.amount);
+            expect(entry.amount).to.eq.BN(prevEntry.amount.sub(amountToPay));
 
             // Balance of collateral
-            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance);
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(amountToPay));
             expect(await auxToken.balanceOf(borrower)).to.eq.BN(prevBorrowerBalance);
         });
         it('Try hack with handler contract', async function () {
@@ -710,6 +712,178 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 ),
                 'collateral: entry does not exists'
             );
+        });
+    });
+    describe('Function requestCosign', function () {
+        it('Try lend a debt with low collateral ratio', async function () {
+            const loanId = await createDefaultLoan();
+            const entryAmount = bn(1);
+
+            await auxToken.setBalance(creator, entryAmount, { from: owner });
+            await auxToken.approve(collateral.address, entryAmount, { from: creator });
+
+            const Created = await toEvents(
+                collateral.create(
+                    loanId,           // debtId
+                    oracle.address,   // entry oracle
+                    entryAmount,      // amount
+                    ratio(150),       // liquidationRatio
+                    ratio(200),       // balanceRatio
+                    { from: creator } // sender
+                ),
+                'Created'
+            );
+            const entryId = Created._entryId;
+
+            const loanAmount = (await loanManager.requests(loanId)).amount;
+            await rcn.setBalance(creator, loanAmount);
+            await rcn.approve(loanManager.address, loanAmount, { from: creator });
+
+            await tryCatchRevert(
+                () => loanManager.lend(
+                    loanId,
+                    [],
+                    collateral.address,
+                    0,
+                    toBytes32(entryId),
+                    [],
+                    { from: creator }
+                ),
+                'The entry its not collateralized'
+            );
+        });
+        it('Try request cosign with wrong sender', async function () {
+            await tryCatchRevert(
+                () => collateral.requestCosign(
+                    address0x,
+                    bytes320x,
+                    [],
+                    []
+                ),
+                'Not the debt manager'
+            );
+        });
+    });
+    describe('Function claim', function () {
+        it('Try claim the entry 0', async function () {
+            await tryCatchRevert(
+                () => collateral.claim(
+                    address0x,
+                    0,
+                    []
+                ),
+                'The loan dont lent'
+            );
+        });
+        it('Try claim an entry in auction', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await increaseTime(60 * 60);
+            await collateral.claim(address0x, ids.loanId, []);
+
+            await tryCatchRevert(
+                () => collateral.claim(
+                    address0x,
+                    ids.loanId,
+                    []
+                ),
+                'collateral: auction already exists'
+            );
+        });
+    });
+    describe('Function _claimExpired', function () {
+        it('Should claim an expired entry', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await increaseTime(60 * 60);
+
+            const obligation = (await model.getObligation(ids.loanId, await model.getDueTime(ids.loanId)))[0];
+
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
+            const prevEntryAmount = (await collateral.entries(ids.entryId)).amount;
+
+            const ClaimedExpired = await toEvents(
+                collateral.claim(
+                    address0x,
+                    ids.loanId,
+                    []
+                ),
+                'ClaimedExpired'
+            );
+            const auctionId = await collateral.entryToAuction(ids.entryId);
+
+            // Test event
+            expect(ClaimedExpired._entryId).to.eq.BN(ids.entryId);
+            expect(ClaimedExpired._auctionId).to.eq.BN(auctionId);
+            expect(ClaimedExpired._obligation).to.eq.BN(obligation);
+            const obligationPlus5Porcent = obligation.mul(WEI.add(bn(50000000000000000))).div(WEI);
+            expect(ClaimedExpired._obligationToken).to.eq.BN(obligationPlus5Porcent);
+
+            const entry = await collateral.entries(ids.entryId);
+            expect(entry.amount).to.eq.BN(0);
+
+            expect(await collateral.entryToAuction(ids.entryId)).to.eq.BN(auctionId);
+            expect(await collateral.auctionToEntry(auctionId)).to.eq.BN(ids.entryId);
+
+            expect(await auxToken.allowance(collateral.address, testCollateralAuctionMock.address)).to.eq.BN(0);
+
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(prevEntryAmount));
+            expect(await auxToken.balanceOf(testCollateralAuctionMock.address)).to.eq.BN(prevAuctionBalance.add(prevEntryAmount));
+        });
+    });
+    describe('Function _claimLiquidation', function () {
+        it('Should liquidation an entry', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await model.addDebt(ids.loanId, WEI.mul(bn(9)), { from: owner });
+            const depositAmount = WEI.mul(bn(12));
+            await auxToken.setBalance(creator, depositAmount, { from: owner });
+            await auxToken.approve(collateral.address, depositAmount, { from: creator });
+            await collateral.deposit(ids.entryId, depositAmount, { from: creator });
+
+            const closingObligation = await loanManager.getClosingObligation(ids.loanId);
+            const required = WEI.mul(bn(6));
+
+            // Entry amount = 14 WEI
+            // Debt  amount = 10 WEI
+            // Coll ratio = 14 / 10 = 1.4 %
+
+            // Post entry amount = 8 WEI
+            // Post debt  amount = 4 WEI
+            // Post coll ratio = 8 / 4 =  2%
+
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
+            const prevEntryAmount = (await collateral.entries(ids.entryId)).amount;
+
+            const ClaimedLiquidation = await toEvents(
+                collateral.claim(
+                    address0x,
+                    ids.loanId,
+                    []
+                ),
+                'ClaimedLiquidation'
+            );
+            const auctionId = await collateral.entryToAuction(ids.entryId);
+
+            // Test event
+            expect(ClaimedLiquidation._entryId).to.eq.BN(ids.entryId);
+            expect(ClaimedLiquidation._auctionId).to.eq.BN(auctionId);
+            expect(ClaimedLiquidation._debt).to.eq.BN(closingObligation);
+            expect(ClaimedLiquidation._required).to.eq.BN(required);
+            expect(ClaimedLiquidation._marketValue).to.eq.BN(required);
+
+            const entry = await collateral.entries(ids.entryId);
+            expect(entry.amount).to.eq.BN(0);
+
+            expect(await collateral.entryToAuction(ids.entryId)).to.eq.BN(auctionId);
+            expect(await collateral.auctionToEntry(auctionId)).to.eq.BN(ids.entryId);
+
+            expect(await auxToken.allowance(collateral.address, testCollateralAuctionMock.address)).to.eq.BN(0);
+
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(prevEntryAmount));
+            expect(await auxToken.balanceOf(testCollateralAuctionMock.address)).to.eq.BN(prevAuctionBalance.add(prevEntryAmount));
         });
     });
 });

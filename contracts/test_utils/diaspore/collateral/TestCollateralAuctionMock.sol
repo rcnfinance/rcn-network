@@ -3,14 +3,17 @@ pragma solidity ^0.5.11;
 import "../../../interfaces/IERC20.sol";
 import "../../../core/diaspore/cosigner/Collateral.sol";
 
+import "../../../utils/SafeERC20.sol";
 
 contract TestCollateralAuctionMock {
+    using SafeERC20 for IERC20;
+
     LoanManager public loanManager;
     IERC20 public loanManagerToken;
     Collateral public collateral;
 
     mapping(uint256 => IERC20) public entryToToken;
-    uint256 auctionId;
+    uint256 auctionId = 1;
 
     constructor(LoanManager _loanManager) public {
         loanManager = _loanManager;
@@ -31,6 +34,8 @@ contract TestCollateralAuctionMock {
         id = auctionId;
         entryToToken[id] = _fromToken;
         auctionId++;
+
+        require(_fromToken.safeTransferFrom(msg.sender, address(this), _limit), "TestCollateralAuctionMock: Error pulling tokens");
     }
 
     function toAuctionClosed(
