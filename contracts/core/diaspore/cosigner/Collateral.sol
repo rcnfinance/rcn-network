@@ -70,11 +70,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _obligationToken
     );
 
-    event ClaimedUndue(
-        uint256 indexed _entryId,
-        uint256 indexed _auctionId
-    );
-
     event ClosedAuction(
         uint256 indexed _entryId,
         uint256 _received,
@@ -87,6 +82,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     );
 
     event BorrowCollateral(
+        uint256 indexed _entryId,
         CollateralHandler _handler,
         uint256 _newAmount
     );
@@ -337,7 +333,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             require(afRatio.gt(ogRatio), "collateral: ratio should increase");
         }
 
-        emit BorrowCollateral(_handler, surplus);
+        emit BorrowCollateral(_entryId, _handler, surplus);
     }
 
     function auctionClosed(
@@ -547,13 +543,14 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         if (block.timestamp >= dueTime) {
             // Run payment of debt, use collateral to buy tokens
             (uint256 obligation,) = model.getObligation(_debtId, uint64(dueTime));
+
             // Valuate the debt amount from debt currency to loanManagerToken
             // request 5% extra to account for accrued interest during the auction
             uint256 obligationToken = _toToken(_debtId, obligation, _oracleData);
 
-            // Trigger auction
+            // Trigger the auction
             uint256 auctionId = _triggerAuction(
-                debtToEntry[_debtId],
+                _entryId,
                 obligation,
                 obligationToken
             );
