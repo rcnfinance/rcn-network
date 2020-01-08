@@ -63,9 +63,11 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _marketValue
     );
 
-    event ClaimedUndue(
+    event ClaimedExpired(
         uint256 indexed _entryId,
-        uint256 indexed _auctionId
+        uint256 indexed _auctionId,
+        uint256 _obligation,
+        uint256 _obligationToken
     );
 
     event ClosedAuction(
@@ -75,12 +77,14 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     );
 
     event Redeemed(
-        uint256 indexed _entryId
-    );
-
-    event EmergencyRedeemed(
         uint256 indexed _entryId,
         address _to
+    );
+
+    event BorrowCollateral(
+        uint256 indexed _entryId,
+        CollateralHandler _handler,
+        uint256 _newAmount
     );
 
     event SetUrl(
@@ -274,7 +278,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Check status, should be `error`
         require(loanManager.getStatus(entry.debtId) == 4, "collateral: debt should be have status error");
-        emit EmergencyRedeemed(_entryId, _to);
+        emit Redeemed(_entryId, _to);
 
         // Load amount and token
         uint256 amount = entry.amount;
@@ -328,6 +332,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
             require(afRatio.gt(ogRatio), "collateral: ratio should increase");
         }
+
+        emit BorrowCollateral(_entryId, _handler, surplus);
     }
 
     function auctionClosed(
@@ -486,7 +492,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             return true;
         }
 
-        return _claimExpired(debtId, _oracleData);
+        return _claimExpired(entryId, debtId, _oracleData);
     }
 
     function inAuction(uint256 _entryId) public view returns (bool) {
@@ -526,6 +532,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     }
 
     function _claimExpired(
+        uint256 _entryId,
         bytes32 _debtId,
         bytes memory _oracleData
     ) internal returns (bool) {
@@ -542,8 +549,15 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             uint256 obligationToken = _toToken(_debtId, obligation, _oracleData);
 
             // Trigger the auction
-            _triggerAuction(
-                debtToEntry[_debtId],
+            uint256 auctionId = _triggerAuction(
+                _entryId,
+                obligation,
+                obligationToken
+            );
+
+            emit ClaimedExpired(
+                _entryId,
+                auctionId,
                 obligation,
                 obligationToken
             );
