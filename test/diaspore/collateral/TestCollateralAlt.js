@@ -2439,7 +2439,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await aucSnap.requireIncrease(b(1200));
 
                 // Started auction event
-                const claimedEvent = searchEvent(claimTx, 'ClaimedUndue');
+                const claimedEvent = searchEvent(claimTx, 'ClaimedExpired');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
                 expect(claimedEvent._dueTime).to.eq.BN(dueTime);
                 expect(claimedEvent._obligation).to.eq.BN(b(1050));
@@ -2550,7 +2550,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await aucSnap.requireIncrease(b(600));
 
                 // Started auction event
-                const claimedEvent = searchEvent(claimTx, 'ClaimedUndue');
+                const claimedEvent = searchEvent(claimTx, 'ClaimedExpired');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
                 expect(claimedEvent._dueTime).to.eq.BN(dueTime);
                 expect(claimedEvent._obligation).to.eq.BN(b(1050));
@@ -2666,7 +2666,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await aucSnap.requireIncrease(b(600));
 
                 // Started auction event
-                const claimedEvent = searchEvent(claimTx, 'ClaimedUndue');
+                const claimedEvent = searchEvent(claimTx, 'ClaimedExpired');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
                 expect(claimedEvent._dueTime).to.eq.BN(dueTime);
                 expect(claimedEvent._obligation).to.eq.BN(b(2100));
