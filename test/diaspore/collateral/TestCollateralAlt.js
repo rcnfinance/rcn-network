@@ -6,6 +6,7 @@ const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
 const CollateralDebtPayer = artifacts.require('CollateralDebtPayer');
 const TestCollateralAuction = artifacts.require('TestCollateralAuction');
+const TestCollateralHandler = artifacts.require('TestCollateralHandler');
 
 const { tryCatchRevert, address0x, toBytes32, balanceSnap, searchEvent } = require('../../Helper.js');
 const BN = web3.utils.BN;
@@ -1443,76 +1444,150 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         });
     });
     describe('Pay off debt', () => {
-        it('Should pay total debt using rcn collateral, without oracle', async () => {
-            // Request a loan
-            const modelData = await model.encodeData(
-                b(1000),
-                MAX_UINT64
-            );
+        context('without oracle and with rcn collateral', () => {
+            let debtId;
+            let entryId;
 
-            // Request loan
-            const requestReceipt = await loanManager.requestLoan(
-                b(1000),          // Requested amount
-                model.address,    // Debt model
-                address0x,        // Oracle
-                user,             // Borrower
-                address0x,        // Callback
-                b(0),             // Salt
-                MAX_UINT64,       // Expiration
-                modelData,        // Model data
-                {
-                    from: user,
-                }
-            );
+            beforeEach(async () => {
+                // Request a loan
+                const modelData = await model.encodeData(
+                    b(1000),
+                    MAX_UINT64
+                );
 
-            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+                // Request loan
+                const requestReceipt = await loanManager.requestLoan(
+                    b(1000),          // Requested amount
+                    model.address,    // Debt model
+                    address0x,        // Oracle
+                    user,             // Borrower
+                    address0x,        // Callback
+                    b(0),             // Salt
+                    MAX_UINT64,       // Expiration
+                    modelData,        // Model data
+                    {
+                        from: user,
+                    }
+                );
 
-            // Create collateral entry
-            await rcn.setBalance(user, b(2500));
-            await rcn.approve(collateral.address, b(2500), { from: user });
-            await collateral.create(
-                debtId,           // Debt ID
-                address0x,        // Oracle address
-                b(2500),          // Token Amount
-                ratio(120),       // Liquidation Ratio
-                ratio(150),       // Balance ratio
-                {
-                    from: user,
-                }
-            );
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-            const entryId = b(1);
+                // Create collateral entry
+                await rcn.setBalance(user, b(2500));
+                await rcn.approve(collateral.address, b(2500), { from: user });
+                await collateral.create(
+                    debtId,           // Debt ID
+                    address0x,        // Oracle address
+                    b(2500),          // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
 
-            // Lend loan
-            await rcn.setBalance(anotherUser, b(1000));
-            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
-            await loanManager.lend(
-                debtId,             // Debt ID
-                [],                 // Oracle data
-                collateral.address, // Collateral cosigner
-                b(0),               // Cosigner limit
-                toBytes32(entryId), // Cosigner data
-                [],                 // Callback data
-                {
-                    from: anotherUser,
-                }
-            );
+                entryId = b(1);
 
-            // Pay debt using RCN collateral
-            const data = await debtPayer.encode(address0x, b(1000), b(0), []);
-            await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+                await loanManager.lend(
+                    debtId,             // Debt ID
+                    [],                 // Oracle data
+                    collateral.address, // Collateral cosigner
+                    b(0),               // Cosigner limit
+                    toBytes32(entryId), // Cosigner data
+                    [],                 // Callback data
+                    {
+                        from: anotherUser,
+                    }
+                );
+            });
 
-            expect(await loanManager.getStatus(debtId)).to.eq.BN(b(2));
+            it('Should pay totally the debt', async () => {
+                // Pay debt using RCN collateral
+                const data = await debtPayer.encode(address0x, b(1000), b(0), []);
+                await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
 
-            // Debt entry should have extra collateral
-            // Inspect entry
-            const entry = await collateral.entries(entryId);
-            expect(entry.oracle).to.be.equal(address0x);
-            expect(entry.token).to.be.equal(rcn.address);
-            expect(entry.debtId).to.be.equal(debtId);
-            expect(entry.amount).to.eq.BN(b(1500));
-            expect(entry.liquidationRatio).to.eq.BN(ratio(120));
-            expect(entry.balanceRatio).to.eq.BN(ratio(150));
+                expect(await loanManager.getStatus(debtId)).to.eq.BN(b(2));
+
+                // Debt entry should have extra collateral
+                // Inspect entry
+                const entry = await collateral.entries(entryId);
+                expect(entry.oracle).to.be.equal(address0x);
+                expect(entry.token).to.be.equal(rcn.address);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(1500));
+                expect(entry.liquidationRatio).to.eq.BN(ratio(120));
+                expect(entry.balanceRatio).to.eq.BN(ratio(150));
+            });
+
+            it('Should pay partially the debt', async () => {
+                // Pay debt using RCN collateral
+                const data = await debtPayer.encode(address0x, b(400), b(0), []);
+                await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
+
+                expect(await loanManager.getStatus(debtId)).to.eq.BN(b(1));
+
+                // Debt should be paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(400));
+
+                // Debt entry should have extra collateral
+                // Inspect entry
+                const entry = await collateral.entries(entryId);
+                expect(entry.oracle).to.be.equal(address0x);
+                expect(entry.token).to.be.equal(rcn.address);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(2100));
+                expect(entry.liquidationRatio).to.eq.BN(ratio(120));
+                expect(entry.balanceRatio).to.eq.BN(ratio(150));
+            });
+
+            it('Should return any extra rcn', async () => {
+                // Pay debt using RCN collateral
+                const data = await debtPayer.encode(address0x, b(1200), b(0), []);
+
+                const userSnap = await balanceSnap(rcn, user, 'user rcn');
+
+                await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
+
+                expect(await loanManager.getStatus(debtId)).to.eq.BN(b(2));
+
+                // Debt should be paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(1000));
+
+                // Extra should be transfered to the user
+                await userSnap.requireIncrease(b(200));
+
+                // Debt entry should have extra collateral
+                // Inspect entry
+                const entry = await collateral.entries(entryId);
+                expect(entry.amount).to.eq.BN(b(1300));
+            });
+
+            it('Should fail if end result is less collateralized', async () => {
+                const altHandler = await TestCollateralHandler.new();
+
+                const data = await altHandler.encode(rcn.address, b(2499));
+
+                // Try keeping the collateral
+                await tryCatchRevert(
+                    collateral.borrowCollateral(entryId, altHandler.address, data, [], { from: user }),
+                    'collateral: ratio should increase'
+                );
+            });
+
+            it('Should fail if end result took all the collateral', async () => {
+                const altHandler = await TestCollateralHandler.new();
+
+                const data = await altHandler.encode(rcn.address, b(0));
+
+                // Try keeping the collateral
+                await tryCatchRevert(
+                    collateral.borrowCollateral(entryId, altHandler.address, data, [], { from: user }),
+                    'collateral: ratio should increase'
+                );
+            });
         });
     });
     describe('Should open an auction', () => {
