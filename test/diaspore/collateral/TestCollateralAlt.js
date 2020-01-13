@@ -346,55 +346,53 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 'collateral-lib: _liquidationRatio should be below _balanceRatio'
             );
         });
-        // it('Should fail to create collateral if loan was canceled', async () => {
-        //     // Create oracle and alt token
-        //     const dai = await TestToken.new();
-        //     const oracle = await TestRateOracle.new();
-        //     await oracle.setToken(dai.address);
+        it('Should fail to create collateral if loan was already lent', async () => {
+            // Request a loan
+            const modelData = await model.encodeData(
+                b(2000),
+                MAX_UINT64
+            );
 
-        //     // Request a loan
-        //     const modelData = await model.encodeData(
-        //         b(2000),
-        //         MAX_UINT64
-        //     );
+            // Request loan
+            const requestReceipt = await loanManager.requestLoan(
+                b(1000),          // Requested amount
+                model.address,    // Debt model
+                address0x,        // Oracle
+                user,             // Borrower
+                address0x,        // Callback
+                b(0),             // Salt
+                MAX_UINT64,       // Expiration
+                modelData,        // Model data
+                {
+                    from: user
+                }
+            );
 
-        //     // Request loan
-        //     const requestReceipt = await loanManager.requestLoan(
-        //         b(1000),          // Requested amount
-        //         model.address,    // Debt model
-        //         oracle.address,   // Oracle
-        //         user,             // Borrower
-        //         address0x,        // Callback
-        //         b(0),             // Salt
-        //         MAX_UINT64,       // Expiration
-        //         modelData         // Model data
-        //     );
+            const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-        //     const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+            // Lend loan
+            await rcn.setBalance(anotherUser, b(1000));
+            await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+            await loanManager.lend(debtId, [], address0x, b(0), [], [], { from: anotherUser });
 
-        //     // Cancel loan
-        //     await loanManager.cancel(debtId);
+            // Create collateral entry
+            await rcn.setBalance(user, b(2500));
+            await rcn.approve(collateral.address, b(2500), { from: user });
 
-        //     await dai.setBalance(user, b(2500));
-        //     await dai.approve(collateral.address, b(2500), { from: user });
-
-        //     // Create collateral entry
-        //     await tryCatchRevert(
-        //         collateral.create(
-        //             debtId,           // Debt ID
-        //             oracle.address,   // Oracle address
-        //             b(2500),          // Token Amount
-        //             b(10500),         // Liquidation Ratio
-        //             b(10600),         // Balance ratio
-        //             b(9),             // Burn fee
-        //             b(1),             // Reward fee
-        //             {
-        //                 from: user,
-        //             }
-        //         ),
-        //         'Debt request should be open'
-        //     );
-        // });
+            await tryCatchRevert(
+                collateral.create(
+                    debtId,         // Debt ID
+                    address0x,      // Oracle address
+                    b(2500),        // Token Amount
+                    ratio(b(105)),  // Liquidation Ratio
+                    ratio(b(106)),  // Balance ratio
+                    {
+                        from: user,
+                    }
+                ),
+                'Debt request should be open'
+            );
+        });
     });
     describe('Add Deposit to collateral', () => {
         it('Should add deposit to rcn collateral', async () => {
