@@ -115,7 +115,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         LoanManager _loanManager,
         CollateralAuction _auction
     ) public ERC721Base("RCN Collateral Cosigner", "RCC") {
-        require(address(_loanManager) != address(0), "Error loading loan manager");
         loanManager = _loanManager;
         loanManagerToken = loanManager.token();
         // Invalid entry of index 0
