@@ -203,7 +203,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _entryId,
         uint256 _amount
     ) external nonReentrant() {
-        require(!inAuction(_entryId), "collateral: can deposit during auction");
+        require(!inAuction(_entryId), "collateral: can't deposit during auction");
 
         // Load entry from storage
         CollateralLib.Entry storage entry = entries[_entryId];
@@ -232,7 +232,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _amount,
         bytes calldata _oracleData
     ) external nonReentrant() onlyAuthorized(_entryId) {
-        require(!inAuction(_entryId), "collateral: can withdraw during auction");
+        require(!inAuction(_entryId), "collateral: can't withdraw during auction");
 
         // Load entry from storage
         CollateralLib.Entry storage entry = entries[_entryId];

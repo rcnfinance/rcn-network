@@ -50,7 +50,6 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         await auction.transferOwnership(collateral.address, { from: owner });
         debtPayer = await CollateralDebtPayer.new();
     });
-
     describe('Request collateral', () => {
         it('Should request a loan with collateral', async () => {
             // Request a loan
@@ -2688,6 +2687,113 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await collateral.claim(user, debtId, loanOracledata);
 
                 await tryCatchRevert(collateral.claim(user, debtId, loanOracledata), 'collateral: auction already exists');
+            });
+        });
+        context('During auction', () => {
+            let debtId;
+            let entryId;
+            let auctionId;
+
+            beforeEach(async () => {
+                // Request a loan
+                const modelData = await model.encodeData(
+                    b(1000),
+                    MAX_UINT64
+                );
+
+                // Request  loan
+                const requestReceipt = await loanManager.requestLoan(
+                    b(1000),          // Requested amount
+                    model.address,    // Debt model
+                    address0x,        // Oracle
+                    user,             // Borrower
+                    address0x,        // Callback
+                    b(0),             // Salt
+                    MAX_UINT64,       // Expiration
+                    modelData,        // Model data
+                    {
+                        from: user,
+                    }
+                );
+
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+                await rcn.setBalance(user, b(1200));
+                await rcn.setBalance(user, b(1200));
+                await rcn.approve(collateral.address, b(1200), { from: user });
+
+                // Create collateral entry
+                await collateral.create(
+                    debtId,           // Debt ID
+                    address0x,        // Oracle address
+                    b(1200),           // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
+
+                entryId = b(1);
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+                await loanManager.lend(
+                    debtId,             // Debt ID
+                    [],                 // Oracle data
+                    collateral.address, // Collateral cosigner
+                    b(0),               // Cosigner limit
+                    toBytes32(entryId), // Cosigner data
+                    [],                 // Callback data
+                    {
+                        from: anotherUser,
+                    }
+                );
+
+                // Trigger auction
+                await model.addDebt(debtId, b(1));
+                const claimTx = await collateral.claim(user, debtId, []);
+                const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
+                auctionId = claimedEvent._auctionId;
+            });
+
+            it('Should fail to deposit collateral', async () => {
+                await rcn.setBalance(user, b(100));
+                await rcn.approve(collateral.address, b(100), { from: user });
+                await tryCatchRevert(
+                    collateral.deposit(entryId, b(100), { from: user }),
+                    'collateral: can\'t deposit during auction'
+                );
+            });
+
+            it('Should fail to withdraw collateral', async () => {
+                await tryCatchRevert(
+                    collateral.withdraw(entryId, user, b(1), [], { from: user }),
+                    'collateral: can\'t withdraw during auction'
+                );
+            });
+
+            it('Should deposit after auction closes', async () => {
+                // Close auction
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(auction.address, b(1000), { from: anotherUser });
+                await auction.take(auctionId, [], false, { from: anotherUser });
+
+                // Deposit
+                await rcn.setBalance(user, b(100));
+                await rcn.approve(collateral.address, b(100), { from: user });
+                await collateral.deposit(entryId, b(100), { from: user });
+            });
+
+            it('Should withdraw after auction closes', async () => {
+                // Close auction
+                await rcn.setBalance(anotherUser, b(0));
+                await rcn.approve(auction.address, b(1000), { from: anotherUser });
+                await auction.take(auctionId, [], false, { from: anotherUser });
+
+                // Withdraw
+                await collateral.withdraw(entryId, user, b(1), [], { from: user });
             });
         });
     });
