@@ -364,7 +364,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 MAX_UINT64,       // Expiration
                 modelData,        // Model data
                 {
-                    from: user
+                    from: user,
                 }
             );
 
@@ -3143,6 +3143,49 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const entry = await collateral.entries(entryId);
                 expect(entry.debtId).to.be.equal(debtId);
                 expect(entry.amount).to.eq.BN(b(0));
+
+                // Collateral should not be in auction
+                expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
+                expect(await collateral.inAuction(entryId)).to.be.equal(false);
+            });
+
+            it('Should close auction and send extra to collateral owner', async () => {
+                await rcn.setBalance(anotherUser, b(900));
+
+                const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
+                const auctionRcnSnap = await balanceSnap(rcn, auction.address, 'auction rcn');
+                const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
+                const engineRcnSnap = await balanceSnap(rcn, debtEngine.address, 'debt engine rcn');
+                const userRcnSnap = await balanceSnap(rcn, anotherUser, 'another user rcn');
+                const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
+                const collateralOwnerRcnSnap = await balanceSnap(rcn, user, 'user rcn');
+
+                // Move clock 10 minutes
+                await auction.increaseTime(b(60).mul(b(10)));
+
+                // Lower debt to only 100
+                await model.setDebt(debtId, b(100));
+
+                // Pay auction
+                await rcn.setBalance(anotherUser, b(900));
+                await rcn.approve(auction.address, b(900), { from: anotherUser });
+                await auction.take(entryId, [], false, { from: anotherUser });
+
+                await engineRcnSnap.requireIncrease(b(100));
+                await userRcnSnap.requireDecrease(b(900));
+                await userDaiSnap.requireIncrease(b(450));
+                await collateralDaiSnap.requireIncrease(b(150));
+                await collateralOwnerRcnSnap.requireIncrease(b(800));
+                await auctionDaiSnap.requireDecrease(b(600));
+                await auctionRcnSnap.requireConstant();
+
+                // Loan should be partially paid
+                expect(await model.getPaid(debtId)).to.eq.BN(b(100));
+
+                // Collateral should have the leftover tokens
+                const entry = await collateral.entries(entryId);
+                expect(entry.debtId).to.be.equal(debtId);
+                expect(entry.amount).to.eq.BN(b(150));
 
                 // Collateral should not be in auction
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));

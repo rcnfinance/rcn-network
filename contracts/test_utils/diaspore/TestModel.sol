@@ -298,4 +298,10 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     function _validate(uint256 due) internal view {
         require(due > now, "Due time already past");
     }
+
+    // ** Test and debug methods ** //
+
+    function setDebt(bytes32 _id, uint128 _val) external {
+        registry[_id].total = _val;
+    }
 }
