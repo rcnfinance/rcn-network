@@ -60,6 +60,9 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         it('Should return contant zero cost', async () => {
             expect(await collateral.cost(user, 0, [], [])).to.eq.BN(b(0));
         });
+        it('Entries length should start at one', async () => {
+            expect(await collateral.getEntriesLength()).to.eq.BN(b(1));
+        });
     });
     describe('Request collateral', () => {
         it('Should request a loan with collateral', async () => {
@@ -418,6 +421,9 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.setBalance(user, b(100));
             await rcn.approve(collateral.address, b(100), { from: user });
             await collateral.deposit(entryId, b(100), { from: user });
+
+            // Entries length should increase
+            expect(await collateral.getEntriesLength()).to.eq.BN(b(2));
 
             // Check balances
             const entry = await collateral.entries(entryId);
