@@ -1,10 +1,10 @@
 /* solium-disable */
 pragma solidity ^0.5.11;
 
-import "../../contracts/interfaces/Cosigner.sol";
-import "../../contracts/utils/BytesUtils.sol";
-import "../../contracts/core/basalt/interfaces/Engine.sol";
-import "../../contracts/interfaces/IERC20.sol";
+import "../interfaces/Cosigner.sol";
+import "../utils/BytesUtils.sol";
+import "../core/basalt/interfaces/Engine.sol";
+import "../interfaces/IERC20.sol";
 
 
 contract TestCosigner is Cosigner, BytesUtils {
