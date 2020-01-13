@@ -50,6 +50,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         await auction.transferOwnership(collateral.address, { from: owner });
         debtPayer = await CollateralDebtPayer.new();
     });
+    describe('Metadata', () => {
+        it('Should update the URL', async () => {
+            expect(await collateral.url()).to.be.equal('');
+
+            await collateral.setUrl('https://api.rcn.loans/', { from: owner });
+            expect(await collateral.url()).to.be.equal('https://api.rcn.loans/');
+        });
+        it('Should return contant zero cost', async () => {
+            expect(await collateral.cost(user, 0, [], [])).to.eq.BN(b(0));
+        });
+    });
     describe('Request collateral', () => {
         it('Should request a loan with collateral', async () => {
             // Request a loan
