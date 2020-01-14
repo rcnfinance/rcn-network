@@ -284,7 +284,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     ratio(200),
                     { from: creator }
                 ),
-                'Debt request should be open'
+                'collateral: loan request should be open'
             );
         });
         it('Try create a new collateral without approval of the token collateral', async function () {
@@ -302,7 +302,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     ratio(200),
                     { from: creator }
                 ),
-                'Error pulling tokens'
+                'collateral: error pulling tokens'
             );
         });
     });
@@ -414,7 +414,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: creator }
                 ),
-                'Don\'t have collateral to withdraw'
+                'collateral: withdrawable collateral is not enough'
             );
         });
         it('Should withdraw token on lent entry', async function () {
@@ -468,7 +468,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: creator }
                 ),
-                'Dont have collateral to withdraw'
+                'collateral: withdrawable collateral is not enough'
             );
         });
         it('Try withdraw collateral in a inAuction entry', async function () {
@@ -764,7 +764,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     0,
                     []
                 ),
-                'The loan dont lent'
+                'collateral: collateral not found for debtId'
             );
         });
         it('Try claim an entry in auction', async function () {

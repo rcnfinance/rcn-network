@@ -363,7 +363,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                         from: user,
                     }
                 ),
-                'Error pulling tokens'
+                'collateral: error pulling tokens'
             );
         });
         it('Should fail to create collateral if liquidation ratio is below BASE', async () => {
@@ -498,7 +498,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                         from: user,
                     }
                 ),
-                'Debt request should be open'
+                'collateral: loan request should be open'
             );
         });
         it('Should fail to request cosign if caller is not the debt engine', async () => {
@@ -640,7 +640,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.approve(collateral.address, b(100), { from: user });
             await tryCatchRevert(
                 collateral.deposit(entryId, b(100), { from: user }),
-                'Error pulling tokens'
+                'collateral: error pulling tokens'
             );
 
             // Check balances
@@ -1063,7 +1063,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             await tryCatchRevert(
                 collateral.withdraw(entryId, anotherUser, b(1301), [], { from: user }),
-                'Dont have collateral to withdraw'
+                'collateral: withdrawable collateral is not enough'
             );
         });
         it('Should fail to withdraw rcn collateral from a lent loan with Oracle, below liquidation ratio', async () => {
@@ -1130,7 +1130,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             await tryCatchRevert(
                 collateral.withdraw(entryId, user, b(2201), [], { from: user }),
-                'Dont have collateral to withdraw'
+                'collateral: withdrawable collateral is not enough'
             );
         });
         it('Should fail to withdraw token collateral from a lent loan with Oracle, below liquidation ratio', async () => {
@@ -1200,7 +1200,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             await tryCatchRevert(
                 collateral.withdraw(entryId, user, b(2351), [], { from: user }),
-                'Dont have collateral to withdraw'
+                'collateral: withdrawable collateral is not enough'
             );
         });
     });
@@ -1448,7 +1448,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Redeem entry
             await tryCatchRevert(
                 collateral.withdraw(entryId, user, b(2500), [], { from: user }),
-                'Dont have collateral to withdraw'
+                'collateral: withdrawable collateral is not enough'
             );
         });
         it('Should fail emergency redeem a loan if status is not error', async () => {

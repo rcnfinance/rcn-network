@@ -158,7 +158,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint96 _balanceRatio
     ) external nonReentrant() returns (uint256 entryId) {
         // Check status of loan, should be open
-        require(loanManager.getStatus(_debtId) == 0, "Debt request should be open");
+        require(loanManager.getStatus(_debtId) == 0, "collateral: loan request should be open");
 
         // Use the Oracle token
         IERC20 token = _oracle == RateOracle(0) ? loanManagerToken : IERC20(_oracle.token());
@@ -176,7 +176,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         ) - 1;
 
         // Take the ERC20 tokens
-        require(token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+        require(token.safeTransferFrom(msg.sender, address(this), _amount), "collateral: error pulling tokens");
 
         // Generate the ERC721 Token
         _generate(entryId, msg.sender);
@@ -208,7 +208,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralLib.Entry storage entry = entries[_entryId];
 
         // Take the ERC20 tokens
-        require(entry.token.safeTransferFrom(msg.sender, address(this), _amount), "Error pulling tokens");
+        require(entry.token.safeTransferFrom(msg.sender, address(this), _amount), "collateral: error pulling tokens");
 
         // Register the deposit of amount on the entry
         entry.amount = entry.amount.add(_amount);
@@ -245,16 +245,16 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             // Check if can withdraw the requested amount
             require(
                 _amount <= entry.canWithdraw(_debtInTokens(debtId, _oracleData)),
-                "Dont have collateral to withdraw"
+                "collateral: withdrawable collateral is not enough"
             );
         }
 
         // Register the withdraw of amount on the entry
-        require(entryAmount >= _amount, "Don't have collateral to withdraw");
+        require(entryAmount >= _amount, "collateral: withdrawable collateral is not enough");
         entry.amount = entryAmount.sub(_amount);
 
         // Send the amount of ERC20 tokens to _to
-        require(entry.token.safeTransfer(_to, _amount), "Error sending tokens");
+        require(entry.token.safeTransfer(_to, _amount), "collateral: error sending tokens");
 
         emit Withdraw(_entryId, _to, _amount);
     }
@@ -490,7 +490,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     ) public nonReentrant() returns (bool) {
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = debtToEntry[debtId];
-        require(entryId != 0, "The loan dont lent");
+        require(entryId != 0, "collateral: collateral not found for debtId");
 
         if (_claimLiquidation(entryId, debtId, _oracleData)) {
             return true;
