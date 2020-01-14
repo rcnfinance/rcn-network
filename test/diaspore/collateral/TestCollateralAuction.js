@@ -62,6 +62,9 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             expect(entry.startOffer).to.eq.BN(b(950));
             expect(entry.amount).to.eq.BN(b(50));
             expect(entry.limit).to.eq.BN(b(2000));
+
+            // Should increase auction count
+            expect(await auction.getAuctionsLength()).to.eq.BN(b(2));
         });
     });
     describe('Fail to create an auction', () => {

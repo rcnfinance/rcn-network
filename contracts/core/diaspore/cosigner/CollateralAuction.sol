@@ -53,6 +53,10 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         auctions.length++;
     }
 
+    function getAuctionsLength() external view returns (uint256) {
+        return auctions.length;
+    }
+
     function create(
         IERC20 _fromToken,
         uint256 _start,
