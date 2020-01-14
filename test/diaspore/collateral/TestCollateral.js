@@ -183,14 +183,6 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.equal(await collateral.auction(), testCollateralAuctionMock.address);
             expect(await collateral.getEntriesLength()).to.eq.BN(bn(1));
         });
-        it('Creation should fail if loan manager is the address 0', async function () {
-            await tryCatchRevert(
-                () => Collateral.new(
-                    address0x,
-                    testCollateralAuctionMock.address
-                ), 'Error loading loan manager'
-            );
-        });
     });
     describe('Function create', function () {
         it('Should create a new collateral', async function () {
@@ -366,7 +358,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     0,
                     { from: creator }
                 ),
-                'collateral: can deposit during auction'
+                'collateral: can\'t deposit during auction'
             );
         });
     });
@@ -493,7 +485,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: creator }
                 ),
-                'collateral: can withdraw during auction'
+                'collateral: can\'t withdraw during auction'
             );
         });
         it('Try withdraw an entry without being authorized', async function () {
@@ -749,18 +741,18 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: creator }
                 ),
-                'The entry its not collateralized'
+                'collateral: entry not collateralized'
             );
         });
         it('Try request cosign with wrong sender', async function () {
             await tryCatchRevert(
                 () => collateral.requestCosign(
                     address0x,
-                    bytes320x,
+                    2,
                     [],
                     []
                 ),
-                'Not the debt manager'
+                'collateral: only the loanManager can request cosign'
             );
         });
     });
@@ -816,9 +808,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             // Test event
             expect(ClaimedExpired._entryId).to.eq.BN(ids.entryId);
             expect(ClaimedExpired._auctionId).to.eq.BN(auctionId);
-            expect(ClaimedExpired._obligation).to.eq.BN(obligation);
-            const obligationPlus5Porcent = obligation.mul(WEI.add(bn(50000000000000000))).div(WEI);
-            expect(ClaimedExpired._obligationToken).to.eq.BN(obligationPlus5Porcent);
+            const obligationPlus5Porcent = obligation.mul(bn(105)).div(bn(100));
+            expect(ClaimedExpired._obligation).to.eq.BN(obligationPlus5Porcent);
+            expect(ClaimedExpired._obligationTokens).to.eq.BN(obligationPlus5Porcent);
 
             const entry = await collateral.entries(ids.entryId);
             expect(entry.amount).to.eq.BN(0);
