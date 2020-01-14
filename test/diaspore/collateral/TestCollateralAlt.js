@@ -1700,7 +1700,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should fail if end result is less collateralized', async () => {
-                const altHandler = await TestCollateralHandler.new();
+                const altHandler = await TestCollateralHandler.new(collateral.address);
+                await altHandler.setSkipPayment(true);
 
                 const data = await altHandler.encode(rcn.address, b(2499));
 
@@ -1712,7 +1713,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should fail if end result took all the collateral', async () => {
-                const altHandler = await TestCollateralHandler.new();
+                const altHandler = await TestCollateralHandler.new(collateral.address);
+                await altHandler.setSkipPayment(true);
 
                 const data = await altHandler.encode(rcn.address, b(0));
 
