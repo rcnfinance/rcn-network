@@ -733,6 +733,61 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             expect(await mock.lastData()).to.be.equal(data);
         });
     });
+    describe('Fail to take an auction', async () => {
+        let id;
+        let mock;
+        beforeEach(async () => {
+            await token.setBalance(owner, b(2000));
+
+            mock = await MockCollateralAuctionCallback.new();
+
+            await token.approve(auction.address, b(2000), { from: owner });
+
+            const tx = await auction.create(
+                token.address,
+                b(950),
+                b(1000),
+                b(2000),
+                b(50),
+                {
+                    from: owner,
+                }
+            );
+
+            expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
+
+            await auction.transferOwnership(mock.address, { from: owner });
+
+            const event = searchEvent(tx, 'CreatedAuction');
+            id = event._id;
+        });
+        it('Should fail to take a non-existent auction', async () => {
+            try {
+                await auction.take(b(2), [], false);
+            } catch (e) {
+                return;
+            }
+
+            assert.fail();
+        });
+        it('Should fail to take a taken auction', async () => {
+            await base.setBalance(anotherUser, b(500));
+            await base.approve(auction.address, b(500), { from: anotherUser });
+
+            await auction.take(id, [], false, { from: anotherUser });
+
+            await tryCatchRevert(
+                auction.take(id, [], false),
+                'auction: does not exists'
+            );
+        });
+        it('Should fail to take auction without balance', async () => {
+            await tryCatchRevert(
+                auction.take(id, [], false),
+                'auction: error pulling tokens'
+            );
+        });
+    });
     describe('Take and callback', () => {
         it('Should call taker callback', async () => {
             const callback = await TestAuctionCallback.new();
