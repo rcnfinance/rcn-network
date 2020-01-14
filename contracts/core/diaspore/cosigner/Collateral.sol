@@ -438,26 +438,29 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     ) public nonReentrant() returns (bool) {
         bytes32 debtId = bytes32(_debtId);
 
+        // Validate debtId, can't be zero
+        require(_debtId != 0, "collateral: invalid debtId");
+
         // Validate call from loan manager
-        require(address(loanManager) == msg.sender, "Not the debt manager");
+        require(address(loanManager) == msg.sender, "collateral: only the loanManager can request cosign");
 
         // Load entryId and entry
         uint256 entryId = abi.decode(_data, (uint256));
         CollateralLib.Entry storage entry = entries[entryId];
-        require(entry.debtId == debtId, "Wrong debt id");
+        require(entry.debtId == debtId, "collateral: incorrect debtId");
 
         // Validate if the collateral is enough
         // and if the loan is collateralized
         require(
             !entry.inLiquidation(_debtInTokens(debtId, _oracleData)),
-            "The entry its not collateralized"
+            "collateral: entry not collateralized"
         );
 
         // Save entryId
         debtToEntry[debtId] = entryId;
 
         // Cosign
-        require(loanManager.cosign(_debtId, 0), "Error performing cosign");
+        require(loanManager.cosign(_debtId, 0), "collateral: error during cosign");
 
         emit Started(entryId);
 

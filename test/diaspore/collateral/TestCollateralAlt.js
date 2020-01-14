@@ -176,7 +176,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             expect(await collateral.ownerOf(b(1))).to.be.equal(user);
             expect(await collateral.tokenOfOwnerByIndex(user, b(0))).to.eq.BN(b(1));
         });
-        it('Should create oracle if loan was never created ???', async () => {
+        it('Should create collateral even if loan was never created ???', async () => {
             // Random non-existent ID
             const debtId = '0x8b8086ead1ced389ee1840a086fe6cd914bad57f064d4e176b29a830685dfc0a';
 
@@ -188,8 +188,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
-                ratio(105),         // Liquidation Ratio
-                ratio(106),         // Balance ratio
+                ratio(105),       // Liquidation Ratio
+                ratio(106),       // Balance ratio
                 {
                     from: user,
                 }
@@ -211,6 +211,114 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             expect(await collateral.balanceOf(user)).to.eq.BN(b(1));
             expect(await collateral.ownerOf(b(1))).to.be.equal(user);
             expect(await collateral.tokenOfOwnerByIndex(user, b(0))).to.eq.BN(b(1));
+        });
+    });
+    describe('Cosign a loan', () => {
+        context('With regular loan', () => {
+            let debtId;
+
+            beforeEach(async () => {
+                // Request a loan
+                const modelData = await model.encodeData(
+                    b(2000),
+                    MAX_UINT64
+                );
+
+                // Request  loan
+                const requestReceipt = await loanManager.requestLoan(
+                    b(1000),          // Requested amount
+                    model.address,    // Debt model
+                    address0x,        // Oracle
+                    user,             // Borrower
+                    address0x,        // Callback
+                    b(0),             // Salt
+                    MAX_UINT64,       // Expiration
+                    modelData,        // Model data
+                    {
+                        from: user,
+                    }
+                );
+
+                debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
+
+                await rcn.setBalance(user, b(2500));
+                await rcn.approve(collateral.address, b(2500), { from: user });
+
+                // Create collateral entry
+                await collateral.create(
+                    debtId,           // Debt ID
+                    address0x,        // Oracle address
+                    b(2500),          // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(130),       // Balance ratio
+                    {
+                        from: user,
+                    }
+                );
+            });
+
+            it('Should fail to cosign if provided with wrong entryId', async () => {
+                // Create a collateral entry to use in-place of the real one
+                // but using a different debtId
+                await collateral.create(
+                    '0x8b8086ead1ced389ee1840a086fe6cd914bad57f064d4e176b29a830685dfc0a',
+                    address0x,
+                    b(0),
+                    ratio(101),
+                    ratio(103),
+                );
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+                await tryCatchRevert(
+                    loanManager.lend(
+                        debtId,               // Debt ID
+                        [],                   // Oracle data
+                        collateral.address,   // Collateral cosigner
+                        b(0),                 // Cosigner limit
+                        toBytes32(b(2)),      // Cosigner data
+                        [],                   // Callback data
+                        {
+                            from: anotherUser,
+                        }
+                    ),
+                    'collateral: incorrect debtId'
+                );
+            });
+
+            it('Should fail if loan is under-collateralized', async () => {
+                const entryId = b(1);
+
+                // Remove almost all the collateral
+                await collateral.withdraw(
+                    entryId,
+                    user,
+                    b(2400),
+                    [],
+                    {
+                        from: user,
+                    }
+                );
+
+                // Lend loan
+                await rcn.setBalance(anotherUser, b(1000));
+                await rcn.approve(loanManager.address, b(1000), { from: anotherUser });
+                await tryCatchRevert(
+                    loanManager.lend(
+                        debtId,               // Debt ID
+                        [],                   // Oracle data
+                        collateral.address,   // Collateral cosigner
+                        b(0),                 // Cosigner limit
+                        toBytes32(entryId),   // Cosigner data
+                        [],                   // Callback data
+                        {
+                            from: anotherUser,
+                        }
+                    ),
+                    'collateral: entry not collateralized'
+                );
+            });
         });
     });
     describe('Fail Request Collateral', () => {
@@ -391,6 +499,18 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                     }
                 ),
                 'Debt request should be open'
+            );
+        });
+        it('Should fail to request cosign if caller is not the debt engine', async () => {
+            await tryCatchRevert(
+                collateral.requestCosign(address0x, b(1), [], []),
+                'collateral: only the loanManager can request cosign'
+            );
+        });
+        it('Should fail to request cosign if debtId is zero', async () => {
+            await tryCatchRevert(
+                collateral.requestCosign(address0x, b(0), [], []),
+                'collateral: invalid debtId'
             );
         });
     });
@@ -3391,6 +3511,20 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(b(0));
                 expect(await collateral.inAuction(entryId)).to.be.equal(false);
             });
+        });
+        it('Should fail to try close auction from another address', async () => {
+            await tryCatchRevert(
+                collateral.auctionClosed(b(0), b(0), b(0), []),
+                'collateral: caller should be the auctioner'
+            );
+        });
+        it('Should fail to try close auction if ID does not exists', async () => {
+            const collateral = await Collateral.new(loanManager.address, user);
+
+            await tryCatchRevert(
+                collateral.auctionClosed(b(2), b(0), b(0), [], { from: user }),
+                'collateral: entry does not exists'
+            );
         });
     });
 });
