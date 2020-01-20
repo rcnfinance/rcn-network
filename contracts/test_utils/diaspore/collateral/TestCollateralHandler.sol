@@ -21,11 +21,24 @@ contract TestCollateralHandler {
     uint256 amountToPay;
     uint256 amountReturn;
 
+    bool skipPayment;
+
     constructor(Collateral _collateral) public {
         collateral = _collateral;
         loanManager = _collateral.loanManager();
         debtEngine = loanManager.debtEngine();
         loanManagerToken = loanManager.token();
+    }
+
+    function encode(
+        IERC20 _token,
+        uint256 surplus
+    ) external pure returns (bytes memory) {
+        return abi.encode(_token, surplus);
+    }
+
+    function setSkipPayment(bool _skip) external {
+        skipPayment = _skip;
     }
 
     function setHandlerConst(
@@ -38,22 +51,30 @@ contract TestCollateralHandler {
 
     function handle(
         uint256 _entryId,
-        uint256 _amount,
+        uint256,
         bytes calldata _data
     ) external returns (uint256) {
-        (bytes32 debtId,,, IERC20 token,,) = collateral.entries(_entryId);
+        if (skipPayment) {
+            (IERC20 token, uint256 surplus) = abi.decode(_data, (IERC20, uint256));
 
-        loanManager.safePayToken(
-            debtId,
-            amountToPay,
-            address(this),
-            _data
-        );
+            token.approve(msg.sender, surplus);
 
-        require(token.safeApprove(address(collateral), amountReturn), "TestCollateralHandler: error approving collateral");
+            return surplus;
+        } else {
+            (bytes32 debtId,,, IERC20 token,,) = collateral.entries(_entryId);
 
-        emit Handle(amountToPay, amountReturn);
+            loanManager.safePayToken(
+                debtId,
+                amountToPay,
+                address(this),
+                _data
+            );
 
-        return amountReturn;
+            require(token.safeApprove(address(collateral), amountReturn), "TestCollateralHandler: error approving collateral");
+
+            emit Handle(amountToPay, amountReturn);
+
+            return amountReturn;
+        }
     }
 }

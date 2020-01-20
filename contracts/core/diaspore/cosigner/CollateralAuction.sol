@@ -125,8 +125,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // baseToken should have already been transfered during create
         // of the auction, that's trusted because only the owner can create auctions
         require(baseToken.transferFrom(msg.sender, owner, requesting), "auction: error pulling tokens");
-        require(auction.fromToken.safeTransfer(owner, auction.limit - selling), "auction: error sending leftover tokens");
-
+        require(auction.fromToken.safeTransfer(owner, leftOver), "auction: error sending leftover tokens");
 
         // Callback to owner
         CollateralAuctionCallback(owner).auctionClosed(
