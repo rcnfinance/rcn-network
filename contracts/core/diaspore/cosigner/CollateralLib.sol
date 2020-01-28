@@ -16,6 +16,8 @@ import "../LoanManager.sol";
         and liquidations for under-collateralized entries
     @dev `debt` and `collateral` may not be in the same currency,
         an oracle is used to compare the two
+    @dev `base` and `tokens` calls to Oracle are inverted, in this context
+        the `tokens` value provided by the Oracle corresponds to the `base` tokens value
 */
 library CollateralLib {
     using CollateralLib for CollateralLib.Entry;
