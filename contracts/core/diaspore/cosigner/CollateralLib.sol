@@ -9,6 +9,14 @@ import "../utils/OracleUtils.sol";
 import "../LoanManager.sol";
 
 
+/**
+    @title Loan collateral simulator
+    @author Agustin Aguilar <agustin@ripiocredit.network>
+    @notice Implements schemes and rules for a generic collateralization,
+        and liquidations for under-collateralized entries
+    @dev `debt` and `collateral` may not be in the same currency,
+        an oracle is used to compare the two
+*/
 library CollateralLib {
     using CollateralLib for CollateralLib.Entry;
     using OracleUtils for OracleUtils.Sample;
@@ -24,8 +32,11 @@ library CollateralLib {
         uint96 balanceRatio;
     }
 
-    /*
-        Creates a Collateral entry with the provided data.
+    /**
+        @notice Builds a Collateral struct with the provided data.
+
+        @dev The library is only compatible with Oracles that don't require `oracleData`,
+            this condition is not validated at this stage
 
         @param _oracle Oracle for the collateral
         @param _token Token used as collateral
@@ -33,6 +44,8 @@ library CollateralLib {
         @param _amount Amount of `_token` provided as collateral
         @param _liquidationRatio Collateral ratio to trigger liquidation
         @param _balanceRatio Collateral ratio aimed during collateral liquidation
+
+        @return The new Collateral Entry in memory
     */
     function create(
         RateOracle _oracle,
@@ -54,8 +67,14 @@ library CollateralLib {
         _col.balanceRatio = _balanceRatio;
     }
 
-    /*
-        Returns the value of a given collateral, in `base` tokens
+    /**
+        @notice Calculates the value of a given collateral in `tokens` tokens
+            by reading the oracle and applying the convertion rate
+            to the collateral amount
+
+        @param _col Collateral entry in memory
+
+        @return The vaule of the collateral amount in `tokens` tokens
     */
     function toBase(
         Entry memory _col
@@ -65,11 +84,14 @@ library CollateralLib {
             .toTokens(_col.amount);
     }
 
-    /*
-        Returns the collaterization ratio between the collateral
-        and the provided `_debt` value.
+    /**
+        @dev Returns the collaterization ratio between the collateral
+            and the provided `_debt` value.
 
-        @dev `_debt` is an amount in `base` tokens
+        @param _col Collateral entry in memory
+        @param _debt Current total debt in `base`
+
+        @return Fixed223x32 with collateral ratio
     */
     function ratio(
         Entry memory _col,
@@ -81,11 +103,18 @@ library CollateralLib {
         return dividend.div(divisor);
     }
 
-    /*
-        Returns the amount of collateral that has to be sold
-        in order to make the ratio at least `balanceRatio` for a given debt.
+    /**
+        @notice Returns the amount of collateral that has to be sold
+            in order to make the ratio reach `balanceRatio` for a given debt
 
-        @notice Assumes that the collateral can be sold at the rate provided by the oracle
+        @dev Assumes that the collateral can be sold at the rate provided by the oracle,
+            the result is an estimation
+
+        @param _col Collateral entry in memory
+        @param _debt Current total debt in `base`
+
+        @return The amount required to be bought and an estimation of the expected
+            used collateral
     */
     function balance(
         Entry memory _col,
@@ -113,10 +142,14 @@ library CollateralLib {
 
         // Calculate diff between current collateral and the limit needed
         bytes32 diff = debt.mul(balanceRatio).sub(base);
-
         _buy = diff.div(balanceRatio.sub(Fixed223x32.from(1))).toUint256();
+
+        // Estimate how much collateral has to be sold to obtain
+        // the required amount to buy
         _sell = sample.toBase(_buy);
 
+        // If the amount to be sold is above the total collateral of the entry
+        // the entry is under-collateralized and all the collateral must be sold
         if (_sell > _col.amount) {
             return (_col.amount, sample.toTokens(_col.amount));
         }
@@ -124,9 +157,15 @@ library CollateralLib {
         return (_sell, _buy);
     }
 
-    /*
-        Returns how much collateral can be withdrew without reaching the
-        liquidation ratio.
+    /**
+        @dev Calculates how much collateral can be withdrew before
+            reaching the liquidation ratio.
+
+        @param _col Collateral entry in memory
+        @param _debt Current total debt in `base`
+
+        @return The amount of collateral that can be withdrew without
+            reaching the liquidation ratio (in `tokens`)
     */
     function canWithdraw(
         Entry memory _col,
@@ -151,17 +190,25 @@ library CollateralLib {
         return sample.toBase(base.sub(limit.ceil()).toUint256());
     }
 
-    /*
-        Returns `true` if the collateral is below the liquidation ratio
+    /**
+        @dev Defines if a collateral entry passed the liquidation threshold.
+
+        @param _col Collateral entry in memory
+        @param _debt Current total debt in `base`
+
+        @return `true` if the collateral entry has to be liquidated.
     */
     function inLiquidation(
         Entry memory _col,
         uint256 _debt
     ) internal view returns (bool) {
+        // If debt is zero the collateral can't be
+        // in liquidation
         if (_debt == 0) {
             return false;
         }
 
+        // Compare the liquidation ratio with the real ratio
         return _col.ratio(_debt).lt(Fixed223x32.raw(_col.liquidationRatio));
     }
 }
