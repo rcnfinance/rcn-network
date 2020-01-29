@@ -20,6 +20,12 @@ import "./CollateralAuction.sol";
 import "./CollateralLib.sol";
 
 
+/**
+    @title Loan collateral handler
+    @author Victor Fage <victor.fage@ripiocredit.network> & Agustin Aguilar <agustin@ripiocredit.network>
+    @notice Handles the creation, activation and liquidation trigger
+        of collateral guarantees for RCN loans.
+*/
 contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, CollateralAuctionCallback {
     using CollateralLib for CollateralLib.Entry;
     using OracleUtils for OracleUtils.Sample;
@@ -96,17 +102,19 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     // All collateral entries
     CollateralLib.Entry[] public entries;
 
-    // Define when cosign the debt on requestCosign function
+    // Maps a RCN Debt to a collateral entry
+    // only after the collateral is cosigned
     mapping(bytes32 => uint256) public debtToEntry;
 
     // URL With collateral offers
     string private iurl;
 
-    // Constant, set in constructor
+    // Fixed for all collaterals, defined
+    // during the contract creation
     LoanManager public loanManager;
     IERC20 public loanManagerToken;
 
-    // Auction storage
+    // Liquidation auctions
     CollateralAuction public auction;
     mapping(uint256 => uint256) public entryToAuction;
     mapping(uint256 => uint256) public auctionToEntry;
@@ -123,32 +131,34 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         auction = _auction;
     }
 
+    /**
+        @notice Returns the total number of created collaterals
+
+        @dev Includes inactive, empty and finalized entries
+            and the entry zero, which is considered `invalid`
+
+        @return The number of collateral entries
+    */
     function getEntriesLength() external view returns (uint256) {
         return entries.length;
     }
 
     /**
-        @notice Create an entry, previous need the approve of the ERC20 tokens
-            Ratio: The ratio is expressed in order of BASE(10000), for example
-                1% is 100
-                150.00% is 15000
-                123.45% is 12345
+        @notice Creates a collateral entry, pulls the amount of collateral
+            from the function caller and mints an ERC721 that represents the collateral.
 
-        @dev This generate an ERC721,
-            The _liquidationRatio should be greater than BASE(10000)
-            The _balanceRatio should be greater than _liquidationRatio
-            The debt should be in open status
+        @dev The `token` of the collateral is defined by the provided `oracle`
+            `liquidationRatio` and `balanceRatio` should be encoded as Fixed64x32 numbers (e.g.: 1 == 2 ** 32)
 
-        @param _debtId Id of the debt
-        @param _oracle The oracle to get the rate between loanManagerToken and entry token
-            If the oracle its the address 0 the entry token its the loanManagerToken
-                otherwise the token its the oracle.token
-        @param _amount The amount to be transferred to the contract
+        @param _debtId Id of the RCN debt
+        @param _oracle The oracle that provides the rate between `loanManagerToken` and entry `token`
+            If the oracle its the address 0 the entry token it's `loanManagerToken`
+            otherwise the token it's provided by `oracle.token()`
+        @param _amount The amount provided as collateral, in `token`
+        @param _liquidationRatio Debt ratio that triggers the execution of the margin call, encoded as Fixed64x32
+        @param _balanceRatio Target debt Ratio expected after a margin call execution, encoded as Fixed64x32
 
-        @param _liquidationRatio Ratio, when collateral ratio is lower enables the execution of the margin call
-        @param _balanceRatio Ratio, expected collateral ratio after margin call execution
-
-        @return The id of the entry
+        @return The id of the new collateral entry and ERC721 token
     */
     function create(
         bytes32 _debtId,
@@ -160,7 +170,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Check status of loan, should be open
         require(loanManager.getStatus(_debtId) == 0, "collateral: loan request should be open");
 
-        // Use the Oracle token
+        // Use the token provided by the oracle
+        // if no oracle is provided, the token is assumed to be `loanManagerToken`
         IERC20 token = _oracle == RateOracle(0) ? loanManagerToken : IERC20(_oracle.token());
 
         // Create the entry, and push on entries array
@@ -175,12 +186,13 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             )
         ) - 1;
 
-        // Take the ERC20 tokens
+        // Pull the ERC20 tokens
         require(token.safeTransferFrom(msg.sender, address(this), _amount), "collateral: error pulling tokens");
 
         // Generate the ERC721 Token
         _generate(entryId, msg.sender);
 
+        // Emit the collateral creation event
         emit Created(
             entryId,
             _debtId,
@@ -193,37 +205,46 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     }
 
     /**
-        @notice Deposit an amount in an entry, previous need the approve of the ERC20 tokens
+        @notice Deposits collateral into an entry
 
-        @param _entryId The index of entry, inside of entries array
-        @param _amount The amount to be transferred to the contract
+        @dev Deposits are disabled if the entry is being auctioned,
+            any address can deposit collateral on any entry
+
+        @param _entryId The ID of the collateral entry
+        @param _amount The amount to be deposited
     */
     function deposit(
         uint256 _entryId,
         uint256 _amount
     ) external nonReentrant() {
+        // Deposits disabled during collateral auctions
         require(!inAuction(_entryId), "collateral: can't deposit during auction");
 
         // Load entry from storage
         CollateralLib.Entry storage entry = entries[_entryId];
 
-        // Take the ERC20 tokens
+        // Pull the ERC20 tokens
         require(entry.token.safeTransferFrom(msg.sender, address(this), _amount), "collateral: error pulling tokens");
 
         // Register the deposit of amount on the entry
         entry.amount = entry.amount.add(_amount);
 
+        // Emit the deposit event
         emit Deposited(_entryId, _amount);
     }
 
     /**
-        @notice Withdraw an amount of an entry
+        @notice Withdraw collateral from an entry,
+            the amount that can be withdrew is deterined by the `liquidationRatio` and the current debt,
+            if the collateral is not attached to a debt, all the collateral can be withdrew
 
-        @param _entryId The index of entry, inside of entries array
-        @param _to The beneficiary of the tokens
-        @param _amount The amount to be subtract of the entry
-        @param _oracleData Data of oracle to change the currency of debt
-            to Token of debt engine
+        @dev Withdrawals are disabled if the entry is being auctioned
+
+        @param _entryId The ID of the collateral entry
+        @param _to The beneficiary of the withdrew tokens
+        @param _amount The amount to be withdrawn
+        @param _oracleData Arbitrary data field requested by the
+            collateral entry oracle, may be required to retrieve the rate
     */
     function withdraw(
         uint256 _entryId,
@@ -231,53 +252,50 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _amount,
         bytes calldata _oracleData
     ) external nonReentrant() onlyAuthorized(_entryId) {
+        // Withdrawals are disabled during collateral auctions
         require(!inAuction(_entryId), "collateral: can't withdraw during auction");
 
-        // Load entry from storage
+        // Read entry from storage
         CollateralLib.Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
         uint256 entryAmount = entry.amount;
 
-        // Check if the entry is cosigned
-        // and if it's cosigned check how much collateral
-        // can be withdrew
+        // Check if the entry was cosigned
         if (debtToEntry[debtId] != 0) {
-            // Check if can withdraw the requested amount
+            // Check if the requested amount can be withdrew
             require(
                 _amount <= entry.canWithdraw(_debtInTokens(debtId, _oracleData)),
                 "collateral: withdrawable collateral is not enough"
             );
         }
 
-        // Register the withdraw of amount on the entry
+        // Reduce the amount of collateral of the entry
         require(entryAmount >= _amount, "collateral: withdrawable collateral is not enough");
         entry.amount = entryAmount.sub(_amount);
 
-        // Send the amount of ERC20 tokens to _to
+        // Send the amount of ERC20 tokens to `_to`
         require(entry.token.safeTransfer(_to, _amount), "collateral: error sending tokens");
 
+        // Emit the withdrawal event
         emit Withdraw(_entryId, _to, _amount);
     }
 
     /**
-        @notice Redeem/Forgive an entry, only owner of contract can be use this function
-            The state of the debt must be ERROR(4)
+        @notice Takes the collateral funds of an entry, can only be called
+            if the loan status is `ERROR (4)`, intended to be a recovery mechanism
+            if the loan model fails
 
-        @dev call _redeem function with true in _emergency parameter
-            * look in _redeem function documentation for more info
-
-        @param _entryId The index of entry, inside of entries array
-        @param _to The beneficiary of the tokens
-
-        @return The amount of transferred tokens
+        @param _entryId The ID of the collateral entry
+        @param _to The receiver of the tokens
     */
     function redeem(
         uint256 _entryId,
         address _to
     ) external nonReentrant() onlyOwner {
+        // Read entry from storage
         CollateralLib.Entry storage entry = entries[_entryId];
 
-        // Check status, should be `error`
+        // Check status, should be `ERROR` (4)
         require(loanManager.getStatus(entry.debtId) == 4, "collateral: debt should be have status error");
         emit Redeemed(_entryId, _to);
 
@@ -289,19 +307,21 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         delete debtToEntry[entry.debtId];
         delete entries[_entryId];
 
-        // Send the amount of ERC20 tokens to _to
+        // Send the amount of ERC20 tokens to `_to`
         require(token.safeTransfer(_to, amount), "collateral: error sending tokens");
     }
 
     /**
-        Borrows collateral, with the condition of returning it at the end of the call.
+        @notice Borrows collateral, with the condition of increasing
+            the collateral ratio before the end of the call
 
-        @dev Can be used to pay the loan using the collateral
+        @dev Intended to be used to pay the loan using the collateral
 
-        @param _entryId Id of the entry
+        @param _entryId Id of the collateral entry
         @param _handler Contract handler of the collateral
-        @param _data Arbitrary _data field for the handler
-        @param _oracleData Loan oracle data
+        @param _data Arbitrary bytes array for the handler
+        @param _oracleData Arbitrary data field requested by the
+            collateral entry oracle, may be required to retrieve the rate
     */
     function borrowCollateral(
         uint256 _entryId,
@@ -321,32 +341,55 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         entry.amount = 0;
         require(entry.token.safeTransfer(address(_handler), lent), "collateral: error sending tokens");
 
-        // Call handler
-        // replace with interface
+        // Callback to the handler
         uint256 surplus = _handler.handle(_entryId, lent, _data);
+
+        // Expect to pull back any exceeding collateral
         require(entry.token.safeTransferFrom(address(_handler), address(this), surplus), "collateral: error pulling tokens");
         entry.amount = surplus;
 
         // Read ratio, should be better than previus one
-        // only if the loan wasn’t fully paid
+        // or the loan has to be fully paid
         if (loanManager.getStatus(entry.debtId) != 2) {
             bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
             require(afRatio.gt(ogRatio), "collateral: ratio should increase");
         }
 
+        // Emit borrow colateral event
         emit BorrowCollateral(_entryId, _handler, surplus);
     }
 
+    /**
+        @notice Closes and finishes a liquidation auction, the bought tokens used to
+            pay the maximun amount of debt possible, any exceeding amount is sent to the
+            collateral owner. Exceeding collateral is deposited back on the entry
+
+        @dev This method is an internall callback and it only accepts calls from
+            the auction contract
+
+        @param _id Id of the auction
+        @param _leftover Exceeding collateral to be deposited on the entry
+        @param _received Bought tokens to be used in the payment of the debt
+        @param _data Arbitrary data for the *loan* oracle, that may be required
+            to perform the payment (the loan oracle may differ from the collateral oracle)
+    */
     function auctionClosed(
         uint256 _id,
         uint256 _leftover,
         uint256 _received,
         bytes calldata _data
     ) external nonReentrant() {
+        // This method is an internal callback and should only
+        // be called by the auction contract
         require(msg.sender == address(auction), "collateral: caller should be the auctioner");
+
+        // Load the collateral ID associated with the auction ID
         uint256 entryId = auctionToEntry[_id];
 
+        // A collateral associated with this ID should exists
         require(entryId != 0, "collateral: entry does not exists");
+
+        // Read the collateral entry from storage
         CollateralLib.Entry storage entry = entries[entryId];
 
         // Delete auction entry
@@ -354,6 +397,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         delete auctionToEntry[_id];
 
         // Use received to pay loan
+        // `_data` should contain the `oracleData` for the loan
         (, uint256 paidTokens) = loanManager.safePayToken(
             entry.debtId,
             _received,
@@ -373,7 +417,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             );
         }
 
-        // Return leftover collateral
+        // Return leftover collateral to the collateral entry
         entry.amount = _leftover;
 
         // Emit closed auction event
@@ -389,7 +433,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     // ///
 
     /**
-        @dev Sets the url to retrieve the data for "requestCosign"
+        @notice Sets the url that provides metadata
+            about the collateral entries
 
         @param _url New url
     */
@@ -401,7 +446,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     /**
         @notice Returns the cost of the cosigner
 
-        This cosigner does not have any risk or maintenance cost, so its free.
+        @dev This cosigner does not have any risk or maintenance cost, so its free
 
         @return 0, because it's free
     */
@@ -414,21 +459,29 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         return 0;
     }
 
+    /**
+        @notice Returns an URL that points to metadata
+            about the collateral entries
+
+        @return An URL string
+    */
     function url() public view returns (string memory) {
         return iurl;
     }
 
     /**
-        @notice Request the cosign of a debt
+        @notice Request the consignment of a debt, this process finishes
+            the attachment of the collateral to the debt
 
-        @dev This function should be send by the loanManager
+        @dev The collateral ratio must not be below the liquidation ratio,
+            this is intended to avoid front-running and removing the collateral
 
         @param _debtId Id of the debt
-        @param _data Data with the entry index
-        @param _oracleData Data of oracle to change the currency of debt
-            to Token of debt engine
+        @param _data Bytes array, must contain the collateral ID on the first 32 bytes
+        @param _oracleData Arbitrary data for the *loan* oracle, that may be required
+            to perform the payment (the loan oracle may differ from the collateral oracle)
 
-        @return true If the cosign was done
+        @return `true` If the consignment was successful
     */
     function requestCosign(
         address,
@@ -441,47 +494,51 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Validate debtId, can't be zero
         require(_debtId != 0, "collateral: invalid debtId");
 
-        // Validate call from loan manager
+        // Only the loanManager can request consignments
         require(address(loanManager) == msg.sender, "collateral: only the loanManager can request cosign");
 
-        // Load entryId and entry
+        // Load entryId from provided `_data`
         uint256 entryId = abi.decode(_data, (uint256));
+
+        // Validat that the `entryId` corresponds to the `debtId`
         CollateralLib.Entry storage entry = entries[entryId];
         require(entry.debtId == debtId, "collateral: incorrect debtId");
 
-        // Validate if the collateral is enough
-        // and if the loan is collateralized
+        // Validate that the loan is collateralized
         require(
             !entry.inLiquidation(_debtInTokens(debtId, _oracleData)),
             "collateral: entry not collateralized"
         );
 
-        // Save entryId
+        // Save entryId, attach the entry to the debt
         debtToEntry[debtId] = entryId;
 
-        // Cosign
+        // Callback loanManager and cosign
         require(loanManager.cosign(_debtId, 0), "collateral: error during cosign");
 
+        // Emit the `Started` event
         emit Started(entryId);
 
+        // Returning `true` signals the `loanManager`
+        // that the consignment was accepted
         return true;
     }
 
     /**
-        @notice Execute a pay of a expired debt or a margin call
+        @notice Trigger the liquidation of a collateral because overdue payment or
+            under-collateralized position, the liquidation is not instantaneous and happens through an auction
 
-        @dev There are two important behaviors:
-            Execute a pay of a expired debt, transform the Token of the entry to LoanManager Token
-                to pay the expired part of the debt and the fees
-            Execute a margin call, transform the Token of the entry to LoanManager Token to pay a
-                part(the minimum amount required to equilibrate the balance) of the debt and the fees,
-                to try balance the collateral ratio
+        @dev There are two liquidation trigging conditions:
+            Payment of the debt has expired, the liquidation is triggered to pay the total amount
+                of overdue debt
+            The `collateral / debt` ratio is below the `liquidationRatio`, the liquidation is
+                triggered to balance the ratio up to `balanceRatio`
 
         @param _debtId Id of the debt
-        @param _oracleData Data of oracle to change the currency of debt
-            to Token of debt engine
+        @param _oracleData Arbitrary data for the *loan* oracle, that may be required
+            to perform the payment (the loan oracle may differ from the collateral oracle)
 
-        @return true If execute a pay debt or a margin call
+        @return true If a liquidation was triggered
     */
     function claim(
         address,
@@ -499,24 +556,45 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         return _claimExpired(entryId, debtId, _oracleData);
     }
 
+    /**
+        @notice Checks if a collateral entry is in the process of being auctioned
+
+        @param _entryId Id of the collateral entry
+
+        @return `true` if the collateral entry is being auctioned
+    */
     function inAuction(uint256 _entryId) public view returns (bool) {
         return entryToAuction[_entryId] != 0;
     }
 
+    /**
+        @notice Validates if a collateral entry is under-collateralized and triggers a liquidation
+            if that's the case. The liquidation tries to sell enough collateral to pay the debt
+            and make the collateral ratio reach `balanceRatio`
+
+        @param _entryId Id of the collateral entry
+        @param _debtId Id of the debt
+        @param _oracleData Arbitrary data field requested by the
+            collateral entry oracle, may be required to retrieve the rate
+
+        @return `true` if a liquidation was triggered
+    */
     function _claimLiquidation(
         uint256 _entryId,
         bytes32 _debtId,
         bytes memory _oracleData
     ) internal returns (bool) {
+        // Read entry from storage
         CollateralLib.Entry memory entry = entries[_entryId];
 
         // Check if collateral needs liquidation
         uint256 debt = _debtInTokens(_debtId, _oracleData);
-
         if (entry.inLiquidation(debt)) {
+            // Calculate how much collateral has to be sold
+            // to balance the collateral ratio
             (uint256 marketValue, uint256 required) = entry.balance(debt);
 
-            // Trigger auction
+            // Trigger an auction
             uint256 auctionId = _triggerAuction(
                 _entryId,
                 required,
@@ -535,6 +613,18 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         }
     }
 
+    /**
+        @notice Validates if the debt attached to a collateral has overdue payments, and
+            triggers a liquidation to pay the arrear debt, an extra 5% is requested to
+            account for accrued interest during the auction
+
+        @param _entryId Id of the collateral entry
+        @param _debtId Id of the debt
+        @param _oracleData Arbitrary data field requested by the
+            collateral entry oracle, may be required to retrieve the rate
+
+        @return `true` if a liquidation was triggered
+    */
     function _claimExpired(
         uint256 _entryId,
         bytes32 _debtId,
@@ -545,17 +635,20 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 dueTime = model.getDueTime(_debtId);
 
         if (block.timestamp >= dueTime) {
-            // Run payment of debt, use collateral to buy tokens
+            // Determine the arrear debt to pay
             (uint256 obligation,) = model.getObligation(_debtId, uint64(dueTime));
 
-            // request 5% extra to account for accrued interest during the auction
+            // Add 5% extra to account for accrued interest during the auction
             obligation = obligation.mult(105).div(100);
 
-            // Valuate the debt amount from debt currency to loanManagerToken
+            // Valuate the debt amount in loanManagerToken
             uint256 obligationTokens = _toToken(_debtId, obligation, _oracleData);
+
+            // Determine how much collateral should be sold at the
+            // current market value to cover the `obligationTokens`
             uint256 marketValue = entries[_entryId].oracle.read().toBase(obligationTokens);
 
-            // Trigger the auction
+            // Trigger an auction
             uint256 auctionId = _triggerAuction(
                 _entryId,
                 obligationTokens,
@@ -575,6 +668,17 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         }
     }
 
+    /**
+        @notice Calculates the value of an amount in the debt currency in
+            `loanManagerToken`, using the rate provided by the oracle of the debt
+
+        @param _debtId Id of the debt
+        @param _amount Amount to valuate provided in the currency of the loan
+        @param _data Arbitrary data field requested by the
+            collateral entry oracle, may be required to retrieve the rate
+
+        @return Value of `_amount` in `loanManagerToken`
+    */
     function _toToken(
         bytes32 _debtId,
         uint256 _amount,
@@ -586,6 +690,16 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             .toTokens(_amount, true);
     }
 
+    /**
+        @notice Calculates how much `loanManagerToken` has to be paid in order
+            to fully pay the total amount of the debt, at the current timestamp
+
+        @param debtId Id of the debt
+        @param _data Arbitrary data field requested by the
+            collateral entry oracle, may be required to retrieve the rate
+
+        @return The total amount required to be paid, in `loanManagerToken` tokens
+    */
     function _debtInTokens(
         bytes32 debtId,
         bytes memory _data
@@ -597,6 +711,19 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             .toTokens(_loanManager.getClosingObligation(debtId));
     }
 
+    /**
+        @notice Triggers a collateral auction with the objetive of buying a requested
+            `_targetAmount` and using it to pay the debt
+
+        @dev Only one auction per collateral entry can exist at the same time
+
+        @param _entryId Id of the collateral entry
+        @param _targetAmount Requested amount on `loanManagerToken`
+        @param _marketValue Current value of the `_targetAmount` on collateral tokens,
+            provided by the oracle of the entry. The auction reaches this rate after 10 minutes
+
+        @return The ID of the created auction
+    */
     function _triggerAuction(
         uint256 _entryId,
         uint256 _targetAmount,
@@ -607,6 +734,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         CollateralLib.Entry storage entry = entries[_entryId];
 
+        // The initial offer is 5% below the current market offer
+        // provided by the oracle, the market offer should be reached after 10 minutes
         uint256 initialOffer = _marketValue.mult(95).div(100);
 
         // Read storage
@@ -614,6 +743,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _amount = entry.amount;
         IERC20 _token = entry.token;
 
+        // Set the entry balance to zero
         delete entry.amount;
 
         // Approve auction contract
