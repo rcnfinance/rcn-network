@@ -500,7 +500,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Load entryId from provided `_data`
         uint256 entryId = abi.decode(_data, (uint256));
 
-        // Validat that the `entryId` corresponds to the `debtId`
+        // Validate that the `entryId` corresponds to the `debtId`
         CollateralLib.Entry storage entry = entries[entryId];
         require(entry.debtId == debtId, "collateral: incorrect debtId");
 
