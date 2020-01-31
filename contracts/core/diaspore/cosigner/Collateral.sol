@@ -155,8 +155,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             If the oracle its the address 0 the entry token it's `loanManagerToken`
             otherwise the token it's provided by `oracle.token()`
         @param _amount The amount provided as collateral, in `token`
-        @param _liquidationRatio Debt ratio that triggers the execution of the margin call, encoded as Fixed64x32
-        @param _balanceRatio Target debt Ratio expected after a margin call execution, encoded as Fixed64x32
+        @param _liquidationRatio collateral/debt ratio that triggers the execution of the margin call, encoded as Fixed64x32
+        @param _balanceRatio Target collateral/debt ratio expected after a margin call execution, encoded as Fixed64x32
 
         @return The id of the new collateral entry and ERC721 token
     */
@@ -313,7 +313,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
     /**
         @notice Borrows collateral, with the condition of increasing
-            the collateral ratio before the end of the call
+            the collateral/debt ratio before the end of the call
 
         @dev Intended to be used to pay the loan using the collateral
 
@@ -333,7 +333,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralLib.Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
 
-        // Get original collateral ratio
+        // Get original collateral/debt ratio
         bytes32 ogRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
 
         // Send all colleteral to handler
@@ -348,7 +348,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         require(entry.token.safeTransferFrom(address(_handler), address(this), surplus), "collateral: error pulling tokens");
         entry.amount = surplus;
 
-        // Read ratio, should be better than previus one
+        // Read collateral/debt ratio, should be better than previus one
         // or the loan has to be fully paid
         if (loanManager.getStatus(entry.debtId) != 2) {
             bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
@@ -473,7 +473,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         @notice Request the consignment of a debt, this process finishes
             the attachment of the collateral to the debt
 
-        @dev The collateral ratio must not be below the liquidation ratio,
+        @dev The collateral/debt ratio must not be below the liquidation ratio,
             this is intended to avoid front-running and removing the collateral
 
         @param _debtId Id of the debt
@@ -570,7 +570,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     /**
         @notice Validates if a collateral entry is under-collateralized and triggers a liquidation
             if that's the case. The liquidation tries to sell enough collateral to pay the debt
-            and make the collateral ratio reach `balanceRatio`
+            and make the collateral/debt ratio reach `balanceRatio`
 
         @param _entryId Id of the collateral entry
         @param _debtId Id of the debt
@@ -591,7 +591,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 debt = _debtInTokens(_debtId, _oracleData);
         if (entry.inLiquidation(debt)) {
             // Calculate how much collateral has to be sold
-            // to balance the collateral ratio
+            // to balance the collateral/debt ratio
             (uint256 marketValue, uint256 required) = entry.balance(debt);
 
             // Trigger an auction

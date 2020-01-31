@@ -44,8 +44,8 @@ library CollateralLib {
         @param _token Token used as collateral
         @param _debtId Debt ID tied to the collateral
         @param _amount Amount of `_token` provided as collateral
-        @param _liquidationRatio Collateral ratio to trigger liquidation
-        @param _balanceRatio Collateral ratio aimed during collateral liquidation
+        @param _liquidationRatio collateral/debt ratio that triggers a liquidation
+        @param _balanceRatio collateral/debt ratio aimed during collateral liquidation
 
         @return The new Collateral Entry in memory
     */
@@ -87,7 +87,7 @@ library CollateralLib {
     }
 
     /**
-        @dev Returns the collaterization ratio between the collateral
+        @dev Returns the collateral/debt ratio between the collateral
             and the provided `_debt` value.
 
         @param _col Collateral entry in memory
@@ -210,7 +210,7 @@ library CollateralLib {
             return false;
         }
 
-        // Compare the liquidation ratio with the real ratio
+        // Compare the liquidation ratio with the real collateral/debt ratio
         return _col.ratio(_debt).lt(Fixed223x32.raw(_col.liquidationRatio));
     }
 }
