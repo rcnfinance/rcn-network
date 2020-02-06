@@ -15,7 +15,7 @@ import "../LoanManager.sol";
     @notice Implements schemes and rules for a generic collateralization,
         and liquidations for under-collateralized entries
     @dev `debt` and `collateral` may not be in the same currency,
-        an oracle is used to compare the two
+        in such a case, an oracle is used to compare both
     @dev `base` and `tokens` calls to Oracle are inverted, in this context
         the `tokens` value provided by the Oracle corresponds to the `base` tokens value
 */
@@ -70,13 +70,13 @@ library CollateralLib {
     }
 
     /**
-        @notice Calculates the value of a given collateral in `tokens` tokens
+        @notice Calculates the value of a given collateral in `base` tokens
             by reading the oracle and applying the convertion rate
             to the collateral amount
 
         @param _col Collateral entry in memory
 
-        @return The vaule of the collateral amount in `tokens` tokens
+        @return The vaule of the collateral amount in `base` tokens
     */
     function toBase(
         Entry memory _col
@@ -160,13 +160,13 @@ library CollateralLib {
     }
 
     /**
-        @dev Calculates how much collateral can be withdrew before
+        @dev Calculates how much collateral can be withdawn before
             reaching the liquidation ratio.
 
         @param _col Collateral entry in memory
         @param _debt Current total debt in `base`
 
-        @return The amount of collateral that can be withdrew without
+        @return The amount of collateral that can be withdawn without
             reaching the liquidation ratio (in `tokens`)
     */
     function canWithdraw(
@@ -193,7 +193,7 @@ library CollateralLib {
     }
 
     /**
-        @dev Defines if a collateral entry passed the liquidation threshold.
+        @dev Defines if a collateral entry got under the liquidation threshold.
 
         @param _col Collateral entry in memory
         @param _debt Current total debt in `base`

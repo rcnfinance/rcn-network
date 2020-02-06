@@ -235,13 +235,13 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
     /**
         @notice Withdraw collateral from an entry,
-            the amount that can be withdrew is deterined by the `liquidationRatio` and the current debt,
-            if the collateral is not attached to a debt, all the collateral can be withdrew
+            the withdrawal amount is determined by the `liquidationRatio` and the current debt,
+            if the collateral is not attached to a debt, all the collateral can be withdrawn
 
         @dev Withdrawals are disabled if the entry is being auctioned
 
         @param _entryId The ID of the collateral entry
-        @param _to The beneficiary of the withdrew tokens
+        @param _to The beneficiary of the withdrawn tokens
         @param _amount The amount to be withdrawn
         @param _oracleData Arbitrary data field requested by the
             collateral entry oracle, may be required to retrieve the rate
@@ -364,7 +364,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             pay the maximun amount of debt possible, any exceeding amount is sent to the
             collateral owner. Exceeding collateral is deposited back on the entry
 
-        @dev This method is an internall callback and it only accepts calls from
+        @dev This method is an internal callback and it only accepts calls from
             the auction contract
 
         @param _id Id of the auction
@@ -525,10 +525,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     }
 
     /**
-        @notice Trigger the liquidation of a collateral because overdue payment or
-            under-collateralized position, the liquidation is not instantaneous and happens through an auction
+        @notice Trigger the liquidation of collateral because of overdue payment or
+            under-collateralized position, the liquidation is not instantaneous and happens through an auction process
 
-        @dev There are two liquidation trigging conditions:
+        @dev There are two liquidation triggering conditions:
             Payment of the debt has expired, the liquidation is triggered to pay the total amount
                 of overdue debt
             The `collateral / debt` ratio is below the `liquidationRatio`, the liquidation is
