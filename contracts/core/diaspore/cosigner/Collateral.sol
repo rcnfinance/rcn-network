@@ -9,7 +9,7 @@ import "../LoanManager.sol";
 import "./interfaces/CollateralAuctionCallback.sol";
 import "./interfaces/CollateralHandler.sol";
 import "../../../commons/ReentrancyGuard.sol";
-import "../../../commons/Fixed223x32.sol";
+import "../../../commons/Fixed224x32.sol";
 import "../../../commons/Ownable.sol";
 import "../../../commons/ERC721Base.sol";
 import "../../../utils/SafeERC20.sol";
@@ -31,7 +31,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     using OracleUtils for OracleUtils.Sample;
     using OracleUtils for RateOracle;
     using DiasporeUtils for LoanManager;
-    using Fixed223x32 for bytes32;
+    using Fixed224x32 for bytes32;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using SafeMath for uint32;

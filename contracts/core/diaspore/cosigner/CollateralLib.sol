@@ -2,7 +2,7 @@ pragma solidity ^0.5.11;
 
 import "../interfaces/RateOracle.sol";
 import "../../../interfaces/IERC20.sol";
-import "../../../commons/Fixed223x32.sol";
+import "../../../commons/Fixed224x32.sol";
 import "../../../utils/Math.sol";
 
 import "../utils/OracleUtils.sol";
@@ -23,7 +23,7 @@ library CollateralLib {
     using CollateralLib for CollateralLib.Entry;
     using OracleUtils for OracleUtils.Sample;
     using OracleUtils for RateOracle;
-    using Fixed223x32 for bytes32;
+    using Fixed224x32 for bytes32;
 
     struct Entry {
         bytes32 debtId;
@@ -93,14 +93,14 @@ library CollateralLib {
         @param _col Collateral entry in memory
         @param _debt Current total debt in `base`
 
-        @return Fixed223x32 with collateral ratio
+        @return Fixed224x32 with collateral ratio
     */
     function ratio(
         Entry memory _col,
         uint256 _debt
     ) internal view returns (bytes32) {
-        bytes32 dividend = Fixed223x32.from(_col.toBase());
-        bytes32 divisor = Fixed223x32.from(_debt);
+        bytes32 dividend = Fixed224x32.from(_col.toBase());
+        bytes32 divisor = Fixed224x32.from(_debt);
 
         return dividend.div(divisor);
     }
@@ -126,9 +126,9 @@ library CollateralLib {
         OracleUtils.Sample memory sample = _col.oracle.readStatic();
 
         // Create fixed point variables
-        bytes32 liquidationRatio = Fixed223x32.raw(_col.liquidationRatio);
-        bytes32 base = Fixed223x32.from(sample.toTokens(_col.amount));
-        bytes32 debt = Fixed223x32.from(_debt);
+        bytes32 liquidationRatio = Fixed224x32.raw(_col.liquidationRatio);
+        bytes32 base = Fixed224x32.from(sample.toTokens(_col.amount));
+        bytes32 debt = Fixed224x32.from(_debt);
 
         // Calculate target limit to reach
         bytes32 limit = debt.mul(liquidationRatio);
@@ -140,11 +140,11 @@ library CollateralLib {
         }
 
         // Load balance ratio to fixed point
-        bytes32 balanceRatio = Fixed223x32.raw(_col.balanceRatio);
+        bytes32 balanceRatio = Fixed224x32.raw(_col.balanceRatio);
 
         // Calculate diff between current collateral and the limit needed
         bytes32 diff = debt.mul(balanceRatio).sub(base);
-        _buy = diff.div(balanceRatio.sub(Fixed223x32.from(1))).toUint256();
+        _buy = diff.div(balanceRatio.sub(Fixed224x32.from(1))).toUint256();
 
         // Estimate how much collateral has to be sold to obtain
         // the required amount to buy
@@ -176,11 +176,11 @@ library CollateralLib {
         OracleUtils.Sample memory sample = _col.oracle.readStatic();
 
         // Load values and turn it into fixed point
-        bytes32 base = Fixed223x32.from(sample.toTokens(_col.amount));
-        bytes32 liquidationRatio = Fixed223x32.raw(_col.liquidationRatio);
+        bytes32 base = Fixed224x32.from(sample.toTokens(_col.amount));
+        bytes32 liquidationRatio = Fixed224x32.raw(_col.liquidationRatio);
 
         // Calculate _debt collateral liquidation limit
-        bytes32 limit = Fixed223x32.from(_debt).mul(liquidationRatio);
+        bytes32 limit = Fixed224x32.from(_debt).mul(liquidationRatio);
 
         // If base is below limit, we can't withdraw collateral
         // (we need to liquidate collateral)
@@ -211,6 +211,6 @@ library CollateralLib {
         }
 
         // Compare the liquidation ratio with the real collateral/debt ratio
-        return _col.ratio(_debt).lt(Fixed223x32.raw(_col.liquidationRatio));
+        return _col.ratio(_debt).lt(Fixed224x32.raw(_col.liquidationRatio));
     }
 }

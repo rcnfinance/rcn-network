@@ -3,12 +3,12 @@ pragma solidity ^0.5.11;
 import "../utils/SafeMath.sol";
 
 
-library Fixed223x32 {
+library Fixed224x32 {
     uint256 private constant BASE = 4294967296; // 2 ** 32
     uint256 private constant DEC_BITS = 32;
     uint256 private constant INT_BITS = 224;
 
-    using Fixed223x32 for bytes32;
+    using Fixed224x32 for bytes32;
     using SafeMath for uint256;
 
     function from(
