@@ -257,7 +257,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     }
 
     /**
-        @notice Calculates how much `fromToken` is being sould, within the defined `_limit`
+        @notice Calculates how much `fromToken` is being sold, within the defined `_limit`
             the auction starts at `startOffer` and the offer it's increased linearly until
             reaching `reference` offer (after 10 minutes). Then the linear function continues
             until all the collateral is being offered
