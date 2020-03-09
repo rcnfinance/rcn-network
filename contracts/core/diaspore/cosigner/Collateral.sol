@@ -119,6 +119,16 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     mapping(uint256 => uint256) public entryToAuction;
     mapping(uint256 => uint256) public auctionToEntry;
 
+    /**
+        @notice Assign:
+            The loan manager contract
+            The loan manager token contract
+            The auction contract
+            The name of ERC721 standard
+            The symbol of ERC721 standard
+
+        @dev Add empty entry, to validate the on index 0
+    */
     constructor(
         LoanManager _loanManager,
         CollateralAuction _auction
