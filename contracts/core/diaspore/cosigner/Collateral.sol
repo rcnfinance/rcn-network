@@ -3,6 +3,7 @@ pragma solidity ^0.5.11;
 import "../../../interfaces/IERC20.sol";
 import "../../../interfaces/Cosigner.sol";
 import "../interfaces/Model.sol";
+import "../interfaces/IDebtStatus.sol";
 import "../interfaces/RateOracle.sol";
 import "../LoanManager.sol";
 
@@ -26,7 +27,7 @@ import "./CollateralLib.sol";
     @notice Handles the creation, activation and liquidation trigger
         of collateral guarantees for RCN loans.
 */
-contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, CollateralAuctionCallback {
+contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, CollateralAuctionCallback, IDebtStatus {
     using CollateralLib for CollateralLib.Entry;
     using OracleUtils for OracleUtils.Sample;
     using OracleUtils for RateOracle;
@@ -168,7 +169,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint96 _balanceRatio
     ) external nonReentrant() returns (uint256 entryId) {
         // Check status of loan, should be open
-        require(loanManager.getStatus(_debtId) == 0, "collateral: loan request should be open");
+        require(loanManager.getStatus(_debtId) == Status.NULL, "collateral: loan request should be open");
 
         // Use the token provided by the oracle
         // if no oracle is provided, the token is assumed to be `loanManagerToken`
@@ -296,7 +297,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralLib.Entry storage entry = entries[_entryId];
 
         // Check status, should be `ERROR` (4)
-        require(loanManager.getStatus(entry.debtId) == 4, "collateral: debt should be have status error");
+        require(loanManager.getStatus(entry.debtId) == Status.ERROR, "collateral: debt should be have status error");
         emit Redeemed(_entryId, _to);
 
         // Load amount and token
@@ -350,7 +351,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Read collateral/debt ratio, should be better than previus one
         // or the loan has to be fully paid
-        if (loanManager.getStatus(entry.debtId) != 2) {
+        if (loanManager.getStatus(entry.debtId) != Status.PAID) {
             bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
             require(afRatio.gt(ogRatio), "collateral: ratio should increase");
         }
