@@ -269,10 +269,10 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     function _selling(
         Auction memory _auction
     ) private view returns (uint256 _amount) {
-        uint256 deltaAmount = _auction.limit - _auction.startOffer;
         uint256 deltaTime = _now() - _auction.startTime;
 
         if (deltaTime < _auction.limitDelta) {
+            uint256 deltaAmount = _auction.limit - _auction.startOffer;
             _amount = _auction.startOffer.add(deltaAmount.mult(deltaTime) / _auction.limitDelta);
         } else {
             _amount = _auction.limit;
