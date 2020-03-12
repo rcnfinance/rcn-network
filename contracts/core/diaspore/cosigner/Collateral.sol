@@ -494,8 +494,9 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Validate debtId, can't be zero
         require(_debtId != 0, "collateral: invalid debtId");
 
+        LoanManager _loanManager = loanManager;
         // Only the loanManager can request consignments
-        require(address(loanManager) == msg.sender, "collateral: only the loanManager can request cosign");
+        require(address(_loanManager) == msg.sender, "collateral: only the loanManager can request cosign");
 
         // Load entryId from provided `_data`
         uint256 entryId = abi.decode(_data, (uint256));
@@ -514,7 +515,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         debtToEntry[debtId] = entryId;
 
         // Callback loanManager and cosign
-        require(loanManager.cosign(_debtId, 0), "collateral: error during cosign");
+        require(_loanManager.cosign(_debtId, 0), "collateral: error during cosign");
 
         // Emit the `Started` event
         emit Started(entryId);
