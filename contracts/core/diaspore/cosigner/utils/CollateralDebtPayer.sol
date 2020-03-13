@@ -136,7 +136,8 @@ contract CollateralDebtPayer is CollateralHandler {
             // The TokenConverter is trusted to perform the token convertion
             // a faulty TokenConverter could only damage the collateral owner funds
             // who is selecting the token converter in the first place
-            _action.token.approve(address(_action.converter), _action.amount);
+            require(_action.token.safeApprove(address(_action.converter), _action.amount), "collateral-debt-payer: error approving auction converter");
+
             bought = _action.converter.convertFrom(
                 _action.token,
                 _action.base,
@@ -161,7 +162,7 @@ contract CollateralDebtPayer is CollateralHandler {
         Action memory _action,
         uint256 _paying
     ) private returns (uint256 paid) {
-        _action.base.approve(address(_action.engine), _paying);
+        require(_action.base.safeApprove(address(_action.engine), _paying), "collateral-debt-payer: error approving engine");
         (, paid) = _action.engine.payToken(
             _action.debtId,
             _paying,
