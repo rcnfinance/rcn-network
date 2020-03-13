@@ -27,7 +27,6 @@ function ratio (num) {
 }
 
 const MAX_UINT64 = b(2).pow(b(64)).sub(b(1));
-// const BASE = bn(10000);
 
 contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, anotherUser, hacker]) {
     let rcn;
@@ -91,6 +90,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -149,11 +149,12 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
-                ratio(120),         // Liquidation Ratio
-                ratio(130),         // Balance ratio
+                ratio(120),       // Liquidation Ratio
+                ratio(130),       // Balance ratio
                 {
                     from: user,
                 }
@@ -185,6 +186,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -246,6 +248,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     address0x,        // Oracle address
                     b(2500),          // Token Amount
@@ -261,6 +264,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Create a collateral entry to use in-place of the real one
                 // but using a different debtId
                 await collateral.create(
+                    user,
                     '0x8b8086ead1ced389ee1840a086fe6cd914bad57f064d4e176b29a830685dfc0a',
                     address0x,
                     b(0),
@@ -354,6 +358,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Create collateral entry
             await tryCatchRevert(
                 collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(2500),          // Token Amount
@@ -398,6 +403,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Create collateral entry
             await tryCatchRevert(
                 collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(2500),          // Token Amount
@@ -442,6 +448,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Create collateral entry
             await tryCatchRevert(
                 collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(2500),          // Token Amount
@@ -489,6 +496,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             await tryCatchRevert(
                 collateral.create(
+                    user,             // Owner of entry
                     debtId,         // Debt ID
                     address0x,      // Oracle address
                     b(2500),        // Token Amount
@@ -524,6 +532,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -557,6 +566,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -592,6 +602,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
@@ -624,6 +635,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -659,6 +671,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -687,6 +700,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -714,6 +728,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -760,6 +775,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.setBalance(user, b(2500));
             await rcn.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -828,6 +844,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await dai.setBalance(user, b(2500));
             await dai.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
@@ -896,6 +913,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await dai.setBalance(user, b(2500));
             await dai.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
@@ -968,6 +986,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await dai.setBalance(user, b(2500));
             await dai.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
@@ -1032,6 +1051,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.setBalance(user, b(2500));
             await rcn.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -1101,6 +1121,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await dai.setBalance(user, b(2500));
             await dai.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
@@ -1171,6 +1192,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await dai.setBalance(user, b(2500));
             await dai.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 oracle.address,   // Oracle address
                 b(2500),          // Token Amount
@@ -1214,6 +1236,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Create collateral entry
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -1264,6 +1287,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.setBalance(user, b(2500));
             await rcn.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -1342,6 +1366,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.setBalance(user, b(2500));
             await rcn.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -1418,6 +1443,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.setBalance(user, b(2500));
             await rcn.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -1479,6 +1505,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.setBalance(user, b(2500));
             await rcn.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -1540,6 +1567,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             await rcn.setBalance(user, b(2500));
             await rcn.approve(collateral.address, b(2500), { from: user });
             await collateral.create(
+                user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
                 b(2500),          // Token Amount
@@ -1610,6 +1638,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await rcn.setBalance(user, b(2500));
                 await rcn.approve(collateral.address, b(2500), { from: user });
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     address0x,        // Oracle address
                     b(2500),          // Token Amount
@@ -1768,6 +1797,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(600),           // Token Amount
@@ -1958,6 +1988,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     address0x,        // Oracle address
                     b(1200),           // Token Amount
@@ -2148,6 +2179,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     address0x,        // Oracle address
                     b(1200),          // Token Amount
@@ -2342,9 +2374,10 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
-                    b(600),          // Token Amount
+                    b(600),           // Token Amount
                     ratio(120),       // Liquidation Ratio
                     ratio(150),       // Balance ratio
                     {
@@ -2529,9 +2562,10 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     address0x,        // Oracle address
-                    b(1200),           // Token Amount
+                    b(1200),          // Token Amount
                     ratio(120),       // Liquidation Ratio
                     ratio(150),       // Balance ratio
                     {
@@ -2640,6 +2674,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(600),           // Token Amount
@@ -2756,6 +2791,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(600),           // Token Amount
@@ -2861,9 +2897,10 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     address0x,        // Oracle address
-                    b(1200),           // Token Amount
+                    b(1200),          // Token Amount
                     ratio(120),       // Liquidation Ratio
                     ratio(150),       // Balance ratio
                     {
@@ -2976,6 +3013,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     b(600),           // Token Amount
@@ -3364,6 +3402,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
+                    user,             // Owner of entry
                     debtId,           // Debt ID
                     oracle.address,   // Oracle address
                     e(600),           // Token Amount
