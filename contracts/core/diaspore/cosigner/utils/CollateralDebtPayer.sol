@@ -104,7 +104,7 @@ contract CollateralDebtPayer is CollateralHandler {
         // Refund extra base token
         if (paidToken < paying) {
             require(
-                action.base.transfer(collateral.ownerOf(_entryId), paying - paidToken),
+                action.base.safeTransfer(collateral.ownerOf(_entryId), paying - paidToken),
                 "collateral-debt-payer: error sending base surplus"
             );
         }
