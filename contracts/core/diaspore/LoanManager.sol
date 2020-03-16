@@ -4,7 +4,7 @@ import "./DebtEngine.sol";
 import "./interfaces/LoanApprover.sol";
 import "./interfaces/LoanCallback.sol";
 import "./interfaces/RateOracle.sol";
-import "../../interfaces/Cosigner.sol";
+import "./interfaces/Cosigner.sol";
 import "../../utils/ImplementsInterface.sol";
 import "../../utils/IsContract.sol";
 import "../../utils/SafeMath.sol";
