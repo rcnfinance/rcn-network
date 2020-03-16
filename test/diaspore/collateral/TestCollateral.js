@@ -346,6 +346,18 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.add(depositAmount));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBalance.sub(depositAmount));
         });
+        it('Try deposit 0 amount on entry collateral', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await tryCatchRevert(
+                () => collateral.deposit(
+                    ids.entryId,
+                    0,
+                    { from: creator }
+                ),
+                'collateral: The amount of deposit should not be 0'
+            );
+        });
         it('Try deposit collateral in a inAuction entry', async function () {
             const ids = await lendDefaultCollateral();
 
@@ -355,7 +367,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await tryCatchRevert(
                 () => collateral.deposit(
                     ids.entryId,
-                    0,
+                    1,
                     { from: creator }
                 ),
                 'collateral: can\'t deposit during auction'
@@ -402,6 +414,20 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             // Balance of collateral
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(withdrawAmount));
             expect(await auxToken.balanceOf(borrower)).to.eq.BN(prevBorrowerBalance.add(withdrawAmount));
+        });
+        it('Try withdraw 0 amount on entry collateral', async function () {
+            const ids = await createDefaultCollateral();
+
+            await tryCatchRevert(
+                async () => collateral.withdraw(
+                    ids.entryId,
+                    borrower,
+                    0,
+                    [],
+                    { from: creator }
+                ),
+                'collateral: The amount of withdraw not be 0'
+            );
         });
         it('Try withdraw high balance', async function () {
             const ids = await createDefaultCollateral();
@@ -481,7 +507,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 () => collateral.withdraw(
                     ids.entryId,
                     address0x,
-                    0,
+                    1,
                     [],
                     { from: creator }
                 ),
