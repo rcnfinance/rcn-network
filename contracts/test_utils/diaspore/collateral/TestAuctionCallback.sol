@@ -18,7 +18,7 @@ contract TestAuctionCallback {
         tryReentrancy = _flag;
     }
 
-    function onTake() external {
+    function onTake(uint256, uint256) external {
         callbackCalled = true;
 
         require(requireToken.balanceOf(address(this)) == requireBalance);

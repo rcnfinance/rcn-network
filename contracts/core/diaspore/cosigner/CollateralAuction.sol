@@ -179,8 +179,8 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // If a callback is requested, we ping the sender so it can perform arbitrage
         if (_callback) {
             /* solium-disable-next-line */
-            (bool success, ) = msg.sender.call(abi.encodeWithSignature("onTake()"));
-            require(success, "auction: error during callback onTake()");
+            (bool success, ) = msg.sender.call(abi.encodeWithSignature("onTake(uint256,uint256)", selling, requesting));
+            require(success, "auction: error during callback onTake(uint256,uint256)");
         }
 
         // Swap tokens for base, send base directly to the owner
