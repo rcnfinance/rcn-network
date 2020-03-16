@@ -58,7 +58,7 @@ library CollateralLib {
         uint96 _balanceRatio
     ) internal pure returns (Entry memory _col) {
         require(_liquidationRatio < _balanceRatio, "collateral-lib: _liquidationRatio should be below _balanceRatio");
-        require(_liquidationRatio > 2 ** 32, "collateral-lib: _liquidationRatio should be above one");
+        require(_liquidationRatio >= 2 ** 32, "collateral-lib: _liquidationRatio should be above one");
         require(address(_token) != address(0), "collateral-lib: _token can't be address zero");
 
         _col.oracle = _oracle;
