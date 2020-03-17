@@ -26,6 +26,7 @@ contract CollateralDebtPayer is CollateralHandler {
         bytes32 debtId;
         uint256 amount;
         uint256 minReturn;
+        address refundTo;
         bytes data;
     }
 
@@ -37,6 +38,7 @@ contract CollateralDebtPayer is CollateralHandler {
         @param _converter TokenConverter to convert collateral tokens into RCN tokens
         @param _amount Amount of collateral to be used to pay the loan
         @param _minReturn Minimum amount of RCN tokens to receive when converting the collateral tokens
+        @param _refundTo The address where the refound tokens will be transferred
         @param _oracleData Aribitrary bytes array that may be used by the oracle of the loan to return a rate
 
         @return bytes array with the encoded debt payment
@@ -45,12 +47,14 @@ contract CollateralDebtPayer is CollateralHandler {
         address _converter,
         uint256 _amount,
         uint256 _minReturn,
+        address _refundTo,
         bytes calldata _oracleData
     ) external pure returns (bytes memory) {
         return abi.encode(
             _converter,
             _amount,
             _minReturn,
+            _refundTo,
             _oracleData
         );
     }
@@ -81,8 +85,9 @@ contract CollateralDebtPayer is CollateralHandler {
             action.converter,
             action.amount,
             action.minReturn,
+            action.refundTo,
             action.data
-        ) = abi.decode(_data, (TokenConverter, uint256, uint256, bytes));
+        ) = abi.decode(_data, (TokenConverter, uint256, uint256, address, bytes));
 
         // Read collateral info
         Collateral collateral = Collateral(msg.sender);
@@ -103,8 +108,9 @@ contract CollateralDebtPayer is CollateralHandler {
 
         // Refund extra base token
         if (paidToken < paying) {
+            require(action.refundTo != address(0), "collateral-debt-payer: refundTo should not be the address 0");
             require(
-                action.base.transfer(collateral.ownerOf(_entryId), paying - paidToken),
+                action.base.transfer(action.refundTo, paying - paidToken),
                 "collateral-debt-payer: error sending base surplus"
             );
         }
@@ -182,6 +188,7 @@ contract CollateralDebtPayer is CollateralHandler {
             bytes32(0),
             0,
             0,
+            address(0),
             ""
         );
     }

@@ -1640,7 +1640,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             it('Should pay totally the debt', async () => {
                 // Pay debt using RCN collateral
-                const data = await debtPayer.encode(address0x, b(1000), b(0), []);
+                const data = await debtPayer.encode(address0x, b(1000), b(0), user, []);
                 await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
 
                 expect(await loanManager.getStatus(debtId)).to.eq.BN(b(2));
@@ -1658,7 +1658,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             it('Should pay partially the debt', async () => {
                 // Pay debt using RCN collateral
-                const data = await debtPayer.encode(address0x, b(400), b(0), []);
+                const data = await debtPayer.encode(address0x, b(400), b(0), user, []);
                 await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
 
                 expect(await loanManager.getStatus(debtId)).to.eq.BN(b(1));
@@ -1679,7 +1679,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             it('Should return any extra rcn', async () => {
                 // Pay debt using RCN collateral
-                const data = await debtPayer.encode(address0x, b(1200), b(0), []);
+                const data = await debtPayer.encode(address0x, b(1200), b(0), user, []);
 
                 const userSnap = await balanceSnap(rcn, user, 'user rcn');
 
