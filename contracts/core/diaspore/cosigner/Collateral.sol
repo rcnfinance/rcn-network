@@ -297,7 +297,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralLib.Entry storage entry = entries[_entryId];
 
         // Check status, should be `ERROR` (4)
-        require(loanManager.getStatus(entry.debtId) == Status.ERROR, "collateral: debt should be have status error");
+        require(loanManager.getStatus(entry.debtId) == Status.ERROR, "collateral: the debt should be in status error");
         emit Redeemed(_entryId, _to);
 
         // Load amount and token
