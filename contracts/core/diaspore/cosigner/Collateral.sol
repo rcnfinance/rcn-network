@@ -303,7 +303,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 amount = entry.amount;
         IERC20 token = entry.token;
 
-        // Destroy ERC721 collateral token
+        // Clear entry and debtToEntry storage
         delete debtToEntry[entry.debtId];
         delete entries[_entryId];
 
