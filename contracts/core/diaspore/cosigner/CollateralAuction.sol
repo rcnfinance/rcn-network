@@ -285,7 +285,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
             After all the `fromToken` is being offered, the auction switches and the requested
             `baseToken` goes down linearly, until reaching 1 after 24 hours
 
-        @dev If the auction is not taken after the requesting amount reaches 1, the second part
+        @dev If the auction is not taken after the requesting amount can reaches 1, the second part
             of the auction restarts and the initial amount of `baseToken` is requested, the process
             repeats until the auction is taken
 
