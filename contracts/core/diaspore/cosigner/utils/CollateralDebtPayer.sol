@@ -26,7 +26,7 @@ contract CollateralDebtPayer is CollateralHandler {
         bytes32 debtId;
         uint256 amount;
         uint256 minReturn;
-        bytes data;
+        bytes oracleData;
     }
 
     /**
@@ -64,14 +64,14 @@ contract CollateralDebtPayer is CollateralHandler {
 
         @param _entryId ID of the collateral entry
         @param _total Total amount of collateral available
-        @param _data bytes array that should contain an encoded debt payment
+        @param _oracleData bytes array that should contain an encoded debt payment
 
         @return The surplus of collateral, that should be taken back by the Collateral contract
     */
     function handle(
         uint256 _entryId,
         uint256 _total,
-        bytes calldata _data
+        bytes calldata _oracleData
     ) external returns (uint256 surplus) {
         Action memory action = _newAction();
 
@@ -81,8 +81,8 @@ contract CollateralDebtPayer is CollateralHandler {
             action.converter,
             action.amount,
             action.minReturn,
-            action.data
-        ) = abi.decode(_data, (TokenConverter, uint256, uint256, bytes));
+            action.oracleData
+        ) = abi.decode(_oracleData, (TokenConverter, uint256, uint256, bytes));
 
         // Read collateral info
         Collateral collateral = Collateral(msg.sender);
@@ -166,7 +166,7 @@ contract CollateralDebtPayer is CollateralHandler {
             _action.debtId,
             _paying,
             msg.sender,
-            _action.data
+            _action.oracleData
         );
     }
 
