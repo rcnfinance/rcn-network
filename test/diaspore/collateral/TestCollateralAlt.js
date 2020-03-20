@@ -283,7 +283,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                             from: anotherUser,
                         }
                     ),
-                    'collateral: incorrect debtId'
+                    'collateral: incorrect debtId or the entry does not exists'
                 );
             });
 
