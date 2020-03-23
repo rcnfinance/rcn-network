@@ -9,9 +9,10 @@ import "../../utils/ImplementsInterface.sol";
 import "../../utils/IsContract.sol";
 import "../../utils/SafeMath.sol";
 import "../../utils/BytesUtils.sol";
+import "./interfaces/IDebtStatus.sol";
 
 
-contract LoanManager is BytesUtils {
+contract LoanManager is BytesUtils, IDebtStatus {
     using ImplementsInterface for address;
     using IsContract for address;
     using SafeMath for uint256;
@@ -79,9 +80,9 @@ contract LoanManager is BytesUtils {
     function getDueTime(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getDueTime(bytes32(_id)); }
     function getClosingObligation(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getClosingObligation(bytes32(_id)); }
     function getLoanData(uint256 _id) external view returns (bytes memory) { return requests[bytes32(_id)].loanData; }
-    function getStatus(uint256 _id) external view returns (uint256) {
+    function getStatus(uint256 _id) external view returns (Status) {
         Request storage request = requests[bytes32(_id)];
-        return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
+        return request.open ? Status.NULL : debtEngine.getStatus(bytes32(_id));
     }
     function ownerOf(uint256 _id) external view returns (address) {
         return debtEngine.ownerOf(_id);
@@ -103,9 +104,9 @@ contract LoanManager is BytesUtils {
     function getDueTime(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getDueTime(bytes32(_id)); }
     function getClosingObligation(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getClosingObligation(bytes32(_id)); }
     function getLoanData(bytes32 _id) external view returns (bytes memory) { return requests[_id].loanData; }
-    function getStatus(bytes32 _id) external view returns (uint256) {
+    function getStatus(bytes32 _id) external view returns (Status) {
         Request storage request = requests[_id];
-        return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
+        return request.open ? Status.NULL : debtEngine.getStatus(bytes32(_id));
     }
     function ownerOf(bytes32 _id) external view returns (address) {
         return debtEngine.ownerOf(uint256(_id));
