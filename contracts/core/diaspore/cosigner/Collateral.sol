@@ -161,6 +161,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         @dev The `token` of the collateral is defined by the provided `oracle`
             `liquidationRatio` and `balanceRatio` should be encoded as Fixed64x32 numbers (e.g.: 1 == 2 ** 32)
 
+        @param _owner The owner of the entry(ERC721 token)
         @param _debtId Id of the RCN debt
         @param _oracle The oracle that provides the rate between `loanManagerToken` and entry `token`
             If the oracle its the address 0 the entry token it's `loanManagerToken`
@@ -172,12 +173,14 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         @return The id of the new collateral entry and ERC721 token
     */
     function create(
+        address _owner,
         bytes32 _debtId,
         RateOracle _oracle,
         uint256 _amount,
         uint96 _liquidationRatio,
         uint96 _balanceRatio
     ) external nonReentrant() returns (uint256 entryId) {
+        require(_owner != address(0x0), "collateral: _owner should not be address 0");
         // Check status of loan, should be open
         require(loanManager.getStatus(_debtId) == Status.NULL, "collateral: loan request should be open");
 
@@ -198,10 +201,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         ) - 1;
 
         // Pull the ERC20 tokens
-        require(token.safeTransferFrom(msg.sender, address(this), _amount), "collateral: error pulling tokens");
+        require(token.safeTransferFrom(_owner, address(this), _amount), "collateral: error pulling tokens from owner");
 
         // Generate the ERC721 Token
-        _generate(entryId, msg.sender);
+        _generate(entryId, _owner);
 
         // Emit the collateral creation event
         emit Created(

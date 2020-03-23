@@ -78,6 +78,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
         const Created = await toEvents(
             collateral.create(
+                creator,          // Owner
                 loanId,           // debtId
                 oracle.address,   // entry oracle
                 entryAmount,      // amount
@@ -200,6 +201,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const Created = await toEvents(
                 collateral.create(
+                    creator,
                     loanId,
                     address0x,
                     entryAmount,
@@ -242,6 +244,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const Created = await toEvents(
                 collateral.create(
+                    creator,
                     loanId,
                     oracle.address,
                     entryAmount,
@@ -269,6 +272,22 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.add(entryAmount));
             expect(await auxToken.balanceOf(creator)).to.eq.BN(prevCreatorBalance.sub(entryAmount));
         });
+        it('Try create a new collateral with address 0 as owner', async function () {
+            const loanId = await createDefaultLoan();
+
+            await tryCatchRevert(
+                () => collateral.create(
+                    address0x,
+                    loanId,
+                    address0x,
+                    1,
+                    ratio(150),
+                    ratio(200),
+                    { from: creator }
+                ),
+                'collateral: _owner should not be address 0'
+            );
+        });
         it('Try create a new collateral for a closed loan', async function () {
             const loanId = await createDefaultLoan();
             await rcn.setBalance(owner, WEI.mul(bn(100)), { from: owner });
@@ -277,6 +296,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await tryCatchRevert(
                 () => collateral.create(
+                    creator,
                     loanId,
                     address0x,
                     0,
@@ -295,6 +315,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await tryCatchRevert(
                 () => collateral.create(
+                    creator,
                     loanId,
                     address0x,
                     1,
@@ -302,7 +323,23 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     ratio(200),
                     { from: creator }
                 ),
-                'collateral: error pulling tokens'
+                'collateral: error pulling tokens from owner'
+            );
+
+            await rcn.setBalance(owner, 1, { from: owner });
+            await rcn.approve(collateral.address, 0, { from: owner });
+
+            await tryCatchRevert(
+                () => collateral.create(
+                    owner,
+                    loanId,
+                    address0x,
+                    1,
+                    ratio(150),
+                    ratio(200),
+                    { from: creator }
+                ),
+                'collateral: error pulling tokens from owner'
             );
         });
     });
@@ -742,6 +779,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const Created = await toEvents(
                 collateral.create(
+                    creator,          // owner
                     loanId,           // debtId
                     oracle.address,   // entry oracle
                     entryAmount,      // amount
