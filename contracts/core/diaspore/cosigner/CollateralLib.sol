@@ -184,7 +184,7 @@ library CollateralLib {
 
         // If base is below limit, we can't withdraw collateral
         // (we need to liquidate collateral)
-        if (base.lt(limit)) {
+        if (base.lte(limit)) {
             return 0;
         }
 
