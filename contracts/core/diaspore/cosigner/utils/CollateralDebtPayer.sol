@@ -27,7 +27,7 @@ contract CollateralDebtPayer is CollateralHandler {
         uint256 amount;
         uint256 minReturn;
         address refundTo;
-        bytes data;
+        bytes oracleData;
     }
 
     /**
@@ -68,14 +68,14 @@ contract CollateralDebtPayer is CollateralHandler {
 
         @param _entryId ID of the collateral entry
         @param _total Total amount of collateral available
-        @param _data bytes array that should contain an encoded debt payment
+        @param _oracleData bytes array that should contain an encoded debt payment
 
         @return The surplus of collateral, that should be taken back by the Collateral contract
     */
     function handle(
         uint256 _entryId,
         uint256 _total,
-        bytes calldata _data
+        bytes calldata _oracleData
     ) external returns (uint256 surplus) {
         Action memory action = _newAction();
 
@@ -86,8 +86,8 @@ contract CollateralDebtPayer is CollateralHandler {
             action.amount,
             action.minReturn,
             action.refundTo,
-            action.data
-        ) = abi.decode(_data, (TokenConverter, uint256, uint256, address, bytes));
+            action.oracleData
+        ) = abi.decode(_oracleData, (TokenConverter, uint256, uint256, address, bytes));
 
         // Read collateral info
         Collateral collateral = Collateral(msg.sender);
@@ -110,7 +110,7 @@ contract CollateralDebtPayer is CollateralHandler {
         if (paidToken < paying) {
             require(action.refundTo != address(0), "collateral-debt-payer: refundTo should not be the address 0");
             require(
-                action.base.transfer(action.refundTo, paying - paidToken),
+                action.base.safeTransfer(collateral.ownerOf(_entryId), paying - paidToken),
                 "collateral-debt-payer: error sending base surplus"
             );
         }
@@ -142,7 +142,8 @@ contract CollateralDebtPayer is CollateralHandler {
             // The TokenConverter is trusted to perform the token convertion
             // a faulty TokenConverter could only damage the collateral owner funds
             // who is selecting the token converter in the first place
-            _action.token.approve(address(_action.converter), _action.amount);
+            require(_action.token.safeApprove(address(_action.converter), _action.amount), "collateral-debt-payer: error approving auction converter");
+
             bought = _action.converter.convertFrom(
                 _action.token,
                 _action.base,
@@ -167,12 +168,12 @@ contract CollateralDebtPayer is CollateralHandler {
         Action memory _action,
         uint256 _paying
     ) private returns (uint256 paid) {
-        _action.base.approve(address(_action.engine), _paying);
+        require(_action.base.safeApprove(address(_action.engine), _paying), "collateral-debt-payer: error approving engine");
         (, paid) = _action.engine.payToken(
             _action.debtId,
             _paying,
             msg.sender,
-            _action.data
+            _action.oracleData
         );
     }
 

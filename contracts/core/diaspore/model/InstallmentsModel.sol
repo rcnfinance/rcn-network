@@ -8,7 +8,6 @@ import "../../../utils/BytesUtils.sol";
 
 
 contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor {
-
     mapping(bytes4 => bool) private _supportedInterface;
 
     constructor() public {
@@ -46,7 +45,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     }
 
     struct State {
-        uint8 status;
+        Status status;
         uint64 clock;
         uint64 lastPayment;
         uint128 paid;
@@ -119,7 +118,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
         _advanceClock(id, uint64(now) - config.lentTime);
 
-        if (state.status != STATUS_PAID) {
+        if (state.status != Status.PAID) {
             // State & config memory load
             uint256 paid = state.paid;
             uint256 duration = config.duration;
@@ -159,8 +158,8 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
                 // All installments paid + interest
                 if (clock / duration >= config.installments && baseDebt + interest <= paid) {
                     // Registry paid!
-                    state.status = uint8(STATUS_PAID);
-                    emit ChangedStatus(id, now, STATUS_PAID);
+                    state.status = Status.PAID;
+                    emit ChangedStatus(id, now, Status.PAID);
                     break;
                 }
 
@@ -198,11 +197,11 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return engine == _target;
     }
 
-    function getStatus(bytes32 id) external view returns (uint256) {
+    function getStatus(bytes32 id) external view returns (Status) {
         Config storage config = configs[id];
         State storage state = states[id];
         require(config.lentTime != 0, "The registry does not exist");
-        return state.status == STATUS_PAID ? STATUS_PAID : STATUS_ONGOING;
+        return state.status == Status.PAID ? Status.PAID : Status.ONGOING;
     }
 
     function getPaid(bytes32 id) external view returns (uint256) {

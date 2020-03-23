@@ -283,7 +283,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                             from: anotherUser,
                         }
                     ),
-                    'collateral: incorrect debtId'
+                    'collateral: incorrect debtId or the entry does not exists'
                 );
             });
 
@@ -1509,7 +1509,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Redeem entry
             await tryCatchRevert(
                 collateral.redeem(entryId, anotherUser, { from: owner }),
-                'collateral: debt should be have status error'
+                'collateral: the debt should be in status error'
             );
         });
         it('Should fail emergency redeem a loan if caller is not the owner', async () => {

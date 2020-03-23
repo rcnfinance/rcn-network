@@ -3,6 +3,7 @@ pragma solidity ^0.5.11;
 import "../../../interfaces/IERC20.sol";
 import "../../../interfaces/Cosigner.sol";
 import "../interfaces/Model.sol";
+import "../interfaces/IDebtStatus.sol";
 import "../interfaces/RateOracle.sol";
 import "../LoanManager.sol";
 
@@ -26,7 +27,7 @@ import "./CollateralLib.sol";
     @notice Handles the creation, activation and liquidation trigger
         of collateral guarantees for RCN loans.
 */
-contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, CollateralAuctionCallback {
+contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, CollateralAuctionCallback, IDebtStatus {
     using CollateralLib for CollateralLib.Entry;
     using OracleUtils for OracleUtils.Sample;
     using OracleUtils for RateOracle;
@@ -64,18 +65,18 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     event ClaimedLiquidation(
         uint256 indexed _entryId,
         uint256 indexed _auctionId,
+        uint256 _marketValue,
         uint256 _debt,
-        uint256 _required,
-        uint256 _marketValue
+        uint256 _required
     );
 
     event ClaimedExpired(
         uint256 indexed _entryId,
         uint256 indexed _auctionId,
-        uint256 _dueTime,
+        uint256 _marketValue,
         uint256 _obligation,
         uint256 _obligationTokens,
-        uint256 _marketValue
+        uint256 _dueTime
     );
 
     event ClosedAuction(
@@ -119,6 +120,16 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     mapping(uint256 => uint256) public entryToAuction;
     mapping(uint256 => uint256) public auctionToEntry;
 
+    /**
+        @notice Assign:
+            The loan manager contract
+            The loan manager token contract
+            The auction contract
+            The name of ERC721 standard
+            The symbol of ERC721 standard
+
+        @dev Add empty entry, to validate the on index 0
+    */
     constructor(
         LoanManager _loanManager,
         CollateralAuction _auction
@@ -168,7 +179,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint96 _balanceRatio
     ) external nonReentrant() returns (uint256 entryId) {
         // Check status of loan, should be open
-        require(loanManager.getStatus(_debtId) == 0, "collateral: loan request should be open");
+        require(loanManager.getStatus(_debtId) == Status.NULL, "collateral: loan request should be open");
 
         // Use the token provided by the oracle
         // if no oracle is provided, the token is assumed to be `loanManagerToken`
@@ -296,14 +307,14 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralLib.Entry storage entry = entries[_entryId];
 
         // Check status, should be `ERROR` (4)
-        require(loanManager.getStatus(entry.debtId) == 4, "collateral: debt should be have status error");
+        require(loanManager.getStatus(entry.debtId) == Status.ERROR, "collateral: the debt should be in status error");
         emit Redeemed(_entryId, _to);
 
         // Load amount and token
         uint256 amount = entry.amount;
         IERC20 token = entry.token;
 
-        // Destroy ERC721 collateral token
+        // Clear entry and debtToEntry storage
         delete debtToEntry[entry.debtId];
         delete entries[_entryId];
 
@@ -350,7 +361,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Read collateral/debt ratio, should be better than previus one
         // or the loan has to be fully paid
-        if (loanManager.getStatus(entry.debtId) != 2) {
+        if (loanManager.getStatus(entry.debtId) != Status.PAID) {
             bytes32 afRatio = entry.ratio(_debtInTokens(debtId, _oracleData));
             require(afRatio.gt(ogRatio), "collateral: ratio should increase");
         }
@@ -502,7 +513,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Validate that the `entryId` corresponds to the `debtId`
         CollateralLib.Entry storage entry = entries[entryId];
-        require(entry.debtId == debtId, "collateral: incorrect debtId");
+        require(entry.debtId == debtId, "collateral: incorrect debtId or the entry does not exists");
 
         // Validate that the loan is collateralized
         require(
@@ -604,9 +615,9 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             emit ClaimedLiquidation(
                 _entryId,
                 auctionId,
+                marketValue,
                 debt,
-                required,
-                marketValue
+                required
             );
 
             return true;
@@ -658,10 +669,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             emit ClaimedExpired(
                 _entryId,
                 auctionId,
-                dueTime,
+                marketValue,
                 obligation,
                 obligationTokens,
-                marketValue
+                dueTime
             );
 
             return true;

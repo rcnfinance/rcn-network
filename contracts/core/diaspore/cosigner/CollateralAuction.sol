@@ -179,8 +179,8 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // If a callback is requested, we ping the sender so it can perform arbitrage
         if (_callback) {
             /* solium-disable-next-line */
-            (bool success, ) = msg.sender.call(abi.encodeWithSignature("onTake()"));
-            require(success, "auction: error during callback onTake()");
+            (bool success, ) = msg.sender.call(abi.encodeWithSignature("onTake(uint256,uint256)", selling, requesting));
+            require(success, "auction: error during callback onTake(uint256,uint256)");
         }
 
         // Swap tokens for base, send base directly to the owner
@@ -257,7 +257,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     }
 
     /**
-        @notice Calculates how much `fromToken` is being sould, within the defined `_limit`
+        @notice Calculates how much `fromToken` is being sold, within the defined `_limit`
             the auction starts at `startOffer` and the offer it's increased linearly until
             reaching `reference` offer (after 10 minutes). Then the linear function continues
             until all the collateral is being offered
@@ -269,10 +269,10 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     function _selling(
         Auction memory _auction
     ) private view returns (uint256 _amount) {
-        uint256 deltaAmount = _auction.limit - _auction.startOffer;
         uint256 deltaTime = _now() - _auction.startTime;
 
         if (deltaTime < _auction.limitDelta) {
+            uint256 deltaAmount = _auction.limit - _auction.startOffer;
             _amount = _auction.startOffer.add(deltaAmount.mult(deltaTime) / _auction.limitDelta);
         } else {
             _amount = _auction.limit;
@@ -285,7 +285,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
             After all the `fromToken` is being offered, the auction switches and the requested
             `baseToken` goes down linearly, until reaching 1 after 24 hours
 
-        @dev If the auction is not taken after the requesting amount reaches 1, the second part
+        @dev If the auction is not taken after the requesting amount can reaches 1, the second part
             of the auction restarts and the initial amount of `baseToken` is requested, the process
             repeats until the auction is taken
 

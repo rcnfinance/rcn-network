@@ -88,11 +88,25 @@ library Fixed224x32 {
         return uint256(_a) > uint256(_b);
     }
 
+    function gte(
+        bytes32 _a,
+        bytes32 _b
+    ) internal pure returns (bool) {
+        return uint256(_a) >= uint256(_b);
+    }
+
     function lt(
         bytes32 _a,
         bytes32 _b
     ) internal pure returns (bool) {
         return uint256(_a) < uint256(_b);
+    }
+
+    function lte(
+        bytes32 _a,
+        bytes32 _b
+    ) internal pure returns (bool) {
+        return uint256(_a) <= uint256(_b);
     }
 
     function eq(

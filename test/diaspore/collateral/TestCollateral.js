@@ -547,7 +547,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     creator,
                     { from: owner }
                 ),
-                'collateral: debt should be have status error'
+                'collateral: the debt should be in status error'
             );
         });
     });

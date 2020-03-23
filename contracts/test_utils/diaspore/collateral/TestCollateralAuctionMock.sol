@@ -5,6 +5,7 @@ import "../../../core/diaspore/cosigner/Collateral.sol";
 
 import "../../../utils/SafeERC20.sol";
 
+
 contract TestCollateralAuctionMock {
     using SafeERC20 for IERC20;
 
@@ -26,10 +27,10 @@ contract TestCollateralAuctionMock {
 
     function create(
         IERC20 _fromToken,
-        uint256 _start,
-        uint256 _ref,
+        uint256,
+        uint256,
         uint256 _limit,
-        uint256 _amount
+        uint256
     ) external returns (uint256 id) {
         id = auctionId;
         entryToToken[id] = _fromToken;
