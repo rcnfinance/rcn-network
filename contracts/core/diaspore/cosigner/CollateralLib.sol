@@ -127,7 +127,8 @@ library CollateralLib {
 
         // Create fixed point variables
         bytes32 liquidationRatio = Fixed224x32.raw(_col.liquidationRatio);
-        bytes32 base = Fixed224x32.from(sample.toTokens(_col.amount));
+        uint256 base = sample.toTokens(_col.amount);
+        bytes32 baseRaw = Fixed224x32.from(base);
         bytes32 debt = Fixed224x32.from(_debt);
 
         // Calculate target limit to reach
@@ -135,7 +136,7 @@ library CollateralLib {
 
         // If current collateral is above limit
         // balance is not needed
-        if (limit.lt(base)) {
+        if (limit.lt(baseRaw)) {
             return (0, 0);
         }
 
@@ -143,7 +144,7 @@ library CollateralLib {
         bytes32 balanceRatio = Fixed224x32.raw(_col.balanceRatio);
 
         // Calculate diff between current collateral and the limit needed
-        bytes32 diff = debt.mul(balanceRatio).sub(base);
+        bytes32 diff = debt.mul(balanceRatio).sub(baseRaw);
         _buy = diff.div(balanceRatio.sub(Fixed224x32.from(1))).toUint256();
 
         // Estimate how much collateral has to be sold to obtain
@@ -153,7 +154,7 @@ library CollateralLib {
         // If the amount to be sold is above the total collateral of the entry
         // the entry is under-collateralized and all the collateral must be sold
         if (_sell > _col.amount) {
-            return (_col.amount, sample.toTokens(_col.amount));
+            return (_col.amount, base);
         }
 
         return (_sell, _buy);
