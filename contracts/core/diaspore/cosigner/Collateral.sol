@@ -512,7 +512,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Validate that the `entryId` corresponds to the `debtId`
         CollateralLib.Entry storage entry = entries[entryId];
-        require(entry.debtId == debtId, "collateral: incorrect debtId");
+        require(entry.debtId == debtId, "collateral: incorrect debtId or the entry does not exists");
 
         // Validate that the loan is collateralized
         require(
