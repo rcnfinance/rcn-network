@@ -1,7 +1,7 @@
 pragma solidity ^0.5.11;
 
 import "../../../interfaces/IERC20.sol";
-import "../../../interfaces/Cosigner.sol";
+import "../interfaces/Cosigner.sol";
 import "../interfaces/Model.sol";
 import "../interfaces/IDebtStatus.sol";
 import "../interfaces/RateOracle.sol";
@@ -471,9 +471,9 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     function cost(
         address,
         uint256,
-        bytes memory,
-        bytes memory
-    ) public view returns (uint256) {
+        bytes calldata,
+        bytes calldata
+    ) external view returns (uint256) {
         return 0;
     }
 
@@ -483,7 +483,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         @return An URL string
     */
-    function url() public view returns (string memory) {
+    function url() external view returns (string memory) {
         return iurl;
     }
 
@@ -504,9 +504,9 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     function requestCosign(
         address,
         uint256 _debtId,
-        bytes memory _data,
-        bytes memory _oracleData
-    ) public nonReentrant() returns (bool) {
+        bytes calldata _data,
+        bytes calldata _oracleData
+    ) external nonReentrant() returns (bool) {
         bytes32 debtId = bytes32(_debtId);
 
         // Validate debtId, can't be zero
@@ -562,8 +562,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     function claim(
         address,
         uint256 _debtId,
-        bytes memory _oracleData
-    ) public nonReentrant() returns (bool) {
+        bytes calldata _oracleData
+    ) external nonReentrant() returns (bool) {
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = debtToEntry[debtId];
         require(entryId != 0, "collateral: collateral not found for debtId");
