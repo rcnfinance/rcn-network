@@ -705,7 +705,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             const entry = await collateral.entries(entryId);
             expect(entry.amount).to.eq.BN(b(0));
         });
-        it('Should withdraw zero from a non lent loan', async () => {
+        it('Try withdraw zero from a non lent loan', async () => {
             // Random non-existent ID
             const debtId = '0x1b8086ead1ced389ee1840a086fe6cd914bad57f064d4e176b29a830685dfc0a';
 
@@ -725,7 +725,10 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             );
 
             const entryId = b(1);
-            await collateral.withdraw(entryId, user, b(0), [], { from: user });
+            await tryCatchRevert(
+                collateral.withdraw(entryId, user, b(0), [], { from: user }),
+                'collateral: The amount of withdraw not be 0'
+            );
 
             expect(await rcn.balanceOf(collateral.address)).to.eq.BN(b(2500));
             expect(await rcn.balanceOf(user)).to.eq.BN(b(0));
@@ -862,7 +865,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             const entry = await collateral.entries(entryId);
             expect(entry.amount).to.eq.BN(b(750));
         });
-        it('Should withdraw zero collateral from a lent loan with Oracle', async () => {
+        it('Try withdraw zero collateral from a lent loan with Oracle', async () => {
             // Create oracle and alt token
             const dai = await TestToken.new();
             const oracle = await TestRateOracle.new();
@@ -923,7 +926,10 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 }
             );
 
-            await collateral.withdraw(entryId, user, b(0), [], { from: user });
+            await tryCatchRevert(
+                collateral.withdraw(entryId, user, b(0), [], { from: user }),
+                'collateral: The amount of withdraw not be 0'
+            );
 
             expect(await dai.balanceOf(collateral.address)).to.eq.BN(b(2500));
             expect(await dai.balanceOf(user)).to.eq.BN(b(0));
