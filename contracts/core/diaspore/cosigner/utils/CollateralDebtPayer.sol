@@ -38,7 +38,7 @@ contract CollateralDebtPayer is CollateralHandler {
         @param _converter TokenConverter to convert collateral tokens into RCN tokens
         @param _amount Amount of collateral to be used to pay the loan
         @param _minReturn Minimum amount of RCN tokens to receive when converting the collateral tokens
-        @param _refundTo The address where the refound tokens will be transferred
+        @param _refundTo The address where the refund tokens will be transferred
         @param _oracleData Aribitrary bytes array that may be used by the oracle of the loan to return a rate
 
         @return bytes array with the encoded debt payment
