@@ -65,18 +65,18 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     event ClaimedLiquidation(
         uint256 indexed _entryId,
         uint256 indexed _auctionId,
+        uint256 _marketValue,
         uint256 _debt,
-        uint256 _required,
-        uint256 _marketValue
+        uint256 _required
     );
 
     event ClaimedExpired(
         uint256 indexed _entryId,
         uint256 indexed _auctionId,
-        uint256 _dueTime,
+        uint256 _marketValue,
         uint256 _obligation,
         uint256 _obligationTokens,
-        uint256 _marketValue
+        uint256 _dueTime
     );
 
     event ClosedAuction(
@@ -615,9 +615,9 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             emit ClaimedLiquidation(
                 _entryId,
                 auctionId,
+                marketValue,
                 debt,
-                required,
-                marketValue
+                required
             );
 
             return true;
@@ -669,10 +669,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             emit ClaimedExpired(
                 _entryId,
                 auctionId,
-                dueTime,
+                marketValue,
                 obligation,
                 obligationTokens,
-                marketValue
+                dueTime
             );
 
             return true;
