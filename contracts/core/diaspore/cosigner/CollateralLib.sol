@@ -174,6 +174,9 @@ library CollateralLib {
         Entry memory _col,
         uint256 _debt
     ) internal view returns (uint256) {
+        if (_debt == 0) {
+            return _col.amount;
+        }
         OracleUtils.Sample memory sample = _col.oracle.readStatic();
 
         // Load values and turn it into fixed point

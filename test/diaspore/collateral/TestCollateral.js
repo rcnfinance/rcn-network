@@ -565,6 +565,65 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 'msg.sender Not authorized'
             );
         });
+        it('Should withdraw token in a paid debt', async function () {
+            const ids = await lendDefaultCollateral();
+
+            const amountToPay = await loanManager.getClosingObligation(ids.loanId);
+            await rcn.setBalance(testCollateralHandler.address, amountToPay, { from: owner });
+
+            const entryAmount = (await collateral.entries(ids.entryId)).amount;
+            await testCollateralHandler.setHandlerConst(
+                amountToPay,
+                entryAmount.sub(amountToPay)
+            );
+
+            await collateral.borrowCollateral(
+                ids.entryId,
+                testCollateralHandler.address,
+                [],
+                [],
+                { from: creator }
+            );
+
+            expect(await loanManager.getClosingObligation(ids.loanId)).to.eq.BN(0);
+
+            const prevEntry = await collateral.entries(ids.entryId);
+
+            const withdrawAmount = prevEntry.amount;
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevBorrowerBalance = await auxToken.balanceOf(borrower);
+
+            const Withdraw = await toEvents(
+                collateral.withdraw(
+                    ids.entryId,
+                    borrower,
+                    withdrawAmount,
+                    [],
+                    { from: creator }
+                ),
+                'Withdraw'
+            );
+
+            // Test event
+            expect(Withdraw._entryId).to.eq.BN(ids.entryId);
+            assert.equal(Withdraw._to, borrower);
+            expect(Withdraw._amount).to.eq.BN(withdrawAmount);
+
+            // Test collateral entry
+            const entry = await collateral.entries(ids.entryId);
+            // Should remain the same
+            expect(entry.liquidationRatio).to.eq.BN(prevEntry.liquidationRatio);
+            expect(entry.balanceRatio).to.eq.BN(prevEntry.balanceRatio);
+            expect(entry.burnFee).to.eq.BN(prevEntry.burnFee);
+            expect(entry.rewardFee).to.eq.BN(prevEntry.rewardFee);
+            assert.equal(entry.token, prevEntry.token);
+            assert.equal(entry.debtId, prevEntry.debtId);
+            expect(entry.amount).to.eq.BN(prevEntry.amount.sub(withdrawAmount));
+
+            // Balance of collateral
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(withdrawAmount));
+            expect(await auxToken.balanceOf(borrower)).to.eq.BN(prevBorrowerBalance.add(withdrawAmount));
+        });
     });
     describe('Function redeem', function () {
         it('Should redeem an entry with a loan in ERROR status', async function () {
