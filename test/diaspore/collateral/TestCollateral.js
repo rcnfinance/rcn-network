@@ -398,7 +398,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try deposit collateral in a inAuction entry', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 60);
+            await increaseTime(60 * 61);
             await collateral.claim(address0x, ids.loanId, []);
 
             await tryCatchRevert(
@@ -537,7 +537,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try withdraw collateral in a inAuction entry', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 60);
+            await increaseTime(60 * 61);
             await collateral.claim(address0x, ids.loanId, []);
 
             await tryCatchRevert(
@@ -701,7 +701,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should close an auction', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 60);
+            await increaseTime(60 * 61);
             await collateral.claim(address0x, ids.loanId, []);
 
             const leftover = bn(1000);
@@ -727,7 +727,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should close an auction, pay the loan and received more tokens', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 60);
+            await increaseTime(60 * 61);
             await collateral.claim(address0x, ids.loanId, []);
 
             const received = WEI.mul(bn(2));
@@ -834,7 +834,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try claim an entry in auction', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 60);
+            await increaseTime(60 * 61);
             await collateral.claim(address0x, ids.loanId, []);
 
             await tryCatchRevert(
@@ -851,7 +851,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should claim an expired entry', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 60);
+            await increaseTime(60 * 61);
 
             const obligation = (await model.getObligation(ids.loanId, await model.getDueTime(ids.loanId)))[0];
 
