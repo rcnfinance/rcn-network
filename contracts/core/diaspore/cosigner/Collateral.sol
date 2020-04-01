@@ -652,10 +652,11 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Check if debt is expired
         Model model = Model(loanManager.getModel(_debtId));
         uint256 dueTime = model.getDueTime(_debtId);
+        uint256 _now = block.timestamp;
 
-        if (block.timestamp > dueTime) {
+        if (_now > dueTime) {
             // Determine the arrear debt to pay
-            (uint256 obligation,) = model.getObligation(_debtId, uint64(dueTime));
+            (uint256 obligation,) = model.getObligation(_debtId, uint64(_now));
 
             // Add 5% extra to account for accrued interest during the auction
             obligation = obligation.mult(105).div(100);
