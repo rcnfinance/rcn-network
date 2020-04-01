@@ -197,7 +197,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('13132123');
             const amount = bn('1');
             const expiration = (await getBlockTime()) + 11100;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -286,7 +286,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const pInternalSalt = await loanManager.buildInternalSalt(
                 amount,
@@ -328,7 +328,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('1');
             const amount = bn('1031230');
             const expiration = (await getBlockTime()) + 1000;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -400,7 +400,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id1 = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -435,7 +435,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('319');
             const amount = bn('143441230');
             const expiration = (await getBlockTime()) + 1000;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             await tryCatchRevert(
                 () => loanManager.requestLoan(
@@ -461,7 +461,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('23');
             const amount = bn('30');
             const expiration = (await getBlockTime()) + 900;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await loanManager2.calcId(
                 amount,
@@ -510,7 +510,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('11319');
             const amount = bn('441230');
             const expiration = (await getBlockTime()) + 1000;
-            const loanData = await model.encodeData('0', expiration);
+            const loanData = await model.encodeData(0, expiration, 0, expiration);
 
             await tryCatchRevert(
                 () => loanManager.requestLoan(
@@ -534,7 +534,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('19');
             const amount = bn('1431230');
             const expiration = (await getBlockTime()) + 1000;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             await loanManager.requestLoan(
                 amount,
@@ -570,7 +570,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('33422');
             const amount = bn('4555');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -630,7 +630,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('1');
             const amount = bn('1031230');
             const expiration = (await getBlockTime()) + 1000;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -701,7 +701,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('13132123');
             const amount = bn('10230');
             const expiration = (await getBlockTime()) + 11100;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -745,7 +745,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('1312123');
             const amount = bn('130');
             const expiration = (await getBlockTime()) + 1100;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -787,7 +787,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -831,7 +831,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -869,7 +869,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -918,7 +918,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -954,7 +954,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -988,7 +988,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -1022,7 +1022,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -1056,7 +1056,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -1101,7 +1101,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('1000');
             const expiration = (await getBlockTime()) + 1000;
 
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await getId(loanManager.requestLoan(
                 amount,           // Amount
@@ -1133,7 +1133,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('23');
             const amount = bn('30');
             const expiration = (await getBlockTime()) + 900;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1199,7 +1199,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('19982229');
             const amount = bn('90880');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1254,7 +1254,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('213');
             const amount = bn('300');
             const expiration = (await getBlockTime()) + 9010;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1302,7 +1302,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('313');
             const amount = bn('440');
             const expiration = (await getBlockTime()) + 1010;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1353,7 +1353,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('763');
             const amount = bn('700');
             const expiration = (await getBlockTime()) + 9010;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1398,7 +1398,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2223');
             const amount = bn('32231');
             const expiration = (await getBlockTime()) + 3300;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1464,7 +1464,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amountRCN = amountETH.mul(tokens).div(equivalent);
 
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amountETH, expiration);
+            const loanData = await model.encodeData(amountETH, expiration, 0, expiration);
 
             const id = await calcId(
                 amountETH,
@@ -1522,7 +1522,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1586,7 +1586,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('1998');
             const amount = bn('90880');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1640,7 +1640,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('546546');
             const amount = bn('11');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1694,7 +1694,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('57476');
             const amount = bn('574');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1747,7 +1747,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('42342');
             const amount = bn('44444');
             const expiration = (await getBlockTime()) + 1600;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1798,7 +1798,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('87868');
             const amount = bn('456345');
             const expiration = (await getBlockTime()) + 1600;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1853,7 +1853,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1907,7 +1907,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('3434225');
             const amount = bn('55');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -1964,7 +1964,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('3522');
             const amount = bn('5000');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -2024,7 +2024,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('6000');
             const amount = bn('6000');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -2064,7 +2064,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('33422');
             const amount = bn('4555');
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -2119,7 +2119,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2188,7 +2188,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('20');
             const amount = bn('33622');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2242,7 +2242,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2011');
             const amount = bn('666');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2292,7 +2292,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('33');
             const amount = bn('666');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2342,7 +2342,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('20');
             const amount = bn('33622');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2396,7 +2396,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('20');
             const amount = bn('33622');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2445,7 +2445,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2');
             const amount = bn('33622');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2501,7 +2501,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2');
             const amount = bn('33622');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2557,7 +2557,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('20');
             const amount = bn('33622');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2606,7 +2606,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('20');
             const amount = bn('33622');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2665,7 +2665,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await loanManager2.encodeRequest(
                 amount,
@@ -2720,7 +2720,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amountRCN = amountETH.mul(tokens).div(equivalent);
 
             const expiration = (await getBlockTime()) + 1700;
-            const loanData = await model.encodeData(amountETH, expiration);
+            const loanData = await model.encodeData(amountETH, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amountETH,
@@ -2783,7 +2783,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2833,7 +2833,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2882,7 +2882,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -2946,7 +2946,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3006,7 +3006,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('273263');
             const amount = bn('32134');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3059,7 +3059,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('432354');
             const amount = bn('66');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3112,7 +3112,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('273263');
             const amount = bn('32134');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3164,7 +3164,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('273263');
             const amount = bn('32134');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3214,7 +3214,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('273263');
             const amount = bn('32134');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3268,7 +3268,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3320,7 +3320,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2956');
             const amount = bn('9320');
             const expiration = (await getBlockTime()) + 3400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3355,7 +3355,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('564465');
             const amount = bn('9999');
             const expiration = (await getBlockTime()) + 3400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3392,7 +3392,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('5345');
             const amount = bn('9977699');
             const expiration = (await getBlockTime()) + 3400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
                 amount,
@@ -3425,7 +3425,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('99123');
             const amount = bn('30');
             const expiration = (await getBlockTime()) + 900;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -3485,7 +3485,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('99123');
             const amount = bn('30');
             const expiration = (await getBlockTime()) + 900;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callbackData = web3.utils.randomHex(120);
 
             const id = await calcId(
@@ -3547,7 +3547,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('99123');
             const amount = bn('30');
             const expiration = (await getBlockTime()) + 900;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -3603,7 +3603,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('99123');
             const amount = bn('30');
             const expiration = (await getBlockTime()) + 900;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -3658,7 +3658,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
             const encodeData = await calcSettleId(
@@ -3710,7 +3710,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
             const callbackdata = web3.utils.randomHex(260);
 
@@ -3764,7 +3764,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
             const encodeData = await calcSettleId(
@@ -3818,7 +3818,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
             const encodeData = await calcSettleId(
@@ -3868,7 +3868,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('991231');
             const amount = bn('30');
             const expiration = (await getBlockTime()) + 900;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -3924,7 +3924,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
             const encodeData = await calcSettleId(
@@ -3978,7 +3978,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('99123');
             const amount = bn('30');
             const expiration = (await getBlockTime()) + 900;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
                 amount,
@@ -4039,7 +4039,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const salt = bn('2763');
             const amount = bn('3320');
             const expiration = (await getBlockTime()) + 7400;
-            const loanData = await model.encodeData(amount, expiration);
+            const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
             const encodeData = await calcSettleId(

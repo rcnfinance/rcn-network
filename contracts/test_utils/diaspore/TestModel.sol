@@ -23,7 +23,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     event AddedPaid(bytes32 indexed _id, uint256 _paid);
 
 
-    uint256 public constant L_DATA = 16 + 8;
+    uint256 public constant L_DATA = 16 + 8 + 16 + 8;
 
     uint256 private constant U_128_OVERFLOW = 2 ** 128;
     uint256 private constant U_64_OVERFLOW = 2 ** 64;
@@ -42,6 +42,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     event SetEngine(address _engine);
     event SetErrorFlag(bytes32 _id, uint256 _flag);
     event SetGlobalErrorFlag(uint256 _flag);
+    event SetInterestAmount(uint256 _interestAmount);
 
     mapping(bytes4 => bool) private _supportedInterface;
 
@@ -51,9 +52,11 @@ contract TestModel is ERC165, BytesUtils, Ownable {
 
     function encodeData(
         uint128 _total,
-        uint64 _dueTime
+        uint64 _dueTime,
+        uint128 _interestAmount,
+        uint64 _interestTime
     ) external pure returns (bytes memory) {
-        return abi.encodePacked(_total, _dueTime);
+        return abi.encodePacked(_total, _dueTime, _interestAmount, _interestTime);
     }
 
     mapping(bytes32 => Entry) public registry;
@@ -66,6 +69,8 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         uint64 dueTime;
         uint64 lastPing;
         uint128 total;
+        uint64 interestTime;
+        uint128 interestAmount;
         uint128 paid;
     }
 
@@ -98,24 +103,25 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         return address(0);
     }
 
-    function isOperator(address operator) external view returns (bool) {
-        return operator == _owner;
+    function isOperator(address _operator) external view returns (bool) {
+        return _operator == _owner;
     }
 
-    function validate(bytes calldata data) external view returns (bool) {
-        require(data.length == L_DATA, "Invalid data length");
+    function validate(bytes calldata _data) external view returns (bool) {
+        require(_data.length == L_DATA, "Invalid data length");
 
-        (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
+        (bytes32 btotal, bytes32 bdue, , bytes32 binterestTime) = decode(_data, 16, 8, 16, 8);
         uint64 dueTime = uint64(uint256(bdue));
+        uint64 interestTime = uint64(uint256(binterestTime));
 
         if (btotal == bytes32(uint256(0))) return false;
 
-        _validate(dueTime);
+        _validate(dueTime, interestTime);
         return true;
     }
 
-    function getStatus(bytes32 id) external returns (uint256) {
-        Entry storage entry = registry[id];
+    function getStatus(bytes32 _id) external returns (uint256) {
+        Entry storage entry = registry[_id];
 
         if (entry.errorFlag == ERROR_STATUS) {
             return uint256(10) / uint256(0);
@@ -128,33 +134,49 @@ contract TestModel is ERC165, BytesUtils, Ownable {
             return uint64(now);
         }
 
-        return entry.paid < entry.total ? STATUS_ONGOING : STATUS_PAID;
+        uint256 total = now >= entry.interestTime ? entry.total + entry.interestAmount : entry.total;
+        return entry.paid < total ? STATUS_ONGOING : STATUS_PAID;
     }
 
-    function getPaid(bytes32 id) external view returns (uint256) {
-        return registry[id].paid;
+    function getPaid(bytes32 _id) external view returns (uint256) {
+        return registry[_id].paid;
     }
 
-    function getObligation(bytes32 id, uint64 time) external view returns (uint256,bool) {
-        Entry storage entry = registry[id];
-        if (time >= entry.dueTime) {
-            return (entry.total - entry.paid, true);
+    function getObligation(bytes32 _id, uint64 _time) external view returns (uint256 obligation, bool) {
+        return _getObligation(_id, _time);
+    }
+
+    function _getObligation(bytes32 _id, uint64 _time) internal view returns (uint256 obligation, bool) {
+        Entry storage entry = registry[_id];
+
+        obligation = _time >= entry.interestTime
+            ? entry.total + entry.interestAmount - entry.paid
+            : _time >= entry.dueTime
+                ? entry.total - entry.paid
+                :0;
+
+        return (obligation, true);
+    }
+
+    function getClosingObligation(bytes32 _id) external view returns (uint256) {
+        return _getClosingObligation(_id);
+    }
+
+    function _getClosingObligation(bytes32 _id) internal view returns (uint256 obligation) {
+        Entry storage entry = registry[_id];
+        if (now >= entry.dueTime) {
+            (obligation, ) = _getObligation(_id, uint64(now));
         } else {
-            return (0, true);
+            (obligation, ) = _getObligation(_id, entry.dueTime);
         }
     }
 
-    function getClosingObligation(bytes32 id) external view returns (uint256) {
-        Entry storage entry = registry[id];
-        return entry.total - entry.paid;
+    function getDueTime(bytes32 _id) external view returns (uint256) {
+        return registry[_id].dueTime;
     }
 
-    function getDueTime(bytes32 id) external view returns (uint256) {
-        return registry[id].dueTime;
-    }
-
-    function getFinalTime(bytes32 id) external view returns (uint256) {
-        return registry[id].dueTime;
+    function getFinalTime(bytes32 _id) external view returns (uint256) {
+        return registry[_id].dueTime;
     }
 
     function getFrequency(bytes32) external view returns (uint256) {
@@ -165,43 +187,46 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         return 1;
     }
 
-    function getEstimateObligation(bytes32 id) external view returns (uint256) {
-        Entry storage entry = registry[id];
-        return entry.total - entry.paid;
+    function getEstimateObligation(bytes32 _id) external view returns (uint256) {
+        return _getClosingObligation(_id);
     }
 
-    function create(bytes32 id, bytes calldata data) external onlyEngine returns (bool) {
-        require(data.length == L_DATA, "Invalid data length");
+    function create(bytes32 _id, bytes calldata _data) external onlyEngine returns (bool) {
+        require(_data.length == L_DATA, "Invalid data length");
 
         if (errorFlag == ERROR_CREATE) return false;
 
-        (bytes32 btotal, bytes32 bdue) = decode(data, 16, 8);
+        (bytes32 btotal, bytes32 bdue, bytes32 binterestAmount, bytes32 binterestTime) = decode(_data, 16, 8, 16, 8);
         uint128 total = uint128(uint256(btotal));
         uint64 dueTime = uint64(uint256(bdue));
+        uint64 interestTime = uint64(uint256(binterestTime));
+        uint128 interestAmount = uint128(uint256(binterestAmount));
 
-        _validate(dueTime);
+        _validate(dueTime, interestTime);
 
-        emit Created(id);
+        emit Created(_id);
 
-        registry[id] = Entry({
+        registry[_id] = Entry({
             errorFlag: 0,
             dueTime: dueTime,
             lastPing: uint64(now),
             total: total,
+            interestTime: interestTime,
+            interestAmount: interestAmount,
             paid: 0
         });
 
-        emit ChangedStatus(id, now, STATUS_ONGOING);
-        emit ChangedDueTime(id, now, dueTime);
-        emit ChangedFinalTime(id, now, dueTime);
+        emit ChangedStatus(_id, now, STATUS_ONGOING);
+        emit ChangedDueTime(_id, now, dueTime);
+        emit ChangedFinalTime(_id, now, dueTime);
 
         return true;
     }
 
-    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 real) {
-        _run(id);
+    function addPaid(bytes32 _id, uint256 _amount) external onlyEngine returns (uint256 real) {
+        _run(_id);
 
-        Entry storage entry = registry[id];
+        Entry storage entry = registry[_id];
 
         if (entry.errorFlag == ERROR_PAY) {
             return uint256(10) / uint256(0);
@@ -210,57 +235,57 @@ contract TestModel is ERC165, BytesUtils, Ownable {
             while (aux / aux != 2) aux++;
             return aux;
         } else if (entry.errorFlag == ERROR_PAY_EXTRA) {
-            return amount + 5;
+            return _amount + 5;
         } else if (entry.errorFlag == ERROR_ALLOW_INFINITE_PAY) {
-            entry.paid += uint128(amount);
-            emit AddedPaid(id, amount);
-            return amount;
+            entry.paid += uint128(_amount);
+            emit AddedPaid(_id, _amount);
+            return _amount;
         }
 
-        uint256 total = entry.total;
+        uint256 total = entry.total + (now >= entry.interestTime ? entry.interestAmount : 0);
         uint256 paid = entry.paid;
 
         uint256 pending = total - paid;
-        real = pending <= amount ? pending : amount;
+        real = pending <= _amount ? pending : _amount;
 
         paid += real;
         require(paid < U_128_OVERFLOW, "Paid overflow");
         entry.paid = uint128(paid);
 
-        emit AddedPaid(id, real);
+        emit AddedPaid(_id, real);
         if (paid == total) {
-            emit ChangedStatus(id, now, STATUS_PAID);
+            emit ChangedStatus(_id, now, STATUS_PAID);
         }
     }
 
-    function addDebt(bytes32 id, uint256 amount) external returns (bool) {
-        _run(id);
+    function addDebt(bytes32 _id, uint256 _amount) external returns (bool) {
+        _run(_id);
 
-        Entry storage entry = registry[id];
+        Entry storage entry = registry[_id];
 
         uint256 total = entry.total;
         uint256 paid = entry.paid;
 
         if (total > paid) {
-            total += amount;
+            total += _amount;
             require(total < U_128_OVERFLOW, "Total overflow");
             entry.total = uint128(total);
 
-            emit AddedDebt(id, amount);
+            emit AddedDebt(_id, _amount);
             if (now >= entry.dueTime) {
-                emit ChangedObligation(id, now, total - paid);
+                emit ChangedObligation(_id, now, total - paid);
             }
 
             return true;
         }
     }
 
-    function run(bytes32 id) external returns (bool) {
-        return _run(id);
+    function run(bytes32 _id) external returns (bool) {
+        return _run(_id);
     }
 
-    function _run(bytes32 id) internal returns (bool) {
-        Entry storage entry = registry[id];
+    function _run(bytes32 _id) internal returns (bool) {
+        Entry storage entry = registry[_id];
         uint256 prevPing = entry.lastPing;
 
         if (entry.errorFlag == ERROR_RUN) {
@@ -275,7 +300,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
             uint256 dueTime = entry.dueTime;
 
             if (now >= dueTime && prevPing < dueTime) {
-                emit ChangedObligation(id, dueTime, entry.total);
+                emit ChangedObligation(_id, dueTime, entry.total);
             }
 
             entry.lastPing = uint64(now);
@@ -286,7 +311,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     function setDueTime(bytes32 _id, uint64 _time) external {
         registry[_id].dueTime = _time;
     }
-    
+
     function setRelativeDueTime(bytes32 _id, bool _before, uint256 _delta) external {
         if (_before) {
             registry[_id].dueTime = uint64(now - _delta);
@@ -295,8 +320,9 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         }
     }
 
-    function _validate(uint256 due) internal view {
-        require(due > now, "Due time already past");
+    function _validate(uint256 _due, uint256 _interestTime) internal view {
+        require(_due > now, "TestModel._validate: Due time already past");
+        require(_interestTime >= _due, "TestModel._validate: Interest time should be more or equal than due time");
     }
 
     // ** Test and debug methods ** //
