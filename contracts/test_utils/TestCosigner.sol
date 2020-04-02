@@ -1,13 +1,13 @@
 /* solium-disable */
 pragma solidity ^0.5.11;
 
-import "../../contracts/interfaces/Cosigner.sol";
+import "../../contracts/core/basalt/interfaces/CosignerBasalt.sol";
 import "../../contracts/utils/BytesUtils.sol";
 import "../../contracts/core/basalt/interfaces/Engine.sol";
 import "../../contracts/interfaces/IERC20.sol";
 
 
-contract TestCosigner is Cosigner, BytesUtils {
+contract TestCosigner is CosignerBasalt, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
     bytes public data = buildData(keccak256("test_oracle"), dummyCost);
     bytes public noCosignData = buildData(keccak256("return_true_no_cosign"), 0);
