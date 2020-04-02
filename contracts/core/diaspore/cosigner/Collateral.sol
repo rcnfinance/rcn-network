@@ -703,6 +703,9 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _amount,
         bytes memory _data
     ) internal returns (uint256) {
+        if (_amount == 0)
+            return 0;
+
         return loanManager
             .oracle(_debtId)
             .read(_data)
@@ -722,12 +725,15 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     function _debtInTokens(
         bytes32 debtId,
         bytes memory _data
-    ) internal returns (uint256) {
+    ) internal returns (uint256 debtInTokens) {
         LoanManager _loanManager = loanManager;
-        return _loanManager
-            .oracle(debtId)
-            .read(_data)
-            .toTokens(_loanManager.getClosingObligation(debtId));
+        debtInTokens = _loanManager.getClosingObligation(debtId);
+
+        if (debtInTokens != 0)
+            debtInTokens = _loanManager
+                .oracle(debtId)
+                .read(_data)
+                .toTokens(debtInTokens);
     }
 
     /**
