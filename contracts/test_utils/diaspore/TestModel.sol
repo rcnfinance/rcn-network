@@ -283,7 +283,25 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         }
     }
 
+    function setDueTime(bytes32 _id, uint64 _time) external {
+        registry[_id].dueTime = _time;
+    }
+    
+    function setRelativeDueTime(bytes32 _id, bool _before, uint256 _delta) external {
+        if (_before) {
+            registry[_id].dueTime = uint64(now - _delta);
+        } else {
+            registry[_id].dueTime = uint64(now + _delta);
+        }
+    }
+
     function _validate(uint256 due) internal view {
         require(due > now, "Due time already past");
+    }
+
+    // ** Test and debug methods ** //
+
+    function setDebt(bytes32 _id, uint128 _val) external {
+        registry[_id].total = _val;
     }
 }

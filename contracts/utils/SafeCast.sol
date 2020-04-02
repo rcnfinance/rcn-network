@@ -16,4 +16,9 @@ library SafeCast {
         require(_i < 2 ** 255, "cast overflow");
         return int256(_i);
     }
+
+    function toUint32(uint256 _i) internal pure returns (uint32) {
+        require(_i < 2 ** 32, "cast overdlow");
+        return uint32(_i);
+    }
 }
