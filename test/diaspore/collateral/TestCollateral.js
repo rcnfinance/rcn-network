@@ -52,7 +52,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     async function createDefaultLoan () {
         const loanAmount = WEI;
         const duration = bn(await getBlockTime()).add(bn(60 * 60));
-        const loanData = await model.encodeData(loanAmount, duration);
+
+        const interestAmount = bn('1');
+        const interestTime = duration.add(bn(60 * 60));
+
+        const loanData = await model.encodeData(loanAmount, duration, interestAmount, interestTime);
 
         const loanTx = loanManager.requestLoan(
             loanAmount,        // Amount
@@ -565,6 +569,65 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 'msg.sender Not authorized'
             );
         });
+        it('Should withdraw token in a paid debt', async function () {
+            const ids = await lendDefaultCollateral();
+
+            const amountToPay = await loanManager.getClosingObligation(ids.loanId);
+            await rcn.setBalance(testCollateralHandler.address, amountToPay, { from: owner });
+
+            const entryAmount = (await collateral.entries(ids.entryId)).amount;
+            await testCollateralHandler.setHandlerConst(
+                amountToPay,
+                entryAmount.sub(amountToPay)
+            );
+
+            await collateral.borrowCollateral(
+                ids.entryId,
+                testCollateralHandler.address,
+                [],
+                [],
+                { from: creator }
+            );
+
+            expect(await loanManager.getClosingObligation(ids.loanId)).to.eq.BN(0);
+
+            const prevEntry = await collateral.entries(ids.entryId);
+
+            const withdrawAmount = prevEntry.amount;
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevBorrowerBalance = await auxToken.balanceOf(borrower);
+
+            const Withdraw = await toEvents(
+                collateral.withdraw(
+                    ids.entryId,
+                    borrower,
+                    withdrawAmount,
+                    [],
+                    { from: creator }
+                ),
+                'Withdraw'
+            );
+
+            // Test event
+            expect(Withdraw._entryId).to.eq.BN(ids.entryId);
+            assert.equal(Withdraw._to, borrower);
+            expect(Withdraw._amount).to.eq.BN(withdrawAmount);
+
+            // Test collateral entry
+            const entry = await collateral.entries(ids.entryId);
+            // Should remain the same
+            expect(entry.liquidationRatio).to.eq.BN(prevEntry.liquidationRatio);
+            expect(entry.balanceRatio).to.eq.BN(prevEntry.balanceRatio);
+            expect(entry.burnFee).to.eq.BN(prevEntry.burnFee);
+            expect(entry.rewardFee).to.eq.BN(prevEntry.rewardFee);
+            assert.equal(entry.token, prevEntry.token);
+            assert.equal(entry.debtId, prevEntry.debtId);
+            expect(entry.amount).to.eq.BN(prevEntry.amount.sub(withdrawAmount));
+
+            // Balance of collateral
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(withdrawAmount));
+            expect(await auxToken.balanceOf(borrower)).to.eq.BN(prevBorrowerBalance.add(withdrawAmount));
+        });
     });
     describe('Function redeem', function () {
         it('Should redeem an entry with a loan in ERROR status', async function () {
@@ -848,12 +911,52 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         });
     });
     describe('Function _claimExpired', function () {
-        it('Should claim an expired entry', async function () {
+        it('Should claim an expired debt', async function () {
             const ids = await lendDefaultCollateral();
 
             await increaseTime(60 * 61);
 
             const obligation = (await model.getObligation(ids.loanId, await model.getDueTime(ids.loanId)))[0];
+
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
+            const prevEntryAmount = (await collateral.entries(ids.entryId)).amount;
+
+            const ClaimedExpired = await toEvents(
+                collateral.claim(
+                    address0x,
+                    ids.loanId,
+                    []
+                ),
+                'ClaimedExpired'
+            );
+            const auctionId = await collateral.entryToAuction(ids.entryId);
+
+            // Test event
+            expect(ClaimedExpired._entryId).to.eq.BN(ids.entryId);
+            expect(ClaimedExpired._auctionId).to.eq.BN(auctionId);
+            const obligationPlus5Porcent = obligation.mul(bn(105)).div(bn(100));
+            expect(ClaimedExpired._obligation).to.eq.BN(obligationPlus5Porcent);
+            expect(ClaimedExpired._obligationTokens).to.eq.BN(obligationPlus5Porcent);
+
+            const entry = await collateral.entries(ids.entryId);
+            expect(entry.amount).to.eq.BN(0);
+
+            expect(await collateral.entryToAuction(ids.entryId)).to.eq.BN(auctionId);
+            expect(await collateral.auctionToEntry(auctionId)).to.eq.BN(ids.entryId);
+
+            expect(await auxToken.allowance(collateral.address, testCollateralAuctionMock.address)).to.eq.BN(0);
+
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(prevEntryAmount));
+            expect(await auxToken.balanceOf(testCollateralAuctionMock.address)).to.eq.BN(prevAuctionBalance.add(prevEntryAmount));
+        });
+        it('Should claim an expired debt with interest', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await increaseTime(60 * 61 * 2);
+
+            const now = await getBlockTime();
+            const obligation = (await model.getObligation(ids.loanId, now))[0];
 
             const prevCollBalance = await auxToken.balanceOf(collateral.address);
             const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
