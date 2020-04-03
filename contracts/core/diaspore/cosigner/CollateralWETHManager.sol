@@ -10,12 +10,6 @@ contract CollateralWETHManager is Ownable {
     event SetWeth(IWETH9 _weth);
     event SetCollateral(Collateral _collateral);
 
-    event Created(uint256 indexed _entryId, address _sender, uint256 _amount);
-    event Deposited(uint256 indexed _entryId, address _sender, uint256 _amount);
-
-    event Redeemed(uint256 _entryId, address _to, uint256 _amount);
-    event Withdrawed(uint256 _entryId, address _to, uint256 _amount);
-
     IWETH9 public weth;
     Collateral public collateral;
 
@@ -59,39 +53,33 @@ contract CollateralWETHManager is Ownable {
         @dev Convert the msg.value to WETH, approve collateral to use the WETH
             and create an entry
 
-        @param _debtId Id of the debt
-        @param _oracle The oracle to get the rate between loanManagerToken and entry token
+        @param _debtId Id of the RCN debt
+        @param _oracle The oracle that provides the rate between `loanManagerToken` and entry `token`
+            If the oracle its the address 0 the entry token it's `loanManagerToken`
+            otherwise the token it's provided by `oracle.token()`
+        @param _liquidationRatio collateral/debt ratio that triggers the execution of the margin call, encoded as Fixed64x32
+        @param _balanceRatio Target collateral/debt ratio expected after a margin call execution, encoded as Fixed64x32
 
-        @param _liquidationRatio Ratio, when collateral ratio is lower enables the execution of the margin call
-        @param _balanceRatio Ratio, expected collateral ratio after margin call execution
-
-        @param _burnFee Ratio, The burn fee of execute a margin call or pay expired debt, this is sent to the address 0
-        @param _rewardFee Ratio, The reward fee of execute a margin call or pay expired debt, this is sent to the sender of the transactiond
+        @return The id of the new collateral entry and ERC721 token
     */
     function create(
         bytes32 _debtId,
         RateOracle _oracle,
-        uint32 _liquidationRatio,
-        uint32 _balanceRatio,
-        uint32 _burnFee,
-        uint32 _rewardFee
+        uint96 _liquidationRatio,
+        uint96 _balanceRatio
     ) external payable returns (uint256 entryId) {
         depositApprove();
 
         entryId = collateral.create(
+            address(this),
             _debtId,
             _oracle,
-            weth,
             msg.value,
             _liquidationRatio,
-            _balanceRatio,
-            _burnFee,
-            _rewardFee
+            _balanceRatio
         );
 
         collateral.safeTransferFrom(address(this), msg.sender, entryId);
-
-        emit Created(entryId, msg.sender, msg.value);
     }
 
     /**
@@ -106,8 +94,6 @@ contract CollateralWETHManager is Ownable {
         depositApprove();
 
         collateral.deposit(_entryId, msg.value);
-
-        emit Deposited(_entryId, msg.sender, msg.value);
     }
 
     /**
@@ -141,25 +127,6 @@ contract CollateralWETHManager is Ownable {
         );
 
         withdrawTransfer(_to, _amount);
-
-        emit Withdrawed(_entryId, _to, _amount);
-    }
-
-    /**
-        @dev Redeem an entry, withdraw the WETH and transfer the ETH
-
-        @param _entryId The index of the entry
-        @param _to The beneficiary of the ETH
-    */
-    function redeem(
-        uint256 _entryId,
-        address payable _to
-    ) external isAuthorized(_entryId) {
-        uint256 amount = collateral.redeem(_entryId);
-
-        withdrawTransfer(_to, amount);
-
-        emit Redeemed(_entryId, _to, amount);
     }
 
     /**
