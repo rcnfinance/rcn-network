@@ -880,7 +880,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
         // Take auction with callback contract
         await tryCatchRevert(
-            callback.take(auction.address, id, data),
+            () => callback.take(auction.address, id, data),
             'auction: error during callback onTake()'
         );
 

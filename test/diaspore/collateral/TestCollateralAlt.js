@@ -68,6 +68,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(2000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -127,6 +129,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(2000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -223,6 +227,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(2000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -335,6 +341,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(2000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -380,6 +388,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(2000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -425,6 +435,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(2000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -465,6 +477,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(2000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -754,6 +768,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -823,6 +839,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -892,6 +910,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -968,6 +988,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1033,6 +1055,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1102,6 +1126,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1174,6 +1200,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1269,6 +1297,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1348,6 +1378,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1425,6 +1457,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1487,6 +1521,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1549,6 +1585,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             // Request a loan
             const modelData = await model.encodeData(
                 b(1000),
+                MAX_UINT64,
+                0,
                 MAX_UINT64
             );
 
@@ -1620,6 +1658,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(1000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -1778,6 +1818,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(1000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -1968,6 +2010,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(1000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -2159,6 +2203,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(2000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -2354,6 +2400,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(2000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -2542,6 +2590,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(1000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -2654,6 +2704,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(1000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -2771,6 +2823,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(2000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -2877,6 +2931,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(1000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -2994,6 +3050,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     b(1000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 
@@ -3383,6 +3441,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Request a loan
                 const modelData = await model.encodeData(
                     e(2000),
+                    MAX_UINT64,
+                    0,
                     MAX_UINT64
                 );
 

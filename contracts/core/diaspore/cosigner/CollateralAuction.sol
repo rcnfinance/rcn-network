@@ -13,7 +13,7 @@ import "./interfaces/CollateralAuctionCallback.sol";
 
 /**
     @title ERC-20 Dutch auction
-    @author Agustin Aguilar <agustin@ripiocredit.network>
+    @author Agustin Aguilar <agustin@ripiocredit.network> & Victor Fage <victor.fage@ripiocredit.network>
     @notice Auctions tokens in exchange for `baseToken` using a Dutch auction scheme,
         the owner of the contract is the sole beneficiary of all the auctions.
         Auctions follow two linear functions to determine the exchange rate that
@@ -157,6 +157,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     ) external nonReentrant() {
         Auction memory auction = auctions[_id];
         require(auction.amount != 0, "auction: does not exists");
+        IERC20 fromToken = auction.fromToken;
 
         // Load the current rate of the auction
         // how much `fromToken` is being sold and how much
@@ -174,20 +175,20 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // Send the auctioned tokens to the sender
         // this is done first, because the sender may be doing arbitrage
         // and for that, it needs the tokens that's going to sell
-        require(auction.fromToken.safeTransfer(msg.sender, selling), "auction: error sending tokens");
+        require(fromToken.safeTransfer(msg.sender, selling), "auction: error sending tokens");
 
         // If a callback is requested, we ping the sender so it can perform arbitrage
         if (_callback) {
             /* solium-disable-next-line */
-            (bool success, ) = msg.sender.call(abi.encodeWithSignature("onTake(uint256,uint256)", selling, requesting));
-            require(success, "auction: error during callback onTake(uint256,uint256)");
+            (bool success, ) = msg.sender.call(abi.encodeWithSignature("onTake(address,uint256,uint256)", fromToken, selling, requesting));
+            require(success, "auction: error during callback onTake()");
         }
 
         // Swap tokens for base, send base directly to the owner
         require(baseToken.transferFrom(msg.sender, owner, requesting), "auction: error pulling tokens");
 
         // Send any leftOver tokens
-        require(auction.fromToken.safeTransfer(owner, leftOver), "auction: error sending leftover tokens");
+        require(fromToken.safeTransfer(owner, leftOver), "auction: error sending leftover tokens");
 
         // Callback to owner to process the closed auction
         CollateralAuctionCallback(owner).auctionClosed(
