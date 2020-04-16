@@ -11,7 +11,7 @@ import "../LoanManager.sol";
 
 /**
     @title Loan collateral simulator
-    @author Agustin Aguilar <agustin@ripiocredit.network>
+    @author Agustin Aguilar <agustin@ripiocredit.network> & Victor Fage <victor.fage@ripiocredit.network>
     @notice Implements schemes and rules for a generic collateralization,
         and liquidations for under-collateralized entries
     @dev `debt` and `collateral` may not be in the same currency,
