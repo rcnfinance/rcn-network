@@ -52,7 +52,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     async function createDefaultLoan () {
         const loanAmount = WEI;
         const duration = bn(await getBlockTime()).add(bn(60 * 60));
-        const loanData = await model.encodeData(loanAmount, duration);
+
+        const interestAmount = bn('1');
+        const interestTime = duration.add(bn(60 * 60));
+
+        const loanData = await model.encodeData(loanAmount, duration, interestAmount, interestTime);
 
         const loanTx = loanManager.requestLoan(
             loanAmount,        // Amount
@@ -907,12 +911,52 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         });
     });
     describe('Function _claimExpired', function () {
-        it('Should claim an expired entry', async function () {
+        it('Should claim an expired debt', async function () {
             const ids = await lendDefaultCollateral();
 
             await increaseTime(60 * 61);
 
             const obligation = (await model.getObligation(ids.loanId, await model.getDueTime(ids.loanId)))[0];
+
+            const prevCollBalance = await auxToken.balanceOf(collateral.address);
+            const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
+            const prevEntryAmount = (await collateral.entries(ids.entryId)).amount;
+
+            const ClaimedExpired = await toEvents(
+                collateral.claim(
+                    address0x,
+                    ids.loanId,
+                    []
+                ),
+                'ClaimedExpired'
+            );
+            const auctionId = await collateral.entryToAuction(ids.entryId);
+
+            // Test event
+            expect(ClaimedExpired._entryId).to.eq.BN(ids.entryId);
+            expect(ClaimedExpired._auctionId).to.eq.BN(auctionId);
+            const obligationPlus5Porcent = obligation.mul(bn(105)).div(bn(100));
+            expect(ClaimedExpired._obligation).to.eq.BN(obligationPlus5Porcent);
+            expect(ClaimedExpired._obligationTokens).to.eq.BN(obligationPlus5Porcent);
+
+            const entry = await collateral.entries(ids.entryId);
+            expect(entry.amount).to.eq.BN(0);
+
+            expect(await collateral.entryToAuction(ids.entryId)).to.eq.BN(auctionId);
+            expect(await collateral.auctionToEntry(auctionId)).to.eq.BN(ids.entryId);
+
+            expect(await auxToken.allowance(collateral.address, testCollateralAuctionMock.address)).to.eq.BN(0);
+
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(prevEntryAmount));
+            expect(await auxToken.balanceOf(testCollateralAuctionMock.address)).to.eq.BN(prevAuctionBalance.add(prevEntryAmount));
+        });
+        it('Should claim an expired debt with interest', async function () {
+            const ids = await lendDefaultCollateral();
+
+            await increaseTime(60 * 61 * 2);
+
+            const now = await getBlockTime();
+            const obligation = (await model.getObligation(ids.loanId, now))[0];
 
             const prevCollBalance = await auxToken.balanceOf(collateral.address);
             const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
