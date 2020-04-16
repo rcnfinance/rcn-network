@@ -6,7 +6,6 @@ import "../../../commons/Fixed224x32.sol";
 import "../../../utils/Math.sol";
 
 import "../utils/OracleUtils.sol";
-import "../LoanManager.sol";
 
 
 /**
