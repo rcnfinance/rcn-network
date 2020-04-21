@@ -568,11 +568,30 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 entryId = debtToEntry[debtId];
         require(entryId != 0, "collateral: collateral not found for debtId");
 
-        if (_claimLiquidation(entryId, debtId, _oracleData)) {
-            return true;
-        }
+        return _claimLiquidation(entryId, debtId, _oracleData) ||
+            _claimExpired(entryId, debtId, _oracleData);
+    }
 
-        return _claimExpired(entryId, debtId, _oracleData);
+    function canClaim(uint256 _debtId, bytes calldata _oracleData) external view returns (bool) {
+        bytes32 debtId = bytes32(_debtId);
+        uint256 entryId = debtToEntry[debtId];
+        require(entryId != 0, "collateral: collateral not found for debtId");
+
+        if (inAuction(entryId))
+            return false;
+
+        CollateralLib.Entry memory entry = entries[entryId];
+
+        LoanManager _loanManager = loanManager;
+        uint256 debt = _loanManager.getClosingObligation(debtId);
+
+        if (debt != 0)
+            debt = _loanManager
+                .oracle(debtId)
+                .readStatic(_oracleData)
+                .toTokens(debt);
+
+        return entry.inLiquidation(debt) || now > Model(loanManager.getModel(debtId)).getDueTime(debtId);
     }
 
     /**
