@@ -886,6 +886,14 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     describe('Function claim', function () {
         it('Try claim the entry 0', async function () {
             await tryCatchRevert(
+                () => collateral.canClaim(
+                    0,
+                    []
+                ),
+                'collateral: collateral not found for debtId'
+            );
+
+            await tryCatchRevert(
                 () => collateral.claim(
                     address0x,
                     0,
@@ -899,6 +907,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await increaseTime(60 * 61);
             await collateral.claim(address0x, ids.loanId, []);
+
+            assert.isFalse(await collateral.canClaim(ids.loanId, []));
 
             await tryCatchRevert(
                 () => collateral.claim(
@@ -914,7 +924,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should claim an expired debt', async function () {
             const ids = await lendDefaultCollateral();
 
+            assert.isFalse(await collateral.canClaim(ids.loanId, []));
+
             await increaseTime(60 * 61);
+
+            assert.isTrue(await collateral.canClaim(ids.loanId, []));
 
             const obligation = (await model.getObligation(ids.loanId, await model.getDueTime(ids.loanId)))[0];
 
@@ -953,7 +967,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should claim an expired debt with interest', async function () {
             const ids = await lendDefaultCollateral();
 
+            assert.isFalse(await collateral.canClaim(ids.loanId, []));
+
             await increaseTime(60 * 61 * 2);
+
+            assert.isTrue(await collateral.canClaim(ids.loanId, []));
 
             const now = await getBlockTime();
             const obligation = (await model.getObligation(ids.loanId, now))[0];
@@ -995,6 +1013,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should liquidation an entry', async function () {
             const ids = await lendDefaultCollateral();
 
+            assert.isFalse(await collateral.canClaim(ids.loanId, []));
+
             await model.addDebt(ids.loanId, WEI.mul(bn(9)), { from: owner });
             const depositAmount = WEI.mul(bn(12));
             await auxToken.setBalance(creator, depositAmount, { from: owner });
@@ -1015,6 +1035,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const prevCollBalance = await auxToken.balanceOf(collateral.address);
             const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
             const prevEntryAmount = (await collateral.entries(ids.entryId)).amount;
+
+            assert.isTrue(await collateral.canClaim(ids.loanId, []));
 
             const ClaimedLiquidation = await toEvents(
                 collateral.claim(
