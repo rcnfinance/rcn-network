@@ -83,7 +83,13 @@ contract DebtEngine is ERC721Base, Ownable {
         bytes _callData
     );
 
+    event SetBurner(address indexed burner);
+    event SetFee(uint256 fee);
+
     IERC20 public token;
+    address public burner;
+    uint256 public base = 10000;
+    uint256 public fee = 100;  //Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
 
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
@@ -100,9 +106,20 @@ contract DebtEngine is ERC721Base, Ownable {
         IERC20 _token
     ) public ERC721Base("RCN Debt Record", "RDR") {
         token = _token;
-
         // Sanity checks
         require(address(_token).isContract(), "Token should be a contract");
+    }
+
+    function setBurner(address _burner) external onlyOwner returns (bool) {
+        burner = _burner;
+        emit SetBurner(_burner);
+        return true;
+    }
+
+    function setFee(uint256 _fee) external onlyOwner returns (bool) {
+        fee = _fee;
+        emit SetFee(_fee);
+        return true;
     }
 
     function setURIProvider(URIProvider _provider) external onlyOwner {
@@ -481,6 +498,15 @@ contract DebtEngine is ERC721Base, Ownable {
         debt.balance = uint128(newBalance);
     }
 
+    function chargeburnFee(uint256 _amount) internal returns(uint256 burnAmount) {
+        require(burner != address(0), "DebtEngine/burner-not-set");
+        // Get BurnAmount from fee percentage
+        burnAmount = _amount.multdiv(fee, base);
+
+        // Pull tokens from payer to Burner
+        require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling payment tokens");
+    }
+
     function _safePay(
         bytes32 _id,
         Model _model,
@@ -488,12 +514,15 @@ contract DebtEngine is ERC721Base, Ownable {
     ) internal returns (uint256) {
         require(_model != Model(0), "Debt does not exist");
 
+        uint256 burnAmount = chargeburnFee(_available);
+        uint256 newAvailable = _available.sub(burnAmount);
+
         (bool success, bytes32 paid) = _safeGasCall(
             address(_model),
             abi.encodeWithSelector(
                 _model.addPaid.selector,
                 _id,
-                _available
+                newAvailable
             )
         );
 

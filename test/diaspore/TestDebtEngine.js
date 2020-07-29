@@ -46,6 +46,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         testOracle = await TestRateOracle.new();
         await testModel.setEngine(debtEngine.address);
         legacyOracle = await TestOracle.new();
+        await debtEngine.setBurner(accounts[0]);
+        await debtEngine.setFee(0);
         oracle = await OracleAdapter.new(
             legacyOracle.address,
             'ARS',
