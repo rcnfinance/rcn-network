@@ -33,6 +33,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
     let oracle;
     let testOracle;
 
+    const burner = accounts[5];
+
     async function getId (promise) {
         const receipt = await promise;
         const event = receipt.logs.find(l => l.event === 'Created2' || l.event === 'Created3' || l.event === 'Created');
@@ -41,13 +43,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
     before('Create engine and model', async function () {
         rcn = await TestToken.new();
-        debtEngine = await DebtEngine.new(rcn.address);
+        debtEngine = await DebtEngine.new(rcn.address, burner, 0);
         testModel = await TestModel.new();
         testOracle = await TestRateOracle.new();
         await testModel.setEngine(debtEngine.address);
         legacyOracle = await TestOracle.new();
-        await debtEngine.setBurner(accounts[0]);
-        await debtEngine.setFee(0);
         oracle = await OracleAdapter.new(
             legacyOracle.address,
             'ARS',
@@ -228,9 +228,21 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         it('Creation should fail if token is not a contract', async function () {
             await tryCatchRevert(
                 () => DebtEngine.new(
-                    accounts[2]
+                    accounts[2],
+                    burner,
+                    0
                 ),
                 'Token should be a contract'
+            );
+        });
+        it('Try create a DebtEngine with address 0x0 as burner', async function () {
+            await tryCatchRevert(
+                () => DebtEngine.new(
+                    accounts[2],
+                    address0x,
+                    0
+                ),
+                'Burner 0x0 is not valid'
             );
         });
     });
@@ -252,6 +264,69 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await tryCatchRevert(
                 () => debtEngine.setURIProvider(
                     address0x,
+                    { from: accounts[1] }
+                ),
+                ''
+            );
+        });
+    });
+    describe('Function setBurner', function () {
+        it('Should set the burner', async function () {
+            const newBurner = accounts[6];
+
+            const SetBurner = await toEvents(
+                debtEngine.setBurner(
+                    newBurner,
+                    { from: accounts[0] }
+                ),
+                'SetBurner'
+            );
+
+            assert.equal(SetBurner._burner, newBurner);
+            assert.equal(await debtEngine.burner(), newBurner);
+
+            await debtEngine.setBurner(burner, { from: accounts[0] });
+        });
+        it('Try set address 0x0 as burner', async function () {
+            await tryCatchRevert(
+                () => debtEngine.setBurner(
+                    address0x,
+                    { from: accounts[0] }
+                ),
+                'Burner 0x0 is not valid'
+            );
+        });
+        it('Try set burner without ownership', async function () {
+            await tryCatchRevert(
+                () => debtEngine.setBurner(
+                    accounts[1],
+                    { from: accounts[1] }
+                ),
+                ''
+            );
+        });
+    });
+    describe('Function setFee', function () {
+        it('Should set the set fee', async function () {
+            const newFee = 1500;
+
+            const SetFee = await toEvents(
+                debtEngine.setFee(
+                    newFee,
+                    { from: accounts[0] }
+                ),
+                'SetFee'
+            );
+
+            assert.equal(SetFee._fee, newFee);
+            assert.equal(await debtEngine.fee(), newFee);
+
+            await debtEngine.setFee(0, { from: accounts[0] });
+        });
+        it('Try set fee without ownership', async function () {
+            await tryCatchRevert(
+                () => debtEngine.setFee(
+                    0,
                     { from: accounts[1] }
                 ),
                 ''
@@ -298,8 +373,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
         });
         it('Differents debt engine should give differents ids, create', async function () {
-            const engine1 = await DebtEngine.new(rcn.address);
-            const engine2 = await DebtEngine.new(rcn.address);
+            const engine1 = await DebtEngine.new(rcn.address, burner, 0);
+            const engine2 = await DebtEngine.new(rcn.address, burner, 0);
 
             await testModel.setEngine(engine1.address);
 
@@ -441,8 +516,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(pid2, id2);
         });
         it('Differents debt engine should give differents ids, create2', async function () {
-            const engine1 = await DebtEngine.new(rcn.address);
-            const engine2 = await DebtEngine.new(rcn.address);
+            const engine1 = await DebtEngine.new(rcn.address, burner, 0);
+            const engine2 = await DebtEngine.new(rcn.address, burner, 0);
 
             await testModel.setEngine(engine1.address);
 
@@ -550,8 +625,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
         });
         it('Differents debt engine should give differents ids, create3', async function () {
-            const engine1 = await DebtEngine.new(rcn.address);
-            const engine2 = await DebtEngine.new(rcn.address);
+            const engine1 = await DebtEngine.new(rcn.address, burner, 0);
+            const engine2 = await DebtEngine.new(rcn.address, burner, 0);
 
             await testModel.setEngine(engine1.address);
 
@@ -905,6 +980,64 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[3])).to.eq.BN(expectBalance);
             expect(await testModel.getPaid(id)).to.eq.BN('10000');
             expect(await debtEngine.getStatus(id)).to.eq.BN('2');
+        });
+        it('Should pay with fee', async function () {
+            const owner = accounts[1];
+            const payer = accounts[2];
+            const originPayer = accounts[3];
+            const payAmount = bn('1000');
+            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
+
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                owner,
+                address0x,
+                data
+            ));
+
+            await rcn.setBalance(payer, payAmount);
+            await rcn.approve(debtEngine.address, payAmount, { from: payer });
+
+            // Set 10% fee
+            const fee = bn('1000');
+            await debtEngine.setFee(fee, { from: accounts[0] });
+            const feeAmount = payAmount.mul(fee).div(bn('10000'));
+            const prevBurnerBal = await rcn.balanceOf(burner);
+
+            const events = await toEvents(
+                debtEngine.pay(
+                    id,
+                    payAmount,
+                    originPayer,
+                    [],
+                    { from: payer }
+                ),
+                'Paid',
+                'ChargeBurnFee'
+            );
+
+            const Paid = events[0];
+            assert.equal(Paid._id, id);
+            assert.equal(Paid._sender, payer);
+            assert.equal(Paid._origin, originPayer);
+            expect(Paid._requested).to.eq.BN(payAmount);
+            expect(Paid._requestedTokens).to.eq.BN('0');
+            expect(Paid._paid).to.eq.BN(payAmount.sub(feeAmount));
+            expect(Paid._tokens).to.eq.BN(payAmount.sub(feeAmount));
+
+            const ChargeBurnFee = events[1];
+            assert.equal(ChargeBurnFee._id, id);
+            expect(ChargeBurnFee._amount).to.eq.BN(feeAmount);
+
+            const debt = await debtEngine.debts(id);
+            expect(debt.balance).to.eq.BN(payAmount.sub(feeAmount));
+            expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal.add(feeAmount));
+
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN(payAmount.sub(feeAmount));
+
+            await debtEngine.setFee(0, { from: accounts[0] });
         });
         it('Pay should round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
@@ -1972,7 +2105,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
-
         it('Should pay batch with tokens more expensive than currency', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,

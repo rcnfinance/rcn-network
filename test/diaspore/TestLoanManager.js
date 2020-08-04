@@ -157,7 +157,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
     before('Create engine and model', async function () {
         rcn = await TestToken.new();
-        debtEngine = await DebtEngine.new(rcn.address);
+        debtEngine = await DebtEngine.new(rcn.address, accounts[5], 0);
         loanManager = await LoanManager.new(debtEngine.address);
         model = await TestModel.new();
         await model.setEngine(debtEngine.address);

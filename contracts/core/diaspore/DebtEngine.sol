@@ -39,6 +39,11 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _tokens
     );
 
+    event ChargeBurnFee(
+        bytes32 indexed _id,
+        uint256 _amount
+    );
+
     event ReadedOracleBatch(
         address _oracle,
         uint256 _count,
@@ -83,13 +88,13 @@ contract DebtEngine is ERC721Base, Ownable {
         bytes _callData
     );
 
-    event SetBurner(address indexed burner);
-    event SetFee(uint256 fee);
+    event SetBurner(address indexed _burner);
+    event SetFee(uint256 _fee);
 
     IERC20 public token;
     address public burner;
     uint256 public base = 10000;
-    uint256 public fee = 100;  //Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
+    uint256 public fee; // Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
 
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
@@ -103,23 +108,29 @@ contract DebtEngine is ERC721Base, Ownable {
     }
 
     constructor (
-        IERC20 _token
+        IERC20 _token,
+        address _burner,
+        uint256 _fee
     ) public ERC721Base("RCN Debt Record", "RDR") {
-        token = _token;
         // Sanity checks
+        require(_burner != address(0), "Burner 0x0 is not valid");
         require(address(_token).isContract(), "Token should be a contract");
+
+        token = _token;
+        burner = _burner;
+        fee = _fee;
     }
 
-    function setBurner(address _burner) external onlyOwner returns (bool) {
+    function setBurner(address _burner) external onlyOwner {
+        require(_burner != address(0), "Burner 0x0 is not valid");
+
         burner = _burner;
         emit SetBurner(_burner);
-        return true;
     }
 
-    function setFee(uint256 _fee) external onlyOwner returns (bool) {
+    function setFee(uint256 _fee) external onlyOwner {
         fee = _fee;
         emit SetFee(_fee);
-        return true;
     }
 
     function setURIProvider(URIProvider _provider) external onlyOwner {
@@ -498,13 +509,14 @@ contract DebtEngine is ERC721Base, Ownable {
         debt.balance = uint128(newBalance);
     }
 
-    function chargeburnFee(uint256 _amount) internal returns(uint256 burnAmount) {
-        require(burner != address(0), "DebtEngine/burner-not-set");
+    function _chargeBurnFee(bytes32 _id, uint256 _amount) internal returns(uint256 burnAmount) {
         // Get BurnAmount from fee percentage
         burnAmount = _amount.multdiv(fee, base);
 
         // Pull tokens from payer to Burner
         require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling payment tokens");
+
+        emit ChargeBurnFee(_id, burnAmount);
     }
 
     function _safePay(
@@ -514,7 +526,7 @@ contract DebtEngine is ERC721Base, Ownable {
     ) internal returns (uint256) {
         require(_model != Model(0), "Debt does not exist");
 
-        uint256 burnAmount = chargeburnFee(_available);
+        uint256 burnAmount = _chargeBurnFee(_id, _available);
         uint256 newAvailable = _available.sub(burnAmount);
 
         (bool success, bytes32 paid) = _safeGasCall(
