@@ -93,7 +93,7 @@ contract DebtEngine is ERC721Base, Ownable {
 
     IERC20 public token;
     address public burner;
-    uint256 public base = 10000;
+    uint256 public constant BASE = 10000;
     uint256 public fee; // Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
 
     mapping(bytes32 => Debt) public debts;
@@ -292,14 +292,15 @@ contract DebtEngine is ERC721Base, Ownable {
 
     function pay(
         bytes32 _id,
-        uint256 _amount,
+        uint256 _amountToPay,
         address _origin,
         bytes calldata _oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
+
         // Paid only required amount
-        paid = _safePay(_id, debt.model, _amount);
-        require(paid <= _amount, "Paid can't be more than requested");
+        paid = _safePay(_id, debt.model, _amountToPay);
+        require(paid <= _amountToPay, "Paid can't be more than requested");
 
         RateOracle oracle = RateOracle(debt.oracle);
         if (address(oracle) != address(0)) {
@@ -311,6 +312,7 @@ contract DebtEngine is ERC721Base, Ownable {
             paidToken = paid;
         }
 
+        _chargeBurnFee(_id, paidToken);
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
 
@@ -324,7 +326,7 @@ contract DebtEngine is ERC721Base, Ownable {
             _id: _id,
             _sender: msg.sender,
             _origin: _origin,
-            _requested: _amount,
+            _requested: _amountToPay,
             _requestedTokens: 0,
             _paid: paid,
             _tokens: paidToken
@@ -366,6 +368,7 @@ contract DebtEngine is ERC721Base, Ownable {
             paidToken = paid;
         }
 
+        _chargeBurnFee(id, paidToken);
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling tokens");
 
@@ -500,6 +503,7 @@ contract DebtEngine is ERC721Base, Ownable {
         // Get token amount to use as payment
         paidToken = _oracle != address(0) ? _toToken(paid, _tokens, _equivalent) : paid;
 
+        _chargeBurnFee(_id, paidToken);
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
 
@@ -510,8 +514,11 @@ contract DebtEngine is ERC721Base, Ownable {
     }
 
     function _chargeBurnFee(bytes32 _id, uint256 _amount) internal returns(uint256 burnAmount) {
+        if (fee == 0)
+            return 0;
+
         // Get BurnAmount from fee percentage
-        burnAmount = _amount.multdiv(fee, base);
+        burnAmount = _amount.multdiv(fee, BASE);
 
         // Pull tokens from payer to Burner
         require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling payment tokens");
@@ -526,15 +533,12 @@ contract DebtEngine is ERC721Base, Ownable {
     ) internal returns (uint256) {
         require(_model != Model(0), "Debt does not exist");
 
-        uint256 burnAmount = _chargeBurnFee(_id, _available);
-        uint256 newAvailable = _available.sub(burnAmount);
-
         (bool success, bytes32 paid) = _safeGasCall(
             address(_model),
             abi.encodeWithSelector(
                 _model.addPaid.selector,
                 _id,
-                newAvailable
+                _available
             )
         );
 
