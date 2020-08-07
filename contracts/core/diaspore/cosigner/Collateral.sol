@@ -591,7 +591,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
                 .readStatic(_oracleData)
                 .toTokens(debt);
 
-        return entry.inLiquidation(debt) || now > Model(loanManager.getModel(debtId)).getDueTime(debtId);
+        return entry.inLiquidation(debt) || now > _getModel(debtId).getDueTime(debtId);
     }
 
     /**
@@ -669,7 +669,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         bytes memory _oracleData
     ) internal returns (bool) {
         // Check if debt is expired
-        Model model = Model(loanManager.getModel(_debtId));
+        Model model = _getModel(_debtId);
         uint256 dueTime = model.getDueTime(_debtId);
         uint256 _now = block.timestamp;
 
@@ -809,5 +809,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Save Auction ID
         entryToAuction[_entryId] = _auctionId;
         auctionToEntry[_auctionId] = _entryId;
+    }
+
+    function _getModel(bytes32 _debtId) internal view returns (Model) {
+        (,,,,, address model,,,,,,) = loanManager.requests(_debtId);
+        return Model(model);
     }
 }
