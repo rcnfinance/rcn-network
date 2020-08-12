@@ -312,9 +312,10 @@ contract DebtEngine is ERC721Base, Ownable {
             paidToken = paid;
         }
 
-        _chargeBurnFee(_id, paidToken);
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
+
+        _chargeBurnFee(_id, paidToken);
 
         // Add balance to the debt
         uint256 newBalance = paidToken.add(debt.balance);
@@ -368,9 +369,10 @@ contract DebtEngine is ERC721Base, Ownable {
             paidToken = paid;
         }
 
-        _chargeBurnFee(id, paidToken);
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling tokens");
+
+        _chargeBurnFee(id, paidToken);
 
         // Add balance to the debt
         // WARNING: Reusing variable **available**
@@ -503,9 +505,10 @@ contract DebtEngine is ERC721Base, Ownable {
         // Get token amount to use as payment
         paidToken = _oracle != address(0) ? _toToken(paid, _tokens, _equivalent) : paid;
 
-        _chargeBurnFee(_id, paidToken);
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
+
+        _chargeBurnFee(_id, paidToken);
 
         // Add balance to debt
         uint256 newBalance = paidToken.add(debt.balance);
@@ -521,7 +524,7 @@ contract DebtEngine is ERC721Base, Ownable {
         burnAmount = _amount.multdiv(fee, BASE);
 
         // Pull tokens from payer to Burner
-        require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling payment tokens");
+        require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling fee tokens");
 
         emit ChargeBurnFee(_id, burnAmount);
     }

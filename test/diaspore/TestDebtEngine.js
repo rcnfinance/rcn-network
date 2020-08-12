@@ -995,14 +995,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 data
             ));
 
-            await rcn.setBalance(payer, payAmount);
-            await rcn.approve(debtEngine.address, payAmount, { from: payer });
-
             // Set 10% fee
             const fee = bn('1000');
             await debtEngine.setFee(fee, { from: accounts[0] });
             const feeAmount = payAmount.mul(fee).div(bn('10000'));
             const prevBurnerBal = await rcn.balanceOf(burner);
+
+            const amountWithFee = payAmount.add(feeAmount);
+            await rcn.setBalance(payer, amountWithFee);
+            await rcn.approve(debtEngine.address, amountWithFee, { from: payer });
 
             const events = await toEvents(
                 debtEngine.pay(
@@ -1022,23 +1023,24 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Paid._origin, originPayer);
             expect(Paid._requested).to.eq.BN(payAmount);
             expect(Paid._requestedTokens).to.eq.BN('0');
-            expect(Paid._paid).to.eq.BN(payAmount.sub(feeAmount));
-            expect(Paid._tokens).to.eq.BN(payAmount.sub(feeAmount));
+            expect(Paid._paid).to.eq.BN(payAmount);
+            expect(Paid._tokens).to.eq.BN(payAmount);
 
             const ChargeBurnFee = events[1];
             assert.equal(ChargeBurnFee._id, id);
             expect(ChargeBurnFee._amount).to.eq.BN(feeAmount);
 
             const debt = await debtEngine.debts(id);
-            expect(debt.balance).to.eq.BN(payAmount.sub(feeAmount));
+            expect(debt.balance).to.eq.BN(payAmount);
             expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal.add(feeAmount));
 
             expect(await rcn.balanceOf(payer)).to.eq.BN('0');
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            expect(await testModel.getPaid(id)).to.eq.BN(payAmount.sub(feeAmount));
+            expect(await testModel.getPaid(id)).to.eq.BN(payAmount);
 
             await debtEngine.setFee(0, { from: accounts[0] });
         });
+
         it('Pay should round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
