@@ -524,7 +524,7 @@ contract DebtEngine is ERC721Base, Ownable {
         burnAmount = _amount.multdiv(fee, BASE);
 
         // Pull tokens from payer to Burner
-        require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling payment tokens");
+        require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling fee tokens");
 
         emit ChargeBurnFee(_id, burnAmount);
     }
