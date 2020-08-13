@@ -35,6 +35,38 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
     const burner = accounts[5];
 
+    async function toTokens (amount, oracle = { address: address0x }, oracleData = '') {
+        if (oracle.address === address0x) {
+            return amount;
+        }
+
+        const sample = await oracle.readSample.call(oracleData);
+        const tokens = sample._tokens;
+        const equivalent = sample._equivalent;
+
+        if (tokens === 0 && equivalent === 0) {
+            throw new Error('Oracle provided invalid rate');
+        }
+
+        const aux = tokens.mul(amount);
+        const result = aux.div(equivalent);
+
+        if (aux % equivalent > 0) {
+            return result;
+        } else {
+            return result.add(bn(1));
+        }
+    }
+
+    async function toFee (amount, oracle = { address: address0x }, oracleData = '') {
+        const amountTokens = await toTokens(amount, oracle, oracleData);
+
+        const feePerc = await debtEngine.fee();
+        const BASE = await debtEngine.BASE();
+
+        return amountTokens.mul(feePerc).div(BASE);
+    }
+
     async function getId (promise) {
         const receipt = await promise;
         const event = receipt.logs.find(l => l.event === 'Created2' || l.event === 'Created3' || l.event === 'Created');
@@ -3376,6 +3408,85 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[7], 0);
             await debtEngine.withdrawBatch([], accounts[7], { from: accounts[7] });
             expect(await rcn.balanceOf(accounts[7])).to.eq.BN('0');
+        });
+    });
+    describe.only('Function getFeeAmount', function () {
+        it('Get fee amount with 0% fee', async function () {
+            await debtEngine.setFee(0, { from: accounts[0] });
+
+            const feeAmount = await debtEngine.getFeeAmount(
+                bytes320x,
+                0,
+                []
+            );
+
+            expect(feeAmount).to.eq.BN(0);
+
+            const feeAmount2 = await debtEngine.getFeeAmount(
+                bytes320x,
+                random32bn(),
+                []
+            );
+
+            expect(feeAmount2).to.eq.BN(0);
+        });
+        it('Get fee amount with % fee', async function () {
+            const feePerc = bn(1234);
+            await debtEngine.setFee(feePerc, { from: accounts[0] });
+
+            const feeAmount = await debtEngine.getFeeAmount(
+                bytes320x,
+                0,
+                []
+            );
+
+            expect(feeAmount).to.eq.BN(0);
+
+            const payAmount = bn(123456789123456789);
+            const feeAmount2 = await debtEngine.getFeeAmount(
+                bytes320x,
+                payAmount,
+                []
+            );
+
+            expect(feeAmount2).to.eq.BN(await toFee(payAmount));
+
+            await debtEngine.setFee(0, { from: accounts[0] });
+        });
+        it('Get fee amount with % fee and oracle', async function () {
+            const owner = accounts[1];
+            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
+
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                owner,
+                oracle.address,
+                data
+            ));
+
+            const feePerc = bn(1234);
+            await debtEngine.setFee(feePerc, { from: accounts[0] });
+
+            const dummyData1 = await legacyOracle.dummyData1();
+
+            const feeAmount = await debtEngine.getFeeAmount(
+                id,
+                0,
+                dummyData1
+            );
+
+            expect(feeAmount).to.eq.BN(0);
+
+            const payAmount = bn(123456789123456789);
+            const feeAmount2 = await debtEngine.getFeeAmount(
+                id,
+                payAmount,
+                dummyData1
+            );
+
+            expect(feeAmount2).to.eq.BN(await toFee(payAmount, oracle, dummyData1));
+
+            await debtEngine.setFee(0, { from: accounts[0] });
         });
     });
     describe('Errors tests', function () {
