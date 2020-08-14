@@ -3410,7 +3410,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[7])).to.eq.BN('0');
         });
     });
-    describe.only('Function getFeeAmount', function () {
+    describe('Function getFeeAmount', function () {
         it('Get fee amount with 0% fee', async function () {
             await debtEngine.setFee(0, { from: accounts[0] });
 
