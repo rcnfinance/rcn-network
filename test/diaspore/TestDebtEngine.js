@@ -35,6 +35,38 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
     const burner = accounts[5];
 
+    async function toTokens (amount, oracle = { address: address0x }, oracleData = '') {
+        if (oracle.address === address0x) {
+            return amount;
+        }
+
+        const sample = await oracle.readSample.call(oracleData);
+        const tokens = sample._tokens;
+        const equivalent = sample._equivalent;
+
+        if (tokens === 0 && equivalent === 0) {
+            throw new Error('Oracle provided invalid rate');
+        }
+
+        const aux = tokens.mul(amount);
+        const result = aux.div(equivalent);
+
+        if (aux % equivalent > 0) {
+            return result.add(bn(1));
+        } else {
+            return result;
+        }
+    }
+
+    async function toFee (amount, oracle = { address: address0x }, oracleData = '') {
+        const amountTokens = await toTokens(amount, oracle, oracleData);
+
+        const feePerc = await debtEngine.fee();
+        const BASE = await debtEngine.BASE();
+
+        return amountTokens.mul(feePerc).div(BASE);
+    }
+
     async function getId (promise) {
         const receipt = await promise;
         const event = receipt.logs.find(l => l.event === 'Created2' || l.event === 'Created3' || l.event === 'Created');
@@ -986,7 +1018,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const payer = accounts[2];
             const originPayer = accounts[3];
             const payAmount = bn('1000');
-            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
+            const loanTotalAmount = bn('10000');
+            const data = await testModel.encodeData(loanTotalAmount, (await getBlockTime()) + 2000);
 
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -996,9 +1029,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             ));
 
             // Set 10% fee
-            const fee = bn('1000');
-            await debtEngine.setFee(fee, { from: accounts[0] });
-            const feeAmount = payAmount.mul(fee).div(bn('10000'));
+            await debtEngine.setFee(bn('1000'), { from: accounts[0] });
+
+            const feeAmount = await toFee(payAmount);
             const prevBurnerBal = await rcn.balanceOf(burner);
 
             const amountWithFee = payAmount.add(feeAmount);
@@ -1038,9 +1071,170 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN(payAmount);
 
+            // Pay total amount
+            const payTotalAmount = await testModel.getClosingObligation(id);
+            const feeAmount2 = await toFee(payTotalAmount);
+            const prevBurnerBal2 = await rcn.balanceOf(burner);
+
+            const amountWithFee2 = payTotalAmount.add(feeAmount2);
+            await rcn.setBalance(payer, amountWithFee2);
+            await rcn.approve(debtEngine.address, amountWithFee2, { from: payer });
+
+            const events2 = await toEvents(
+                debtEngine.pay(
+                    id,
+                    payTotalAmount,
+                    originPayer,
+                    [],
+                    { from: payer }
+                ),
+                'Paid',
+                'ChargeBurnFee'
+            );
+
+            const Paid2 = events2[0];
+            assert.equal(Paid2._id, id);
+            assert.equal(Paid2._sender, payer);
+            assert.equal(Paid2._origin, originPayer);
+            expect(Paid2._requested).to.eq.BN(payTotalAmount);
+            expect(Paid2._requestedTokens).to.eq.BN('0');
+            expect(Paid2._paid).to.eq.BN(payTotalAmount);
+            expect(Paid2._tokens).to.eq.BN(payTotalAmount);
+
+            const ChargeBurnFee2 = events2[1];
+            assert.equal(ChargeBurnFee2._id, id);
+            expect(ChargeBurnFee2._amount).to.eq.BN(feeAmount2);
+
+            const debt2 = await debtEngine.debts(id);
+            expect(debt2.balance).to.eq.BN(loanTotalAmount);
+            expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal2.add(feeAmount2));
+
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN(loanTotalAmount);
+            expect(await debtEngine.getStatus(id)).to.eq.BN('2');
+
             await debtEngine.setFee(0, { from: accounts[0] });
         });
+        it('Should pay using an Oracle with fee', async function () {
+            const owner = accounts[1];
+            const payer = accounts[2];
+            const originPayer = accounts[3];
+            const payAmount = bn('1000');
+            const loanTotalAmount = bn('10000');
+            const data = await testModel.encodeData(loanTotalAmount, (await getBlockTime()) + 2000);
+            const dummyData1 = await legacyOracle.dummyData1();
 
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                owner,
+                oracle.address,
+                data
+            ));
+
+            const fee = bn('1000');
+            await debtEngine.setFee(fee, { from: accounts[0] });
+
+            const feeAmount = await toFee(payAmount, oracle, dummyData1);
+            const prevBurnerBal = await rcn.balanceOf(burner);
+
+            const payAmountTokens = await toTokens(payAmount, oracle, dummyData1);
+            const amountWithFee = payAmountTokens.add(feeAmount);
+
+            await rcn.setBalance(payer, amountWithFee);
+            await rcn.approve(debtEngine.address, amountWithFee, { from: payer });
+
+            const events = await toEvents(
+                debtEngine.pay(
+                    id,
+                    payAmount,
+                    originPayer,
+                    dummyData1,
+                    { from: payer }
+                ),
+                'Paid',
+                'ReadedOracle',
+                'ChargeBurnFee'
+            );
+
+            const Paid = events[0];
+            assert.equal(Paid._id, id);
+            assert.equal(Paid._sender, payer);
+            assert.equal(Paid._origin, originPayer);
+            expect(Paid._requested).to.eq.BN(payAmount);
+            expect(Paid._requestedTokens).to.eq.BN('0');
+            expect(Paid._paid).to.eq.BN(payAmount);
+            expect(Paid._tokens).to.eq.BN(payAmountTokens);
+
+            const ReadedOracle = events[1];
+            assert.equal(ReadedOracle._id, id);
+            const sample = await oracle.readSample.call(dummyData1);
+            expect(ReadedOracle._tokens).to.eq.BN(sample._tokens);
+            expect(ReadedOracle._equivalent).to.eq.BN(sample._equivalent);
+
+            const ChargeBurnFee = events[2];
+            assert.equal(ChargeBurnFee._id, id);
+            expect(ChargeBurnFee._amount).to.eq.BN(feeAmount);
+
+            const debt = await debtEngine.debts(id);
+            expect(debt.balance).to.eq.BN(payAmountTokens);
+            expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal.add(feeAmount));
+
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN(payAmount);
+
+            // Pay total amount
+            const payTotalAmount = await testModel.getClosingObligation(id);
+            const payTotalAmountTokens = await toTokens(payTotalAmount, oracle, dummyData1);
+            const feeAmount2 = await toFee(payTotalAmount, oracle, dummyData1);
+            const prevBurnerBal2 = await rcn.balanceOf(burner);
+
+            const amountWithFee2 = payTotalAmountTokens.add(feeAmount2);
+            await rcn.setBalance(payer, amountWithFee2);
+            await rcn.approve(debtEngine.address, amountWithFee2, { from: payer });
+
+            const events2 = await toEvents(
+                debtEngine.pay(
+                    id,
+                    payTotalAmount,
+                    originPayer,
+                    dummyData1,
+                    { from: payer }
+                ),
+                'Paid',
+                'ReadedOracle',
+                'ChargeBurnFee'
+            );
+
+            const Paid2 = events2[0];
+            assert.equal(Paid2._id, id);
+            assert.equal(Paid2._sender, payer);
+            assert.equal(Paid2._origin, originPayer);
+            expect(Paid2._requested).to.eq.BN(payTotalAmount);
+            expect(Paid2._requestedTokens).to.eq.BN('0');
+            expect(Paid2._paid).to.eq.BN(payTotalAmount);
+            expect(Paid2._tokens).to.eq.BN(payTotalAmountTokens);
+
+            const ReadedOracle2 = events2[1];
+            assert.equal(ReadedOracle2._id, id);
+            const sample2 = await oracle.readSample.call(dummyData1);
+            expect(ReadedOracle2._tokens).to.eq.BN(sample2._tokens);
+            expect(ReadedOracle2._equivalent).to.eq.BN(sample2._equivalent);
+
+            const ChargeBurnFee2 = events2[2];
+            assert.equal(ChargeBurnFee2._id, id);
+            expect(ChargeBurnFee2._amount).to.eq.BN(feeAmount2);
+
+            const debt2 = await debtEngine.debts(id);
+            expect(debt2.balance).to.eq.BN(await toTokens(loanTotalAmount, oracle, dummyData1));
+            expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal2.add(feeAmount2));
+
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN(loanTotalAmount);
+            expect(await debtEngine.getStatus(id)).to.eq.BN('2');
+
+            await debtEngine.setFee(0, { from: accounts[0] });
+        });
         it('Pay should round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1456,6 +1650,232 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(payer2)).to.eq.BN(expectBalance);
             expect(await testModel.getPaid(id)).to.eq.BN('10000');
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_PAID);
+        });
+        it('Should payToken using with fee', async function () {
+            const owner = accounts[1];
+            const payer = accounts[2];
+            const originPayer = accounts[3];
+            const payAmount = bn('6000');
+            const loanTotalAmount = bn('10000');
+            const data = await testModel.encodeData(loanTotalAmount, (await getBlockTime()) + 2000);
+
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                owner,
+                address0x,
+                data
+            ));
+
+            const fee = bn('1000');
+            await debtEngine.setFee(fee, { from: accounts[0] });
+
+            const feeAmount = await toFee(payAmount);
+            const prevBurnerBal = await rcn.balanceOf(burner);
+            const amountWithFee = payAmount.add(feeAmount);
+
+            await rcn.setBalance(payer, amountWithFee);
+            await rcn.approve(debtEngine.address, amountWithFee, { from: payer });
+
+            const events = await toEvents(
+                debtEngine.payToken(
+                    id,
+                    payAmount,
+                    originPayer,
+                    [],
+                    { from: payer }
+                ),
+                'Paid',
+                'ChargeBurnFee'
+            );
+
+            const Paid = events[0];
+            assert.equal(Paid._id, id);
+            assert.equal(Paid._sender, payer);
+            assert.equal(Paid._origin, originPayer);
+            expect(Paid._requested).to.eq.BN('0');
+            expect(Paid._requestedTokens).to.eq.BN(payAmount);
+            expect(Paid._paid).to.eq.BN(payAmount);
+            expect(Paid._tokens).to.eq.BN(payAmount);
+
+            const ChargeBurnFee = events[1];
+            assert.equal(ChargeBurnFee._id, id);
+            expect(ChargeBurnFee._amount).to.eq.BN(feeAmount);
+
+            const debt = await debtEngine.debts(id);
+            expect(debt.balance).to.eq.BN(payAmount);
+            expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal.add(feeAmount));
+
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN(payAmount);
+
+            // Pay total amount
+            const payTotalAmount = await testModel.getClosingObligation(id);
+            const feeAmount2 = await toFee(payTotalAmount);
+            const prevBurnerBal2 = await rcn.balanceOf(burner);
+
+            const amountWithFee2 = payTotalAmount.add(feeAmount2);
+            await rcn.setBalance(payer, amountWithFee2);
+            await rcn.approve(debtEngine.address, amountWithFee2, { from: payer });
+
+            const events2 = await toEvents(
+                debtEngine.payToken(
+                    id,
+                    payTotalAmount,
+                    originPayer,
+                    [],
+                    { from: payer }
+                ),
+                'Paid',
+                'ChargeBurnFee'
+            );
+
+            const Paid2 = events2[0];
+            assert.equal(Paid2._id, id);
+            assert.equal(Paid2._sender, payer);
+            assert.equal(Paid2._origin, originPayer);
+            expect(Paid2._requested).to.eq.BN('0');
+            expect(Paid2._requestedTokens).to.eq.BN(payTotalAmount);
+            expect(Paid2._paid).to.eq.BN(payTotalAmount);
+            expect(Paid2._tokens).to.eq.BN(payTotalAmount);
+
+            const ChargeBurnFee2 = events2[1];
+            assert.equal(ChargeBurnFee2._id, id);
+            expect(ChargeBurnFee2._amount).to.eq.BN(feeAmount2);
+
+            const debt2 = await debtEngine.debts(id);
+            expect(debt2.balance).to.eq.BN(loanTotalAmount);
+            expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal2.add(feeAmount2));
+
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN(loanTotalAmount);
+            expect(await debtEngine.getStatus(id)).to.eq.BN('2');
+
+            await debtEngine.setFee(0, { from: accounts[0] });
+        });
+        it('Should payToken using an Oracle with fee', async function () {
+            const owner = accounts[1];
+            const payer = accounts[2];
+            const originPayer = accounts[3];
+            const payAmountTokens = bn('60000');
+            const loanTotalAmount = bn('10000');
+            const data = await testModel.encodeData(loanTotalAmount, (await getBlockTime()) + 2000);
+            const dummyData1 = await legacyOracle.dummyData1();
+
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                owner,
+                oracle.address,
+                data
+            ));
+
+            const fee = bn('1000');
+            await debtEngine.setFee(fee, { from: accounts[0] });
+
+            const feeAmount = await toFee(payAmountTokens);
+            const prevBurnerBal = await rcn.balanceOf(burner);
+
+            // 1 ETH WEI = 6000 RCN WEI
+            const oracleTokens = bn('6000');
+            const oracleEquivalent = bn('1');
+            const _paid = payAmountTokens.mul(oracleEquivalent).div(oracleTokens);
+
+            const amountWithFee = payAmountTokens.add(feeAmount);
+
+            await rcn.setBalance(payer, amountWithFee);
+            await rcn.approve(debtEngine.address, amountWithFee, { from: payer });
+
+            const events = await toEvents(
+                debtEngine.payToken(
+                    id,
+                    payAmountTokens,
+                    originPayer,
+                    dummyData1,
+                    { from: payer }
+                ),
+                'Paid',
+                'ReadedOracle',
+                'ChargeBurnFee'
+            );
+
+            const Paid = events[0];
+            assert.equal(Paid._id, id);
+            assert.equal(Paid._sender, payer);
+            assert.equal(Paid._origin, originPayer);
+            expect(Paid._requested).to.eq.BN('0');
+            expect(Paid._requestedTokens).to.eq.BN(payAmountTokens);
+            expect(Paid._paid).to.eq.BN(_paid);
+            expect(Paid._tokens).to.eq.BN(payAmountTokens);
+
+            const ReadedOracle = events[1];
+            assert.equal(ReadedOracle._id, id);
+            const sample = await oracle.readSample.call(dummyData1);
+            expect(ReadedOracle._tokens).to.eq.BN(sample._tokens);
+            expect(ReadedOracle._equivalent).to.eq.BN(sample._equivalent);
+
+            const ChargeBurnFee = events[2];
+            assert.equal(ChargeBurnFee._id, id);
+            expect(ChargeBurnFee._amount).to.eq.BN(feeAmount);
+
+            const debt = await debtEngine.debts(id);
+            expect(debt.balance).to.eq.BN(payAmountTokens);
+            expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal.add(feeAmount));
+
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+            expect(await testModel.getPaid(id)).to.eq.BN(_paid);
+
+            // Pay total amount
+            const payTotalAmount = await testModel.getClosingObligation(id);
+            const payTotalAmountTokens = await toTokens(payTotalAmount, oracle, dummyData1);
+            const feeAmount2 = await toFee(payTotalAmount, oracle, dummyData1);
+            const prevBurnerBal2 = await rcn.balanceOf(burner);
+
+            const amountWithFee2 = payTotalAmountTokens.add(feeAmount2);
+            await rcn.setBalance(payer, amountWithFee2);
+            await rcn.approve(debtEngine.address, amountWithFee2, { from: payer });
+
+            const events2 = await toEvents(
+                debtEngine.payToken(
+                    id,
+                    payTotalAmountTokens,
+                    originPayer,
+                    dummyData1,
+                    { from: payer }
+                ),
+                'Paid',
+                'ReadedOracle',
+                'ChargeBurnFee'
+            );
+
+            const Paid2 = events2[0];
+            assert.equal(Paid2._id, id);
+            assert.equal(Paid2._sender, payer);
+            assert.equal(Paid2._origin, originPayer);
+            expect(Paid2._requested).to.eq.BN('0');
+            expect(Paid2._requestedTokens).to.eq.BN(payTotalAmountTokens);
+            expect(Paid2._paid).to.eq.BN(payTotalAmount);
+            expect(Paid2._tokens).to.eq.BN(payTotalAmountTokens);
+
+            const ReadedOracle2 = events2[1];
+            assert.equal(ReadedOracle2._id, id);
+            const sample2 = await oracle.readSample.call(dummyData1);
+            expect(ReadedOracle2._tokens).to.eq.BN(sample2._tokens);
+            expect(ReadedOracle2._equivalent).to.eq.BN(sample2._equivalent);
+
+            const ChargeBurnFee2 = events2[2];
+            assert.equal(ChargeBurnFee2._id, id);
+            expect(ChargeBurnFee2._amount).to.eq.BN(feeAmount2);
+
+            const debt2 = await debtEngine.debts(id);
+            expect(debt2.balance).to.eq.BN(await toTokens(loanTotalAmount, oracle, dummyData1));
+            expect(await rcn.balanceOf(burner)).to.eq.BN(prevBurnerBal2.add(feeAmount2));
+
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN(loanTotalAmount);
+            expect(await debtEngine.getStatus(id)).to.eq.BN('2');
+
+            await debtEngine.setFee(0, { from: accounts[0] });
         });
         it('Pay tokens round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
@@ -3376,6 +3796,85 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[7], 0);
             await debtEngine.withdrawBatch([], accounts[7], { from: accounts[7] });
             expect(await rcn.balanceOf(accounts[7])).to.eq.BN('0');
+        });
+    });
+    describe('Function getFeeAmount', function () {
+        it('Get fee amount with 0% fee', async function () {
+            await debtEngine.setFee(0, { from: accounts[0] });
+
+            const feeAmount = await debtEngine.getFeeAmount(
+                bytes320x,
+                0,
+                []
+            );
+
+            expect(feeAmount).to.eq.BN(0);
+
+            const feeAmount2 = await debtEngine.getFeeAmount(
+                bytes320x,
+                random32bn(),
+                []
+            );
+
+            expect(feeAmount2).to.eq.BN(0);
+        });
+        it('Get fee amount with % fee', async function () {
+            const feePerc = bn(1234);
+            await debtEngine.setFee(feePerc, { from: accounts[0] });
+
+            const feeAmount = await debtEngine.getFeeAmount(
+                bytes320x,
+                0,
+                []
+            );
+
+            expect(feeAmount).to.eq.BN(0);
+
+            const payAmount = bn(123456789123456789);
+            const feeAmount2 = await debtEngine.getFeeAmount(
+                bytes320x,
+                payAmount,
+                []
+            );
+
+            expect(feeAmount2).to.eq.BN(await toFee(payAmount));
+
+            await debtEngine.setFee(0, { from: accounts[0] });
+        });
+        it('Get fee amount with % fee and oracle', async function () {
+            const owner = accounts[1];
+            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
+
+            const id = await getId(debtEngine.create(
+                testModel.address,
+                owner,
+                oracle.address,
+                data
+            ));
+
+            const feePerc = bn(1234);
+            await debtEngine.setFee(feePerc, { from: accounts[0] });
+
+            const dummyData1 = await legacyOracle.dummyData1();
+
+            const feeAmount = await debtEngine.getFeeAmount(
+                id,
+                0,
+                dummyData1
+            );
+
+            expect(feeAmount).to.eq.BN(0);
+
+            const payAmount = bn(123456789123456789);
+            const feeAmount2 = await debtEngine.getFeeAmount(
+                id,
+                payAmount,
+                dummyData1
+            );
+
+            expect(feeAmount2).to.eq.BN(await toFee(payAmount, oracle, dummyData1));
+
+            await debtEngine.setFee(0, { from: accounts[0] });
         });
     });
     describe('Errors tests', function () {

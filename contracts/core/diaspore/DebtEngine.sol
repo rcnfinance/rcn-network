@@ -516,7 +516,7 @@ contract DebtEngine is ERC721Base, Ownable {
         debt.balance = uint128(newBalance);
     }
 
-    function _chargeBurnFee(bytes32 _id, uint256 _amount) internal returns(uint256 burnAmount) {
+    function _chargeBurnFee(bytes32 _id, uint256 _amount) internal returns (uint256 burnAmount) {
         if (fee == 0)
             return 0;
 
@@ -721,6 +721,38 @@ contract DebtEngine is ERC721Base, Ownable {
             );
             return success ? result : 4;
         }
+    }
+
+    function getFeeAmount(
+        bytes32 _id,
+        uint256 _amountToPay,
+        bytes calldata _oracleData
+    ) external view returns (uint256 feeAmount) {
+        if (fee == 0)
+            return 0;
+
+        uint256 paidToken;
+        RateOracle oracle = RateOracle(debts[_id].oracle);
+
+        if (address(oracle) == address(0)) {
+            paidToken = _amountToPay;
+        } else {
+            // Static convert
+            ( bool success, bytes memory returnData ) = address(oracle).staticcall(
+                abi.encodeWithSelector(
+                    oracle.readSample.selector,
+                    _oracleData
+                )
+            );
+
+            require(success, "getFeeAmount: error static reading oracle");
+
+            ( uint256 tokens, uint256 equivalent ) = abi.decode(returnData, (uint256, uint256));
+
+            paidToken = _toToken(_amountToPay, tokens, equivalent);
+        }
+
+        feeAmount = paidToken.multdiv(fee, BASE);
     }
 
     function _safeGasStaticCall(
