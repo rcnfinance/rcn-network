@@ -12,7 +12,6 @@ import "../../utils/BytesUtils.sol";
 
 
 contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
-
     uint256 constant internal PRECISION = (10**18);
     uint256 constant internal RCN_DECIMALS = 18;
 
@@ -22,11 +21,11 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
     uint256 private activeLoans = 0;
     mapping(address => uint256) private lendersBalance;
 
-    function name() public view returns (string memory _name) {
+    function name() public override view returns (string memory _name) {
         _name = "RCN - Nano loan engine - Basalt 233";
     }
 
-    function symbol() public view returns (string memory _symbol) {
+    function symbol() public override view returns (string memory _symbol) {
         _symbol = "RCN-NLE-233";
     }
 
@@ -36,7 +35,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return _totalSupply Total amount of loans
     */
-    function totalSupply() public view returns (uint _totalSupply) {
+    function totalSupply() public override view returns (uint _totalSupply) {
         _totalSupply = activeLoans;
     }
 
@@ -48,7 +47,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return _balance Amount of loans
     */
-    function balanceOf(address _owner) public view returns (uint _balance) {
+    function balanceOf(address _owner) public override view returns (uint _balance) {
         _balance = lendersBalance[_owner];
     }
 
@@ -90,7 +89,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @dev Required for ERC-721 compliance
     */
-    function isApprovedForAll(address _owner, address _operator) public view returns (bool) {
+    function isApprovedForAll(address _owner, address _operator) public override view returns (bool) {
         return operators[_owner][_operator];
     }
 
@@ -101,7 +100,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return The string with the metadata
     */
-    function tokenMetadata(uint256 index) public view returns (string memory) {
+    function tokenMetadata(uint256 index) public override view returns (string memory) {
         return loans[index].metadata;
     }
 
@@ -131,7 +130,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
         owner = msg.sender;
         rcn = _rcn;
         // The loan 0 is a Invalid loan
-        loans.length++;
+        loans.push();
     }
 
     struct Loan {
@@ -237,7 +236,8 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
             _metadata
         );
 
-        uint index = loans.push(loan) - 1;
+        loans.push(loan);
+        uint index = loans.length - 1;
         emit CreatedLoan(index, _borrower, msg.sender);
 
         bytes32 identifier = getIdentifier(index);
@@ -251,26 +251,26 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
         return index;
     }
 
-    function ownerOf(uint256 index) public view returns (address owner) { owner = loans[index].lender; }
-    function getTotalLoans() public view returns (uint256) { return loans.length; }
-    function getOracle(uint index) public view returns (Oracle) { return loans[index].oracle; }
-    function getBorrower(uint index) public view returns (address) { return loans[index].borrower; }
-    function getCosigner(uint index) public view returns (address) { return loans[index].cosigner; }
-    function getCreator(uint index) public view returns (address) { return loans[index].creator; }
-    function getAmount(uint index) public view returns (uint256) { return loans[index].amount; }
+    function ownerOf(uint256 index) public override view returns (address owner) { owner = loans[index].lender; }
+    function getTotalLoans() public override view returns (uint256) { return loans.length; }
+    function getOracle(uint index) public override view returns (Oracle) { return loans[index].oracle; }
+    function getBorrower(uint index) public override view returns (address) { return loans[index].borrower; }
+    function getCosigner(uint index) public override view returns (address) { return loans[index].cosigner; }
+    function getCreator(uint index) public override view returns (address) { return loans[index].creator; }
+    function getAmount(uint index) public override view returns (uint256) { return loans[index].amount; }
     function getPunitoryInterest(uint index) public view returns (uint256) { return loans[index].punitoryInterest; }
     function getInterestTimestamp(uint index) public view returns (uint256) { return loans[index].interestTimestamp; }
-    function getPaid(uint index) public view returns (uint256) { return loans[index].paid; }
+    function getPaid(uint index) public override view returns (uint256) { return loans[index].paid; }
     function getInterestRate(uint index) public view returns (uint256) { return loans[index].interestRate; }
     function getInterestRatePunitory(uint index) public view returns (uint256) { return loans[index].interestRatePunitory; }
-    function getDueTime(uint index) public view returns (uint256) { return loans[index].dueTime; }
+    function getDueTime(uint index) public override view returns (uint256) { return loans[index].dueTime; }
     function getDuesIn(uint index) public view returns (uint256) { return loans[index].duesIn; }
     function getCancelableAt(uint index) public view returns (uint256) { return loans[index].cancelableAt; }
-    function getApprobation(uint index, address _address) public view returns (bool) { return loans[index].approbations[_address]; }
-    function getStatus(uint index) public view returns (Status) { return loans[index].status; }
+    function getApprobation(uint index, address _address) public override view returns (bool) { return loans[index].approbations[_address]; }
+    function getStatus(uint index) public override view returns (Status) { return loans[index].status; }
     function getLenderBalance(uint index) public view returns (uint256) { return loans[index].lenderBalance; }
-    function getApproved(uint index) public view returns (address) {return loans[index].approvedTransfer; }
-    function getCurrency(uint index) public view returns (bytes32) { return loans[index].currency; }
+    function getApproved(uint index) public override view returns (address) {return loans[index].approvedTransfer; }
+    function getCurrency(uint index) public override view returns (bytes32) { return loans[index].currency; }
     function getExpirationRequest(uint index) public view returns (uint256) { return loans[index].expirationRequest; }
     function getInterest(uint index) public view returns (uint256) { return loans[index].interest; }
 
@@ -318,7 +318,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return true if the loan has been approved by the borrower and cosigner.
     */
-    function isApproved(uint index) public view returns (bool) {
+    function isApproved(uint index) public override view returns (bool) {
         Loan storage loan = loans[index];
         return loan.approbations[loan.borrower];
     }
@@ -333,7 +333,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return true if the approve was done successfully
     */
-    function approveLoan(uint index) public returns(bool) {
+    function approveLoan(uint index) public override returns(bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.initial);
         loan.approbations[msg.sender] = true;
@@ -439,7 +439,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return true If the cosign was successfull
     */
-    function cosign(uint index, uint256 cost) external returns (bool) {
+    function cosign(uint index, uint256 cost) external override returns (bool) {
         Loan storage loan = loans[index];
         require(loan.status == Status.lent && (loan.dueTime - loan.duesIn) == block.timestamp);
         require(loan.cosigner != address(0));
@@ -501,7 +501,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return true if the transfer was done successfully
     */
-    function transfer(address to, uint256 index) public returns (bool) {
+    function transfer(address to, uint256 index) public  override returns (bool) {
         Loan storage loan = loans[index];
 
         require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer || operators[loan.lender][msg.sender]);
@@ -527,7 +527,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return true if the transfer was successfull
     */
-    function takeOwnership(uint256 _index) public returns (bool) {
+    function takeOwnership(uint256 _index) public override returns (bool) {
         return transfer(msg.sender, _index);
     }
 
@@ -560,7 +560,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return true if the approve was done successfully
     */
-    function approve(address to, uint256 index) public returns (bool) {
+    function approve(address to, uint256 index) public override returns (bool) {
         Loan storage loan = loans[index];
         require(msg.sender == loan.lender);
         loan.approvedTransfer = to;
@@ -574,7 +574,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
         @param _approved True if the operator is approved, false to revoke approval
         @param _operator Address to add to the set of authorized operators.
     */
-    function setApprovalForAll(address _operator, bool _approved) public returns (bool) {
+    function setApprovalForAll(address _operator, bool _approved) public override returns (bool) {
         operators[msg.sender][_operator] = _approved;
         emit ApprovalForAll(msg.sender, _operator, _approved);
         return true;
@@ -590,7 +590,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return Aprox pending payment amount
     */
-    function getPendingAmount(uint index) public returns (uint256) {
+    function getPendingAmount(uint index) public override returns (uint256) {
         addInterest(index);
         return getRawPendingAmount(index);
     }
@@ -791,7 +791,7 @@ contract NanoLoanEngine is ERC721, Engine, OwnableBasalt, TokenLockable {
 
         @return true if the withdraw was executed successfully
     */
-    function withdrawal(uint index, address to, uint256 amount) public returns (bool) {
+    function withdrawal(uint index, address to, uint256 amount) public override returns (bool) {
         Loan storage loan = loans[index];
         require(msg.sender == loan.lender);
         loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);

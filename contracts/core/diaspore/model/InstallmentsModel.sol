@@ -59,12 +59,12 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         _;
     }
 
-    function modelId() external view returns (bytes32) {
+    function modelId() external view override returns (bytes32) {
         // InstallmentsModel A 0.0.2
         return bytes32(0x00000000000000496e7374616c6c6d656e74734d6f64656c204120302e302e32);
     }
 
-    function descriptor() external view returns (address) {
+    function descriptor() external view override returns (address) {
         address _descriptor = altDescriptor;
         return _descriptor == address(0) ? address(this) : _descriptor;
     }
@@ -91,7 +91,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return abi.encodePacked(_cuota, _interestRate, _installments, _duration, _timeUnit);
     }
 
-    function create(bytes32 id, bytes calldata data) external onlyEngine returns (bool) {
+    function create(bytes32 id, bytes calldata data) external override onlyEngine returns (bool) {
         require(configs[id].cuota == 0, "Entry already exist");
 
         (uint128 cuota, uint256 interestRate, uint24 installments, uint40 duration, uint32 timeUnit) = _validate(data);
@@ -113,7 +113,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return true;
     }
 
-    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 real) {
+    function addPaid(bytes32 id, uint256 amount) external override onlyEngine returns (uint256 real) {
         Config storage config = configs[id];
         State storage state = states[id];
 
@@ -179,7 +179,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         }
     }
 
-    function addDebt(bytes32 id, uint256 amount) external onlyEngine returns (bool) {
+    function addDebt(bytes32, uint256) external override onlyEngine returns (bool) {
         revert("Not implemented!");
     }
 
@@ -194,22 +194,22 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return _advanceClock(id, targetClock);
     }
 
-    function isOperator(address _target) external view returns (bool) {
+    function isOperator(address _target) external override view returns (bool) {
         return engine == _target;
     }
 
-    function getStatus(bytes32 id) external view returns (uint256) {
+    function getStatus(bytes32 id) external override view returns (uint256) {
         Config storage config = configs[id];
         State storage state = states[id];
         require(config.lentTime != 0, "The registry does not exist");
         return state.status == STATUS_PAID ? STATUS_PAID : STATUS_ONGOING;
     }
 
-    function getPaid(bytes32 id) external view returns (uint256) {
+    function getPaid(bytes32 id) external override view returns (uint256) {
         return states[id].paid;
     }
 
-    function getObligation(bytes32 id, uint64 timestamp) external view returns (uint256, bool) {
+    function getObligation(bytes32 id, uint64 timestamp) external override view returns (uint256, bool) {
         State storage state = states[id];
         Config storage config = configs[id];
 
@@ -274,21 +274,21 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         });
     }
 
-    function run(bytes32 id) external returns (bool) {
+    function run(bytes32 id) external override returns (bool) {
         Config storage config = configs[id];
         return _advanceClock(id, uint64(now) - config.lentTime);
     }
 
-    function validate(bytes calldata data) external view returns (bool) {
+    function validate(bytes calldata data) external override view returns (bool) {
         _validate(data);
         return true;
     }
 
-    function getClosingObligation(bytes32 id) external view returns (uint256) {
+    function getClosingObligation(bytes32 id) external override view returns (uint256) {
         return _getClosingObligation(id);
     }
 
-    function getDueTime(bytes32 id) external view returns (uint256) {
+    function getDueTime(bytes32 id) external override view returns (uint256) {
         Config storage config = configs[id];
         if (config.cuota == 0)
             return 0;
@@ -298,46 +298,46 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         return last - (last % duration) + config.lentTime;
     }
 
-    function getFinalTime(bytes32 id) external view returns (uint256) {
+    function getFinalTime(bytes32 id) external override view returns (uint256) {
         Config storage config = configs[id];
         return config.lentTime + (uint256(config.duration) * (uint256(config.installments)));
     }
 
-    function getFrequency(bytes32 id) external view returns (uint256) {
+    function getFrequency(bytes32 id) external override view returns (uint256) {
         return configs[id].duration;
     }
 
-    function getInstallments(bytes32 id) external view returns (uint256) {
+    function getInstallments(bytes32 id) external override view returns (uint256) {
         return configs[id].installments;
     }
 
-    function getEstimateObligation(bytes32 id) external view returns (uint256) {
+    function getEstimateObligation(bytes32 id) external override view returns (uint256) {
         return _getClosingObligation(id);
     }
 
-    function simFirstObligation(bytes calldata _data) external view returns (uint256 amount, uint256 time) {
+    function simFirstObligation(bytes calldata _data) external override view returns (uint256 amount, uint256 time) {
         (amount,,, time,) = _decodeData(_data);
     }
 
-    function simTotalObligation(bytes calldata _data) external view returns (uint256 amount) {
+    function simTotalObligation(bytes calldata _data) external override view returns (uint256 amount) {
         (uint256 cuota,, uint256 installments,,) = _decodeData(_data);
         amount = cuota * installments;
     }
 
-    function simDuration(bytes calldata _data) external view returns (uint256 duration) {
+    function simDuration(bytes calldata _data) external override view returns (uint256 duration) {
         (,,uint256 installments, uint256 installmentDuration,) = _decodeData(_data);
         duration = installmentDuration * installments;
     }
 
-    function simPunitiveInterestRate(bytes calldata _data) external view returns (uint256 punitiveInterestRate) {
+    function simPunitiveInterestRate(bytes calldata _data) external override view returns (uint256 punitiveInterestRate) {
         (,punitiveInterestRate,,,) = _decodeData(_data);
     }
 
-    function simFrequency(bytes calldata _data) external view returns (uint256 frequency) {
+    function simFrequency(bytes calldata _data) external override view returns (uint256 frequency) {
         (,,, frequency,) = _decodeData(_data);
     }
 
-    function simInstallments(bytes calldata _data) external view returns (uint256 installments) {
+    function simInstallments(bytes calldata _data) external override view returns (uint256 installments) {
         (,, installments,,) = _decodeData(_data);
     }
 

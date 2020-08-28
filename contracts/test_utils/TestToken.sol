@@ -71,8 +71,8 @@ contract StandardToken {
         return true;
     }
 
-    mapping (address => uint256) balances;
-    mapping (address => mapping (address => uint256)) allowed;
+    mapping(address => uint256) public balances;
+    mapping(address => mapping (address => uint256)) public allowed;
 }
 
 
@@ -95,7 +95,7 @@ contract TestToken is StandardToken {
         emit CreatedToken(address(this));
     }
 
-    function () external payable {
+    receive() external payable {
         buyTokens(msg.sender);
     }
 

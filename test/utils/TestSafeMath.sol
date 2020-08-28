@@ -26,7 +26,7 @@ contract TestSafeMathMock {
 contract TestSafeMath {
     using SafeMath for uint256;
 
-    TestSafeMathMock safeMath;
+    TestSafeMathMock private safeMath;
 
     constructor() public {
         safeMath = new TestSafeMathMock();

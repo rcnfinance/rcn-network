@@ -37,23 +37,23 @@ contract OracleAdapter is RateOracle, ERC165 {
         _registerInterface(RATE_ORACLE_INTERFACE);
     }
 
-    function symbol() external view returns (string memory) { return isymbol; }
+    function symbol() external view override returns (string memory) { return isymbol; }
 
-    function name() external view returns (string memory) { return iname; }
+    function name() external view override  returns (string memory) { return iname; }
 
-    function decimals() external view returns (uint256) { return idecimals; }
+    function decimals() external view override  returns (uint256) { return idecimals; }
 
-    function token() external view returns (address) { return itoken; }
+    function token() external view override  returns (address) { return itoken; }
 
-    function currency() external view returns (bytes32) { return icurrency; }
+    function currency() external view override  returns (bytes32) { return icurrency; }
 
-    function maintainer() external view returns (string memory) { return imaintainer; }
+    function maintainer() external view override  returns (string memory) { return imaintainer; }
 
-    function url() external view returns (string memory) {
+    function url() external view override  returns (string memory) {
         return legacyOracle.url();
     }
 
-    function readSample(bytes calldata _data) external returns (uint256 _tokens, uint256 _equivalent) {
+    function readSample(bytes calldata _data) external override  returns (uint256 _tokens, uint256 _equivalent) {
         (_tokens, _equivalent) = legacyOracle.getRate(icurrency, _data);
         _equivalent = 10 ** _equivalent;
     }

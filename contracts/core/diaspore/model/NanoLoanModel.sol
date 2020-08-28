@@ -68,12 +68,12 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         _;
     }
 
-    function modelId() external view returns (bytes32) {
+    function modelId() external view override returns (bytes32) {
         // NanoLoanModel 1.0
         return bytes32(0x0000000000000000000000000000004e616e6f4c6f616e4d6f64656c20312e30);
     }
 
-    function descriptor() external view returns (address) {
+    function descriptor() external override view returns (address) {
         return altDescriptor == address(0) ? address(this) : address(altDescriptor);
     }
 
@@ -105,7 +105,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         );
     }
 
-    function isOperator(address _target) external view returns (bool) {
+    function isOperator(address _target) external view override returns (bool) {
         return engine == _target;
     }
 
@@ -115,7 +115,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         @param data Array of bytes parameters, used to create a loan
             * look in _decodeData function documentation for more info
     */
-    function validate(bytes calldata data) external view returns (bool) {
+    function validate(bytes calldata data) external view override returns (bool) {
         (
             uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
             uint64 duesIn, uint64 cancelableAt
@@ -157,15 +157,15 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         // and we check the sum of duesIn and now in the previus requiere
     }
 
-    function getStatus(bytes32 id) external view returns (uint256) {
+    function getStatus(bytes32 id) external view override returns (uint256) {
         return states[id].status;
     }
 
-    function getPaid(bytes32 id) external view returns (uint256) {
+    function getPaid(bytes32 id) external view override returns (uint256) {
         return states[id].paid;
     }
 
-    function getObligation(bytes32 id, uint64 timestamp) external view returns (uint256 amount, bool defined) {
+    function getObligation(bytes32 id, uint64 timestamp) external view override returns (uint256 amount, bool defined) {
         amount = _getObligation(id, timestamp);
         defined = timestamp == now || timestamp <= states[id].interestTimestamp;
     }
@@ -196,27 +196,27 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         total = total.add(calcInterest).add(state.interest).add(state.punitoryInterest);
     }
 
-    function getClosingObligation(bytes32 id) external view returns (uint256 total){
+    function getClosingObligation(bytes32 id) external view override returns (uint256 total){
         return _getObligation(id, now);
     }
 
-    function getDueTime(bytes32 id) external view returns (uint256) {
+    function getDueTime(bytes32 id) external view override returns (uint256) {
         return states[id].status == STATUS_PAID ? 0 : configs[id].dueTime;
     }
 
-    function getFinalTime(bytes32 id) external view returns (uint256) {
+    function getFinalTime(bytes32 id) external override view returns (uint256) {
         return configs[id].dueTime;
     }
 
-    function getFrequency(bytes32 id) external view returns (uint256) {
+    function getFrequency(bytes32 id) external override view returns (uint256) {
         return configs[id].dueTime == 0 ? 0 : 1;
     }
 
-    function getInstallments(bytes32 id) external view returns (uint256) {
+    function getInstallments(bytes32 id) external override view returns (uint256) {
         return configs[id].dueTime == 0 ? 0 : 1;
     }
 
-    function getEstimateObligation(bytes32 id) external view returns (uint256 total) {
+    function getEstimateObligation(bytes32 id) external override view returns (uint256 total) {
         return _getObligation(id, now);
     }
 
@@ -227,7 +227,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         @param data Array of bytes parameters, used to create a loan
             * look in _decodeData function documentation for more info
     */
-    function create(bytes32 id, bytes calldata data) external onlyEngine returns (bool) {
+    function create(bytes32 id, bytes calldata data) external override onlyEngine returns (bool) {
         require(configs[id].interestRate == 0, "Entry already exist");
 
         (uint128 amount, uint256 interestRate, uint256 interestRatePunitory,
@@ -272,7 +272,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
 
         @return toPay if the payment was executed successfully
     */
-    function addPaid(bytes32 id, uint256 amount) external onlyEngine returns (uint256 toPay) {
+    function addPaid(bytes32 id, uint256 amount) external override onlyEngine returns (uint256 toPay) {
         State storage state = states[id];
 
         require(state.status != STATUS_PAID, "The loan status should not be paid");
@@ -380,7 +380,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         }
     }
 
-    function addDebt(bytes32, uint256) external onlyEngine returns (bool) {
+    function addDebt(bytes32, uint256) external override onlyEngine returns (bool) {
         revert("Not implemented!");
     }
 
@@ -391,7 +391,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
 
         @return true If the interest was updated
     */
-    function run(bytes32 id) external returns (bool) {
+    function run(bytes32 id) external override returns (bool) {
         return _addInterest(id, now);
     }
 
@@ -431,14 +431,14 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     }
 
     // implements modelDescriptor interface
-    function simFirstObligation(bytes calldata _data) external view returns (uint256 amount, uint256 cancelableAt) {
+    function simFirstObligation(bytes calldata _data) external override view returns (uint256 amount, uint256 cancelableAt) {
         uint256 interestRate;
         (amount, interestRate,,, cancelableAt) = _decodeData(_data);
         (, interestRate) = _calculateInterest(cancelableAt, interestRate, amount);
         amount += interestRate;
     }
 
-    function simTotalObligation(bytes calldata _data) external view returns (uint256 amount) {
+    function simTotalObligation(bytes calldata _data) external override view returns (uint256 amount) {
         uint256 interestRate;
         uint256 cancelableAt;
         (amount, interestRate,,, cancelableAt) = _decodeData(_data);
@@ -446,19 +446,19 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         amount += interestRate;
     }
 
-    function simDuration(bytes calldata _data) external view returns (uint256 duration) {
+    function simDuration(bytes calldata _data) external override view returns (uint256 duration) {
         (,,, duration,) = _decodeData(_data);
     }
 
-    function simPunitiveInterestRate(bytes calldata _data) external view returns (uint256 punitiveInterestRate) {
+    function simPunitiveInterestRate(bytes calldata _data) external override view returns (uint256 punitiveInterestRate) {
         (,, punitiveInterestRate,,) = _decodeData(_data);
     }
 
-    function simFrequency(bytes calldata _data) external view returns (uint256 frequency) {
+    function simFrequency(bytes calldata) external override view returns (uint256 frequency) {
         return 1;
     }
 
-    function simInstallments(bytes calldata _data) external view returns (uint256 installments) {
+    function simInstallments(bytes calldata) external override view returns (uint256 installments) {
         return 1;
     }
 }

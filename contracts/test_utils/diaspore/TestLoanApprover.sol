@@ -39,7 +39,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
 
     function approveRequest(
         bytes32 _futureDebt
-    ) external returns (bytes32) {
+    ) external override returns (bytes32) {
         bytes32 auxExpectedApprove = expectedApprove;
 
         expectedApprove = 0x0;
@@ -58,11 +58,11 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
     }
 
     function settleApproveRequest(
-        bytes calldata _requestData,
+        bytes calldata,
         bytes calldata _loanData,
-        bool _isBorrower,
+        bool,
         uint256 _id
-    ) external returns (bytes32) {
+    ) external override returns (bytes32) {
         bytes32 btotal;
         (btotal, ) = decode(_loanData, 16, 8);
         uint128 total = uint128(uint256(btotal));

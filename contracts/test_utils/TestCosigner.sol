@@ -32,7 +32,7 @@ contract TestCosigner is Cosigner, BytesUtils {
         return uint256(dummyCost);
     }
 
-    function buildData(bytes32 a, bytes32 b) internal returns (bytes memory o) {
+    function buildData(bytes32 a, bytes32 b) internal pure returns (bytes memory o) {
         assembly {
             let size := 64
             o := mload(0x40)
@@ -46,40 +46,40 @@ contract TestCosigner is Cosigner, BytesUtils {
     function cost(
         address,
         uint256,
-        bytes memory data,
+        bytes memory _data,
         bytes memory
-    ) public view returns (uint256) {
-        return uint256(readBytes32(data, 1));
+    ) public override view returns (uint256) {
+        return uint256(readBytes32(_data, 1));
     }
 
     function requestCosign(
         address engine,
         uint256 index,
-        bytes memory data,
+        bytes memory _data,
         bytes memory
-    ) public returns (bool) {
-        if (readBytes32(data, 0) == keccak256("custom_data")) {
+    ) public override returns (bool) {
+        if (readBytes32(_data, 0) == keccak256("custom_data")) {
             require(Engine(engine).cosign(uint256(customId), customCost));
             customId = 0x0;
             customCost = 0;
             return true;
         }
 
-        if (readBytes32(data, 0) == keccak256("test_oracle")) {
-            require(Engine(engine).cosign(index, uint256(readBytes32(data, 1))));
+        if (readBytes32(_data, 0) == keccak256("test_oracle")) {
+            require(Engine(engine).cosign(index, uint256(readBytes32(_data, 1))));
             return true;
         }
 
-        if (readBytes32(data, 0) == keccak256("return_true_no_cosign")) {
+        if (readBytes32(_data, 0) == keccak256("return_true_no_cosign")) {
             return true;
         }
     }
 
-    function url() public view returns (string memory) {
+    function url() public view override returns (string memory) {
         return "";
     }
 
-    function claim(address, uint256, bytes memory) public returns (bool) {
+    function claim(address, uint256, bytes memory) public override returns (bool) {
         return false;
     }
 }

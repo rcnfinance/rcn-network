@@ -30,14 +30,14 @@ contract TestRpSafeMathMock is RpSafeMath {
 
 
 contract TestRpSafeMath {
-    TestRpSafeMathMock safeMath;
+    TestRpSafeMathMock private safeMath;
 
     constructor() public {
         safeMath = new TestRpSafeMathMock();
     }
 
     function testCatchAddOverflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
+        (bool success,) = _safeCall(
             address(safeMath),
             abi.encodeWithSelector(
                 safeMath.add.selector,
@@ -46,11 +46,11 @@ contract TestRpSafeMath {
             )
         );
 
-        Assert.equal(success, 0, "Call should fail");
+        Assert.isFalse(success, "Call should fail");
     }
 
     function testCatchSubUnderflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
+        (bool success,) = _safeCall(
             address(safeMath),
             abi.encodeWithSelector(
                 safeMath.sub.selector,
@@ -59,11 +59,11 @@ contract TestRpSafeMath {
             )
         );
 
-        Assert.equal(success, 0, "Call should fail");
+        Assert.isFalse(success, "Call should fail");
     }
 
     function testCatchMultOverflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
+        (bool success,) = _safeCall(
             address(safeMath),
             abi.encodeWithSelector(
                 safeMath.mult.selector,
@@ -72,7 +72,7 @@ contract TestRpSafeMath {
             )
         );
 
-        Assert.equal(success, 0, "Call should fail");
+        Assert.isFalse(success, "Call should fail");
     }
 
     function testMin() external {
@@ -90,20 +90,13 @@ contract TestRpSafeMath {
     function _safeCall(
         address _contract,
         bytes memory _data
-    ) internal returns (uint256 success, bytes32 result) {
-        assembly {
-            let x := mload(0x40)
-            success := call(
-                            gas,                 // Send almost all gas
-                            _contract,            // To addr
-                            0,                    // Send ETH
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
+    ) internal returns (bool success, bytes32 result) {
+        bytes memory returnData;
+        uint256 _gas = (block.gaslimit * 80) / 100;
 
-            result := mload(x)
-        }
+        (success, returnData) = _contract.call{ gas: gasleft() < _gas ? gasleft() : _gas }(_data);
+
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (bytes32));
     }
 }

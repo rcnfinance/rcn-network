@@ -32,11 +32,11 @@ contract TestOracle is Oracle, BytesUtils {
         }
     }
 
-    function url() public view returns (string memory) {
+    function url() public view override returns (string memory) {
         return _purl;
     }
 
-    function getRate(bytes32, bytes memory data) public returns (uint256 rate, uint256 decimals) {
+    function getRate(bytes32, bytes memory data) public override returns (uint256 rate, uint256 decimals) {
         bytes32 sentData = readBytes32(data, 0);
 
         if (sentData == dummyData1) {

@@ -305,7 +305,7 @@ contract ERC721Base is ERC165 {
 
         // Resize the array
         _assetsOf[_from][lastAssetIndex] = 0;
-        _assetsOf[_from].length--;
+        _assetsOf[_from].pop();
 
         // Change owner
         _holderOf[_assetId] = _to;
@@ -479,10 +479,13 @@ contract ERC721Base is ERC165 {
     /**
      * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
      * relaxing the requirement on the return value
+     *
      * @param _contract The contract that receives the ERC721
      * @param _data The call data
-     * @return True if the call not reverts and the result of the call
-     */
+     *
+     * @return success True if the call not reverts
+     * @return result the result of the call
+    */
     function _noThrowCall(
         address _contract,
         bytes memory _data

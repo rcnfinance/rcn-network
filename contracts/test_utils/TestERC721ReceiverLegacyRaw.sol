@@ -13,7 +13,7 @@ contract TestERC721ReceiverLegacyRaw is IERC721ReceiverLegacy {
         address _from,
         uint256 _tokenId,
         bytes calldata _userData
-    ) external returns (bytes4) {
+    ) external override returns (bytes4) {
         lastFrom = _from;
         lastTokenId = _tokenId;
         lastData = _userData;

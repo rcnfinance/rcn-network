@@ -89,12 +89,12 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         emit SetEngine(_engine);
     }
 
-    function modelId() external view returns (bytes32) {
+    function modelId() external pure returns (bytes32) {
         // TestModel 0.0.1
         return 0x546573744d6f64656c20302e302e310000000000000000000000000000000000;
     }
 
-    function descriptor() external view returns (address) {
+    function descriptor() external pure returns (address) {
         return address(0);
     }
 
@@ -157,11 +157,11 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         return registry[id].dueTime;
     }
 
-    function getFrequency(bytes32) external view returns (uint256) {
+    function getFrequency(bytes32) external pure returns (uint256) {
         return 0;
     }
 
-    function getInstallments(bytes32) external view returns (uint256) {
+    function getInstallments(bytes32) external pure returns (uint256) {
         return 1;
     }
 

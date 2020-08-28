@@ -408,7 +408,7 @@ contract LoanManager is BytesUtils {
         // Call the loan callback
         address callback = request.callback;
         if (callback != address(0)) {
-            require(LoanCallback(callback).onLent.gas(GAS_CALLBACK)(_id, msg.sender, _callbackData), "Rejected by loan callback");
+            require(LoanCallback(callback).onLent{ gas: GAS_CALLBACK }(_id, msg.sender, _callbackData), "Rejected by loan callback");
         }
 
         return true;
@@ -582,7 +582,7 @@ contract LoanManager is BytesUtils {
         // Call the loan callback
         address callback = address(uint256(read(_requestData, O_CALLBACK, L_CALLBACK)));
         if (callback != address(0)) {
-            require(LoanCallback(callback).onLent.gas(GAS_CALLBACK)(id, msg.sender, _callbackData), "Rejected by loan callback");
+            require(LoanCallback(callback).onLent{ gas: GAS_CALLBACK }(id, msg.sender, _callbackData), "Rejected by loan callback");
         }
     }
 
@@ -806,9 +806,12 @@ contract LoanManager is BytesUtils {
     /**
      * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
      * relaxing the requirement on the return value
+     *
      * @param _contract The borrower contract that receives the approveRequest(bytes32) call
      * @param _data The call data
-     * @return True if the call not reverts and the result of the call
+     *
+     * @return success True if the call not reverts
+     * @return result the result of the call
      */
     function _safeCall(
         address _contract,
