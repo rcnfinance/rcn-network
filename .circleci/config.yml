@@ -166,8 +166,8 @@ jobs:
                 - v2-dependencies-
             # Run Solidity lint
             - run:
-                name: Solium
-                command: ./node_modules/.bin/solium --dir .
+                name: Solhint
+                command: ./node_modules/.bin/solhint \"**/*.sol\"
 
 workflows:
     version: 2
