@@ -49,7 +49,7 @@ jobs:
             # Run compile
             - run:
                 name: Truffle compile
-                command: node_modules/.bin/truffle compile
+                command: npm run compile:sol
             # Save build
             - store_artifacts:
                 path: build
@@ -145,7 +145,7 @@ jobs:
             # Run lint javascript
             - run:
                 name: ESLint
-                command: ./node_modules/.bin/eslint .
+                command: npm run lint:js
 
     # The lint-solidity job
     lint-solidity:
@@ -166,8 +166,8 @@ jobs:
                 - v2-dependencies-
             # Run Solidity lint
             - run:
-                name: Solium
-                command: ./node_modules/.bin/solium --dir .
+                name: Solhint
+                command: npm run lint:sol
 
 workflows:
     version: 2
