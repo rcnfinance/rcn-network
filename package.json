@@ -8,15 +8,15 @@
     "test"
   ],
   "scripts": {
-    "lint:js": "eslint .",
-    "lint:js:fix": "eslint . --fix",
-    "lint:sol": "solhint \"**/*.sol\"",
-    "lint:sol:fix": "solhint \"**/*.sol\" --fix",
+    "lint:js": "node_modules/.bin/eslint .",
+    "lint:js:fix": "node_modules/.bin/eslint . --fix",
+    "lint:sol": "node_modules/.bin/solhint \"**/*.sol\"",
+    "lint:sol:fix": "node_modules/.bin/solhint \"**/*.sol\" --fix",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
-    "console": "truffle console",
+    "console": "node_modules/.bin/truffle console",
     "coverage": "bin/coverage.sh",
-    "compile:sol": "truffle compile"
+    "compile:sol": "node_modules/.bin/truffle compile"
   },
   "pre-commit": [
     "lint"
