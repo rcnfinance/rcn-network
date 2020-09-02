@@ -98,25 +98,11 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Start test-rpc
-            - run:
-                name: Start Macaron instance
-                no_output_timeout: 30m
-                background: true
-                command: |
-                    node_modules/.bin/macaron-cli \
-                    --emitFreeLogs true \
-                    --gasLimit 0xfffffffffffff \
-                    --allowUnlimitedContractSize true \
-                    --debugTopics ./.solidity_coverage/.source_topics \
-                    --dumpLogs ./.solidity_coverage/.all_events
             # Run coverage
             - run:
-                name: rp-solidity-coverage
-                environment:
-                  SOLIDITY_COVERAGE: true
+                name: solidity-coverage
                 no_output_timeout: 30m
-                command: node_modules/.bin/rp-solidity-coverage
+                command: node_modules/.bin/truffle run coverage
             # Upload results
             - run:
                 name: Upload coverage to coveralls
