@@ -94,10 +94,10 @@ jobs:
                 name: Show current branch
                 command: echo ${CIRCLE_BRANCH}
             # Restore local dependencies from cache
-            #- restore_cache:
-            #    keys:
-            #    - v2-dependencies-{{ checksum "package.json" }}
-            #    - v2-dependencies-
+            - restore_cache:
+                keys:
+                - v2-dependencies-{{ checksum "package.json" }}
+                - v2-dependencies-
             # Run coverage
             - run:
                 name: solidity-coverage
