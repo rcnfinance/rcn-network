@@ -22,7 +22,7 @@ jobs:
             # Install project dependencies
             - run:
                 name: Install local dependencies
-                command: npm install
+                command: npm rebuild
             # Cache local dependencies if they don't exist
             - save_cache:
                 key: v2-dependencies-{{ checksum "package.json" }}
