@@ -22,7 +22,7 @@ jobs:
             # Install project dependencies
             - run:
                 name: Install local dependencies
-                command: npm rebuild
+                command: npm install
             # Cache local dependencies if they don't exist
             - save_cache:
                 key: v2-dependencies-{{ checksum "package.json" }}
@@ -49,7 +49,7 @@ jobs:
             # Run compile
             - run:
                 name: Truffle compile
-                command: npm run compile:sol
+                command: node_modules/.bin/truffle compile
             # Save build
             - store_artifacts:
                 path: build
@@ -134,7 +134,7 @@ jobs:
             # Run lint javascript
             - run:
                 name: ESLint
-                command: npm run lint:js
+                command: ./node_modules/.bin/eslint .
 
     # The lint-solidity job
     lint-solidity:
@@ -155,8 +155,8 @@ jobs:
                 - v2-dependencies-
             # Run Solidity lint
             - run:
-                name: Solhint
-                command: npm run lint:sol
+                name: Solium
+                command: ./node_modules/.bin/solium --dir .
 
 workflows:
     version: 2
