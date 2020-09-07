@@ -6,7 +6,7 @@ jobs:
     install:
         working_directory: ~/project
         docker:
-            - image: circleci/node:11.15.0
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -33,7 +33,7 @@ jobs:
     build:
         working_directory: ~/project
         docker:
-            - image: circleci/node:11.15.0
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -58,7 +58,7 @@ jobs:
     test:
         working_directory: ~/project
         docker:
-            - image: circleci/node:11.15.0
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -85,7 +85,7 @@ jobs:
     coverage:
         working_directory: ~/project
         docker:
-            - image: circleci/node:11.15.0
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -118,7 +118,7 @@ jobs:
     lint-javascript:
         working_directory: ~/project
         docker:
-            - image: circleci/node:11.15.0
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -140,7 +140,7 @@ jobs:
     lint-solidity:
         working_directory: ~/project
         docker:
-            - image: circleci/node:11.15.0
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
