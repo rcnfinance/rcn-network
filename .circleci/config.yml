@@ -102,7 +102,10 @@ jobs:
             - run:
                 name: solidity-coverage
                 no_output_timeout: 30m
-                command: node_modules/.bin/truffle run coverage
+                command:
+                  rm -rf node_modules &&
+                  npm install &&
+                  node_modules/.bin/truffle run coverage
             # Upload results
             - run:
                 name: Upload coverage to coveralls
