@@ -1,11 +1,14 @@
 pragma solidity ^0.6.6;
 
-import "../../core/diaspore/interfaces/RateOracle.sol";
-import "../../commons/ERC165.sol";
-import "../../utils/BytesUtils.sol";
+import "../core/diaspore/interfaces/RateOracle.sol";
+import "../commons/ERC165.sol";
+import "../utils/BytesUtils.sol";
 
 
 contract TestRateOracle is BytesUtils, ERC165, RateOracle {
+    bytes32 public dummyData1 = keccak256("test_oracle_1");
+    bytes32 public dummyData2 = keccak256("test_oracle_2");
+
     constructor() public {
         _registerInterface(RATE_ORACLE_INTERFACE);
     }

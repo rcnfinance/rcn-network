@@ -1,8 +1,6 @@
 const TestModel = artifacts.require('TestModel');
 const DebtEngine = artifacts.require('DebtEngine');
 const TestToken = artifacts.require('TestToken');
-const TestOracle = artifacts.require('TestOracle');
-const OracleAdapter = artifacts.require('OracleAdapter');
 const TestRateOracle = artifacts.require('TestRateOracle');
 const TestURIProvider = artifacts.require('TestURIProvider');
 
@@ -29,8 +27,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
     let rcn;
     let debtEngine;
     let testModel;
-    let legacyOracle;
-    let oracle;
     let testOracle;
 
     async function getId (promise) {
@@ -45,16 +41,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         testModel = await TestModel.new();
         testOracle = await TestRateOracle.new();
         await testModel.setEngine(debtEngine.address);
-        legacyOracle = await TestOracle.new();
-        oracle = await OracleAdapter.new(
-            legacyOracle.address,
-            'ARS',
-            'Argentine Peso',
-            'Test oracle, ripiocredit.network',
-            bn('2'),
-            '0x415253',
-            rcn.address
-        );
     });
 
     it('Should generate diferents ids create and create2', async function () {
@@ -829,12 +815,13 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const payer = accounts[2];
             const originPayer = accounts[3];
             const payAmountOracle = bn('60000');
-            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
+            const totalDebt = bn(10000);
+            const data = await testModel.encodeData(totalDebt, (await getBlockTime()) + 2000);
 
             const id = await getId(debtEngine.create(
                 testModel.address,
                 owner,
-                oracle.address,
+                testOracle.address,
                 data
             ));
 
@@ -843,18 +830,17 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const oracleEquivalent = bn('1');
             const _paid = payAmountOracle.mul(oracleEquivalent).div(oracleTokens);
 
-            const payAmountToken = _paid.mul(oracleTokens).div(oracleEquivalent);
-            const dummyData1 = await legacyOracle.dummyData1();
+            await rcn.setBalance(payer, payAmountOracle);
+            await rcn.approve(debtEngine.address, payAmountOracle, { from: payer });
 
-            await rcn.setBalance(payer, payAmountToken);
-            await rcn.approve(debtEngine.address, payAmountToken, { from: payer });
+            const oracleData = await testOracle.encodeRate(oracleTokens, oracleEquivalent);
 
             const payEvents = await toEvents(
                 debtEngine.pay(
                     id,
-                    bn('10'),
+                    _paid,
                     originPayer,
-                    dummyData1,
+                    oracleData,
                     { from: payer }
                 ),
                 'Paid',
@@ -865,10 +851,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Paid._id, id);
             assert.equal(Paid._sender, payer);
             assert.equal(Paid._origin, originPayer);
-            expect(Paid._requested).to.eq.BN('10');
+            expect(Paid._requested).to.eq.BN(_paid);
             expect(Paid._requestedTokens).to.eq.BN('0');
             expect(Paid._paid).to.eq.BN(_paid);
-            expect(Paid._tokens).to.eq.BN(payAmountToken);
+            expect(Paid._tokens).to.eq.BN(payAmountOracle);
 
             const ReadedOracle = payEvents[1];
             assert.equal(ReadedOracle._id, id);
@@ -882,27 +868,36 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN(_paid);
 
-            const dummyData2 = await legacyOracle.dummyData2();
+            expect(await rcn.balanceOf(payer)).to.eq.BN('0');
+            expect(await testModel.getPaid(id)).to.eq.BN(_paid);
 
-            expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
-            expect(await testModel.getPaid(id)).to.eq.BN('10');
+            const payAmountOracle2 = bn(1000);
+            // 1 ETH WEI = 5 RCN WEI
+            const oracleTokens2 = bn(5);
+            const oracleEquivalent2 = bn(1);
+            const _paid2 = payAmountOracle2.mul(oracleEquivalent2).div(oracleTokens2);
+            const oracleData2 = await testOracle.encodeRate(oracleTokens2, oracleEquivalent2);
 
-            await rcn.approve(debtEngine.address, 500, { from: accounts[3] });
-            await rcn.setBalance(accounts[3], 500);
-            await debtEngine.pay(id, 1000, address0x, dummyData2, { from: accounts[3] });
+            await rcn.approve(debtEngine.address, payAmountOracle2, { from: originPayer });
+            await rcn.setBalance(originPayer, payAmountOracle2);
 
-            expect(await rcn.balanceOf(accounts[3])).to.eq.BN('0');
-            expect(await testModel.getPaid(id)).to.eq.BN('1010');
+            await debtEngine.pay(id, _paid2, address0x, oracleData2, { from: originPayer });
 
-            await rcn.approve(debtEngine.address, 6000, { from: accounts[3] });
-            await rcn.setBalance(accounts[3], 10000);
-            await debtEngine.pay(id, 10000, accounts[0], dummyData2, { from: accounts[3] });
+            expect(await rcn.balanceOf(originPayer)).to.eq.BN(0);
+            expect(await testModel.getPaid(id)).to.eq.BN(_paid.add(_paid2));
 
-            // 10000 - (10000 - 1010) / 2
-            const expectBalance = bn('10000').sub(bn('10000').sub(bn('1010')).divRound(bn('2')));
-            expect(await rcn.balanceOf(accounts[3])).to.eq.BN(expectBalance);
-            expect(await testModel.getPaid(id)).to.eq.BN('10000');
-            expect(await debtEngine.getStatus(id)).to.eq.BN('2');
+            const restDebt = totalDebt.sub(_paid).sub(_paid2);
+            const restDebtOracle3 = restDebt.mul(oracleTokens2).div(oracleEquivalent2);
+            const payerBal = restDebt.mul(bn(50));
+            const payAmountOracle3 = payerBal.mul(oracleTokens2).div(oracleEquivalent2);
+
+            await rcn.approve(debtEngine.address, payAmountOracle3, { from: originPayer });
+            await rcn.setBalance(originPayer, payAmountOracle3);
+            await debtEngine.pay(id, payerBal, accounts[0], oracleData2, { from: originPayer });
+
+            expect(await rcn.balanceOf(originPayer)).to.eq.BN(payAmountOracle3.sub(restDebtOracle3));
+            expect(await testModel.getPaid(id)).to.eq.BN(totalDebt);
+            expect(await debtEngine.getStatus(id)).to.eq.BN(2);
         });
         it('Pay should round in favor of the owner', async function () {
             const id = await getId(debtEngine.create(
@@ -1082,18 +1077,18 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id)).to.eq.BN('50');
 
             // Set the error flag
-            await testModel.setErrorFlag(id, '2');
+            await testModel.setErrorFlag(id, 2);
 
             // Try to pay
-            await rcn.setBalance(accounts[0], '100');
+            await rcn.setBalance(accounts[0], 100);
 
-            await rcn.approve(debtEngine.address, '100');
+            await rcn.approve(debtEngine.address, 100);
             await debtEngine.pay(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('100');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(100);
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ERROR);
-            expect(await testModel.getPaid(id)).to.eq.BN('50');
+            expect(await testModel.getPaid(id)).to.eq.BN(50);
 
             // Remove the flag
             await testModel.setErrorFlag(id, 0);
@@ -1105,26 +1100,26 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await debtEngine.pay(id, 100, accounts[3], []);
 
             // Should have failed and the status should be 4
-            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(0);
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            expect(await testModel.getPaid(id)).to.eq.BN('150');
+            expect(await testModel.getPaid(id)).to.eq.BN(150);
         });
         it('Should catch and recover from a pay error, with an Oracle', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const dummyData2 = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 25);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 50, accounts[3], dummyData2);
+            await debtEngine.pay(id, 50, accounts[3], oracleData);
 
-            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(0);
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('50');
 
@@ -1135,7 +1130,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 100, accounts[3], dummyData2);
+            await debtEngine.pay(id, 100, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
@@ -1149,10 +1144,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 100, accounts[3], dummyData2);
+            await debtEngine.pay(id, 100, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
-            expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
+            expect(await rcn.balanceOf(accounts[0])).to.eq.BN(0);
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN('150');
         });
@@ -1214,7 +1209,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             assert.equal(Paid._id, id);
             assert.equal(Paid._sender, payer);
             assert.equal(Paid._origin, originPayer);
-            expect(Paid._requested).to.eq.BN('0');
+            expect(Paid._requested).to.eq.BN(0);
             expect(Paid._requestedTokens).to.eq.BN(amount);
             expect(Paid._paid).to.eq.BN(amount);
             expect(Paid._tokens).to.eq.BN(amount);
@@ -1236,7 +1231,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 owner,
-                oracle.address,
+                testOracle.address,
                 data
             ));
 
@@ -1245,7 +1240,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const oracleEquivalent = bn('1');
             const _paid = payAmountOracle.mul(oracleEquivalent).div(oracleTokens);
             const payAmountToken = _paid.mul(oracleTokens).div(oracleEquivalent);
-            const dummyData1 = await legacyOracle.dummyData1();
+            const oracleData1 = await testOracle.encodeRate(6000, 1);
 
             await rcn.setBalance(payer, payAmountToken);
             await rcn.approve(debtEngine.address, payAmountToken, { from: payer });
@@ -1255,7 +1250,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     id,
                     payAmountOracle,
                     originPayer,
-                    dummyData1,
+                    oracleData1,
                     { from: payer }
                 ),
                 'Paid',
@@ -1288,7 +1283,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const oracleTokens2 = bn('5');
             const oracleEquivalent2 = bn('10');
             const _paid2 = payAmountOracle2.mul(oracleEquivalent2).div(oracleTokens2);
-            const dummyData2 = await legacyOracle.dummyData2();
+            const oracleData2 = await testOracle.encodeRate(5, 10);
 
             await rcn.approve(debtEngine.address, payAmountOracle2, { from: payer });
             await rcn.setBalance(payer, payAmountOracle2);
@@ -1296,7 +1291,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 id,
                 payAmountOracle2,
                 address0x,
-                dummyData2,
+                oracleData2,
                 { from: payer }
             );
 
@@ -1310,7 +1305,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 id,
                 bn('19000'),
                 accounts[0],
-                dummyData2,
+                oracleData2,
                 { from: payer2 }
             );
 
@@ -1425,16 +1420,16 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const dummyData2 = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 25);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.payToken(id, 25, accounts[3], dummyData2);
+            await debtEngine.payToken(id, 25, accounts[3], oracleData);
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
@@ -1447,7 +1442,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.payToken(id, 50, accounts[3], dummyData2);
+            await debtEngine.payToken(id, 50, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
@@ -1461,7 +1456,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.payToken(id, 50, accounts[3], dummyData2);
+            await debtEngine.payToken(id, 50, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
@@ -1472,16 +1467,16 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const dummyData2 = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 25);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.payToken(id, 25, accounts[3], dummyData2);
+            await debtEngine.payToken(id, 25, accounts[3], oracleData);
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
@@ -1494,7 +1489,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.payToken(id, 50, accounts[3], dummyData2);
+            await debtEngine.payToken(id, 50, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
@@ -1508,7 +1503,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.payToken(id, 50, accounts[3], dummyData2);
+            await debtEngine.payToken(id, 50, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
@@ -1659,7 +1654,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     [id],
                     [10, 20],
                     accounts[1],
-                    oracle.address,
+                    testOracle.address,
                     address0x,
                     { from: accounts[2] }
                 )
@@ -1669,7 +1664,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     [id, id],
                     [10],
                     accounts[1],
-                    oracle.address,
+                    testOracle.address,
                     address0x,
                     { from: accounts[2] }
                 )
@@ -1690,23 +1685,23 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const data = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 1500);
             await rcn.approve(debtEngine.address, 1500);
 
-            const receipt = await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
+            const receipt = await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], testOracle.address, oracleData);
 
             // Test read oracle event
             const oracleEvent = receipt.logs.find((l) => l.event === 'ReadedOracleBatch');
@@ -1817,16 +1812,16 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[0],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(10000, (await getBlockTime()) + 2000)
             ));
 
-            const dummyData1 = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[2], 500);
             await rcn.approve(debtEngine.address, 500, { from: accounts[2] });
 
-            await debtEngine.payBatch([id], [1000], accounts[1], oracle.address, dummyData1, { from: accounts[2] });
+            await debtEngine.payBatch([id], [1000], accounts[1], testOracle.address, oracleData, { from: accounts[2] });
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
             expect(await testModel.getPaid(id)).to.eq.BN('1000');
@@ -1947,51 +1942,50 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const data = await legacyOracle.dummyData3();
+            const oracleData = await testOracle.encodeRate(2, 1);
 
             await rcn.setBalance(accounts[0], 6000);
             await rcn.approve(debtEngine.address, 6000);
 
-            await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
+            await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], testOracle.address, oracleData);
 
             expect(await testModel.getPaid(id1)).to.eq.BN('2000');
             expect(await testModel.getPaid(id2)).to.eq.BN('1000');
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
         });
-
         it('Should pay batch with tokens more expensive than currency', async function () {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const data = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 1500);
             await rcn.approve(debtEngine.address, 1500);
 
-            await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], oracle.address, data);
+            await debtEngine.payBatch([id1, id2], [2000, 1000], accounts[4], testOracle.address, oracleData);
 
             expect(await testModel.getPaid(id1)).to.eq.BN('2000');
             expect(await testModel.getPaid(id2)).to.eq.BN('1000');
@@ -2087,7 +2081,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     [id],
                     [10, 20],
                     accounts[1],
-                    oracle.address,
+                    testOracle.address,
                     address0x,
                     { from: accounts[2] }
                 )
@@ -2097,7 +2091,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     [id, id],
                     [10],
                     accounts[1],
-                    oracle.address,
+                    testOracle.address,
                     address0x,
                     { from: accounts[2] }
                 )
@@ -2260,23 +2254,23 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const data = await legacyOracle.dummyData3();
+            const oracleData = await testOracle.encodeRate(2, 1);
 
             await rcn.setBalance(accounts[0], 6000);
             await rcn.approve(debtEngine.address, 6000);
 
-            await debtEngine.payTokenBatch([id1, id2], [4000, 2000], accounts[4], oracle.address, data);
+            await debtEngine.payTokenBatch([id1, id2], [4000, 2000], accounts[4], testOracle.address, oracleData);
 
             expect(await testModel.getPaid(id1)).to.eq.BN('2000');
             expect(await testModel.getPaid(id2)).to.eq.BN('1000');
@@ -2287,23 +2281,23 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const data = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 1500);
             await rcn.approve(debtEngine.address, 1500);
 
-            await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], oracle.address, data);
+            await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], testOracle.address, oracleData);
 
             expect(await testModel.getPaid(id1)).to.eq.BN('2000');
             expect(await testModel.getPaid(id2)).to.eq.BN('1000');
@@ -2314,16 +2308,16 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[0],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(10000, (await getBlockTime()) + 2000)
             ));
 
-            const dummyData1 = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[2], 500);
             await rcn.approve(debtEngine.address, 500, { from: accounts[2] });
 
-            await debtEngine.payTokenBatch([id], [500], accounts[1], oracle.address, dummyData1, { from: accounts[2] });
+            await debtEngine.payTokenBatch([id], [500], accounts[1], testOracle.address, oracleData, { from: accounts[2] });
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
             expect(await testModel.getPaid(id)).to.eq.BN('1000');
@@ -2398,7 +2392,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 debtEngine.create(
                     testModel.address,
                     accounts[2],
-                    oracle.address,
+                    testOracle.address,
                     await testModel.encodeData(3000, (await getBlockTime()) + 2000)
                 )
             );
@@ -2406,7 +2400,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 debtEngine.create(
                     testModel.address,
                     accounts[2],
-                    oracle.address,
+                    testOracle.address,
                     await testModel.encodeData(100, (await getBlockTime()) + 2000)
                 )
             );
@@ -2494,23 +2488,23 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id1 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const data = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 1500);
             await rcn.approve(debtEngine.address, 1500);
 
-            const receipt = await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], oracle.address, data);
+            const receipt = await debtEngine.payTokenBatch([id1, id2], [1000, 500], accounts[4], testOracle.address, oracleData);
 
             // Test read oracle event
             const oracleEvent = receipt.logs.find((l) => l.event === 'ReadedOracleBatch');
@@ -3081,24 +3075,24 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[0],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(10000, (await getBlockTime()) + 2000)
             ));
 
-            const dummyData1 = await legacyOracle.dummyData1();
-            const dummyData2 = await legacyOracle.dummyData2();
+            const oracleData1 = await testOracle.encodeRate(6000, 1);
+            const oracleData2 = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[2], 60000);
             await rcn.approve(debtEngine.address, 60000, { from: accounts[2] });
-            await debtEngine.pay(id, 10, accounts[1], dummyData1, { from: accounts[2] });
+            await debtEngine.pay(id, 10, accounts[1], oracleData1, { from: accounts[2] });
 
             await rcn.approve(debtEngine.address, 500, { from: accounts[3] });
             await rcn.setBalance(accounts[3], 500);
-            await debtEngine.pay(id, 1000, address0x, dummyData2, { from: accounts[3] });
+            await debtEngine.pay(id, 1000, address0x, oracleData2, { from: accounts[3] });
 
             await rcn.approve(debtEngine.address, 6000, { from: accounts[3] });
             await rcn.setBalance(accounts[3], 10000);
-            await debtEngine.pay(id, 10000, accounts[0], dummyData2, { from: accounts[3] });
+            await debtEngine.pay(id, 10000, accounts[0], oracleData2, { from: accounts[3] });
 
             // Withdraw
             await debtEngine.transferFrom(accounts[0], accounts[9], id);
@@ -3247,16 +3241,16 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const dummyData2 = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 25);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 50, accounts[3], dummyData2);
+            await debtEngine.pay(id, 50, accounts[3], oracleData);
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
@@ -3269,7 +3263,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 100, accounts[3], dummyData2);
+            await debtEngine.pay(id, 100, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
@@ -3283,7 +3277,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 100, accounts[3], dummyData2);
+            await debtEngine.pay(id, 100, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
@@ -3294,16 +3288,16 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
-                oracle.address,
+                testOracle.address,
                 await testModel.encodeData(3000, (await getBlockTime()) + 2000)
             ));
 
-            const dummyData2 = await legacyOracle.dummyData2();
+            const oracleData = await testOracle.encodeRate(5, 10);
 
             await rcn.setBalance(accounts[0], 25);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 50, accounts[3], dummyData2);
+            await debtEngine.pay(id, 50, accounts[3], oracleData);
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
@@ -3316,7 +3310,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 100, accounts[3], dummyData2);
+            await debtEngine.pay(id, 100, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('50');
@@ -3330,7 +3324,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 50);
 
             await rcn.approve(debtEngine.address, 50);
-            await debtEngine.pay(id, 100, accounts[3], dummyData2);
+            await debtEngine.pay(id, 100, accounts[3], oracleData);
 
             // Should have failed and the status should be 4
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
