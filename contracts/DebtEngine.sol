@@ -1,11 +1,11 @@
 pragma solidity ^0.6.6;
 
-import "../../interfaces/IERC20.sol";
+import "./interfaces/IERC20.sol";
 import "./interfaces/Model.sol";
 import "./interfaces/RateOracle.sol";
-import "../../utils/IsContract.sol";
-import "../../commons/ERC721Base.sol";
-import "../../commons/Ownable.sol";
+import "./utils/IsContract.sol";
+import "./utils/ERC721Base.sol";
+import "./utils/Ownable.sol";
 
 
 contract DebtEngine is ERC721Base, Ownable {

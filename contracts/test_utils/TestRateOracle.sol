@@ -1,7 +1,7 @@
 pragma solidity ^0.6.6;
 
-import "../core/diaspore/interfaces/RateOracle.sol";
-import "../commons/ERC165.sol";
+import "../interfaces/RateOracle.sol";
+import "../utils/ERC165.sol";
 import "../utils/BytesUtils.sol";
 
 

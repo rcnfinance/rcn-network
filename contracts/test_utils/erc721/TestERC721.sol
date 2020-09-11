@@ -1,6 +1,6 @@
 pragma solidity ^0.6.6;
 
-import "../../commons/ERC721Base.sol";
+import "../../utils/ERC721Base.sol";
 
 
 contract TestERC721 is ERC721Base {

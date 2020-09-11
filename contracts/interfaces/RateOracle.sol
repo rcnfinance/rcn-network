@@ -1,6 +1,6 @@
 pragma solidity ^0.6.6;
 
-import "../../../interfaces/IERC165.sol";
+import "./IERC165.sol";
 
 
 /**

@@ -1,9 +1,9 @@
 /* solium-disable */
 pragma solidity ^0.6.6;
 
-import "../../commons/ERC165.sol";
-import "../../commons/Ownable.sol";
-import "../../utils/BytesUtils.sol";
+import "../utils/ERC165.sol";
+import "../utils/Ownable.sol";
+import "../utils/BytesUtils.sol";
 
 
 contract TestModel is ERC165, BytesUtils, Ownable {

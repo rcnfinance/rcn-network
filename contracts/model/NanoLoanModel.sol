@@ -1,11 +1,11 @@
 pragma solidity ^0.6.6;
 
-import "./../interfaces/Model.sol";
-import "./../interfaces/ModelDescriptor.sol";
-import "../../../commons/Ownable.sol";
-import "../../../commons/ERC165.sol";
-import "../../../utils/SafeMath.sol";
-import "../../../utils/BytesUtils.sol";
+import "../interfaces/Model.sol";
+import "../interfaces/ModelDescriptor.sol";
+import "../utils/Ownable.sol";
+import "../utils/ERC165.sol";
+import "../utils/SafeMath.sol";
+import "../utils/BytesUtils.sol";
 
 
 contract MinMax {

@@ -1,6 +1,6 @@
 pragma solidity ^0.6.6;
 
-import "../../core/diaspore/interfaces/LoanCallback.sol";
+import "../interfaces/LoanCallback.sol";
 
 
 contract TestLoanCallback is LoanCallback {

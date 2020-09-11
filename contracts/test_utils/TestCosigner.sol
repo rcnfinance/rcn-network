@@ -1,7 +1,7 @@
 /* solium-disable */
 pragma solidity ^0.6.6;
 
-import "../core/diaspore/LoanManager.sol";
+import "../LoanManager.sol";
 import "../interfaces/Cosigner.sol";
 import "../interfaces/IERC20.sol";
 import "../utils/BytesUtils.sol";
