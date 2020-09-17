@@ -277,6 +277,16 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 'Burner 0x0 is not valid'
             );
         });
+        it('Try create a DebtEngine with a high fee', async function () {
+            await tryCatchRevert(
+                () => DebtEngine.new(
+                    rcn.address,
+                    burner,
+                    101
+                ),
+                'The fee should be lower or equal than 1%'
+            );
+        });
     });
     describe('Function setURIProvider', function () {
         it('Should set the URI provider', async function () {
@@ -340,7 +350,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
     });
     describe('Function setFee', function () {
         it('Should set the set fee', async function () {
-            const newFee = 1500;
+            const newFee = 100;
 
             const SetFee = await toEvents(
                 debtEngine.setFee(
@@ -362,6 +372,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     { from: accounts[1] }
                 ),
                 ''
+            );
+        });
+        it('Try set a high fee', async function () {
+            await tryCatchRevert(
+                () => debtEngine.setFee(
+                    101,
+                    { from: accounts[0] }
+                ),
+                'The fee should be lower or equal than 1%'
             );
         });
     });
@@ -1029,7 +1048,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             ));
 
             // Set 10% fee
-            await debtEngine.setFee(bn('1000'), { from: accounts[0] });
+            await debtEngine.setFee(100, { from: accounts[0] });
 
             const feeAmount = await toFee(payAmount);
             const prevBurnerBal = await rcn.balanceOf(burner);
@@ -1131,8 +1150,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 data
             ));
 
-            const fee = bn('1000');
-            await debtEngine.setFee(fee, { from: accounts[0] });
+            await debtEngine.setFee(100, { from: accounts[0] });
 
             const feeAmount = await toFee(payAmount, oracle, dummyData1);
             const prevBurnerBal = await rcn.balanceOf(burner);
@@ -1666,8 +1684,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 data
             ));
 
-            const fee = bn('1000');
-            await debtEngine.setFee(fee, { from: accounts[0] });
+            await debtEngine.setFee(100, { from: accounts[0] });
 
             const feeAmount = await toFee(payAmount);
             const prevBurnerBal = await rcn.balanceOf(burner);
@@ -1769,8 +1786,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 data
             ));
 
-            const fee = bn('1000');
-            await debtEngine.setFee(fee, { from: accounts[0] });
+            await debtEngine.setFee(100, { from: accounts[0] });
 
             const feeAmount = await toFee(payAmountTokens);
             const prevBurnerBal = await rcn.balanceOf(burner);
@@ -3819,8 +3835,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(feeAmount2).to.eq.BN(0);
         });
         it('Get fee amount with % fee', async function () {
-            const feePerc = bn(1234);
-            await debtEngine.setFee(feePerc, { from: accounts[0] });
+            await debtEngine.setFee(99, { from: accounts[0] });
 
             const feeAmount = await debtEngine.getFeeAmount(
                 bytes320x,
@@ -3852,8 +3867,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 data
             ));
 
-            const feePerc = bn(1234);
-            await debtEngine.setFee(feePerc, { from: accounts[0] });
+            await debtEngine.setFee(99, { from: accounts[0] });
 
             const dummyData1 = await legacyOracle.dummyData1();
 
