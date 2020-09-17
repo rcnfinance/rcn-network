@@ -115,6 +115,7 @@ contract DebtEngine is ERC721Base, Ownable {
         // Sanity checks
         require(_burner != address(0), "Burner 0x0 is not valid");
         require(address(_token).isContract(), "Token should be a contract");
+        require(_fee <= 100, "The fee should be lower or equal than 1%");
 
         token = _token;
         burner = _burner;
@@ -129,6 +130,8 @@ contract DebtEngine is ERC721Base, Ownable {
     }
 
     function setFee(uint256 _fee) external onlyOwner {
+        require(_fee <= 100, "The fee should be lower or equal than 1%");
+
         fee = _fee;
         emit SetFee(_fee);
     }
