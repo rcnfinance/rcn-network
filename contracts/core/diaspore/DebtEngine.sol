@@ -89,12 +89,12 @@ contract DebtEngine is ERC721Base, Ownable {
     );
 
     event SetBurner(address indexed _burner);
-    event SetFee(uint256 _fee);
+    event SetFee(uint128 _fee);
 
     IERC20 public token;
     address public burner;
     uint256 public constant BASE = 10000;
-    uint256 public fee; // Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
+    uint128 public fee; // Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
 
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
@@ -102,6 +102,7 @@ contract DebtEngine is ERC721Base, Ownable {
     struct Debt {
         bool error;
         uint128 balance;
+        uint128 fee;
         Model model;
         address creator;
         address oracle;
@@ -110,7 +111,7 @@ contract DebtEngine is ERC721Base, Ownable {
     constructor (
         IERC20 _token,
         address _burner,
-        uint256 _fee
+        uint128 _fee
     ) public ERC721Base("RCN Debt Record", "RDR") {
         // Sanity checks
         require(_burner != address(0), "Burner 0x0 is not valid");
@@ -129,7 +130,7 @@ contract DebtEngine is ERC721Base, Ownable {
         emit SetBurner(_burner);
     }
 
-    function setFee(uint256 _fee) external onlyOwner {
+    function setFee(uint128 _fee) external onlyOwner {
         require(_fee <= 100, "The fee should be lower or equal than 1%");
 
         fee = _fee;
@@ -159,6 +160,7 @@ contract DebtEngine is ERC721Base, Ownable {
         debts[id] = Debt({
             error: false,
             balance: 0,
+            fee: fee,
             creator: msg.sender,
             model: _model,
             oracle: _oracle
@@ -196,6 +198,7 @@ contract DebtEngine is ERC721Base, Ownable {
         debts[id] = Debt({
             error: false,
             balance: 0,
+            fee: fee,
             creator: msg.sender,
             model: _model,
             oracle: _oracle
@@ -230,6 +233,7 @@ contract DebtEngine is ERC721Base, Ownable {
         debts[id] = Debt({
             error: false,
             balance: 0,
+            fee: fee,
             creator: msg.sender,
             model: _model,
             oracle: _oracle
@@ -318,7 +322,7 @@ contract DebtEngine is ERC721Base, Ownable {
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
 
-        _chargeBurnFee(_id, paidToken);
+        _chargeBurnFee(_id, debt.fee, paidToken);
 
         // Add balance to the debt
         uint256 newBalance = paidToken.add(debt.balance);
@@ -375,7 +379,7 @@ contract DebtEngine is ERC721Base, Ownable {
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling tokens");
 
-        _chargeBurnFee(id, paidToken);
+        _chargeBurnFee(id, debt.fee, paidToken);
 
         // Add balance to the debt
         // WARNING: Reusing variable **available**
@@ -511,7 +515,7 @@ contract DebtEngine is ERC721Base, Ownable {
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
 
-        _chargeBurnFee(_id, paidToken);
+        _chargeBurnFee(_id, debt.fee, paidToken);
 
         // Add balance to debt
         uint256 newBalance = paidToken.add(debt.balance);
@@ -519,12 +523,12 @@ contract DebtEngine is ERC721Base, Ownable {
         debt.balance = uint128(newBalance);
     }
 
-    function _chargeBurnFee(bytes32 _id, uint256 _amount) internal returns (uint256 burnAmount) {
-        if (fee == 0)
+    function _chargeBurnFee(bytes32 _id, uint128 _fee, uint256 _amount) internal returns (uint256 burnAmount) {
+        if (_fee == 0)
             return 0;
 
         // Get BurnAmount from fee percentage
-        burnAmount = _amount.multdiv(fee, BASE);
+        burnAmount = _amount.multdiv(_fee, BASE);
 
         // Pull tokens from payer to Burner
         require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling fee tokens");

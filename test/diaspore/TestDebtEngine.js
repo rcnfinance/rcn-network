@@ -415,6 +415,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt = await debtEngine.debts(calcId);
             assert.equal(debt.error, false);
             expect(debt.balance).to.eq.BN('0');
+            expect(debt.fee).to.eq.BN('0');
             assert.equal(debt.model, testModel.address);
             assert.equal(debt.creator, creator);
             assert.equal(debt.oracle, address0x);
@@ -502,6 +503,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt = await debtEngine.debts(calcId);
             assert.equal(debt.error, false);
             expect(debt.balance).to.eq.BN('0');
+            expect(debt.fee).to.eq.BN('0');
             assert.equal(debt.model, testModel.address);
             assert.equal(debt.creator, creator);
             assert.equal(debt.oracle, address0x);
@@ -668,6 +670,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const debt = await debtEngine.debts(calcId);
             assert.equal(debt.error, false);
             expect(debt.balance).to.eq.BN('0');
+            expect(debt.fee).to.eq.BN('0');
             assert.equal(debt.model, testModel.address);
             assert.equal(debt.creator, creator);
             assert.equal(debt.oracle, address0x);
@@ -1040,15 +1043,15 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const loanTotalAmount = bn('10000');
             const data = await testModel.encodeData(loanTotalAmount, (await getBlockTime()) + 2000);
 
+            // Set 10% fee
+            await debtEngine.setFee(100, { from: accounts[0] });
+
             const id = await getId(debtEngine.create(
                 testModel.address,
                 owner,
                 address0x,
                 data
             ));
-
-            // Set 10% fee
-            await debtEngine.setFee(100, { from: accounts[0] });
 
             const feeAmount = await toFee(payAmount);
             const prevBurnerBal = await rcn.balanceOf(burner);
@@ -1143,14 +1146,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const data = await testModel.encodeData(loanTotalAmount, (await getBlockTime()) + 2000);
             const dummyData1 = await legacyOracle.dummyData1();
 
+            await debtEngine.setFee(100, { from: accounts[0] });
+
             const id = await getId(debtEngine.create(
                 testModel.address,
                 owner,
                 oracle.address,
                 data
             ));
-
-            await debtEngine.setFee(100, { from: accounts[0] });
 
             const feeAmount = await toFee(payAmount, oracle, dummyData1);
             const prevBurnerBal = await rcn.balanceOf(burner);
@@ -1677,14 +1680,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const loanTotalAmount = bn('10000');
             const data = await testModel.encodeData(loanTotalAmount, (await getBlockTime()) + 2000);
 
+            await debtEngine.setFee(100, { from: accounts[0] });
+
             const id = await getId(debtEngine.create(
                 testModel.address,
                 owner,
                 address0x,
                 data
             ));
-
-            await debtEngine.setFee(100, { from: accounts[0] });
 
             const feeAmount = await toFee(payAmount);
             const prevBurnerBal = await rcn.balanceOf(burner);
@@ -1779,14 +1782,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const data = await testModel.encodeData(loanTotalAmount, (await getBlockTime()) + 2000);
             const dummyData1 = await legacyOracle.dummyData1();
 
+            await debtEngine.setFee(100, { from: accounts[0] });
+
             const id = await getId(debtEngine.create(
                 testModel.address,
                 owner,
                 oracle.address,
                 data
             ));
-
-            await debtEngine.setFee(100, { from: accounts[0] });
 
             const feeAmount = await toFee(payAmountTokens);
             const prevBurnerBal = await rcn.balanceOf(burner);
@@ -3860,14 +3863,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const owner = accounts[1];
             const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
 
+            await debtEngine.setFee(99, { from: accounts[0] });
+
             const id = await getId(debtEngine.create(
                 testModel.address,
                 owner,
                 oracle.address,
                 data
             ));
-
-            await debtEngine.setFee(99, { from: accounts[0] });
 
             const dummyData1 = await legacyOracle.dummyData1();
 
