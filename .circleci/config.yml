@@ -71,11 +71,6 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Start ganache
-            - run:
-                name: Start ganache instance
-                command: node_modules/.bin/ganache-cli --gasLimit 7000000
-                background: true
             # Run truffle test
             - run:
                 name: Run truffle tests
