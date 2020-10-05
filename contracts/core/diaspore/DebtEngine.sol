@@ -735,11 +735,13 @@ contract DebtEngine is ERC721Base, Ownable {
         uint256 _amountToPay,
         bytes calldata _oracleData
     ) external view returns (uint256 feeAmount) {
-        if (fee == 0)
+        Debt storage debt = debts[_id];
+
+        if (debt.fee == 0)
             return 0;
 
         uint256 paidToken;
-        RateOracle oracle = RateOracle(debts[_id].oracle);
+        RateOracle oracle = RateOracle(debt.oracle);
 
         if (address(oracle) == address(0)) {
             paidToken = _amountToPay;
@@ -759,7 +761,7 @@ contract DebtEngine is ERC721Base, Ownable {
             paidToken = _toToken(_amountToPay, tokens, equivalent);
         }
 
-        feeAmount = paidToken.multdiv(fee, BASE);
+        feeAmount = paidToken.multdiv(debt.fee, BASE);
     }
 
     function _safeGasStaticCall(
