@@ -530,6 +530,9 @@ contract DebtEngine is ERC721Base, Ownable {
         // Get BurnAmount from fee percentage
         burnAmount = _amount.multdiv(_fee, BASE);
 
+        if (burnAmount == 0)
+            return 0;
+
         // Pull tokens from payer to Burner
         require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling fee tokens");
 
