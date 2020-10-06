@@ -93,8 +93,10 @@ contract DebtEngine is ERC721Base, Ownable {
 
     IERC20 public token;
     address public burner;
-    uint256 public constant BASE = 10000;
     uint128 public fee; // Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
+
+    uint256 public constant BASE = 10000;
+    uint256 private constant UINT_128_OVERFLOW = 340282366920938463463374607431768211456;
 
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
@@ -326,7 +328,7 @@ contract DebtEngine is ERC721Base, Ownable {
 
         // Add balance to the debt
         uint256 newBalance = paidToken.add(debt.balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(newBalance < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(newBalance);
 
         // Emit pay event
@@ -384,7 +386,7 @@ contract DebtEngine is ERC721Base, Ownable {
         // Add balance to the debt
         // WARNING: Reusing variable **available**
         available = paidToken.add(debt.balance);
-        require(available < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(available < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(available);
 
         // Emit pay event
@@ -519,7 +521,7 @@ contract DebtEngine is ERC721Base, Ownable {
 
         // Add balance to debt
         uint256 newBalance = paidToken.add(debt.balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(newBalance < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(newBalance);
     }
 
