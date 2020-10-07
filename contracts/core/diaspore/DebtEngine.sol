@@ -678,19 +678,9 @@ contract DebtEngine is ERC721Base, Ownable {
     function _safeGasStaticCall(
         address _contract,
         bytes memory _data
-    ) internal view returns (uint256 success, bytes32 result) {
-        uint256 _gas = (block.gaslimit * 80) / 100; // Cant overflow, the gas limit * 80 is lower than (2**256)-1
-        _gas = gasleft() < _gas ? gasleft() : _gas;
-        assembly {
-            let x := mload(0x40)
-            success := staticcall(
-                            _gas,                 // Send almost all gas
-                            _contract,            // To addr
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
+    ) internal view returns (bool success, uint256 result) {
+        bytes memory returnData;
+        uint256 _gas = (block.gaslimit * 80) / 100;
 
         (success, returnData) = _contract.staticcall.gas(gasleft() < _gas ? gasleft() : _gas)(_data);
 
