@@ -59,7 +59,9 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
     async function createDefaultLoan () {
         const loanAmount = WEI;
         const duration = bn(await getBlockTime()).add(bn(60 * 60));
-        const loanData = await model.encodeData(loanAmount, duration);
+
+        const MAX_UINT64 = bn(2).pow(bn(64)).sub(bn(1));
+        const loanData = await model.encodeData(loanAmount, duration, 0, MAX_UINT64);
 
         const loanTx = loanManager.requestLoan(
             loanAmount,        // Amount
