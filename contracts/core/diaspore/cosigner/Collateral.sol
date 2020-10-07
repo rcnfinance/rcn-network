@@ -568,11 +568,30 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 entryId = debtToEntry[debtId];
         require(entryId != 0, "collateral: collateral not found for debtId");
 
-        if (_claimLiquidation(entryId, debtId, _oracleData)) {
-            return true;
-        }
+        return _claimLiquidation(entryId, debtId, _oracleData) ||
+            _claimExpired(entryId, debtId, _oracleData);
+    }
 
-        return _claimExpired(entryId, debtId, _oracleData);
+    function canClaim(uint256 _debtId, bytes calldata _oracleData) external view returns (bool) {
+        bytes32 debtId = bytes32(_debtId);
+        uint256 entryId = debtToEntry[debtId];
+        require(entryId != 0, "collateral: collateral not found for debtId");
+
+        if (inAuction(entryId))
+            return false;
+
+        CollateralLib.Entry memory entry = entries[entryId];
+
+        LoanManager _loanManager = loanManager;
+        uint256 debt = _loanManager.getClosingObligation(debtId);
+
+        if (debt != 0)
+            debt = _loanManager
+                .oracle(debtId)
+                .readStatic(_oracleData)
+                .toTokens(debt);
+
+        return entry.inLiquidation(debt) || now > _getModel(debtId).getDueTime(debtId);
     }
 
     /**
@@ -650,7 +669,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         bytes memory _oracleData
     ) internal returns (bool) {
         // Check if debt is expired
-        Model model = Model(loanManager.getModel(_debtId));
+        Model model = _getModel(_debtId);
         uint256 dueTime = model.getDueTime(_debtId);
         uint256 _now = block.timestamp;
 
@@ -790,5 +809,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Save Auction ID
         entryToAuction[_entryId] = _auctionId;
         auctionToEntry[_auctionId] = _entryId;
+    }
+
+    function _getModel(bytes32 _debtId) internal view returns (Model) {
+        (,,,,, address model,,,,,,) = loanManager.requests(_debtId);
+        return Model(model);
     }
 }
