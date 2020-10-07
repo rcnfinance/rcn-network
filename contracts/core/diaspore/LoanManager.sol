@@ -353,7 +353,8 @@ contract LoanManager is BytesUtils {
         bytes memory _oracleData,
         address _cosigner,
         uint256 _cosignerLimit,
-        bytes memory _cosignerData
+        bytes memory _cosignerData,
+        bytes memory _callbackData
     ) public returns (bool) {
         Request storage request = requests[_id];
         require(request.open, "Request is no longer open");
