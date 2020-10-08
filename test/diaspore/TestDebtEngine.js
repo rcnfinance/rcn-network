@@ -62,14 +62,24 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             testModel.address,
             accounts[0],
             address0x,
-            await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+            await testModel.encodeData(
+                bn('1000'),
+                (await getBlockTime()) + 2000,
+                1,
+                (await getBlockTime()) + 2000
+            )
         ));
         const id2 = await getId(debtEngine.create2(
             testModel.address,
             accounts[0],
             address0x,
             await debtEngine.nonces(accounts[0]),
-            await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+            await testModel.encodeData(
+                bn('1000'),
+                (await getBlockTime()) + 2000,
+                1,
+                (await getBlockTime()) + 2000
+            )
         ));
         assert.notEqual(id1, id2);
     });
@@ -80,7 +90,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             accounts[0],
             address0x,
             bn('89999'),
-            await testModel.encodeData(bn('1001'), expireTime)
+            await testModel.encodeData(bn('1001'), expireTime, 0, expireTime)
         ));
 
         const id2 = await getId(debtEngine.create3(
@@ -88,7 +98,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             accounts[0],
             address0x,
             bn('89999'),
-            await testModel.encodeData(bn('1001'), expireTime)
+            await testModel.encodeData(bn('1001'), expireTime, 0, expireTime)
         ));
 
         assert.notEqual(id1, id2);
@@ -98,7 +108,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             testModel.address,
             accounts[0],
             address0x,
-            await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+            await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 4000);
@@ -123,28 +133,28 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+            await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
         ));
 
         const id2 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+            await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
         ));
 
         const id3 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+            await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
         ));
 
         const id4 = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             testOracle.address,
-            await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+            await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
         ));
 
         // 4 RCN = 22.94 ETH :)
@@ -186,7 +196,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             testModel.address,
             accounts[2],
             address0x,
-            await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+            await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
         ));
 
         await rcn.setBalance(accounts[0], 50);
@@ -261,7 +271,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const owner = accounts[1];
             const creator = accounts[2];
             const nonce = await debtEngine.nonces(creator);
-            const data = await testModel.encodeData(bn('1000'), (await getBlockTime()) + 1000);
+            const data = await testModel.encodeData(bn('1000'), (await getBlockTime()) + 1000, 0, (await getBlockTime()) + 1000);
             const calcId = await debtEngine.buildId(
                 creator,
                 nonce
@@ -305,7 +315,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setEngine(engine2.address);
@@ -314,7 +324,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setEngine(debtEngine.address);
@@ -324,7 +334,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         it('Should fail to create if model returned false', async function () {
             await testModel.setGlobalErrorFlag(bn('8'));
 
-            const data = await testModel.encodeData(bn('1000'), (await getBlockTime()) + 1000);
+            const data = await testModel.encodeData(bn('1000'), (await getBlockTime()) + 1000, 0, (await getBlockTime()) + 1000);
 
             await tryCatchRevert(
                 () => debtEngine.create(
@@ -344,7 +354,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const owner = accounts[1];
             const creator = accounts[2];
             const salt = random32bn();
-            const data = await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000);
+            const data = await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
             const calcId = await debtEngine.buildId2(
                 creator,
                 testModel.address,
@@ -390,7 +400,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[1],
                 address0x,
                 bn('8000000'),
-                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             );
 
             expect(await debtEngine.balanceOf(accounts[1])).to.eq.BN(prevBalAcc1.add(bn('1')), 'Account 1 should have a new asset');
@@ -400,7 +410,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[2],
                 address0x,
                 bn('8000001'),
-                await testModel.encodeData(bn('2000'), (await getBlockTime()) + 3000)
+                await testModel.encodeData(bn('2000'), (await getBlockTime()) + 3000, 0, (await getBlockTime()) + 3000)
             );
 
             expect(await debtEngine.balanceOf(accounts[2])).to.eq.BN(prevBalAcc2.add(bn('1')), 'Account 2 should have a new asset');
@@ -411,7 +421,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 address0x,
                 bn('12000'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             );
 
             const id1 = await getId(debtEngine.create2(
@@ -419,7 +429,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[0],
                 address0x,
                 bn('12000'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             assert.equal(pid1, id1);
@@ -433,7 +443,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             assert.equal(pid2, id2);
@@ -449,7 +459,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[0],
                 address0x,
                 bn('768484844'),
-                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setEngine(engine2.address);
@@ -459,7 +469,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[0],
                 address0x,
                 bn('768484844'),
-                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setEngine(debtEngine.address);
@@ -469,7 +479,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         it('Should fail to create2 if model returned false', async function () {
             await testModel.setGlobalErrorFlag(bn('8'));
 
-            const data = await testModel.encodeData(bn('1000'), (await getBlockTime()) + 1000);
+            const data = await testModel.encodeData(bn('1000'), (await getBlockTime()) + 1000, 0, (await getBlockTime()) + 1000);
 
             await tryCatchRevert(
                 () => debtEngine.create2(
@@ -491,10 +501,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[0],
                 address0x,
                 bn('9999'),
-                await testModel.encodeData(bn('1000'), expireTime)
+                await testModel.encodeData(bn('1000'), expireTime, 0, expireTime)
             );
 
-            const data = await testModel.encodeData(bn('1000'), expireTime);
+            const data = await testModel.encodeData(bn('1000'), expireTime, 0, expireTime);
 
             await tryCatchRevert(
                 () => debtEngine.create2(
@@ -513,7 +523,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const owner = accounts[1];
             const creator = accounts[2];
             const salt = random32bn();
-            const data = await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000);
+            const data = await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
             const calcId = await debtEngine.buildId3(
                 creator,
                 salt
@@ -558,7 +568,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[0],
                 address0x,
                 bn('768484844'),
-                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setEngine(engine2.address);
@@ -568,7 +578,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[0],
                 address0x,
                 bn('768484844'),
-                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('3000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setEngine(debtEngine.address);
@@ -580,7 +590,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 10000);
@@ -601,7 +611,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 10000);
@@ -622,7 +632,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 10000);
@@ -650,7 +660,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[0],
                 address0x,
                 bn('12200'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             assert.equal(pid, id);
@@ -658,7 +668,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         it('Should fail to create3 if model returned false', async function () {
             await testModel.setGlobalErrorFlag(bn('8'));
 
-            const data = await testModel.encodeData(bn('1000'), (await getBlockTime()) + 1000);
+            const data = await testModel.encodeData(bn('1000'), (await getBlockTime()) + 1000, 0, (await getBlockTime()) + 1000);
 
             await tryCatchRevert(
                 () => debtEngine.create3(
@@ -681,10 +691,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[0],
                 address0x,
                 bn('79999'),
-                await testModel.encodeData(bn('1200'), expireTime)
+                await testModel.encodeData(bn('1200'), expireTime, 0, expireTime)
             );
 
-            const data = await testModel.encodeData(bn('1000'), expireTime);
+            const data = await testModel.encodeData(bn('1000'), expireTime, 0, expireTime);
 
             await tryCatchRevert(
                 () => debtEngine.create3(
@@ -707,7 +717,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 address0x,
                 bn('1200'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             ids.push(await debtEngine.buildId2(
@@ -715,7 +725,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 address0x,
                 bn('1200'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             ids.push(await debtEngine.buildId2(
@@ -723,7 +733,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 accounts[3],
                 address0x,
                 bn('1200'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             ids.push(await debtEngine.buildId2(
@@ -731,7 +741,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[3],
                 bn('1200'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             ids.push(await debtEngine.buildId2(
@@ -739,7 +749,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 address0x,
                 bn('1200'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2200)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2200, 0, (await getBlockTime()) + 2200)
             ));
 
             ids.push(await debtEngine.buildId2(
@@ -747,7 +757,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 address0x,
                 bn('1200'),
-                await testModel.encodeData(bn('1001'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1001'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             ids.push(await debtEngine.buildId2(
@@ -755,7 +765,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 address0x,
                 bn('1201'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             ids.push(await debtEngine.buildId2(
@@ -763,7 +773,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 address0x,
                 bn('1200'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2001)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2001, 0, (await getBlockTime()) + 2001)
             ));
 
             ids.push(await debtEngine.buildId2(
@@ -771,7 +781,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[9],
                 bn('2200'),
-                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(bn('1000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             assert.equal(new Set(ids).size, 9);
@@ -784,7 +794,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const originPayer = accounts[3];
             const oracle = address0x;
             const amount = bn('3000');
-            const data = await testModel.encodeData(amount, (await getBlockTime()) + 2000);
+            const data = await testModel.encodeData(amount, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
 
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -829,7 +839,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const payer = accounts[2];
             const originPayer = accounts[3];
             const payAmountOracle = bn('60000');
-            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
+            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
 
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -909,7 +919,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(10, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 2 ETH = 1 RCN
@@ -927,7 +937,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 0.82711175222132156792 ETH = 4000.23333566612312 RCN
@@ -945,7 +955,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 1.22 RCN = 22.94 ETH :)
@@ -963,7 +973,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 10000);
@@ -983,7 +993,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             let data = await testOracle.encodeRate(0, bn('82711175222132156792'));
@@ -1009,7 +1019,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1000);
@@ -1024,7 +1034,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 50);
@@ -1069,7 +1079,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 50);
@@ -1114,7 +1124,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const dummyData2 = await legacyOracle.dummyData2();
@@ -1188,7 +1198,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const originPayer = accounts[3];
             const oracle = address0x;
             const amount = bn('3000');
-            const data = await testModel.encodeData(amount, (await getBlockTime()) + 2000);
+            const data = await testModel.encodeData(amount, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
 
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1231,7 +1241,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const payer = accounts[2];
             const originPayer = accounts[3];
             const payAmountOracle = bn('60000');
-            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
+            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
 
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -1325,7 +1335,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(10, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 1 ETH = 2 RCN
@@ -1343,7 +1353,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 2.82711175222132156792 ETH = 4010.23333566612312 RCN
@@ -1362,7 +1372,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 4.122224 RCN = 0.5 ETH :)
@@ -1381,7 +1391,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 50);
@@ -1426,7 +1436,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const dummyData2 = await legacyOracle.dummyData2();
@@ -1473,7 +1483,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const dummyData2 = await legacyOracle.dummyData2();
@@ -1520,7 +1530,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 50);
@@ -1565,7 +1575,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 10000);
@@ -1585,7 +1595,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1000);
@@ -1600,7 +1610,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             let data = await testOracle.encodeRate(0, bn('82711175222132156792'));
@@ -1652,7 +1662,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
             await assertThrow(
                 debtEngine.payBatch(
@@ -1691,14 +1701,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const data = await legacyOracle.dummyData2();
@@ -1750,14 +1760,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 3000);
@@ -1782,7 +1792,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address, // model
                     accounts[2],       // owner
                     address0x,               // oracle
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000) // data
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000) // data
                 )
             );
             ids[1] = await getId(
@@ -1790,7 +1800,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address, // model
                     accounts[2],       // owner
                     address0x,               // oracle
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000) // data
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000) // data
                 )
             );
             ids[2] = await getId(
@@ -1798,7 +1808,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address, // model
                     accounts[2],       // owner
                     address0x,               // oracle
-                    await testModel.encodeData(100, (await getBlockTime()) + 2000) // data
+                    await testModel.encodeData(100, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000) // data
                 )
             );
 
@@ -1818,7 +1828,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 oracle.address,
-                await testModel.encodeData(10000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const dummyData1 = await legacyOracle.dummyData2();
@@ -1836,7 +1846,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(10, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 2 ETH = 1 RCN
@@ -1856,7 +1866,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 1.22 RCN = 22.94 ETH :)
@@ -1874,14 +1884,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 10000);
@@ -1902,14 +1912,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 500);
@@ -1925,14 +1935,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1500);
@@ -1948,14 +1958,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const data = await legacyOracle.dummyData3();
@@ -1976,14 +1986,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const data = await legacyOracle.dummyData2();
@@ -2005,7 +2015,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
             ids[1] = await getId(
@@ -2013,7 +2023,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
             ids[2] = await getId(
@@ -2021,7 +2031,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(100, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(100, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
 
@@ -2080,7 +2090,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
             await assertThrow(
                 debtEngine.payTokenBatch(
@@ -2108,14 +2118,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(10, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setErrorFlag(id, 10);
@@ -2149,14 +2159,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 10000);
@@ -2177,14 +2187,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 500);
@@ -2200,14 +2210,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1500);
@@ -2225,7 +2235,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
             ids[1] = await getId(
@@ -2233,7 +2243,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
             ids[2] = await getId(
@@ -2241,7 +2251,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(100, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(100, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
 
@@ -2261,14 +2271,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const data = await legacyOracle.dummyData3();
@@ -2288,14 +2298,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const data = await legacyOracle.dummyData2();
@@ -2315,7 +2325,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 oracle.address,
-                await testModel.encodeData(10000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const dummyData1 = await legacyOracle.dummyData2();
@@ -2335,7 +2345,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
             ids[1] = await getId(
@@ -2343,7 +2353,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
             ids[2] = await getId(
@@ -2351,7 +2361,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(100, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(100, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
 
@@ -2371,7 +2381,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(10, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 1 ETH = 2 RCN
@@ -2391,7 +2401,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     address0x,
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
             ids[1] = await getId(
@@ -2399,7 +2409,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     oracle.address,
-                    await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
             ids[2] = await getId(
@@ -2407,7 +2417,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     testModel.address,
                     accounts[2],
                     oracle.address,
-                    await testModel.encodeData(100, (await getBlockTime()) + 2000)
+                    await testModel.encodeData(100, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
                 )
             );
 
@@ -2427,7 +2437,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 2.82711175222132156792 ETH = 4010.23333566612312 RCN
@@ -2446,7 +2456,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 testOracle.address,
-                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000)
+                await testModel.encodeData(toWei('900000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // 4.122224 RCN = 0.5 ETH :)
@@ -2465,14 +2475,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 3000);
@@ -2495,14 +2505,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const data = await legacyOracle.dummyData2();
@@ -2594,7 +2604,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const beneficiary = accounts[3];
             const oracle = address0x;
             const amount = bn('3000');
-            const data = await testModel.encodeData(amount, (await getBlockTime()) + 2000);
+            const data = await testModel.encodeData(amount, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
 
             const id = await getId(debtEngine.create(
                 testModel.address,
@@ -2659,7 +2669,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(10, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setErrorFlag(id, 10);
@@ -2690,7 +2700,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(10, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setErrorFlag(id, 10);
@@ -2721,14 +2731,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(10, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await testModel.setErrorFlag(id, 10);
@@ -2762,7 +2772,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 3000);
@@ -2788,7 +2798,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 3000);
@@ -2811,7 +2821,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(1000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(1000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 4000);
@@ -2854,7 +2864,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[1],
                 address0x,
-                await testModel.encodeData(1000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(1000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1000);
@@ -2876,7 +2886,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[1],
                 address0x,
-                await testModel.encodeData(1000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(1000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[2], 0);
@@ -2900,7 +2910,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(1000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(1000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1000);
@@ -2924,7 +2934,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(1000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(1000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1000);
@@ -2948,7 +2958,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(1000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(1000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1000);
@@ -2979,7 +2989,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 address0x,
-                await testModel.encodeData(1000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(1000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 1000);
@@ -3010,10 +3020,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const oracle = address0x;
 
             const amount1 = bn('3000');
-            const data1 = await testModel.encodeData(amount1, (await getBlockTime()) + 2000);
+            const data1 = await testModel.encodeData(amount1, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
 
             const amount2 = bn('7000');
-            const data2 = await testModel.encodeData(amount2, (await getBlockTime()) + 2000);
+            const data2 = await testModel.encodeData(amount2, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
 
             const id1 = await getId(debtEngine.create(
                 testModel.address,
@@ -3082,7 +3092,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[0],
                 oracle.address,
-                await testModel.encodeData(10000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(10000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const dummyData1 = await legacyOracle.dummyData1();
@@ -3120,14 +3130,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 3000);
@@ -3150,14 +3160,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 3000);
@@ -3183,14 +3193,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[4],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 3000);
@@ -3216,14 +3226,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const id2 = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             await rcn.setBalance(accounts[0], 3000);
@@ -3248,7 +3258,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const dummyData2 = await legacyOracle.dummyData2();
@@ -3295,7 +3305,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 oracle.address,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             const dummyData2 = await legacyOracle.dummyData2();
@@ -3342,7 +3352,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // Set the error flag
@@ -3370,7 +3380,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // Set the error flag
@@ -3398,7 +3408,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // Set the error flag
@@ -3422,7 +3432,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // Set the error flag
@@ -3446,7 +3456,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 testModel.address,
                 accounts[2],
                 address0x,
-                await testModel.encodeData(3000, (await getBlockTime()) + 2000)
+                await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
             ));
 
             // Set the error flag

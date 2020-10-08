@@ -6,6 +6,10 @@ import "../../utils/BytesUtils.sol";
 
 
 contract TestRateOracle is BytesUtils, ERC165, RateOracle {
+    uint256 public constant VERSION = 5;
+    bytes4 internal constant RATE_ORACLE_INTERFACE = 0xa265d8e0;
+    address internal _token;
+
     constructor() public {
         _registerInterface(RATE_ORACLE_INTERFACE);
     }
@@ -16,7 +20,13 @@ contract TestRateOracle is BytesUtils, ERC165, RateOracle {
 
     function decimals() external view override returns (uint256) {}
 
-    function token() external view override returns (address) {}
+    function setToken(address token) external returns (address) {
+        _token = token;
+    }
+
+    function token() external view override returns (address) {
+        return _token;
+    }
 
     function currency() external view override returns (bytes32) {}
 
@@ -32,8 +42,22 @@ contract TestRateOracle is BytesUtils, ERC165, RateOracle {
     }
 
     function readSample(bytes calldata _data) external override returns (uint256 tokens, uint256 equivalent) {
-        (bytes32 btokens, bytes32 bequivalent) = decode(_data, 16, 16);
-        tokens = uint256(btokens);
-        equivalent = uint256(bequivalent);
+        if (_data.length != 0) {
+            (bytes32 btokens, bytes32 bequivalent) = decode(_data, 16, 16);
+            tokens = uint256(btokens);
+            equivalent = uint256(bequivalent);
+        } else {
+            tokens = 1000000000000000000;
+            equivalent = RCNequivalent;
+        }
+    }
+    // Used by collateral tests
+    uint256 public RCNequivalent;
+
+    event SetEquivalent(uint256 _equivalent);
+
+    function setEquivalent(uint256 _equivalent) external {
+        RCNequivalent = _equivalent;
+        emit SetEquivalent(_equivalent);
     }
 }

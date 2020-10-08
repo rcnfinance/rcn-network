@@ -1,7 +1,10 @@
 const BN = web3.utils.BN;
-module.exports.expect = require('chai')
+
+const expect = require('chai')
     .use(require('bn-chai')(BN))
     .expect;
+
+module.exports.expect = expect;
 
 module.exports.address0x = '0x0000000000000000000000000000000000000000';
 module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -191,3 +194,36 @@ module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
 
     assert.isTrue(diff.lt(margin), reason);
 };
+
+module.exports.balanceSnap = async (token, address, account = "") => {
+    const snapBalance = await token.balanceOf(address);
+    return {
+        requireConstant: async function() {
+            expect(
+                snapBalance,
+                `${account} balance should remain constant`
+            ).to.eq.BN(
+                await token.balanceOf(address)
+            );
+        },
+        requireIncrease: async function(delta) {
+            expect(
+                snapBalance.add(delta),
+                `${account} should increase by ${delta}`
+            ).to.eq.BN(
+                await token.balanceOf(address)
+            );
+        },
+        requireDecrease: async function(delta) {
+            expect(
+                snapBalance.sub(delta),
+                `${account} should decrease by ${delta}`
+            ).to.eq.BN(
+                await token.balanceOf(address)
+            );
+        },
+        restore: async function() {
+            await token.setBalance(address, snapBalance);
+        }
+    }
+}

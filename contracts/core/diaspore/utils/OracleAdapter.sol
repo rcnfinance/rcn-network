@@ -55,6 +55,6 @@ contract OracleAdapter is RateOracle, ERC165 {
 
     function readSample(bytes calldata _data) external override  returns (uint256 _tokens, uint256 _equivalent) {
         (_tokens, _equivalent) = legacyOracle.getRate(icurrency, _data);
-        _equivalent = 10 ** _equivalent;
+        _equivalent = 10 ** _equivalent; // Can overflow but the equivalent should be very big, and if it's happened, the oracle was broken
     }
 }
