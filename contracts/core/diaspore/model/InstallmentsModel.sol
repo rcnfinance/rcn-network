@@ -116,7 +116,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         Config storage config = configs[id];
         State storage state = states[id];
 
-        _advanceClock(id, uint64(now) - config.lentTime);
+        _advanceClock(id, uint64(now) - config.lentTime); // Now its always greater than config.lentTime
 
         if (state.status != Status.PAID) {
             // State & config memory load
@@ -139,7 +139,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
                 clock = state.clock;
 
                 baseDebt = _baseDebt(clock, duration, config.installments, config.cuota);
-                pending = baseDebt + interest - paid;
+                pending = baseDebt + interest - paid;// The base baseDebt plus interest is greater than paid, otherwise the loan its paid
 
                 // min(pending, available)
                 target = pending < available ? pending : available;
@@ -156,7 +156,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
                 // Check fully paid
                 // All installments paid + interest
-                if (clock / duration >= config.installments && baseDebt + interest <= paid) {
+                if (clock / duration >= config.installments && baseDebt + interest <= paid) { // Cant overflow
                     // Registry paid!
                     state.status = Status.PAID;
                     emit ChangedStatus(id, now, Status.PAID);
@@ -165,7 +165,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
                 // If installment fully paid, advance to next one
                 if (pending == target) {
-                    _advanceClock(id, clock + duration - (clock % duration));
+                    _advanceClock(id, clock + duration - (clock % duration)); // Cant underflow/overflow
                 }
             } while (available != 0);
 
@@ -188,7 +188,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         State storage state = states[id];
         uint64 lentTime = config.lentTime;
         require(lentTime < target, "Clock can't go negative");
-        uint64 targetClock = target - lentTime;
+        uint64 targetClock = target - lentTime; // Check underflow in the previous require
         require(targetClock > state.clock, "Clock is ahead of target");
         return _advanceClock(id, targetClock);
     }
@@ -218,7 +218,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         }
 
         // Static storage loads
-        uint256 currentClock = timestamp - config.lentTime;
+        uint256 currentClock = timestamp - config.lentTime; // If it underflows, it is the responsibility of the caller.
 
         uint256 base = _baseDebt(
             currentClock,
@@ -248,9 +248,9 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
             defined = prevInterest == interest;
         }
 
-        uint256 debt = base + interest;
+        uint256 debt = base + interest; // Cant overflow
         uint256 paid = state.paid;
-        return (debt > paid ? debt - paid : 0, defined);
+        return (debt > paid ? debt - paid : 0, defined); // Check underflow
     }
 
     function _simRunClock(
@@ -275,7 +275,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     function run(bytes32 id) external returns (bool) {
         Config storage config = configs[id];
-        return _advanceClock(id, uint64(now) - config.lentTime);
+        return _advanceClock(id, uint64(now) - config.lentTime); // Now its always greater than config.lentTime
     }
 
     function validate(bytes calldata data) external view returns (bool) {
@@ -294,12 +294,12 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         uint256 last = states[id].lastPayment;
         uint256 duration = config.duration;
         last = last != 0 ? last : duration;
-        return last - (last % duration) + config.lentTime;
+        return last - (last % duration) + config.lentTime;// Cant underflow
     }
 
     function getFinalTime(bytes32 id) external view returns (uint256) {
         Config storage config = configs[id];
-        return config.lentTime + (uint256(config.duration) * (uint256(config.installments)));
+        return config.lentTime + (uint256(config.duration) * (uint256(config.installments))); // Cant overflow
     }
 
     function getFrequency(bytes32 id) external view returns (uint256) {
@@ -320,12 +320,12 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     function simTotalObligation(bytes calldata _data) external view returns (uint256 amount) {
         (uint256 cuota,, uint256 installments,,) = _decodeData(_data);
-        amount = cuota * installments;
+        amount = cuota * installments; // If it overflows, it is the responsibility of the caller
     }
 
     function simDuration(bytes calldata _data) external view returns (uint256 duration) {
         (,,uint256 installments, uint256 installmentDuration,) = _decodeData(_data);
-        duration = installmentDuration * installments;
+        duration = installmentDuration * installments;// If it overflows, it is the responsibility of the caller.
     }
 
     function simPunitiveInterestRate(bytes calldata _data) external view returns (uint256 punitiveInterestRate) {
@@ -381,7 +381,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         // Static storage loads
         uint256 installments = config.installments;
         uint256 cuota = config.cuota;
-        uint256 currentClock = uint64(now) - config.lentTime;
+        uint256 currentClock = uint64(now) - config.lentTime; // Now its always greater than config.lentTime
 
         uint256 interest;
         uint256 clock = state.clock;
@@ -404,7 +404,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
         uint256 debt = cuota * installments + interest;
         uint256 paid = state.paid;
-        return debt > paid ? debt - paid : 0;
+        return debt > paid ? debt - paid : 0; // Check underflow
     }
 
     function _runAdvanceClock(

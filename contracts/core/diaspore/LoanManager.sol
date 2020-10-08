@@ -391,7 +391,7 @@ contract LoanManager is BytesUtils, IDebtStatus {
         // Call the cosigner
         if (_cosigner != address(0)) {
             uint256 auxSalt = request.salt;
-            request.cosigner = address(uint256(_cosigner) + 2);
+            request.cosigner = address(uint256(_cosigner) + 2); // Cant overflow
             request.salt = _cosignerLimit; // Risky ?
             require(
                 Cosigner(_cosigner).requestCosign(
@@ -437,7 +437,7 @@ contract LoanManager is BytesUtils, IDebtStatus {
         Request storage request = requests[bytes32(_id)];
         require(request.cosigner != address(0), "Cosigner 0x0 is not valid");
         require(request.expiration > now, "Request is expired");
-        require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
+        require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid"); // Cant overflow
         request.cosigner = msg.sender;
         if (_cost != 0){
             require(request.salt >= _cost, "Cosigner cost exceeded");
