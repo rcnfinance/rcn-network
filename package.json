@@ -55,7 +55,7 @@
     "pre-commit": "^1.2.2",
     "solidity-coverage": "^0.7.10",
     "solium": "^1.2.4",
-    "truffle": "^5.1.42",
+    "truffle": "^5.0.35",
     "truffle-hdwallet-provider": "0.0.5",
     "web3": "^1.2.11"
   }

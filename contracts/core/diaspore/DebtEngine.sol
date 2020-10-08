@@ -2,13 +2,14 @@ pragma solidity ^0.5.11;
 
 import "../../interfaces/IERC20.sol";
 import "./interfaces/Model.sol";
+import "./interfaces/IDebtStatus.sol";
 import "./interfaces/RateOracle.sol";
 import "../../utils/IsContract.sol";
 import "../../commons/ERC721Base.sol";
 import "../../commons/Ownable.sol";
 
 
-contract DebtEngine is ERC721Base, Ownable {
+contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
     using IsContract for address;
 
     event Created(
@@ -659,10 +660,10 @@ contract DebtEngine is ERC721Base, Ownable {
         require(token.transfer(_to, total), "Error sending tokens");
     }
 
-    function getStatus(bytes32 _id) external view returns (uint256) {
+    function getStatus(bytes32 _id) external view returns (Status) {
         Debt storage debt = debts[_id];
         if (debt.error) {
-            return 4;
+            return Status.ERROR;
         } else {
             (bool success, uint256 result) = _safeGasStaticCall(
                 address(debt.model),
@@ -671,7 +672,7 @@ contract DebtEngine is ERC721Base, Ownable {
                     _id
                 )
             );
-            return success ? result : 4;
+            return success ? Status(result) : Status.ERROR;
         }
     }
 
