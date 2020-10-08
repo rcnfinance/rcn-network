@@ -1,7 +1,7 @@
 /* solium-disable */
 pragma solidity ^0.5.11;
 
-import "../../contracts/utils/SafeMath.sol";
+import "../utils/SafeMath.sol";
 
 
 /*  ERC 20 token */

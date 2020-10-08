@@ -305,7 +305,7 @@ contract ERC721Base is ERC165 {
 
         // Resize the array
         _assetsOf[_from][lastAssetIndex] = 0;
-        _assetsOf[_from].length--;
+        _assetsOf[_from].length--; // Cant underflow, checks if is the owner have the asset on _doTransferFrom
 
         // Change owner
         _holderOf[_assetId] = _to;
