@@ -23,11 +23,8 @@ async function getETHBalance (address) {
     return bn(await web3.eth.getBalance(address));
 }
 
-async function toETHConsume (tx) {
-    const gasUsed = bn(tx.receipt.gasUsed);
-    const gasPrice = bn(await web3.eth.getGasPrice());
-
-    return gasUsed.mul(gasPrice);
+async function toGasUsed (tx) {
+    return bn(tx.receipt.gasUsed);
 }
 
 contract('Test WETH manager for collateral cosigner', function (accounts) {
@@ -202,6 +199,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                 {
                     from: creator,
                     value: entryAmount,
+                    gasPrice: 1,
                 }
             );
 
@@ -211,7 +209,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             expect(await getETHBalance(collWETHManager.address)).to.eq.BN(0);
             expect(await getETHBalance(weth9.address)).to.eq.BN(prevETHBalWETH.add(entryAmount));
             expect(await getETHBalance(creator)).to.eq.BN(
-                prevETHBalCreator.sub(entryAmount).sub(await toETHConsume(tx))
+                prevETHBalCreator.sub(entryAmount).sub(await toGasUsed(tx))
             );
         });
     });
@@ -227,6 +225,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                 {
                     from: depositer,
                     value: amount,
+                    gasPrice: 1,
                 }
             );
 
@@ -234,7 +233,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             expect(await getETHBalance(collWETHManager.address)).to.eq.BN(0);
             expect(await getETHBalance(weth9.address)).to.eq.BN(prevETHBalWETH.add(amount));
             expect(await getETHBalance(depositer)).to.eq.BN(
-                prevETHBalDepositer.sub(amount).sub(await toETHConsume(tx))
+                prevETHBalDepositer.sub(amount).sub(await toGasUsed(tx))
             );
         });
     });
@@ -254,14 +253,14 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                 borrower,
                 amount,
                 [],
-                { from: creator }
+                { from: creator, gasPrice: 1 }
             );
 
             // Check balance
             expect(await getETHBalance(collWETHManager.address)).to.eq.BN(0);
             expect(await getETHBalance(weth9.address)).to.eq.BN(prevETHBalWETH.sub(amount));
             expect(await getETHBalance(borrower)).to.eq.BN(prevETHBalBorrower.add(amount));
-            expect(await getETHBalance(creator)).to.eq.BN(prevETHBalCreator.sub(await toETHConsume(tx)));
+            expect(await getETHBalance(creator)).to.eq.BN(prevETHBalCreator.sub(await toGasUsed(tx)));
         });
         it('Try Withdraw WETH of an entry without authorization', async function () {
             const ids = await createDefaultCollateral();
