@@ -42,6 +42,9 @@ contract ERC721Base is ERC165 {
         _name = name;
         _symbol = symbol;
 
+        emit SetName(name);
+        emit SetSymbol(symbol);
+
         _registerInterface(ERC_721_INTERFACE);
         _registerInterface(ERC_721_METADATA_INTERFACE);
         _registerInterface(ERC_721_ENUMERATION_INTERFACE);
@@ -56,6 +59,8 @@ contract ERC721Base is ERC165 {
     /// Note: the ERC-165 identifier for this interface is 0x5b5e139f.
 
     event SetURIProvider(address _uriProvider);
+    event SetName(string _name);
+    event SetSymbol(string _symbol);
 
     string private _name;
     string private _symbol;
@@ -88,6 +93,18 @@ contract ERC721Base is ERC165 {
         emit SetURIProvider(address(_provider));
         _uriProvider = _provider;
         return true;
+    }
+
+    // @notice Updates the descriptive name for a collection of NFTs in this contract
+    function _setName(string memory _newName) internal {
+        emit SetName(_newName);
+        _name = _newName;
+    }
+
+    // @notice Updates the abbreviated name for NFTs in this contract
+    function _setSymbol(string memory _newSymbol) internal {
+        emit SetSymbol(_newSymbol);
+        _symbol = _newSymbol;
     }
 
     // ///
