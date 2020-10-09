@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../interfaces/RateOracle.sol";
 import "../../../interfaces/IERC20.sol";
@@ -45,7 +45,7 @@ library CollateralLib {
         @param _liquidationRatio collateral/debt ratio that triggers a liquidation
         @param _balanceRatio collateral/debt ratio aimed during collateral liquidation
 
-        @return The new Collateral Entry in memory
+        @return _col The new Collateral Entry in memory
     */
     function create(
         RateOracle _oracle,
@@ -113,8 +113,8 @@ library CollateralLib {
         @param _col Collateral entry in memory
         @param _debt Current total debt in `base`
 
-        @return The amount required to be bought and an estimation of the expected
-            used collateral
+        @return _sell The amount required to be bought
+        @return _buy An estimation of the expected used collateral
     */
     function balance(
         Entry memory _col,

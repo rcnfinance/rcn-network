@@ -14,7 +14,7 @@ pragma solidity ^0.6.6;
     should be able to call the "claim" method to receive the benefit; the cosigner can define aditional requirements to
     call this method, like the transfer of the ownership of the loan.
 */
-abstract contract Cosigner {
+abstract contract CosignerBasalt {
     uint256 public constant VERSION = 2;
 
     /**

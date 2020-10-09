@@ -1,6 +1,6 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
-import "../utils/IWETH9.sol";
+import "../../../interfaces/IWETH9.sol";
 import "./Collateral.sol";
 
 import "../../../commons/Ownable.sol";
@@ -60,7 +60,7 @@ contract CollateralWETHManager is Ownable {
         @param _liquidationRatio collateral/debt ratio that triggers the execution of the margin call, encoded as Fixed64x32
         @param _balanceRatio Target collateral/debt ratio expected after a margin call execution, encoded as Fixed64x32
 
-        @return The id of the new collateral entry and ERC721 token
+        @return entryId The id of the new collateral entry and ERC721 token
     */
     function create(
         bytes32 _debtId,
@@ -146,5 +146,6 @@ contract CollateralWETHManager is Ownable {
     /**
         @dev Use to receive ETH
     */
-    function () external payable { }
+    fallback() external payable { }
+    receive() external payable { }
 }

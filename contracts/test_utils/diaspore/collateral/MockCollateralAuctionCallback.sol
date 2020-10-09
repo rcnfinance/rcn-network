@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../../core/diaspore/cosigner/interfaces/CollateralAuctionCallback.sol";
 import "../../../commons/Ownable.sol";
@@ -15,7 +15,7 @@ contract MockCollateralAuctionCallback is CollateralAuctionCallback {
         uint256 _leftover,
         uint256 _received,
         bytes calldata _data
-    ) external {
+    ) external override {
         lastId = _id;
         lastLeftover = _leftover;
         lastReceived = _received;

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../../interfaces/IERC20.sol";
 import "../interfaces/Cosigner.sol";
@@ -137,7 +137,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         loanManager = _loanManager;
         loanManagerToken = loanManager.token();
         // Invalid entry of index 0
-        entries.length ++;
+        entries.push();
         // Create auction contract
         auction = _auction;
     }
@@ -170,7 +170,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         @param _liquidationRatio collateral/debt ratio that triggers the execution of the margin call, encoded as Fixed64x32
         @param _balanceRatio Target collateral/debt ratio expected after a margin call execution, encoded as Fixed64x32
 
-        @return The id of the new collateral entry and ERC721 token
+        @return entryId The id of the new collateral entry and ERC721 token
     */
     function create(
         address _owner,
@@ -189,7 +189,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         IERC20 token = _oracle == RateOracle(0) ? loanManagerToken : IERC20(_oracle.token());
 
         // Create the entry, and push on entries array
-        entryId = entries.push(
+        entries.push(
             CollateralLib.create(
                 _oracle,
                 token,
@@ -198,7 +198,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
                 _liquidationRatio,
                 _balanceRatio
             )
-        ) - 1;
+        );
+        entryId = entries.length - 1;
 
         // Pull the ERC20 tokens
         require(token.safeTransferFrom(_owner, address(this), _amount), "collateral: error pulling tokens from owner");
@@ -396,7 +397,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _leftover,
         uint256 _received,
         bytes calldata _data
-    ) external nonReentrant() {
+    ) external override nonReentrant() {
         // This method is an internal callback and should only
         // be called by the auction contract
         require(msg.sender == address(auction), "collateral: caller should be the auctioner");
@@ -473,7 +474,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256,
         bytes calldata,
         bytes calldata
-    ) external view returns (uint256) {
+    ) external override view returns (uint256) {
         return 0;
     }
 
@@ -483,7 +484,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         @return An URL string
     */
-    function url() external view returns (string memory) {
+    function url() external override view returns (string memory) {
         return iurl;
     }
 
@@ -506,7 +507,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         uint256 _debtId,
         bytes calldata _data,
         bytes calldata _oracleData
-    ) external nonReentrant() returns (bool) {
+    ) external override nonReentrant() returns (bool) {
         bytes32 debtId = bytes32(_debtId);
 
         // Validate debtId, can't be zero
@@ -563,7 +564,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         address,
         uint256 _debtId,
         bytes calldata _oracleData
-    ) external nonReentrant() returns (bool) {
+    ) external override nonReentrant() returns (bool) {
         bytes32 debtId = bytes32(_debtId);
         uint256 entryId = debtToEntry[debtId];
         require(entryId != 0, "collateral: collateral not found for debtId");
@@ -740,7 +741,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         @param _data Arbitrary data field requested by the
             collateral entry oracle, may be required to retrieve the rate
 
-        @return The total amount required to be paid, in `loanManagerToken` tokens
+        @return debtInTokens The total amount required to be paid, in `loanManagerToken` tokens
     */
     function _debtInTokens(
         bytes32 debtId,
@@ -767,7 +768,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         @param _marketValue Current value of the `_targetAmount` on collateral tokens,
             provided by the oracle of the entry. The auction reaches this rate after 10 minutes
 
-        @return The ID of the created auction
+        @return _auctionId The ID of the created auction
     */
     function _triggerAuction(
         uint256 _entryId,

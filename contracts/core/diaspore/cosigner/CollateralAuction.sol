@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../../interfaces/IERC20.sol";
 import "../../../utils/SafeERC20.sol";
@@ -61,7 +61,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     constructor(IERC20 _baseToken) public {
         baseToken = _baseToken;
         // Auction IDs start at 1
-        auctions.length++;
+        auctions.push();
     }
 
     /**
@@ -91,7 +91,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
             after this limit is reached, the requested `_amount` starts to reduce
         @param _amount Amount requested in exchange for `fromToken` until `_limit is reached`
 
-        @return The ID of the created auction
+        @return id The id of the created auction
     */
     function create(
         IERC20 _fromToken,
@@ -113,14 +113,15 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         require(_fromToken.safeTransferFrom(msg.sender, address(this), _limit), "auction: error pulling _fromToken");
 
         // Create and store the auction
-        id = auctions.push(Auction({
+        auctions.push(Auction({
             fromToken: _fromToken,
             startTime: uint64(_now()),
             limitDelta: limitDelta,
             startOffer: _start,
             amount: _amount,
             limit: _limit
-        })) - 1;
+        }));
+        id = auctions.length - 1;
 
         emit CreatedAuction(
             id,
@@ -212,7 +213,8 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         @param _id ID of the auction
 
-        @return How much is being requested and how much is being offered
+        @return selling How much is being requested
+        @return requesting How much is being offered
     */
     function offer(
         uint256 _id
@@ -227,7 +229,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         @return The current Unix timestamp
     */
-    function _now() internal view returns (uint256) {
+    function _now() internal virtual view returns (uint256) {
         return now;
     }
 
@@ -265,7 +267,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         @param _auction Auction in memory
 
-        @return How much `fromToken` is being offered
+        @return _amount How much `fromToken` is being offered
     */
     function _selling(
         Auction memory _auction
@@ -292,7 +294,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         @param _auction Auction in memory
 
-        @return How much `baseToken` are being requested
+        @return _amount How much `baseToken` are being requested
     */
     function _requesting(
         Auction memory _auction
