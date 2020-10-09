@@ -15,7 +15,7 @@ const {
     getTxTime,
     increaseTime,
     almostEqual,
-} = require('../Helper.js');
+} = require('./Helper.js');
 
 contract('Installments model test', function (accounts) {
     let model;

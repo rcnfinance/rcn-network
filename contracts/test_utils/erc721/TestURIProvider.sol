@@ -4,7 +4,7 @@ import "../../utils/ERC721Base.sol";
 
 
 contract TestTokenURI {
-    function tokenURI(uint256) external view returns (string memory) {
+    function tokenURI(uint256) external pure returns (string memory) {
         return "https://ripioCreditNetwork/debtId";
     }
 }

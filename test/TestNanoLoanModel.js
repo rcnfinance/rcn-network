@@ -8,7 +8,7 @@ const {
     toInterestRate,
     increaseTime,
     toBytes32,
-} = require('../Helper.js');
+} = require('./Helper.js');
 
 function maxUint (base) {
     return bn('2').pow(bn(base)).sub(bn('1'));

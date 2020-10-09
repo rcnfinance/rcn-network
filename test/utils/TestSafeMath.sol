@@ -20,6 +20,14 @@ contract TestSafeMathMock {
     function mult(uint256 a, uint256 b) external returns (uint256 c) {
         c = a.mult(b);
     }
+
+    function div(uint256 a, uint256 b) external returns (uint256 c) {
+        c = a.div(b);
+    }
+
+    function multdiv(uint256 a, uint256 b, uint256 c) external returns (uint256 d) {
+        d = a.multdiv(b, c);
+    }
 }
 
 
@@ -93,6 +101,49 @@ contract TestSafeMath {
                 safeMath.mult.selector,
                 0 - 1,
                 0 - 1
+            )
+        );
+
+        Assert.isFalse(success, "Call should fail");
+    }
+
+    function testDiv() external {
+        Assert.equal(uint256(0).div(1234), 0, "");
+        Assert.equal(uint256(10).div(3), 3, "");
+        Assert.equal(uint256(10).div(10), 1, "");
+
+        // Zero div tests
+        bool success;
+        (success,) = address(safeMath).call(
+            abi.encodeWithSelector(
+                safeMath.div.selector,
+                0,
+                0
+            )
+        );
+
+        Assert.isFalse(success, "Call should fail");
+    }
+
+    function testMultDiv() external {
+        Assert.equal(uint256(0).multdiv(20, 3), 0, "");
+        Assert.equal(uint256(20).multdiv(0, 3), 0, "");
+        Assert.equal(uint256(34).multdiv(13, 3), 147, "");
+        Assert.equal(uint256(10).multdiv(20, 5), 40, "");
+        Assert.equal(uint256(10).multdiv(10, 3), 33, "");
+        Assert.equal(uint256(20).multdiv(10, 3), 66, "");
+        Assert.equal(uint256(30).multdiv(30, 31), 29, "");
+        Assert.equal(uint256(30).multdiv(32, 31), 30, "");
+        Assert.equal(uint256(32).multdiv(32, 31), 33, "");
+
+        // Zero div tests
+        bool success;
+        (success,) = address(safeMath).call(
+            abi.encodeWithSelector(
+                safeMath.multdiv.selector,
+                0,
+                0,
+                0
             )
         );
 

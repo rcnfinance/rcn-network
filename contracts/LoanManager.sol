@@ -9,9 +9,10 @@ import "./utils/ImplementsInterface.sol";
 import "./utils/IsContract.sol";
 import "./utils/SafeMath.sol";
 import "./utils/BytesUtils.sol";
+import "./interfaces/IDebtStatus.sol";
 
 
-contract LoanManager is BytesUtils {
+contract LoanManager is BytesUtils, IDebtStatus {
     using ImplementsInterface for address;
     using IsContract for address;
     using SafeMath for uint256;
@@ -78,9 +79,9 @@ contract LoanManager is BytesUtils {
     function getDueTime(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getDueTime(bytes32(_id)); }
     function getClosingObligation(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getClosingObligation(bytes32(_id)); }
     function getLoanData(uint256 _id) external view returns (bytes memory) { return requests[bytes32(_id)].loanData; }
-    function getStatus(uint256 _id) external view returns (uint256) {
+    function getStatus(uint256 _id) external view returns (Status) {
         Request storage request = requests[bytes32(_id)];
-        return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
+        return request.open ? Status.NULL : debtEngine.getStatus(bytes32(_id));
     }
     function ownerOf(uint256 _id) external view returns (address) {
         return debtEngine.ownerOf(_id);
@@ -101,9 +102,9 @@ contract LoanManager is BytesUtils {
     function getDueTime(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getDueTime(bytes32(_id)); }
     function getClosingObligation(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getClosingObligation(bytes32(_id)); }
     function getLoanData(bytes32 _id) external view returns (bytes memory) { return requests[_id].loanData; }
-    function getStatus(bytes32 _id) external view returns (uint256) {
+    function getStatus(bytes32 _id) external view returns (Status) {
         Request storage request = requests[_id];
-        return request.open ? 0 : debtEngine.getStatus(bytes32(_id));
+        return request.open ? Status.NULL : debtEngine.getStatus(bytes32(_id));
     }
     function ownerOf(bytes32 _id) external view returns (address) {
         return debtEngine.ownerOf(uint256(_id));
@@ -390,7 +391,7 @@ contract LoanManager is BytesUtils {
         // Call the cosigner
         if (_cosigner != address(0)) {
             uint256 auxSalt = request.salt;
-            request.cosigner = address(uint256(_cosigner) + 2);
+            request.cosigner = address(uint256(_cosigner) + 2); // Cant overflow
             request.salt = _cosignerLimit; // Risky ?
             require(
                 Cosigner(_cosigner).requestCosign(
@@ -436,7 +437,7 @@ contract LoanManager is BytesUtils {
         Request storage request = requests[bytes32(_id)];
         require(request.cosigner != address(0), "Cosigner 0x0 is not valid");
         require(request.expiration > now, "Request is expired");
-        require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid");
+        require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid"); // Cant overflow
         request.cosigner = msg.sender;
         if (_cost != 0){
             require(request.salt >= _cost, "Cosigner cost exceeded");

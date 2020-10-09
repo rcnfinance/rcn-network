@@ -6,26 +6,27 @@ import "../utils/BytesUtils.sol";
 
 
 contract TestRateOracle is BytesUtils, ERC165, RateOracle {
-    bytes32 public dummyData1 = keccak256("test_oracle_1");
-    bytes32 public dummyData2 = keccak256("test_oracle_2");
+    address internal _token;
 
-    constructor() public {
-        _registerInterface(RATE_ORACLE_INTERFACE);
+    function symbol() external override view returns (string memory) {}
+
+    function name() external override view returns (string memory) {}
+
+    function decimals() external override view returns (uint256) {}
+
+    function setToken(address token) external returns (address) {
+        _token = token;
     }
 
-    function symbol() external view override returns (string memory) {}
+    function token() external override view returns (address) {
+        return _token;
+    }
 
-    function name() external view override returns (string memory) {}
+    function currency() external override view returns (bytes32) {}
 
-    function decimals() external view override returns (uint256) {}
+    function maintainer() external override view returns (string memory) {}
 
-    function token() external view override returns (address) {}
-
-    function currency() external view override returns (bytes32) {}
-
-    function maintainer() external view override returns (string memory) {}
-
-    function url() external view override returns (string memory) {}
+    function url() external override view returns (string memory) {}
 
     function encodeRate(
         uint128 _tokens,
@@ -35,8 +36,22 @@ contract TestRateOracle is BytesUtils, ERC165, RateOracle {
     }
 
     function readSample(bytes calldata _data) external override returns (uint256 tokens, uint256 equivalent) {
-        (bytes32 btokens, bytes32 bequivalent) = decode(_data, 16, 16);
-        tokens = uint256(btokens);
-        equivalent = uint256(bequivalent);
+        if (_data.length != 0) {
+            (bytes32 btokens, bytes32 bequivalent) = decode(_data, 16, 16);
+            tokens = uint256(btokens);
+            equivalent = uint256(bequivalent);
+        } else {
+            tokens = 1000000000000000000;
+            equivalent = RCNequivalent;
+        }
+    }
+    // Used by collateral tests
+    uint256 public RCNequivalent;
+
+    event SetEquivalent(uint256 _equivalent);
+
+    function setEquivalent(uint256 _equivalent) external {
+        RCNequivalent = _equivalent;
+        emit SetEquivalent(_equivalent);
     }
 }

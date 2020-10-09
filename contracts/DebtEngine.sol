@@ -2,13 +2,14 @@ pragma solidity ^0.6.6;
 
 import "./interfaces/IERC20.sol";
 import "./interfaces/Model.sol";
+import "./interfaces/IDebtStatus.sol";
 import "./interfaces/RateOracle.sol";
 import "./utils/IsContract.sol";
 import "./utils/ERC721Base.sol";
 import "./utils/Ownable.sol";
 
 
-contract DebtEngine is ERC721Base, Ownable {
+contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
     using IsContract for address;
 
     event Created(
@@ -115,7 +116,7 @@ contract DebtEngine is ERC721Base, Ownable {
         address _oracle,
         bytes calldata _data
     ) external returns (bytes32 id) {
-        uint256 nonce = nonces[msg.sender]++;
+        uint256 nonce = nonces[msg.sender]++; // Overflow when a user create (2**256)-1 debts
         id = keccak256(
             abi.encodePacked(
                 uint8(1),
@@ -659,10 +660,10 @@ contract DebtEngine is ERC721Base, Ownable {
         require(token.transfer(_to, total), "Error sending tokens");
     }
 
-    function getStatus(bytes32 _id) external view returns (uint256) {
+    function getStatus(bytes32 _id) external view returns (Status) {
         Debt storage debt = debts[_id];
         if (debt.error) {
-            return 4;
+            return Status.ERROR;
         } else {
             (bool success, uint256 result) = _safeGasStaticCall(
                 address(debt.model),
@@ -671,7 +672,7 @@ contract DebtEngine is ERC721Base, Ownable {
                     _id
                 )
             );
-            return success ? result : 4;
+            return success ? Status(result) : Status.ERROR;
         }
     }
 
@@ -703,7 +704,7 @@ contract DebtEngine is ERC721Base, Ownable {
         bytes memory _data
     ) internal returns (bool success, bytes32 result) {
         bytes memory returnData;
-        uint256 _gas = (block.gaslimit * 80) / 100;
+        uint256 _gas = (block.gaslimit * 80) / 100; // Cant overflow, the gas limit * 80 is lower than (2**256)-1
 
         (success, returnData) = _contract.call{ gas: gasleft() < _gas ? gasleft() : _gas }(_data);
 

@@ -1,7 +1,7 @@
 pragma solidity ^0.6.6;
 
 import "../interfaces/Model.sol";
-import "../interfaces/ModelDescriptor.sol";
+import "./interfaces/ModelDescriptor.sol";
 import "../utils/Ownable.sol";
 import "../utils/ERC165.sol";
 import "../utils/SafeMath.sol";
@@ -60,7 +60,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         uint128 interest;
         uint128 punitoryInterest;
         uint64 interestTimestamp;
-        uint8 status;
+        Status status;
     }
 
     modifier onlyEngine {
@@ -157,22 +157,22 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         // and we check the sum of duesIn and now in the previus requiere
     }
 
-    function getStatus(bytes32 id) external view override returns (uint256) {
+    function getStatus(bytes32 id) external override view returns (Status) {
         return states[id].status;
     }
 
-    function getPaid(bytes32 id) external view override returns (uint256) {
+    function getPaid(bytes32 id) external override view returns (uint256) {
         return states[id].paid;
     }
 
-    function getObligation(bytes32 id, uint64 timestamp) external view override returns (uint256 amount, bool defined) {
+    function getObligation(bytes32 id, uint64 timestamp) external override view returns (uint256 amount, bool defined) {
         amount = _getObligation(id, timestamp);
         defined = timestamp == now || timestamp <= states[id].interestTimestamp;
     }
 
     function _getObligation(bytes32 id, uint256 timestamp) internal view returns (uint256 total){
         State storage state = states[id];
-        if (state.status == STATUS_PAID)
+        if (state.status == Status.PAID)
             return 0;
         Config storage config = configs[id];
 
@@ -196,12 +196,12 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         total = total.add(calcInterest).add(state.interest).add(state.punitoryInterest);
     }
 
-    function getClosingObligation(bytes32 id) external view override returns (uint256 total){
+    function getClosingObligation(bytes32 id) external override view returns (uint256 total){
         return _getObligation(id, now);
     }
 
-    function getDueTime(bytes32 id) external view override returns (uint256) {
-        return states[id].status == STATUS_PAID ? 0 : configs[id].dueTime;
+    function getDueTime(bytes32 id) external override view returns (uint256) {
+        return states[id].status == Status.PAID ? 0 : configs[id].dueTime;
     }
 
     function getFinalTime(bytes32 id) external override view returns (uint256) {
@@ -275,7 +275,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     function addPaid(bytes32 id, uint256 amount) external override onlyEngine returns (uint256 toPay) {
         State storage state = states[id];
 
-        require(state.status != STATUS_PAID, "The loan status should not be paid");
+        require(state.status != Status.PAID, "The loan status should not be paid");
         _addInterest(id, now);
 
         uint256 totalDebt = configs[id].amount.add(state.interest).add(state.punitoryInterest);
@@ -288,8 +288,8 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         emit AddedPaid(id, newPay);
 
         if (totalDebt - newPay == 0) { // check overflow in min
-            state.status = uint8(STATUS_PAID);
-            emit ChangedStatus(id, now, uint8(STATUS_PAID));
+            state.status = Status.PAID;
+            emit ChangedStatus(id, now, Status.PAID);
         }
     }
 

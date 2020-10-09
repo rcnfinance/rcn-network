@@ -1,6 +1,7 @@
 pragma solidity ^0.6.6;
 
 import "./IERC165.sol";
+import "./IDebtStatus.sol";
 
 
 /**
@@ -17,7 +18,7 @@ import "./IERC165.sol";
 
     @author Agustin Aguilar
 */
-abstract contract Model is IERC165 {
+abstract contract Model is IERC165, IDebtStatus {
     // ///
     // Events
     // ///
@@ -33,7 +34,7 @@ abstract contract Model is IERC165 {
         @param _timestamp Timestamp of the registry
         @param _status New status of the registry
     */
-    event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+    event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, Status _status);
 
     /**
         @dev This emits when the obligation of debt change.
@@ -54,7 +55,7 @@ abstract contract Model is IERC165 {
     /**
         @param _timestamp Timestamp of the registry
     */
-    event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
+    event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, Status _status);
 
     /**
         @param _timestamp Timestamp of the registry
@@ -81,10 +82,6 @@ abstract contract Model is IERC165 {
 
     // Model interface selector
     bytes4 internal constant MODEL_INTERFACE = 0xaf498c35;
-
-    uint256 public constant STATUS_ONGOING = 1;
-    uint256 public constant STATUS_PAID = 2;
-    uint256 public constant STATUS_ERROR = 4;
 
     // ///
     // Meta
@@ -146,7 +143,7 @@ abstract contract Model is IERC165 {
 
         @return status The current status value
     */
-    function getStatus(bytes32 id) external view virtual returns (uint256 status);
+    function getStatus(bytes32 id) external view virtual returns (Status status);
 
     /**
         Returns the total paid amount on the registry.
