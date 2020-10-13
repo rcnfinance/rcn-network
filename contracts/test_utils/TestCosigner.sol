@@ -1,13 +1,13 @@
 /* solium-disable */
 pragma solidity ^0.6.6;
 
-import "../../contracts/core/basalt/interfaces/CosignerBasalt.sol";
-import "../../contracts/utils/BytesUtils.sol";
-import "../../contracts/core/basalt/interfaces/Engine.sol";
-import "../../contracts/interfaces/IERC20.sol";
+import "../LoanManager.sol";
+import "../interfaces/Cosigner.sol";
+import "../interfaces/IERC20.sol";
+import "../utils/BytesUtils.sol";
 
 
-contract TestCosigner is CosignerBasalt, BytesUtils {
+contract TestCosigner is Cosigner, BytesUtils {
     bytes32 public dummyCost = bytes32(uint256(1 * 10**18));
     bytes public data = buildData(keccak256("test_oracle"), dummyCost);
     bytes public noCosignData = buildData(keccak256("return_true_no_cosign"), 0);
@@ -53,20 +53,20 @@ contract TestCosigner is CosignerBasalt, BytesUtils {
     }
 
     function requestCosign(
-        address engine,
-        uint256 index,
+        address _loanManager,
+        uint256 _index,
         bytes memory _data,
         bytes memory
     ) public override returns (bool) {
         if (readBytes32(_data, 0) == keccak256("custom_data")) {
-            require(Engine(engine).cosign(uint256(customId), customCost));
+            require(LoanManager(_loanManager).cosign(uint256(customId), customCost));
             customId = 0x0;
             customCost = 0;
             return true;
         }
 
         if (readBytes32(_data, 0) == keccak256("test_oracle")) {
-            require(Engine(engine).cosign(index, uint256(readBytes32(_data, 1))));
+            require(LoanManager(_loanManager).cosign(_index, uint256(readBytes32(_data, 1))));
             return true;
         }
 

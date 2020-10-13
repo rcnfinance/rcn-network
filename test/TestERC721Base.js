@@ -3,7 +3,7 @@ const TestERC721Receiver = artifacts.require('TestERC721Receiver');
 const TestERC721ReceiverLegacy = artifacts.require('TestERC721ReceiverLegacy');
 const TestERC721ReceiverLegacyRaw = artifacts.require('TestERC721ReceiverLegacyRaw');
 const TestERC721ReceiverMultiple = artifacts.require('TestERC721ReceiverMultiple');
-const TestNoReceive = artifacts.require('TokenLockable');
+const TestNoReceive = artifacts.require('TestToken');
 
 const {
     expect,

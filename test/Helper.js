@@ -195,10 +195,10 @@ module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
     assert.isTrue(diff.lt(margin), reason);
 };
 
-module.exports.balanceSnap = async (token, address, account = "") => {
+module.exports.balanceSnap = async (token, address, account = '') => {
     const snapBalance = await token.balanceOf(address);
     return {
-        requireConstant: async function() {
+        requireConstant: async () => {
             expect(
                 snapBalance,
                 `${account} balance should remain constant`
@@ -206,7 +206,7 @@ module.exports.balanceSnap = async (token, address, account = "") => {
                 await token.balanceOf(address)
             );
         },
-        requireIncrease: async function(delta) {
+        requireIncrease: async (delta) => {
             expect(
                 snapBalance.add(delta),
                 `${account} should increase by ${delta}`
@@ -214,7 +214,7 @@ module.exports.balanceSnap = async (token, address, account = "") => {
                 await token.balanceOf(address)
             );
         },
-        requireDecrease: async function(delta) {
+        requireDecrease: async (delta) => {
             expect(
                 snapBalance.sub(delta),
                 `${account} should decrease by ${delta}`
@@ -222,8 +222,8 @@ module.exports.balanceSnap = async (token, address, account = "") => {
                 await token.balanceOf(address)
             );
         },
-        restore: async function() {
+        restore: async () => {
             await token.setBalance(address, snapBalance);
-        }
-    }
-}
+        },
+    };
+};
