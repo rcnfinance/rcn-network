@@ -100,7 +100,7 @@ contract CollateralWETHManager is Ownable {
         @dev Convert the ETH to WETH and approve collateral to use the WETH
     */
     function depositApprove() internal {
-        weth.deposit{ value: msg.value }();
+        weth.deposit.value(msg.value)();
         weth.approve(address(collateral), msg.value);
     }
 
