@@ -698,7 +698,6 @@ contract DebtEngine is ERC721Base, Ownable {
         require(_to != address(0x0), "_to should not be 0x0");
         require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
-        require(debt.balance >= _amount, "Debt balance is not enought");
         debt.balance = uint128(uint256(debt.balance).sub(_amount));
         require(token.transfer(_to, _amount), "Error sending tokens");
         emit Withdrawn({
