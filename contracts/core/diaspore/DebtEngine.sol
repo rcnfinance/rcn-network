@@ -309,6 +309,10 @@ contract DebtEngine is ERC721Base, Ownable {
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amountToPay);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= _amountToPay, "Paid can't be more than requested");
 
         RateOracle oracle = RateOracle(debt.oracle);
@@ -368,6 +372,10 @@ contract DebtEngine is ERC721Base, Ownable {
 
         // Call addPaid on model
         paid = _safePay(id, debt.model, available);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= available, "Paid can't exceed available");
 
         // Convert back to required pull amount
@@ -509,6 +517,10 @@ contract DebtEngine is ERC721Base, Ownable {
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= _amount, "Paid can't be more than requested");
 
         // Get token amount to use as payment
