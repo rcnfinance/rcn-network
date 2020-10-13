@@ -1,9 +1,9 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
-import "./Ownable.sol";
+import "./OwnableBasalt.sol";
 
 
-contract SimpleDelegable is Ownable {
+contract SimpleDelegable is OwnableBasalt {
     mapping(address => bool) delegates;
 
     modifier onlyDelegate() {

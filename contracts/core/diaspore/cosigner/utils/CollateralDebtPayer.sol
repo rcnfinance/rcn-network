@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../../../interfaces/TokenConverter.sol";
 import "../../../../interfaces/IERC20.sol";
@@ -70,13 +70,13 @@ contract CollateralDebtPayer is CollateralHandler {
         @param _total Total amount of collateral available
         @param _oracleData bytes array that should contain an encoded debt payment
 
-        @return The surplus of collateral, that should be taken back by the Collateral contract
+        @return surplus The surplus of collateral, that should be taken back by the Collateral contract
     */
     function handle(
         uint256 _entryId,
         uint256 _total,
         bytes calldata _oracleData
-    ) external returns (uint256 surplus) {
+    ) external override returns (uint256 surplus) {
         Action memory action = _newAction();
 
         // Encode all initial parameters on action memory struct
@@ -129,7 +129,7 @@ contract CollateralDebtPayer is CollateralHandler {
 
         @param _action memory struct with the details of the operation
 
-        @return How much RCN tokens have been bought
+        @return bought How much RCN tokens have been bought
     */
     function _convert(
         Action memory _action
@@ -161,7 +161,7 @@ contract CollateralDebtPayer is CollateralHandler {
         @param _action memory struct with the details of the operation
         @param _paying amount of RCN tokens to be used during the payment
 
-        @return How much tokes were used to paid the loan, if the loan
+        @return paid How much tokes were used to paid the loan, if the loan
             is totally paid, it will be below `_paying`
     */
     function _pay(

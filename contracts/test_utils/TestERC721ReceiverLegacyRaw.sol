@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "./IERC721ReceiverLegacy.sol";
 
@@ -13,7 +13,7 @@ contract TestERC721ReceiverLegacyRaw is IERC721ReceiverLegacy {
         address _from,
         uint256 _tokenId,
         bytes calldata _userData
-    ) external returns (bytes4) {
+    ) external override returns (bytes4) {
         lastFrom = _from;
         lastTokenId = _tokenId;
         lastData = _userData;

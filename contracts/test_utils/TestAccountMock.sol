@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 
 contract TestAccountMock {
@@ -6,28 +6,36 @@ contract TestAccountMock {
         address _to,
         bytes memory _data
     ) public returns (bytes32) {
-        (uint256 success, bytes32 result) = _safeCall(_to, _data);
-        require(success == 1, "Tx reverted");
+        (bool success, bytes32 result) = _safeGasCall(
+            _to,
+            _data
+        );
+
+        require(success, "Tx reverted");
+
         return result;
     }
 
-    function _safeCall(
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
+     * relaxing the requirement on the return value
+     *
+     * @param _contract The contract that receives the call
+     * @param _data The call data
+     *
+     * @return success True if the call not reverts
+     * @return result the result of the call
+     */
+    function _safeGasCall(
         address _contract,
         bytes memory _data
-    ) internal returns (uint256 success, bytes32 result) {
-        assembly {
-            let x := mload(0x40)
-            success := call(
-                            gas,                 // Send almost all gas
-                            _contract,            // To addr
-                            0,                    // Send ETH
-                            add(0x20, _data),     // Input is data past the first 32 bytes
-                            mload(_data),         // Input size is the lenght of data
-                            x,                    // Store the ouput on x
-                            0x20                  // Output is a single bytes32, has 32 bytes
-                        )
+    ) internal returns (bool success, bytes32 result) {
+        bytes memory returnData;
+        uint256 _gas = (block.gaslimit * 80) / 100;
 
-            result := mload(x)
-        }
+        (success, returnData) = _contract.call{ gas: gasleft() < _gas ? gasleft() : _gas }(_data);
+
+        if (returnData.length > 0)
+            result = abi.decode(returnData, (bytes32));
     }
 }

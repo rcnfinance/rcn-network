@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "./IERC721Receiver.sol";
 
@@ -17,7 +17,7 @@ contract TestERC721Receiver is IERC721Receiver {
         address _from,
         uint256 _tokenId,
         bytes calldata _userData
-    ) external returns (bytes4) {
+    ) external override returns (bytes4) {
         emit Received(
             _operator,
             _from,

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../interfaces/IERC20.sol";
 import "./interfaces/Model.sol";
@@ -534,7 +534,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         @param _tokens How many tokens
         @param _equivalent How much currency _tokens equivales
 
-        @return Amount in tokens
+        @return _result Amount in tokens
     */
     function _toToken(
         uint256 _amount,
@@ -683,7 +683,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         bytes memory returnData;
         uint256 _gas = (block.gaslimit * 80) / 100;
 
-        (success, returnData) = _contract.staticcall.gas(gasleft() < _gas ? gasleft() : _gas)(_data);
+        (success, returnData) = _contract.staticcall{ gas: gasleft() < _gas ? gasleft() : _gas }(_data);
 
         if (returnData.length > 0)
             result = abi.decode(returnData, (uint256));
@@ -692,9 +692,12 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
     /**
      * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract),
      * relaxing the requirement on the return value
+     *
      * @param _contract The contract that receives the call
      * @param _data The call data
-     * @return True if the call not reverts and the result of the call
+     *
+     * @return success True if the call not reverts
+     * @return result the result of the call
      */
     function _safeGasCall(
         address _contract,
@@ -703,7 +706,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         bytes memory returnData;
         uint256 _gas = (block.gaslimit * 80) / 100; // Cant overflow, the gas limit * 80 is lower than (2**256)-1
 
-        (success, returnData) = _contract.call.gas(gasleft() < _gas ? gasleft() : _gas)(_data);
+        (success, returnData) = _contract.call{ gas: gasleft() < _gas ? gasleft() : _gas }(_data);
 
         if (returnData.length > 0)
             result = abi.decode(returnData, (bytes32));

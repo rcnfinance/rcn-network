@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../core/diaspore/interfaces/LoanCallback.sol";
 
@@ -42,7 +42,7 @@ contract TestLoanCallback is LoanCallback {
     // Loan Callback
     // ///
 
-    function scheme() external view returns (string memory) {
+    function scheme() external view override returns (string memory) {
         return "";
     }
 
@@ -50,7 +50,7 @@ contract TestLoanCallback is LoanCallback {
         bytes32 _id,
         address _lender,
         bytes calldata _data
-    ) external returns (bool) {
+    ) external override returns (bool) {
         uint256 initGas = gasleft();
         uint256 targetGas = burnGas;
 
@@ -68,11 +68,11 @@ contract TestLoanCallback is LoanCallback {
     }
 
     function acceptsLoan(
-        address _engine,
-        bytes32 _id,
-        address _lender,
-        bytes calldata _data
-    ) external view returns (bool) {
+        address,
+        bytes32,
+        address,
+        bytes calldata
+    ) external view override returns (bool) {
         return returnValue;
     }
 }

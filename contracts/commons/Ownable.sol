@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../interfaces/IERC173.sol";
 
@@ -16,7 +16,7 @@ contract Ownable is IERC173 {
         emit OwnershipTransferred(address(0x0), msg.sender);
     }
 
-    function owner() external view returns (address) {
+    function owner() external view override returns (address) {
         return _owner;
     }
 
@@ -25,7 +25,7 @@ contract Ownable is IERC173 {
 
         @param _newOwner Address of the new owner
     */
-    function transferOwnership(address _newOwner) external onlyOwner {
+    function transferOwnership(address _newOwner) external override onlyOwner {
         require(_newOwner != address(0), "0x0 Is not a valid owner");
         emit OwnershipTransferred(_owner, _newOwner);
         _owner = _newOwner;

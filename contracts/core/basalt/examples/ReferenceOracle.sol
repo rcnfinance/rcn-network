@@ -1,15 +1,28 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
-import "../../../commons/SimpleDelegable.sol";
+import "../utils/SimpleDelegable.sol";
 import "../../../utils/BytesUtils.sol";
 import "./../interfaces/Oracle.sol";
 
 
 contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
-
     event DelegatedCall(address requester, address to);
-    event CacheHit(address requester, bytes32 currency, uint256 requestTimestamp, uint256 deliverTimestamp, uint256 rate, uint256 decimals);
-    event DeliveredRate(address requester, bytes32 currency, address signer, uint256 requestTimestamp, uint256 rate, uint256 decimals);
+    event CacheHit(
+        address requester,
+        bytes32 currency,
+        uint256 requestTimestamp,
+        uint256 deliverTimestamp,
+        uint256 rate,
+        uint256 decimals
+    );
+    event DeliveredRate(
+        address requester,
+        bytes32 currency,
+        address signer,
+        uint256 requestTimestamp,
+        uint256 rate,
+        uint256 decimals
+    );
 
     uint256 public expiration = 15 minutes;
 
@@ -31,7 +44,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
         uint256 decimals;
     }
 
-    function url() public view returns (string memory) {
+    function url() public view override returns (string memory) {
         return infoUrl;
     }
 
@@ -93,7 +106,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
 
         @return the rate and decimals of the currency convertion
     */
-    function getRate(bytes32 currency, bytes memory data) public returns (uint256, uint256) {
+    function getRate(bytes32 currency, bytes memory data) public override returns (uint256, uint256) {
         if (address(fallbackOracle) != address(0)) {
             emit DelegatedCall(msg.sender, address(fallbackOracle));
             return fallbackOracle.getRate(currency, data);

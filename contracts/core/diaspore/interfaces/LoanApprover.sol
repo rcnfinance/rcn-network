@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../../interfaces/IERC165.sol";
 
@@ -16,7 +16,7 @@ import "../../../interfaces/IERC165.sol";
     settleApproveRequest: 0xcd40239e
     LoanApprover: 0xbbfa4397
 */
-contract LoanApprover is IERC165 {
+interface LoanApprover is IERC165 {
     /**
         Request the approve of a loan created using requestLoan, if the borrower is this contract,
         to approve the request the contract should return:

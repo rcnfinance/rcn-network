@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../interfaces/IERC165.sol";
 
@@ -36,6 +36,7 @@ contract ERC165 is IERC165 {
     function supportsInterface(bytes4 interfaceId)
         external
         view
+        override
         returns (bool)
     {
         return _supportedInterfaces[interfaceId];

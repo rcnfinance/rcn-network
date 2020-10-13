@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../../interfaces/IERC165.sol";
 import "./IDebtStatus.sol";
@@ -18,8 +18,7 @@ import "./IDebtStatus.sol";
 
     @author Agustin Aguilar
 */
-contract Model is IERC165, IDebtStatus {
-
+abstract contract Model is IERC165, IDebtStatus {
     // ///
     // Events
     // ///
@@ -91,7 +90,7 @@ contract Model is IERC165, IDebtStatus {
     /**
         @return Identifier of the model
     */
-    function modelId() external view returns (bytes32);
+    function modelId() external view virtual returns (bytes32);
 
     /**
         Returns the address of the contract used as Descriptor of the model
@@ -100,7 +99,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return Address of the descriptor
     */
-    function descriptor() external view returns (address);
+    function descriptor() external view virtual returns (address);
 
     /**
         If called for any address with the ability to modify the state of the model registries,
@@ -111,9 +110,9 @@ contract Model is IERC165, IDebtStatus {
 
         @param operator Address of the target request operator
 
-        @return True if operator is able to modify the state of the model
+        @return canOperate True if operator is able to modify the state of the model
     */
-    function isOperator(address operator) external view returns (bool canOperate);
+    function isOperator(address operator) external view virtual returns (bool canOperate);
 
     /**
         Validates the data for the creation of a new registry, if returns True the
@@ -123,9 +122,9 @@ contract Model is IERC165, IDebtStatus {
 
         @param data Data to validate
 
-        @return True if the data can be used to create a new registry
+        @return isValid True if the data can be used to create a new registry
     */
-    function validate(bytes calldata data) external view returns (bool isValid);
+    function validate(bytes calldata data) external view virtual returns (bool isValid);
 
     // ///
     // Getters
@@ -142,9 +141,9 @@ contract Model is IERC165, IDebtStatus {
 
         @param id Id of the registry
 
-        @return The current status value
+        @return status The current status value
     */
-    function getStatus(bytes32 id) external view returns (Status status);
+    function getStatus(bytes32 id) external view virtual returns (Status status);
 
     /**
         Returns the total paid amount on the registry.
@@ -153,9 +152,9 @@ contract Model is IERC165, IDebtStatus {
 
         @param id Id of the registry
 
-        @return Total paid amount
+        @return paid Total paid amount
     */
-    function getPaid(bytes32 id) external view returns (uint256 paid);
+    function getPaid(bytes32 id) external view virtual returns (uint256 paid);
 
     /**
         If the returned amount does not depend on any interactions and only on the model logic,
@@ -172,7 +171,7 @@ contract Model is IERC165, IDebtStatus {
         @return amount Amount pending to pay on the given timestamp
         @return defined True If the amount returned is fixed and can't change
     */
-    function getObligation(bytes32 id, uint64 timestamp) external view returns (uint256 amount, bool defined);
+    function getObligation(bytes32 id, uint64 timestamp) external view virtual returns (uint256 amount, bool defined);
 
     /**
         The amount required to fully paid a registry.
@@ -188,7 +187,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return amount Amount required to fully paid the loan on the current timestamp
     */
-    function getClosingObligation(bytes32 id) external view returns (uint256 amount);
+    function getClosingObligation(bytes32 id) external view virtual returns (uint256 amount);
 
     /**
         The timestamp of the next required payment.
@@ -201,7 +200,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return timestamp The timestamp of the next due time
     */
-    function getDueTime(bytes32 id) external view returns (uint256 timestamp);
+    function getDueTime(bytes32 id) external view virtual returns (uint256 timestamp);
 
     // ///
     // Metadata
@@ -215,7 +214,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return frequency Frequency of each installment
     */
-    function getFrequency(bytes32 id) external view returns (uint256 frequency);
+    function getFrequency(bytes32 id) external view virtual returns (uint256 frequency);
 
     /**
         If the loan has multiple installments returns the total of installments,
@@ -225,7 +224,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return installments Total of installments
     */
-    function getInstallments(bytes32 id) external view returns (uint256 installments);
+    function getInstallments(bytes32 id) external view virtual returns (uint256 installments);
 
     /**
         The registry could be paid before or after the date, but the debt will always be
@@ -237,7 +236,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return timestamp Timestamp of the final due time
     */
-    function getFinalTime(bytes32 id) external view returns (uint256 timestamp);
+    function getFinalTime(bytes32 id) external view virtual returns (uint256 timestamp);
 
     /**
         Similar to getFinalTime returns the expected payment remaining if paid always on the exact dueTime.
@@ -249,7 +248,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return amount Expected payment amount
     */
-    function getEstimateObligation(bytes32 id) external view returns (uint256 amount);
+    function getEstimateObligation(bytes32 id) external view virtual returns (uint256 amount);
 
     // ///
     // State interface
@@ -266,7 +265,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return success True if the registry was created
     */
-    function create(bytes32 id, bytes calldata data) external returns (bool success);
+    function create(bytes32 id, bytes calldata data) external virtual returns (bool success);
 
     /**
         If the registry is fully paid on the call and the amount parameter exceeds the required
@@ -282,7 +281,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return real Real amount paid
     */
-    function addPaid(bytes32 id, uint256 amount) external returns (uint256 real);
+    function addPaid(bytes32 id, uint256 amount) external virtual returns (uint256 real);
 
     /**
         Adds a new amount to be paid on the debt model,
@@ -295,7 +294,7 @@ contract Model is IERC165, IDebtStatus {
 
         @return added True if the debt was added
     */
-    function addDebt(bytes32 id, uint256 amount) external returns (bool added);
+    function addDebt(bytes32 id, uint256 amount) external virtual returns (bool added);
 
     // ///
     // Utils
@@ -317,5 +316,5 @@ contract Model is IERC165, IDebtStatus {
 
         @return effect True if the run performed a change on the state
     */
-    function run(bytes32 id) external returns (bool effect);
+    function run(bytes32 id) external virtual returns (bool effect);
 }

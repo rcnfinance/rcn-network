@@ -1,7 +1,13 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../commons/ERC721Base.sol";
 
+
+contract TestTokenURI {
+    function tokenURI(uint256) external view returns (string memory) {
+        return "https://ripioCreditNetwork/debtId";
+    }
+}
 
 contract TestURIProvider is ERC721Base {
     string public uri = "https://ripioCreditNetwork/debtId";
@@ -18,12 +24,7 @@ contract TestURIProvider is ERC721Base {
         return true;
     }
 
-    function tokenURI(uint256 _tokenId) external view returns (string memory){
-        return uri;
-    }
-
     function setURIProvider(URIProvider _provider) external  {
         _setURIProvider(_provider);
     }
-
 }

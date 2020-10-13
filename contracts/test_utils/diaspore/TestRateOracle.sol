@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../core/diaspore/interfaces/RateOracle.sol";
 import "../../commons/ERC165.sol";
@@ -6,33 +6,31 @@ import "../../utils/BytesUtils.sol";
 
 
 contract TestRateOracle is BytesUtils, ERC165, RateOracle {
-    uint256 public constant VERSION = 5;
-    bytes4 internal constant RATE_ORACLE_INTERFACE = 0xa265d8e0;
     address internal _token;
 
     constructor() public {
         _registerInterface(RATE_ORACLE_INTERFACE);
     }
 
-    function symbol() external view returns (string memory) {}
+    function symbol() external view override returns (string memory) {}
 
-    function name() external view returns (string memory) {}
+    function name() external view override returns (string memory) {}
 
-    function decimals() external view returns (uint256) {}
+    function decimals() external view override returns (uint256) {}
 
     function setToken(address token) external returns (address) {
         _token = token;
     }
 
-    function token() external view returns (address) {
+    function token() external view override returns (address) {
         return _token;
     }
 
-    function currency() external view returns (bytes32) {}
+    function currency() external view override returns (bytes32) {}
 
-    function maintainer() external view returns (string memory) {}
+    function maintainer() external view override returns (string memory) {}
 
-    function url() external view returns (string memory) {}
+    function url() external view override returns (string memory) {}
 
     function encodeRate(
         uint128 _tokens,
@@ -41,7 +39,7 @@ contract TestRateOracle is BytesUtils, ERC165, RateOracle {
         return abi.encodePacked(_tokens, _equivalent);
     }
 
-    function readSample(bytes calldata _data) external returns (uint256 tokens, uint256 equivalent) {
+    function readSample(bytes calldata _data) external override returns (uint256 tokens, uint256 equivalent) {
         if (_data.length != 0) {
             (bytes32 btokens, bytes32 bequivalent) = decode(_data, 16, 16);
             tokens = uint256(btokens);

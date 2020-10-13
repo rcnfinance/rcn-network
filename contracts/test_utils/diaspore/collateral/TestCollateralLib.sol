@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../../core/diaspore/cosigner/CollateralLib.sol";
 import "../../../core/diaspore/interfaces/RateOracle.sol";

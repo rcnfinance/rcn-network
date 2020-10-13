@@ -8,15 +8,15 @@
     "test"
   ],
   "scripts": {
-    "lint:js": "eslint .",
-    "lint:js:fix": "eslint . --fix",
-    "lint:sol": "solium -d .",
-    "lint:sol:fix": "solium -d . --fix",
+    "lint:js": "node_modules/.bin/eslint .",
+    "lint:js:fix": "node_modules/.bin/eslint . --fix",
+    "lint:sol": "node_modules/.bin/solhint \"**/*.sol\"",
+    "lint:sol:fix": "node_modules/.bin/solhint \"**/*.sol\" --fix",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
-    "console": "truffle console",
+    "console": "node_modules/.bin/truffle console",
     "coverage": "bin/coverage.sh",
-    "test": "bin/test.sh"
+    "compile:sol": "node_modules/.bin/truffle compile"
   },
   "pre-commit": [
     "lint"
@@ -50,12 +50,11 @@
     "eslint-plugin-promise": "^3.8.0",
     "eslint-plugin-standard": "^3.1.0",
     "ethjs-abi": "^0.2.1",
-    "ethlint": "^1.2.0",
     "ganache-cli": "^6.4.3",
     "pre-commit": "^1.2.2",
+    "solhint": "^3.2.0",
     "solidity-coverage": "^0.7.10",
-    "solium": "^1.2.4",
-    "truffle": "^5.0.35",
+    "truffle": "^5.1.42",
     "truffle-hdwallet-provider": "0.0.5",
     "web3": "^1.2.11"
   }

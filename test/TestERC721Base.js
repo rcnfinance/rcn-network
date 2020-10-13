@@ -4,7 +4,6 @@ const TestERC721ReceiverLegacy = artifacts.require('TestERC721ReceiverLegacy');
 const TestERC721ReceiverLegacyRaw = artifacts.require('TestERC721ReceiverLegacyRaw');
 const TestERC721ReceiverMultiple = artifacts.require('TestERC721ReceiverMultiple');
 const TestNoReceive = artifacts.require('TokenLockable');
-const TestURIProvider = artifacts.require('TestURIProvider');
 
 const {
     expect,
@@ -657,18 +656,19 @@ contract('ERC721 Base', function (accounts) {
     describe('Functions setURIProvider and tokenURI', async function () {
         it('test setURIProvider and tokenURI functions', async function () {
             const assetId = bn('443');
-            const testURIProvider = await TestURIProvider.new();
+            const testURIProvider = await artifacts.require('TestURIProvider').new();
+            const testTokenURI = await artifacts.require('TestTokenURI').new();
 
             await testURIProvider.generate(assetId, user);
 
             const SetURIProvider = await toEvents(
-                testURIProvider.setURIProvider(testURIProvider.address),
+                testURIProvider.setURIProvider(testTokenURI.address),
                 'SetURIProvider'
             );
 
-            assert.equal(SetURIProvider._uriProvider, testURIProvider.address);
+            assert.equal(SetURIProvider._uriProvider, testTokenURI.address);
 
-            assert.equal(await testURIProvider.tokenURI(assetId, { from: user }), await testURIProvider.uri());
+            assert.equal(await testTokenURI.tokenURI(assetId, { from: user }), await testURIProvider.uri());
         });
 
         it('test tokenURI(ERC721Base) function', async function () {

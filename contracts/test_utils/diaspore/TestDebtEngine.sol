@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 
 contract TestDebtEngine {
@@ -31,12 +31,12 @@ contract TestDebtEngine {
     }
 
     function create2(
-        address _model,
-        address _owner,
-        address _oracle,
-        uint256 _salt,
-        bytes calldata _data
-    ) external returns (bytes32) {
+        address,
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes32) {
         return 0x0;
     }
 }

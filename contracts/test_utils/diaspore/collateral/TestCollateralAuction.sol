@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "../../../core/diaspore/cosigner/CollateralAuction.sol";
 import "../../../interfaces/IERC20.sol";
@@ -17,7 +17,7 @@ contract TestCollateralAuction is CollateralAuction {
         time += _seconds;
     }
 
-    function _now() internal view returns (uint256) {
+    function _now() internal override view returns (uint256) {
         uint256 t = time;
 
         if (t == 0) {
