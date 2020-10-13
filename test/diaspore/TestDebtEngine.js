@@ -3510,7 +3510,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 0);
             await rcn.setBalance(accounts[2], 0);
 
-            await tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 1100), 'Debt balance is not enough');
+            await tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 1100), 'Sub overflow');
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
@@ -3540,7 +3540,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     accounts[2],
                     '0xfffffffffffffffffffffffffffffffff'
                 ),
-                'Debt balance is not enough'
+                'Sub overflow'
             );
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
