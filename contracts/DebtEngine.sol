@@ -94,8 +94,10 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
     IERC20 public token;
     address public burner;
-    uint256 public constant BASE = 10000;
     uint128 public fee; // Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
+
+    uint256 public constant BASE = 10000;
+    uint256 private constant UINT_128_OVERFLOW = 340282366920938463463374607431768211456;
 
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
@@ -308,6 +310,10 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amountToPay);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= _amountToPay, "Paid can't be more than requested");
 
         RateOracle oracle = RateOracle(debt.oracle);
@@ -327,7 +333,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Add balance to the debt
         uint256 newBalance = paidToken.add(debt.balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(newBalance < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(newBalance);
 
         // Emit pay event
@@ -367,6 +373,10 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Call addPaid on model
         paid = _safePay(id, debt.model, available);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= available, "Paid can't exceed available");
 
         // Convert back to required pull amount
@@ -385,7 +395,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         // Add balance to the debt
         // WARNING: Reusing variable **available**
         available = paidToken.add(debt.balance);
-        require(available < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(available < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(available);
 
         // Emit pay event
@@ -508,6 +518,10 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= _amount, "Paid can't be more than requested");
 
         // Get token amount to use as payment
@@ -520,7 +534,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Add balance to debt
         uint256 newBalance = paidToken.add(debt.balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(newBalance < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(newBalance);
     }
 
@@ -530,6 +544,9 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Get BurnAmount from fee percentage
         burnAmount = _amount.multdiv(_fee, BASE);
+
+        if (burnAmount == 0)
+            return 0;
 
         // Pull tokens from payer to Burner
         require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling fee tokens");
@@ -682,7 +699,6 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         require(_to != address(0x0), "_to should not be 0x0");
         require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
-        require(debt.balance >= _amount, "Debt balance is not enought");
         debt.balance = uint128(uint256(debt.balance).sub(_amount));
         require(token.transfer(_to, _amount), "Error sending tokens");
         emit Withdrawn({
@@ -736,11 +752,13 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         uint256 _amountToPay,
         bytes calldata _oracleData
     ) external view returns (uint256 feeAmount) {
-        if (fee == 0)
+        Debt storage debt = debts[_id];
+
+        if (debt.fee == 0)
             return 0;
 
         uint256 paidToken;
-        RateOracle oracle = RateOracle(debts[_id].oracle);
+        RateOracle oracle = RateOracle(debt.oracle);
 
         if (address(oracle) == address(0)) {
             paidToken = _amountToPay;
@@ -760,7 +778,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
             paidToken = _toToken(_amountToPay, tokens, equivalent);
         }
 
-        feeAmount = paidToken.multdiv(fee, BASE);
+        feeAmount = paidToken.multdiv(debt.fee, BASE);
     }
 
     function _safeGasStaticCall(
