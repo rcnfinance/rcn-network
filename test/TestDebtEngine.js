@@ -3852,7 +3852,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             expect(feeAmount).to.eq.BN(0);
 
-            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000);
+            const data = await testModel.encodeData(bn('10000'), (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000);
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[1],
