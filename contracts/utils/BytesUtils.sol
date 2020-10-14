@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 
 contract BytesUtils {
@@ -10,7 +10,7 @@ contract BytesUtils {
     }
 
     function read(bytes memory data, uint256 offset, uint256 length) internal pure returns (bytes32 o) {
-        require(data.length >= offset + length, "Reading bytes out of bounds");
+        require(data.length >= offset + length, "Reading bytes out of bounds"); // If it overflows, it is the responsibility of the caller.
         assembly {
             o := mload(add(data, add(32, offset)))
             let lb := sub(32, length)

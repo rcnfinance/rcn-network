@@ -1,0 +1,17 @@
+{
+  "extends": "solhint:recommended",
+  "plugins": [],
+  "rules": {
+    "func-order": "off",
+    "mark-callable-contracts": "off",
+    "no-empty-blocks": "off",
+    "private-vars-leading-underscore": "warn",
+    "reason-string": "off",
+    "compiler-version": "warn",
+    "max-line-length": "warn",
+    "imports-on-top": "error",
+    "visibility-modifier-order": "warn",
+    "quotes": ["error", "double"],
+    "no-inline-assembly": ["off"]
+  }
+}

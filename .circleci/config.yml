@@ -6,7 +6,7 @@ jobs:
     install:
         working_directory: ~/project
         docker:
-            - image: circleci/node:8.12
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -33,7 +33,7 @@ jobs:
     build:
         working_directory: ~/project
         docker:
-            - image: circleci/node:8.12
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -49,7 +49,7 @@ jobs:
             # Run compile
             - run:
                 name: Truffle compile
-                command: node_modules/.bin/truffle compile
+                command: npm run compile:sol
             # Save build
             - store_artifacts:
                 path: build
@@ -58,7 +58,7 @@ jobs:
     test:
         working_directory: ~/project
         docker:
-            - image: circleci/node:8.12
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -71,11 +71,6 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Start ganache
-            - run:
-                name: Start ganache instance
-                command: node_modules/.bin/ganache-cli --gasLimit 7000000
-                background: true
             # Run truffle test
             - run:
                 name: Run truffle tests
@@ -85,7 +80,7 @@ jobs:
     coverage:
         working_directory: ~/project
         docker:
-            - image: circleci/node:8.12
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -98,25 +93,14 @@ jobs:
                 keys:
                 - v2-dependencies-{{ checksum "package.json" }}
                 - v2-dependencies-
-            # Start test-rpc
-            - run:
-                name: Start Macaron instance
-                no_output_timeout: 30m
-                background: true
-                command: |
-                    node_modules/.bin/macaron-cli \
-                    --emitFreeLogs true \
-                    --gasLimit 0xfffffffffffff \
-                    --allowUnlimitedContractSize true \
-                    --debugTopics ./.solidity_coverage/.source_topics \
-                    --dumpLogs ./.solidity_coverage/.all_events
             # Run coverage
             - run:
-                name: rp-solidity-coverage
-                environment:
-                  SOLIDITY_COVERAGE: true
+                name: solidity-coverage
                 no_output_timeout: 30m
-                command: node_modules/.bin/rp-solidity-coverage
+                command:
+                  rm -rf node_modules &&
+                  npm install &&
+                  node_modules/.bin/truffle run coverage
             # Upload results
             - run:
                 name: Upload coverage to coveralls
@@ -129,7 +113,7 @@ jobs:
     lint-javascript:
         working_directory: ~/project
         docker:
-            - image: circleci/node:8.12
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -145,13 +129,13 @@ jobs:
             # Run lint javascript
             - run:
                 name: ESLint
-                command: ./node_modules/.bin/eslint .
+                command: npm run lint:js
 
     # The lint-solidity job
     lint-solidity:
         working_directory: ~/project
         docker:
-            - image: circleci/node:8.12
+            - image: circleci/node:12.16.1
         steps:
             # Checkout the code from the branch into the working_directory
             - checkout
@@ -166,8 +150,8 @@ jobs:
                 - v2-dependencies-
             # Run Solidity lint
             - run:
-                name: Solium
-                command: ./node_modules/.bin/solium --dir .
+                name: Solhint
+                command: npm run lint:sol
 
 workflows:
     version: 2

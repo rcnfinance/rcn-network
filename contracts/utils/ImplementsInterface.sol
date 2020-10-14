@@ -1,9 +1,9 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 
 library ImplementsInterface {
-    bytes4 constant InvalidID = 0xffffffff;
-    bytes4 constant ERC165ID = 0x01ffc9a7;
+    bytes4 constant public InvalidID = 0xffffffff;
+    bytes4 constant public ERC165ID = 0x01ffc9a7;
 
     function implementsMethod(address _contract, bytes4 _interfaceId) internal view returns (bool) {
         (uint256 success, uint256 result) = _noThrowImplements(_contract, ERC165ID);

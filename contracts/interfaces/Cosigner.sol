@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 
 /**
@@ -14,13 +14,11 @@ pragma solidity ^0.5.11;
     should be able to call the "claim" method to receive the benefit; the cosigner can define aditional requirements to
     call this method, like the transfer of the ownership of the loan.
 */
-contract Cosigner {
-    uint256 public constant VERSION = 2;
-
+interface Cosigner {
     /**
         @return the url of the endpoint that exposes the insurance offers.
     */
-    function url() public view returns (string memory);
+    function url() external view returns (string memory);
 
     /**
         @dev Retrieves the cost of a given insurance, this amount should be exact.
@@ -30,10 +28,10 @@ contract Cosigner {
     function cost(
         address engine,
         uint256 index,
-        bytes memory data,
-        bytes memory oracleData
+        bytes calldata data,
+        bytes calldata oracleData
     )
-        public view returns (uint256);
+        external view returns (uint256);
 
     /**
         @dev The engine calls this method for confirmation of the conditions, if the cosigner accepts the liability of
@@ -45,10 +43,10 @@ contract Cosigner {
     function requestCosign(
         address engine,
         uint256 index,
-        bytes memory data,
-        bytes memory oracleData
+        bytes calldata data,
+        bytes calldata oracleData
     )
-        public returns (bool);
+        external returns (bool);
 
     /**
         @dev Claims the benefit of the insurance if the loan is defaulted, this method should be only calleable by the
@@ -56,5 +54,5 @@ contract Cosigner {
 
         @return true if the claim was done correctly.
     */
-    function claim(address engine, uint256 index, bytes memory oracleData) public returns (bool);
+    function claim(address engine, uint256 index, bytes calldata oracleData) external returns (bool);
 }

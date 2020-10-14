@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.5.11;
+pragma solidity ^0.6.6;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
@@ -77,14 +77,14 @@ contract TestBytesUtilsMock is BytesUtils {
 // Proxy contract for testing throws
 contract TestThrowProxy {
     address public target;
-    bytes data;
+    bytes private data;
 
     constructor(address _target) public {
         target = _target;
     }
 
     //prime the data using the fallback function.
-    function() external {
+    fallback() external {
         data = msg.data;
     }
 
@@ -96,7 +96,7 @@ contract TestThrowProxy {
 
 
 contract TestBytesUtils {
-    TestBytesUtilsMock bytesUtils;
+    TestBytesUtilsMock private bytesUtils;
 
     function beforeAll() external {
         bytesUtils = new TestBytesUtilsMock();
@@ -116,11 +116,11 @@ contract TestBytesUtils {
 
         // Test read index 4 (invalid)
         TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 4);
-        Assert.isFalse(throwProxy.execute.gas(200000)(), "Read index 4 should fail, it's not inside bytes array");
+        Assert.isFalse(throwProxy.execute{ gas: 200000 }(), "Read index 4 should fail, it's not inside bytes array");
 
         // Test read index 0 of empty bytes (invalid)
         TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(new bytes(0), 0);
-        Assert.isFalse(throwProxy.execute.gas(200000)(), "Read index 0 should fail, it's not inside bytes array");
+        Assert.isFalse(throwProxy.execute{ gas: 200000 }(), "Read index 0 should fail, it's not inside bytes array");
     }
 
     function testInvalidLengthBytes() external {
@@ -133,7 +133,7 @@ contract TestBytesUtils {
 
         // Reading index 2 should fail, the word has less than 32 bytes
         TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 2);
-        Assert.isFalse(throwProxy.execute.gas(200000)(), "Reading index 3 should fail, the word has less than 32 bytes");
+        Assert.isFalse(throwProxy.execute{ gas: 200000 }(), "Reading index 3 should fail, the word has less than 32 bytes");
     }
 
     function testReadOffset() external {
