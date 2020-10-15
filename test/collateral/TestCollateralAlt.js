@@ -37,9 +37,41 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
     let debtPayer;
     let auction;
 
+    async function toTokens (amount, oracle = { address: address0x }, oracleData = '') {
+        if (oracle.address === address0x) {
+            return amount;
+        }
+
+        const sample = await oracle.readSample.call(oracleData);
+        const tokens = sample.tokens;
+        const equivalent = sample.equivalent;
+
+        if (tokens === 0 && equivalent === 0) {
+            throw new Error('Oracle provided invalid rate');
+        }
+
+        const aux = tokens.mul(amount);
+        const result = aux.div(equivalent);
+
+        if (aux % equivalent > 0) {
+            return result.add(bn(1));
+        } else {
+            return result;
+        }
+    }
+
+    async function toFee (amount, oracle = { address: address0x }, oracleData = '') {
+        const amountTokens = await toTokens(amount, oracle, oracleData);
+
+        const feePerc = await debtEngine.fee();
+        const BASE = await debtEngine.BASE();
+
+        return amountTokens.mul(feePerc).div(BASE);
+    }
+
     beforeEach(async () => {
         rcn = await TestToken.new({ from: owner });
-        debtEngine = await DebtEngine.new(rcn.address, burner, 0, { from: owner });
+        debtEngine = await DebtEngine.new(rcn.address, burner, 100, { from: owner });
         loanManager = await LoanManager.new(debtEngine.address, { from: owner });
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });

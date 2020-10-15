@@ -126,7 +126,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         oracle = await TestRateOracle.new({ from: owner });
         await oracle.setEquivalent(WEI, { from: owner });
         await oracle.setToken(auxToken.address, { from: owner });
-        debtEngine = await DebtEngine.new(rcn.address, burner, 0, { from: owner });
+        debtEngine = await DebtEngine.new(rcn.address, burner, 100, { from: owner });
         loanManager = await LoanManager.new(debtEngine.address, { from: owner });
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
