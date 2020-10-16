@@ -1361,7 +1361,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
-        it('Pay should fail if payer has not enough balance', async function () {
+        it('Pay should fail if payer has not enought balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
@@ -2160,7 +2160,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await testModel.getPaid(id)).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
         });
-        it('Pay tokens should fail if payer has not enough balance', async function () {
+        it('Pay tokens should fail if payer has not enought balance', async function () {
             const id = await getId(debtEngine.create(
                 testModel.address,
                 accounts[2],
