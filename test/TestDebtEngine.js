@@ -1288,7 +1288,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
             expect(await testModel.getPaid(id)).to.eq.BN(_paid);
 
-            // payToken with dummyData2
             const payAmountOracle2 = bn('500');
             const oracleTokens2 = bn('5');
             const oracleEquivalent2 = bn('10');
@@ -2939,7 +2938,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 0);
             await rcn.setBalance(accounts[2], 0);
 
-            await tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 1100), 'Debt balance is not enought');
+            await tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 1100), 'Sub overflow');
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
@@ -2969,7 +2968,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     accounts[2],
                     '0xfffffffffffffffffffffffffffffffff'
                 ),
-                'Debt balance is not enought'
+                'Sub overflow'
             );
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');

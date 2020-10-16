@@ -86,6 +86,8 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
     IERC20 public token;
 
+    uint256 private immutable UINT_128_OVERFLOW = 340282366920938463463374607431768211456;
+
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
 
@@ -270,8 +272,13 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         bytes calldata _oracleData
     ) external returns (uint256 paid, uint256 paidToken) {
         Debt storage debt = debts[_id];
+
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= _amount, "Paid can't be more than requested");
 
         RateOracle oracle = RateOracle(debt.oracle);
@@ -289,7 +296,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Add balance to the debt
         uint256 newBalance = paidToken.add(debt.balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(newBalance < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(newBalance);
 
         // Emit pay event
@@ -329,6 +336,10 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Call addPaid on model
         paid = _safePay(id, debt.model, available);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= available, "Paid can't exceed available");
 
         // Convert back to required pull amount
@@ -345,7 +356,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         // Add balance to the debt
         // WARNING: Reusing variable **available**
         available = paidToken.add(debt.balance);
-        require(available < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(available < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(available);
 
         // Emit pay event
@@ -468,6 +479,10 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
+
+        if (debt.error)
+            return (0, 0);
+
         require(paid <= _amount, "Paid can't be more than requested");
 
         // Get token amount to use as payment
@@ -478,7 +493,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         // Add balance to debt
         uint256 newBalance = paidToken.add(debt.balance);
-        require(newBalance < 340282366920938463463374607431768211456, "uint128 Overflow");
+        require(newBalance < UINT_128_OVERFLOW, "uint128 Overflow");
         debt.balance = uint128(newBalance);
     }
 
@@ -627,7 +642,6 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         require(_to != address(0x0), "_to should not be 0x0");
         require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
-        require(debt.balance >= _amount, "Debt balance is not enought");
         debt.balance = uint128(uint256(debt.balance).sub(_amount));
         require(token.transfer(_to, _amount), "Error sending tokens");
         emit Withdrawn({
