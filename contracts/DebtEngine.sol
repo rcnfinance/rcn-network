@@ -305,14 +305,14 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         uint256 _amountToPay,
         address _origin,
         bytes calldata _oracleData
-    ) external returns (uint256 paid, uint256 paidToken) {
+    ) external returns (uint256 paid, uint256 paidToken, uint256 burnToken) {
         Debt storage debt = debts[_id];
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amountToPay);
 
         if (debt.error)
-            return (0, 0);
+            return (0, 0, 0);
 
         require(paid <= _amountToPay, "Paid can't be more than requested");
 
@@ -329,7 +329,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
 
-        _chargeBurnFee(_id, debt.fee, paidToken);
+        burnToken = _chargeBurnFee(_id, debt.fee, paidToken);
 
         // Add balance to the debt
         uint256 newBalance = paidToken.add(debt.balance);
@@ -353,44 +353,47 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         uint256 amount,
         address origin,
         bytes calldata oracleData
-    ) external returns (uint256 paid, uint256 paidToken) {
+    ) external returns (uint256 paid, uint256 paidToken, uint256 burnToken) {
         Debt storage debt = debts[id];
         // Read storage
         RateOracle oracle = RateOracle(debt.oracle);
 
-        uint256 equivalent;
-        uint256 tokens;
         uint256 available;
 
-        // Get available <currency> amount
-        if (address(oracle) != address(0)) {
-            (tokens, equivalent) = oracle.readSample(oracleData);
-            emit ReadedOracle(id, tokens, equivalent);
-            available = _fromToken(amount, tokens, equivalent);
-        } else {
-            available = amount;
-        }
+        {
+            uint256 equivalent;
+            uint256 tokens;
 
-        // Call addPaid on model
-        paid = _safePay(id, debt.model, available);
+            // Get available <currency> amount
+            if (address(oracle) != address(0)) {
+                (tokens, equivalent) = oracle.readSample(oracleData);
+                emit ReadedOracle(id, tokens, equivalent);
+                available = _fromToken(amount, tokens, equivalent);
+            } else {
+                available = amount;
+            }
 
-        if (debt.error)
-            return (0, 0);
+            // Call addPaid on model
+            paid = _safePay(id, debt.model, available);
 
-        require(paid <= available, "Paid can't exceed available");
+            if (debt.error)
+                return (0, 0, 0);
 
-        // Convert back to required pull amount
-        if (address(oracle) != address(0)) {
-            paidToken = _toToken(paid, tokens, equivalent);
-            require(paidToken <= amount, "Paid can't exceed requested");
-        } else {
-            paidToken = paid;
+            require(paid <= available, "Paid can't exceed available");
+
+            // Convert back to required pull amount
+            if (address(oracle) != address(0)) {
+                paidToken = _toToken(paid, tokens, equivalent);
+                require(paidToken <= amount, "Paid can't exceed requested");
+            } else {
+                paidToken = paid;
+            }
         }
 
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling tokens");
 
-        _chargeBurnFee(id, debt.fee, paidToken);
+        burnToken = _chargeBurnFee(id, debt.fee, paidToken);
 
         // Add balance to the debt
         // WARNING: Reusing variable **available**
@@ -431,7 +434,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 amount = _amounts[i];
-            (paid[i], paidTokens[i]) = _pay(_ids[i], _oracle, amount, tokens, equivalent);
+            (paid[i], paidTokens[i],) = _pay(_ids[i], _oracle, amount, tokens, equivalent);
 
             emit Paid({
                 _id: _ids[i],
@@ -466,7 +469,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         paidTokens = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 tokenAmount = _tokenAmounts[i];
-            (paid[i], paidTokens[i]) = _pay(
+            (paid[i], paidTokens[i],) = _pay(
                 _ids[i],
                 _oracle,
                 _oracle != address(0) ? _fromToken(tokenAmount, tokens, equivalent) : tokenAmount,
@@ -504,7 +507,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         uint256 _amount,
         uint256 _tokens,
         uint256 _equivalent
-    ) internal returns (uint256 paid, uint256 paidToken){
+    ) internal returns (uint256 paid, uint256 paidToken, uint256 burnToken){
         Debt storage debt = debts[_id];
 
         if (_oracle != debt.oracle) {
@@ -513,14 +516,14 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
                 _oracle
             );
 
-            return (0,0);
+            return (0, 0, 0);
         }
 
         // Paid only required amount
         paid = _safePay(_id, debt.model, _amount);
 
         if (debt.error)
-            return (0, 0);
+            return (0, 0, 0);
 
         require(paid <= _amount, "Paid can't be more than requested");
 
@@ -530,7 +533,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         // Pull tokens from payer
         require(token.transferFrom(msg.sender, address(this), paidToken), "Error pulling payment tokens");
 
-        _chargeBurnFee(_id, debt.fee, paidToken);
+        burnToken = _chargeBurnFee(_id, debt.fee, paidToken);
 
         // Add balance to debt
         uint256 newBalance = paidToken.add(debt.balance);
@@ -538,20 +541,20 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         debt.balance = uint128(newBalance);
     }
 
-    function _chargeBurnFee(bytes32 _id, uint128 _fee, uint256 _amount) internal returns (uint256 burnAmount) {
+    function _chargeBurnFee(bytes32 _id, uint128 _fee, uint256 _amount) internal returns (uint256 burnToken) {
         if (_fee == 0)
             return 0;
 
-        // Get BurnAmount from fee percentage
-        burnAmount = _amount.multdiv(_fee, BASE);
+        // Get burn token amount from fee percentage
+        burnToken = _amount.multdiv(_fee, BASE);
 
-        if (burnAmount == 0)
+        if (burnToken == 0)
             return 0;
 
         // Pull tokens from payer to Burner
-        require(token.transferFrom(msg.sender, burner, burnAmount), "Error pulling fee tokens");
+        require(token.transferFrom(msg.sender, burner, burnToken), "Error pulling fee tokens");
 
-        emit ChargeBurnFee(_id, burnAmount);
+        emit ChargeBurnFee(_id, burnToken);
     }
 
     function _safePay(
@@ -779,6 +782,18 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         }
 
         feeAmount = paidToken.multdiv(debt.fee, BASE);
+    }
+
+    function toFee(
+        bytes32 _id,
+        uint256 _amount
+    ) external view returns (uint256 feeAmount) {
+        Debt storage debt = debts[_id];
+
+        if (debt.fee == 0)
+            return 0;
+
+        feeAmount = _amount.multdiv(debt.fee, BASE);
     }
 
     function _safeGasStaticCall(

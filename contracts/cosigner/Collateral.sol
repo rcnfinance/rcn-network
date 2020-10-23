@@ -417,20 +417,23 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Use received to pay loan
         // `_data` should contain the `oracleData` for the loan
-        (, uint256 paidTokens) = loanManager.safePayToken(
+        (, uint256 paidToken, uint256 burnToken) = loanManager.safePayToken(
             entry.debtId,
             _received,
             address(this),
             _data
         );
 
+        // Total token amount storage in paidToken var
+        paidToken += burnToken;
+
         // If we have exceeding tokens
         // send them to the owner of the collateral
-        if (paidTokens < _received) {
+        if (paidToken < _received) {
             require(
                 loanManagerToken.safeTransfer(
                     _ownerOf(entryId),
-                    _received - paidTokens
+                    _received - paidToken
                 ),
                 "collateral: error sending tokens"
             );
@@ -584,7 +587,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralLib.Entry memory entry = entries[entryId];
 
         LoanManager _loanManager = loanManager;
-        uint256 debt = _loanManager.getClosingObligation(debtId);
+        (uint256 debt, uint256 fee) = _loanManager.getClosingObligation(debtId);
+        debt += fee;
 
         if (debt != 0)
             debt = _loanManager
@@ -670,16 +674,15 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         bytes memory _oracleData
     ) internal returns (bool) {
         // Check if debt is expired
-        Model model = _getModel(_debtId);
-        uint256 dueTime = model.getDueTime(_debtId);
+        uint256 dueTime = _getModel(_debtId).getDueTime(_debtId);
         uint256 _now = block.timestamp;
 
         if (_now > dueTime) {
             // Determine the arrear debt to pay
-            (uint256 obligation,) = model.getObligation(_debtId, uint64(_now));
+            (uint256 obligation, uint256 fee,) = loanManager.getObligation(_debtId, uint64(_now));
 
             // Add 5% extra to account for accrued interest during the auction
-            obligation = obligation.mult(105).div(100);
+            obligation = obligation.add(fee).mult(105).div(100);
 
             // Valuate the debt amount in loanManagerToken
             uint256 obligationTokens = _toToken(_debtId, obligation, _oracleData);
@@ -747,8 +750,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         bytes32 debtId,
         bytes memory _data
     ) internal returns (uint256 debtInTokens) {
+        uint256 fee;
         LoanManager _loanManager = loanManager;
-        debtInTokens = _loanManager.getClosingObligation(debtId);
+        (debtInTokens, fee) = _loanManager.getClosingObligation(debtId);
+        debtInTokens += fee;
 
         if (debtInTokens != 0)
             debtInTokens = _loanManager

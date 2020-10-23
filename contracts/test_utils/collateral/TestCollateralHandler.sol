@@ -4,16 +4,15 @@ import "../../interfaces/IERC20.sol";
 import "../../utils/SafeERC20.sol";
 import "../../cosigner/Collateral.sol";
 import "../../cosigner/interfaces/CollateralHandler.sol";
-import "../../utils/DiasporeUtils.sol";
+import "../../DebtEngine.sol";
+import "../../LoanManager.sol";
 
 
 contract TestCollateralHandler {
-    using DiasporeUtils for LoanManager;
     using SafeERC20 for IERC20;
 
     event Handle(uint256 _amountToPay, uint256 _amountReturn);
 
-    LoanManager public loanManager;
     DebtEngine public debtEngine;
     IERC20 public loanManagerToken;
     Collateral public collateral;
@@ -25,7 +24,7 @@ contract TestCollateralHandler {
 
     constructor(Collateral _collateral) public {
         collateral = _collateral;
-        loanManager = _collateral.loanManager();
+        LoanManager loanManager = _collateral.loanManager();
         debtEngine = loanManager.debtEngine();
         loanManagerToken = loanManager.token();
     }
@@ -63,7 +62,9 @@ contract TestCollateralHandler {
         } else {
             (bytes32 debtId,,, IERC20 token,,) = collateral.entries(_entryId);
 
-            loanManager.safePayToken(
+            require(loanManagerToken.safeApprove(address(debtEngine), amountToPay), "TestCollateralHandler: Error approve debt engine");
+
+            debtEngine.payToken(
                 debtId,
                 amountToPay,
                 address(this),

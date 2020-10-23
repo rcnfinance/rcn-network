@@ -39,6 +39,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
     const WEI = bn(web3.utils.toWei('1'));
 
+    async function toFee (amount) {
+        const feePerc = await debtEngine.fee();
+        const BASE = await debtEngine.BASE();
+
+        return amount.mul(feePerc).div(BASE);
+    }
+
     function ratio (num) {
         return bn(num).mul(bn(2).pow(bn(32))).div(bn(100));
     }
@@ -573,13 +580,15 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should withdraw token in a paid debt', async function () {
             const ids = await lendDefaultCollateral();
 
-            const amountToPay = await loanManager.getClosingObligation(ids.loanId);
-            await rcn.setBalance(testCollateralHandler.address, amountToPay, { from: owner });
+            const closingObligation = await loanManager.getClosingObligation(ids.loanId);
+            const total = closingObligation.amount.add(closingObligation.fee);
+
+            await rcn.setBalance(testCollateralHandler.address, total, { from: owner });
 
             const entryAmount = (await collateral.entries(ids.entryId)).amount;
             await testCollateralHandler.setHandlerConst(
-                amountToPay,
-                entryAmount.sub(amountToPay)
+                total,
+                entryAmount.sub(total),
             );
 
             await collateral.borrowCollateral(
@@ -590,7 +599,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 { from: creator }
             );
 
-            expect(await loanManager.getClosingObligation(ids.loanId)).to.eq.BN(0);
+            expect((await loanManager.getClosingObligation(ids.loanId)).amount).to.eq.BN(0);
 
             const prevEntry = await collateral.entries(ids.entryId);
 
@@ -687,12 +696,14 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const prevCollBalance = await auxToken.balanceOf(collateral.address);
             const prevBorrowerBalance = await auxToken.balanceOf(borrower);
 
-            const amountToPay = await loanManager.getClosingObligation(ids.loanId);
-            await rcn.setBalance(testCollateralHandler.address, amountToPay, { from: owner });
+            const closingObligation = await loanManager.getClosingObligation(ids.loanId);
+            const total = closingObligation.amount.add(closingObligation.fee);
+
+            await rcn.setBalance(testCollateralHandler.address, total, { from: owner });
 
             await testCollateralHandler.setHandlerConst(
-                amountToPay,
-                prevEntry.amount.sub(amountToPay)
+                total,
+                prevEntry.amount.sub(total)
             );
 
             const BorrowCollateral = await toEvents(
@@ -708,7 +719,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             // Test event
             assert.equal(BorrowCollateral._handler, testCollateralHandler.address);
-            expect(BorrowCollateral._newAmount).to.eq.BN(prevEntry.amount.sub(amountToPay));
+            expect(BorrowCollateral._newAmount).to.eq.BN(prevEntry.amount.sub(total));
 
             // Test collateral entry
             const entry = await collateral.entries(ids.entryId);
@@ -719,20 +730,21 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.rewardFee).to.eq.BN(prevEntry.rewardFee);
             assert.equal(entry.token, prevEntry.token);
             assert.equal(entry.debtId, prevEntry.debtId);
-            expect(entry.amount).to.eq.BN(prevEntry.amount.sub(amountToPay));
+            expect(entry.amount).to.eq.BN(prevEntry.amount.sub(total));
 
             // Balance of collateral
-            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(amountToPay));
+            expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(total));
             expect(await auxToken.balanceOf(borrower)).to.eq.BN(prevBorrowerBalance);
         });
         it('Try hack with handler contract', async function () {
             const ids = await lendDefaultCollateral();
 
             const entryAmount = (await collateral.entries(ids.entryId)).amount;
-            const amountToPay = await loanManager.getClosingObligation(ids.loanId);
+            const closingObligation = await loanManager.getClosingObligation(ids.loanId);
+            const total = closingObligation.amount.add(closingObligation.fee);
             await rcn.setBalance(testCollateralHandler.address, 0, { from: owner });
             await testCollateralHandler.setHandlerConst(
-                amountToPay,
+                total,
                 entryAmount
             );
             await tryCatchRevert(
@@ -786,7 +798,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const entryAmount = (await collateral.entries(ids.entryId)).amount;
             expect(entryAmount).to.eq.BN(leftover);
-            expect((await debtEngine.debts(ids.loanId)).balance).to.eq.BN(received);
+            expect((await debtEngine.debts(ids.loanId)).balance).to.eq.BN(received.sub(await toFee(received)));
         });
         it('Should close an auction, pay the loan and received more tokens', async function () {
             const ids = await lendDefaultCollateral();
@@ -808,7 +820,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 []
             );
 
-            expect(await rcn.balanceOf(creator)).to.eq.BN(prevCreatorBalance.add(WEI));
+            const fee = await toFee(WEI);
+            expect(await rcn.balanceOf(creator)).to.eq.BN(prevCreatorBalance.add(WEI.sub(fee)));
         });
         it('Try close an auction without be the auction contract', async function () {
             await tryCatchRevert(
@@ -931,7 +944,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             assert.isTrue(await collateral.canClaim(ids.loanId, []));
 
-            const obligation = (await model.getObligation(ids.loanId, await model.getDueTime(ids.loanId)))[0];
+            const obligation = await loanManager.getObligation(ids.loanId, await model.getDueTime(ids.loanId));
+            const total = obligation.amount.add(obligation.fee);
 
             const prevCollBalance = await auxToken.balanceOf(collateral.address);
             const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
@@ -950,9 +964,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             // Test event
             expect(ClaimedExpired._entryId).to.eq.BN(ids.entryId);
             expect(ClaimedExpired._auctionId).to.eq.BN(auctionId);
-            const obligationPlus5Porcent = obligation.mul(bn(105)).div(bn(100));
-            expect(ClaimedExpired._obligation).to.eq.BN(obligationPlus5Porcent);
-            expect(ClaimedExpired._obligationTokens).to.eq.BN(obligationPlus5Porcent);
+            const totalPlus5Porcent = total.mul(bn(105)).div(bn(100));
+            expect(ClaimedExpired._obligation).to.eq.BN(totalPlus5Porcent);
+            expect(ClaimedExpired._obligationTokens).to.eq.BN(totalPlus5Porcent);
 
             const entry = await collateral.entries(ids.entryId);
             expect(entry.amount).to.eq.BN(0);
@@ -975,7 +989,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             assert.isTrue(await collateral.canClaim(ids.loanId, []));
 
             const now = await getBlockTime();
-            const obligation = (await model.getObligation(ids.loanId, now))[0];
+            const obligation = await loanManager.getObligation(ids.loanId, now);
+            const total = obligation.amount.add(obligation.fee);
 
             const prevCollBalance = await auxToken.balanceOf(collateral.address);
             const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
@@ -994,9 +1009,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             // Test event
             expect(ClaimedExpired._entryId).to.eq.BN(ids.entryId);
             expect(ClaimedExpired._auctionId).to.eq.BN(auctionId);
-            const obligationPlus5Porcent = obligation.mul(bn(105)).div(bn(100));
-            expect(ClaimedExpired._obligation).to.eq.BN(obligationPlus5Porcent);
-            expect(ClaimedExpired._obligationTokens).to.eq.BN(obligationPlus5Porcent);
+            const totalPlus5Porcent = total.mul(bn(105)).div(bn(100));
+            expect(ClaimedExpired._obligation).to.eq.BN(totalPlus5Porcent);
+            expect(ClaimedExpired._obligationTokens).to.eq.BN(totalPlus5Porcent);
 
             const entry = await collateral.entries(ids.entryId);
             expect(entry.amount).to.eq.BN(0);
@@ -1023,15 +1038,16 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await collateral.deposit(ids.entryId, depositAmount, { from: creator });
 
             const closingObligation = await loanManager.getClosingObligation(ids.loanId);
-            const required = WEI.mul(bn(6));
+            const total = closingObligation.amount.add(closingObligation.fee);
+            const required = WEI.mul(bn(62)).div(bn(10));
 
             // Entry amount = 14 WEI
-            // Debt  amount = 10 WEI
-            // Coll ratio = 14 / 10 = 1.4 %
+            // Debt  amount = 10 WEI + 0.1 WEI fee
+            // Coll ratio = 14 / 10.1 = 1.386
 
-            // Post entry amount = 8 WEI
-            // Post debt  amount = 4 WEI
-            // Post coll ratio = 8 / 4 =  2%
+            // Post entry amount = 7.8 WEI
+            // Post debt  amount = 3.8 WEI
+            // Post coll ratio = 8 / 4 = 2
 
             const prevCollBalance = await auxToken.balanceOf(collateral.address);
             const prevAuctionBalance = await auxToken.balanceOf(testCollateralAuctionMock.address);
@@ -1047,12 +1063,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 ),
                 'ClaimedLiquidation'
             );
+
             const auctionId = await collateral.entryToAuction(ids.entryId);
 
             // Test event
             expect(ClaimedLiquidation._entryId).to.eq.BN(ids.entryId);
             expect(ClaimedLiquidation._auctionId).to.eq.BN(auctionId);
-            expect(ClaimedLiquidation._debt).to.eq.BN(closingObligation);
+            expect(ClaimedLiquidation._debt).to.eq.BN(total);
             expect(ClaimedLiquidation._required).to.eq.BN(required);
             expect(ClaimedLiquidation._marketValue).to.eq.BN(required);
 

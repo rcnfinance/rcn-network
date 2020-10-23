@@ -10,7 +10,7 @@ import "../Collateral.sol";
 
 /**
     @title Helper for paying debt using collateral
-    @author Agustin Aguilar <agustin@ripiocredit.network>
+    @author Agustin Aguilar <agustin@ripiocredit.network> & Victor Fage <victor.fage@ripiocredit.network>
     @notice Handles ERC-20 sent to the contract sent by the collateral contract,
         converts them using a `TokenConverter` interface and uses the tokens
         to pay an RCN loan, any extra tokens are sent to the owner of the collateral
@@ -36,7 +36,7 @@ contract CollateralDebtPayer is CollateralHandler {
         @dev Uses abi.encode(), it's a helper method
 
         @param _converter TokenConverter to convert collateral tokens into RCN tokens
-        @param _amount Amount of collateral to be used to pay the loan
+        @param _amount Amount of collateral to be used to pay the loan plus the fee of the DebtEngine
         @param _minReturn Minimum amount of RCN tokens to receive when converting the collateral tokens
         @param _refundTo The address where the refund tokens will be transferred
         @param _oracleData Aribitrary bytes array that may be used by the oracle of the loan to return a rate
@@ -99,18 +99,20 @@ contract CollateralDebtPayer is CollateralHandler {
 
         // Convert amount before payment
         uint256 paying = _convert(action);
+        uint256 fee = action.engine.toFee(action.debtId, action.amount);
 
         // Pay requested amount
         uint256 paidToken = _pay(
             action,
-            paying
+            paying,
+            fee
         );
 
         // Refund extra base token
         if (paidToken < paying) {
             require(action.refundTo != address(0), "collateral-debt-payer: refundTo should not be the address 0");
             require(
-                action.base.safeTransfer(collateral.ownerOf(_entryId), paying - paidToken),
+                action.base.safeTransfer(collateral.ownerOf(_entryId), paying - fee - paidToken),
                 "collateral-debt-payer: error sending base surplus"
             );
         }
@@ -166,12 +168,13 @@ contract CollateralDebtPayer is CollateralHandler {
     */
     function _pay(
         Action memory _action,
-        uint256 _paying
+        uint256 _paying,
+        uint256 _fee
     ) private returns (uint256 paid) {
         require(_action.base.safeApprove(address(_action.engine), _paying), "collateral-debt-payer: error approving engine");
-        (, paid) = _action.engine.payToken(
+        (, paid, ) = _action.engine.payToken(
             _action.debtId,
-            _paying,
+            _paying - _fee,
             msg.sender,
             _action.oracleData
         );
