@@ -781,7 +781,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await collateral.claim(address0x, ids.loanId, []);
 
             const leftover = bn(1000);
-            const received = bn(1000);
+            const received = await toFee(bn(1000));
             await rcn.setBalance(testCollateralAuctionMock.address, received, { from: owner });
 
             const auctionId = await collateral.entryToAuction(ids.entryId);
@@ -806,7 +806,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await increaseTime(60 * 61);
             await collateral.claim(address0x, ids.loanId, []);
 
-            const received = WEI.mul(bn(2));
+            const received = WEI.mul(bn(4));
             await rcn.setBalance(testCollateralAuctionMock.address, received, { from: owner });
 
             const auctionId = await collateral.entryToAuction(ids.entryId);
@@ -821,7 +821,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
 
             const fee = await toFee(WEI);
-            expect(await rcn.balanceOf(creator)).to.eq.BN(prevCreatorBalance.add(WEI.sub(fee)));
+            expect(await rcn.balanceOf(creator)).to.eq.BN(prevCreatorBalance.add(WEI.mul(bn(3)).sub(fee)));
         });
         it('Try close an auction without be the auction contract', async function () {
             await tryCatchRevert(

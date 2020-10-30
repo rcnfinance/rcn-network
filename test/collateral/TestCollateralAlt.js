@@ -48,6 +48,10 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
         return amount.mul(feePerc).div(BASE);
     }
 
+    function toTotal (amount, perc) {
+        return amount.mul(perc).div(bn(10000));
+    }
+
     beforeEach(async () => {
         rcn = await TestToken.new({ from: owner });
         debtEngine = await DebtEngine.new(rcn.address, burner, 100, { from: owner });
@@ -2941,11 +2945,16 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
             let debtId;
             let entryId;
             let auctionId;
+            let loanAmount;
+            let collateralAmount;
 
             beforeEach(async () => {
+                loanAmount = bn(1000);
+                collateralAmount = toTotal(await withFee(loanAmount), bn(12000));
+
                 // Request a loan
                 const modelData = await model.encodeData(
-                    bn(1000),
+                    loanAmount,
                     MAX_UINT64,
                     0,
                     MAX_UINT64
@@ -2953,14 +2962,14 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
 
                 // Request  loan
                 const requestReceipt = await loanManager.requestLoan(
-                    bn(1000),          // Requested amount
-                    model.address,    // Debt model
-                    address0x,        // Oracle
-                    user,             // Borrower
-                    address0x,        // Callback
-                    bn(0),             // Salt
-                    MAX_UINT64,       // Expiration
-                    modelData,        // Model data
+                    loanAmount,    // Requested amount
+                    model.address, // Debt model
+                    address0x,     // Oracle
+                    user,          // Borrower
+                    address0x,     // Callback
+                    bn(0),         // Salt
+                    MAX_UINT64,    // Expiration
+                    modelData,     // Model data
                     {
                         from: user,
                     }
@@ -2968,17 +2977,17 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await rcn.setBalance(user, await withFee(bn(1200)));
-                await rcn.approve(collateral.address, await withFee(bn(1200)), { from: user });
+                await rcn.setBalance(user, collateralAmount);
+                await rcn.approve(collateral.address, collateralAmount, { from: user });
 
                 // Create collateral entry
                 await collateral.create(
-                    user,                    // Owner of entry
-                    debtId,                  // Debt ID
-                    address0x,               // Oracle address
-                    await withFee(bn(1200)), // Token Amount
-                    ratio(120),              // Liquidation Ratio
-                    ratio(150),              // Balance ratio
+                    user,             // Owner of entry
+                    debtId,           // Debt ID
+                    address0x,        // Oracle address
+                    collateralAmount, // Token Amount
+                    ratio(120),       // Liquidation Ratio
+                    ratio(150),       // Balance ratio
                     {
                         from: user,
                     }
@@ -2987,13 +2996,13 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 entryId = bn(1);
 
                 // Lend loan
-                await rcn.setBalance(anotherUser, bn(1000));
-                await rcn.approve(loanManager.address, bn(1000), { from: anotherUser });
+                await rcn.setBalance(anotherUser, loanAmount);
+                await rcn.approve(loanManager.address, loanAmount, { from: anotherUser });
                 await loanManager.lend(
                     debtId,             // Debt ID
                     [],                 // Oracle data
                     collateral.address, // Collateral cosigner
-                    bn(0),               // Cosigner limit
+                    bn(0),              // Cosigner limit
                     toBytes32(entryId), // Cosigner data
                     [],                 // Callback data
                     {
@@ -3003,16 +3012,17 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
 
                 // Trigger auction
                 await model.addDebt(debtId, bn(1));
+                loanAmount = loanAmount.add(bn(1));
                 const claimTx = await collateral.claim(user, debtId, []);
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 auctionId = claimedEvent._auctionId;
             });
 
             it('Should fail to deposit collateral', async () => {
-                await rcn.setBalance(user, bn(100));
-                await rcn.approve(collateral.address, bn(100), { from: user });
+                await rcn.setBalance(user, 100);
+                await rcn.approve(collateral.address, 100, { from: user });
                 await tryCatchRevert(
-                    collateral.deposit(entryId, bn(100), { from: user }),
+                    collateral.deposit(entryId, 100, { from: user }),
                     'collateral: can\'t deposit during auction'
                 );
             });
@@ -3026,20 +3036,20 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
 
             it('Should deposit after auction closes', async () => {
                 // Close auction
-                await rcn.setBalance(anotherUser, bn(1000));
-                await rcn.approve(auction.address, bn(1000), { from: anotherUser });
+                await rcn.setBalance(anotherUser, 609);
+                await rcn.approve(auction.address, 609, { from: anotherUser });
                 await auction.take(auctionId, [], false, { from: anotherUser });
 
                 // Deposit
-                await rcn.setBalance(user, bn(100));
-                await rcn.approve(collateral.address, bn(100), { from: user });
-                await collateral.deposit(entryId, bn(100), { from: user });
+                await rcn.setBalance(user, 100);
+                await rcn.approve(collateral.address, 100, { from: user });
+                await collateral.deposit(entryId, 100, { from: user });
             });
 
             it('Should withdraw after auction closes', async () => {
                 // Close auction
-                await rcn.setBalance(anotherUser, bn(0));
-                await rcn.approve(auction.address, bn(1000), { from: anotherUser });
+                await rcn.setBalance(anotherUser, 0);
+                await rcn.approve(auction.address, await withFee(loanAmount), { from: anotherUser });
                 await auction.take(auctionId, [], false, { from: anotherUser });
 
                 // Withdraw
