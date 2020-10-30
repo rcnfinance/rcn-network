@@ -288,6 +288,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(closingObligation32.amount).to.eq.BN(amount);
             expect(closingObligation32.fee).to.eq.BN(await toFee(amount));
 
+            const estimateObligation = await loanManager.getEstimateObligation(id);
+            expect(estimateObligation.amount).to.eq.BN(amount);
+            expect(estimateObligation.fee).to.eq.BN(await toFee(amount));
+            const estimateObligation32 = await loanManager.methods['getEstimateObligation(bytes32)'](id);
+            expect(estimateObligation32.amount).to.eq.BN(amount);
+            expect(estimateObligation32.fee).to.eq.BN(await toFee(amount));
+
             assert.equal(await loanManager.getLoanData(id), loanData);
             assert.equal(await loanManager.methods['getLoanData(bytes32)'](id), loanData);
 

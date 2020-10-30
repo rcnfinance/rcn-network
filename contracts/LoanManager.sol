@@ -85,6 +85,10 @@ contract LoanManager is BytesUtils, IDebtStatus {
         amount = Model(requests[bytes32(_id)].model).getClosingObligation(bytes32(_id));
         fee = debtEngine.toFee(bytes32(_id), amount);
     }
+    function getEstimateObligation(uint256 _id) external view returns (uint256 amount, uint256 fee) {
+        amount = Model(requests[bytes32(_id)].model).getEstimateObligation(bytes32(_id));
+        fee = debtEngine.toFee(bytes32(_id), amount);
+    }
     function getLoanData(uint256 _id) external view returns (bytes memory) { return requests[bytes32(_id)].loanData; }
     function getStatus(uint256 _id) external view returns (Status) {
         Request storage request = requests[bytes32(_id)];
@@ -113,6 +117,10 @@ contract LoanManager is BytesUtils, IDebtStatus {
     }
     function getClosingObligation(bytes32 _id) external view returns (uint256 amount, uint256 fee) {
         amount = Model(requests[_id].model).getClosingObligation(_id);
+        fee = debtEngine.toFee(_id, amount);
+    }
+    function getEstimateObligation(bytes32 _id) external view returns (uint256 amount, uint256 fee) {
+        amount = Model(requests[_id].model).getEstimateObligation(_id);
         fee = debtEngine.toFee(_id, amount);
     }
     function getLoanData(bytes32 _id) external view returns (bytes memory) { return requests[_id].loanData; }
