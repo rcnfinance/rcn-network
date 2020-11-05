@@ -96,8 +96,8 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
     address public burner;
     uint128 public fee; // Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
 
-    uint256 public immutable BASE = 10000;
-    uint256 private immutable UINT_128_OVERFLOW = 340282366920938463463374607431768211456;
+    uint256 public constant BASE = 10000;
+    uint256 private constant UINT_128_OVERFLOW = 340282366920938463463374607431768211456;
 
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
