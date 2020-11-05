@@ -28,7 +28,7 @@ function ratio (num) {
 
 const MAX_UINT64 = bn(2).pow(bn(64)).sub(bn(1));
 
-contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, anotherUser, burner]) {
+contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, user, anotherUser, burner]) {
     let rcn;
     let debtEngine;
     let loanManager;
@@ -37,9 +37,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
     let debtPayer;
     let auction;
 
+    async function withFee (amount) {
+        return amount.add(await toFee(amount));
+    }
+
+    async function toFee (amount) {
+        const feePerc = await debtEngine.fee();
+        const BASE = await debtEngine.BASE();
+
+        return amount.mul(feePerc).div(BASE);
+    }
+
+    function toTotal (amount, perc) {
+        return amount.mul(perc).div(bn(10000));
+    }
+
     beforeEach(async () => {
         rcn = await TestToken.new({ from: owner });
-        debtEngine = await DebtEngine.new(rcn.address, burner, 0, { from: owner });
+        debtEngine = await DebtEngine.new(rcn.address, burner, 100, { from: owner });
         loanManager = await LoanManager.new(debtEngine.address, { from: owner });
         model = await TestModel.new({ from: owner });
         await model.setEngine(debtEngine.address, { from: owner });
@@ -1295,8 +1310,9 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
         });
         it('Should redeem a paid loan', async () => {
             // Request a loan
+            const loanAmount = bn(1000);
             const modelData = await model.encodeData(
-                bn(1000),
+                loanAmount,
                 MAX_UINT64,
                 0,
                 MAX_UINT64
@@ -1304,7 +1320,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             // Request loan
             const requestReceipt = await loanManager.requestLoan(
-                bn(1000),          // Requested amount
+                loanAmount,          // Requested amount
                 model.address,    // Debt model
                 address0x,        // Oracle
                 user,             // Borrower
@@ -1326,7 +1342,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 user,             // Owner of entry
                 debtId,           // Debt ID
                 address0x,        // Oracle address
-                bn(2500),          // Token Amount
+                bn(2500),         // Token Amount
                 ratio(120),       // Liquidation Ratio
                 ratio(150),       // Balance ratio
                 {
@@ -1337,8 +1353,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             const entryId = bn(1);
 
             // Lend loan
-            await rcn.setBalance(anotherUser, bn(1000));
-            await rcn.approve(loanManager.address, bn(1000), { from: anotherUser });
+            await rcn.setBalance(anotherUser, loanAmount);
+            await rcn.approve(loanManager.address, loanAmount, { from: anotherUser });
             await loanManager.lend(
                 debtId,             // Debt ID
                 [],                 // Oracle data
@@ -1352,11 +1368,12 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             );
 
             // Pay loan
-            await rcn.setBalance(user, bn(1000));
-            await rcn.approve(debtEngine.address, bn(1000), { from: user });
+            const total = await withFee(loanAmount);
+            await rcn.setBalance(user, total);
+            await rcn.approve(debtEngine.address, total, { from: user });
             await debtEngine.pay(
                 debtId,
-                bn(1000),
+                total,
                 user,
                 [],
                 {
@@ -1715,7 +1732,12 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             it('Should pay totally the debt', async () => {
                 // Pay debt using RCN collateral
-                const data = await debtPayer.encode(address0x, bn(1000), bn(0), user, []);
+                const feeAmount = await toFee(bn(1000));
+                await rcn.setBalance(user, feeAmount);
+                await rcn.approve(collateral.address, feeAmount, { from: user });
+                await collateral.deposit(entryId, feeAmount, { from: user });
+
+                const data = await debtPayer.encode(address0x, bn(1010), bn(0), user, []);
                 await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
 
                 expect(await loanManager.getStatus(debtId)).to.eq.BN(bn(2));
@@ -1733,7 +1755,8 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             it('Should pay partially the debt', async () => {
                 // Pay debt using RCN collateral
-                const data = await debtPayer.encode(address0x, bn(400), bn(0), user, []);
+                const feeAmount = await toFee(bn(400));
+                const data = await debtPayer.encode(address0x, bn(400).add(feeAmount), bn(0), user, []);
                 await collateral.borrowCollateral(entryId, debtPayer.address, data, [], { from: user });
 
                 expect(await loanManager.getStatus(debtId)).to.eq.BN(bn(1));
@@ -1747,14 +1770,16 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 expect(entry.oracle).to.be.equal(address0x);
                 expect(entry.token).to.be.equal(rcn.address);
                 expect(entry.debtId).to.be.equal(debtId);
-                expect(entry.amount).to.eq.BN(bn(2100));
+                expect(entry.amount).to.eq.BN(bn(2100).sub(feeAmount));
                 expect(entry.liquidationRatio).to.eq.BN(ratio(120));
                 expect(entry.balanceRatio).to.eq.BN(ratio(150));
             });
 
             it('Should return any extra rcn', async () => {
+                const feeAmount = await toFee(bn(1200));
+
                 // Pay debt using RCN collateral
-                const data = await debtPayer.encode(address0x, bn(1200), bn(0), user, []);
+                const data = await debtPayer.encode(address0x, bn(1200).add(feeAmount), bn(0), user, []);
 
                 const userSnap = await balanceSnap(rcn, user, 'user rcn');
 
@@ -1771,7 +1796,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Debt entry should have extra collateral
                 // Inspect entry
                 const entry = await collateral.entries(entryId);
-                expect(entry.amount).to.eq.BN(bn(1300));
+                expect(entry.amount).to.eq.BN(bn(1300).sub(feeAmount));
             });
 
             it('Should fail if end result is less collateralized', async () => {
@@ -1845,12 +1870,12 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    oracle.address,   // Oracle address
-                    bn(600),           // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,                   // Owner of entry
+                    debtId,                 // Debt ID
+                    oracle.address,         // Oracle address
+                    await withFee(bn(600)), // Token Amount
+                    ratio(120),             // Liquidation Ratio
+                    ratio(150),             // Balance ratio
                     {
                         from: user,
                     }
@@ -1889,24 +1914,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1001));
-                expect(claimedEvent._required).to.eq.BN(bn(603));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(301));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1001)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(603)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(301)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.startOffer).to.eq.BN(bn(285));
-                expect(auctionEntry.amount).to.eq.BN(bn(603));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.startOffer).to.eq.BN(await withFee(bn(286)));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(603)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
 
             it('should trigger half liquidation', async () => {
@@ -1920,24 +1945,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1100));
-                expect(claimedEvent._required).to.eq.BN(bn(900));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(450));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1100)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(900)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(450)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.startOffer).to.eq.BN(bn(427));
-                expect(auctionEntry.amount).to.eq.BN(bn(900));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.startOffer).to.eq.BN(await withFee(bn(427)));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(900)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
 
             it('should trigger a full liquidation', async () => {
@@ -1951,24 +1976,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1200));
-                expect(claimedEvent._required).to.eq.BN(bn(1200));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(600));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(600)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.startOffer).to.eq.BN(bn(570));
-                expect(auctionEntry.amount).to.eq.BN(bn(1200));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.startOffer).to.eq.BN(await withFee(bn(570)));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1200)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
 
             it('should trigger a full liquidation under collateral', async () => {
@@ -1982,24 +2007,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(2000));
-                expect(claimedEvent._required).to.eq.BN(bn(1200));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(600));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(2000)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(600)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.startOffer).to.eq.BN(bn(570));
-                expect(auctionEntry.amount).to.eq.BN(bn(1200));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.startOffer).to.eq.BN(await withFee(bn(570)));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1200)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
         });
         context('With under-collateralized loan with base collateral', () => {
@@ -2032,18 +2057,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await rcn.setBalance(user, bn(1200));
-                await rcn.setBalance(user, bn(1200));
-                await rcn.approve(collateral.address, bn(1200), { from: user });
+                await rcn.setBalance(user, await withFee(bn(1200)));
+                await rcn.approve(collateral.address, await withFee(bn(1200)), { from: user });
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    address0x,        // Oracle address
-                    bn(1200),           // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,                    // Owner of entry
+                    debtId,                  // Debt ID
+                    address0x,               // Oracle address
+                    await withFee(bn(1200)), // Token Amount
+                    ratio(120),              // Liquidation Ratio
+                    ratio(150),              // Balance ratio
                     {
                         from: user,
                     }
@@ -2082,23 +2106,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1001));
-                expect(claimedEvent._required).to.eq.BN(bn(603));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(603));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1001)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(603)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(603)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(603));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(603)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
 
             it('should trigger half liquidation', async () => {
@@ -2112,23 +2136,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1100));
-                expect(claimedEvent._required).to.eq.BN(bn(900));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(900));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1100)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(900)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(900)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(900));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(900)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
 
             it('should trigger a full liquidation', async () => {
@@ -2142,23 +2166,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1200));
-                expect(claimedEvent._required).to.eq.BN(bn(1200));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(1200));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(1200)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(1200));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1200)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
 
             it('should trigger a full liquidation under collateral', async () => {
@@ -2172,23 +2196,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(2000));
-                expect(claimedEvent._required).to.eq.BN(bn(1200));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(1200));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(2000)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(1200)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(1200));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1200)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
         });
         context('With under-collateralized loan with base collateral and oracle', () => {
@@ -2225,18 +2249,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await rcn.setBalance(user, bn(1200));
-                await rcn.setBalance(user, bn(1200));
-                await rcn.approve(collateral.address, bn(1200), { from: user });
+                await rcn.setBalance(user, await withFee(bn(1200)));
+                await rcn.approve(collateral.address, await withFee(bn(1200)), { from: user });
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    address0x,        // Oracle address
-                    bn(1200),          // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,                    // Owner of entry
+                    debtId,                  // Debt ID
+                    address0x,               // Oracle address
+                    await withFee(bn(1200)), // Token Amount
+                    ratio(120),              // Liquidation Ratio
+                    ratio(150),              // Balance ratio
                     {
                         from: user,
                     }
@@ -2273,23 +2296,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, oracleData);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1001));
-                expect(claimedEvent._required).to.eq.BN(bn(603));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(603));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1001)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(603)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(603)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(603));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(603)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
 
             it('should trigger half liquidation', async () => {
@@ -2303,23 +2326,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, oracleData);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1100));
-                expect(claimedEvent._required).to.eq.BN(bn(900));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(900));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1100)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(900)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(900)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(900));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(900)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
 
             it('should trigger a full liquidation', async () => {
@@ -2333,23 +2356,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, oracleData);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1200));
-                expect(claimedEvent._required).to.eq.BN(bn(1200));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(1200));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(1200)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(1200));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1200)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
 
             it('should trigger a full liquidation under collateral', async () => {
@@ -2363,23 +2386,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, oracleData);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(2000));
-                expect(claimedEvent._required).to.eq.BN(bn(1200));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(1200));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(2000)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(1200)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(1200));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1200)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
         });
         context('With under-collateralized loan with token collateral and oracle', () => {
@@ -2407,12 +2430,12 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Request loan
                 const requestReceipt = await loanManager.requestLoan(
-                    bn(2000),            // Requested amount
+                    bn(2000),           // Requested amount
                     model.address,      // Debt model
                     oracleLoan.address, // Oracle
                     user,               // Borrower
                     address0x,          // Callback
-                    bn(0),               // Salt
+                    bn(0),              // Salt
                     MAX_UINT64,         // Expiration
                     modelData,          // Model data
                     {
@@ -2422,18 +2445,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await dai.setBalance(user, bn(600));
-                await dai.setBalance(user, bn(600));
-                await dai.approve(collateral.address, bn(600), { from: user });
+                await dai.setBalance(user, await withFee(bn(600)));
+                await dai.approve(collateral.address, await withFee(bn(600)), { from: user });
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    oracle.address,   // Oracle address
-                    bn(600),           // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,                   // Owner of entry
+                    debtId,                 // Debt ID
+                    oracle.address,         // Oracle address
+                    await withFee(bn(600)), // Token Amount
+                    ratio(120),             // Liquidation Ratio
+                    ratio(150),             // Balance ratio
                     {
                         from: user,
                     }
@@ -2448,7 +2470,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                     debtId,             // Debt ID
                     oracleData,         // Oracle data
                     collateral.address, // Collateral cosigner
-                    bn(0),               // Cosigner limit
+                    bn(0),              // Cosigner limit
                     toBytes32(entryId), // Cosigner data
                     [],                 // Callback data
                     {
@@ -2470,24 +2492,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, oracleData);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1001));
-                expect(claimedEvent._required).to.eq.BN(bn(603));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(301));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1001)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(603)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(301)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.startOffer).to.eq.BN(bn(285));
-                expect(auctionEntry.amount).to.eq.BN(bn(603));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.startOffer).to.eq.BN(await withFee(bn(286)));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(603)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
             it('should trigger half liquidation', async () => {
                 await model.addDebt(debtId, bn(200));
@@ -2500,24 +2522,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, oracleData);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1100));
-                expect(claimedEvent._required).to.eq.BN(bn(900));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(450));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1100)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(900)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(450)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.startOffer).to.eq.BN(bn(427));
-                expect(auctionEntry.amount).to.eq.BN(bn(900));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.startOffer).to.eq.BN(await withFee(bn(427)));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(900)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
 
             it('should trigger a full liquidation', async () => {
@@ -2531,24 +2553,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, oracleData);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(1200));
-                expect(claimedEvent._required).to.eq.BN(bn(1200));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(600));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(600)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.startOffer).to.eq.BN(bn(570));
-                expect(auctionEntry.amount).to.eq.BN(bn(1200));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.startOffer).to.eq.BN(await withFee(bn(570)));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1200)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
 
             it('should trigger a full liquidation under collateral', async () => {
@@ -2562,24 +2584,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, oracleData);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
-                expect(claimedEvent._debt).to.eq.BN(bn(2000));
-                expect(claimedEvent._required).to.eq.BN(bn(1200));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(600));
+                expect(claimedEvent._debt).to.eq.BN(await withFee(bn(2000)));
+                expect(claimedEvent._required).to.eq.BN(await withFee(bn(1200)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(600)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.startOffer).to.eq.BN(bn(570));
-                expect(auctionEntry.amount).to.eq.BN(bn(1200));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.startOffer).to.eq.BN(await withFee(bn(570)));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1200)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
         });
         context('With undue payments and base collateral', () => {
@@ -2612,18 +2634,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await rcn.setBalance(user, bn(1200));
-                await rcn.setBalance(user, bn(1200));
-                await rcn.approve(collateral.address, bn(1200), { from: user });
+                await rcn.setBalance(user, await withFee(bn(1200)));
+                await rcn.approve(collateral.address, await withFee(bn(1200)), { from: user });
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    address0x,        // Oracle address
-                    bn(1200),          // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,                    // Owner of entry
+                    debtId,                  // Debt ID
+                    address0x,               // Oracle address
+                    await withFee(bn(1200)), // Token Amount
+                    ratio(120),              // Liquidation Ratio
+                    ratio(150),              // Balance ratio
                     {
                         from: user,
                     }
@@ -2661,23 +2682,23 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(rcn, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(1200));
-                await aucSnap.requireIncrease(bn(1200));
+                await colSnap.requireDecrease(await withFee(bn(1200)));
+                await aucSnap.requireIncrease(await withFee(bn(1200)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedExpired');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
                 expect(claimedEvent._dueTime).to.eq.BN(dueTime);
-                expect(claimedEvent._obligation).to.eq.BN(bn(1050));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(1050));
+                expect(claimedEvent._obligation).to.eq.BN(await withFee(bn(1050)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(1050)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(rcn.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(1050));
-                expect(auctionEntry.limit).to.eq.BN(bn(1200));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1050)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(1200)));
             });
             it('should not trigger a liquidation if already is in liquidation', async () => {
                 await model.setRelativeDueTime(debtId, true, bn(60));
@@ -2726,18 +2747,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await dai.setBalance(user, bn(600));
-                await dai.setBalance(user, bn(600));
-                await dai.approve(collateral.address, bn(600), { from: user });
+                await dai.setBalance(user, await withFee(bn(600)));
+                await dai.approve(collateral.address, await withFee(bn(600)), { from: user });
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    oracle.address,   // Oracle address
-                    bn(600),           // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,                   // Owner of entry
+                    debtId,                 // Debt ID
+                    oracle.address,         // Oracle address
+                    await withFee(bn(600)), // Token Amount
+                    ratio(120),             // Liquidation Ratio
+                    ratio(150),             // Balance ratio
                     {
                         from: user,
                     }
@@ -2752,7 +2772,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                     debtId,             // Debt ID
                     [],                 // Oracle data
                     collateral.address, // Collateral cosigner
-                    bn(0),               // Cosigner limit
+                    bn(0),              // Cosigner limit
                     toBytes32(entryId), // Cosigner data
                     [],                 // Callback data
                     {
@@ -2775,24 +2795,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, []);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedExpired');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
                 expect(claimedEvent._dueTime).to.eq.BN(dueTime);
-                expect(claimedEvent._obligation).to.eq.BN(bn(1050));
-                expect(claimedEvent._obligationTokens).to.eq.BN(bn(1050));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(525));
+                expect(claimedEvent._obligation).to.eq.BN(await withFee(bn(1050)));
+                expect(claimedEvent._obligationTokens).to.eq.BN(await withFee(bn(1050)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(525)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(1050));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1050)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
             it('should not trigger a liquidation if already is in liquidation', async () => {
                 await model.setRelativeDueTime(debtId, true, bn(60));
@@ -2845,18 +2865,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await dai.setBalance(user, bn(600));
-                await dai.setBalance(user, bn(600));
-                await dai.approve(collateral.address, bn(600), { from: user });
+                await dai.setBalance(user, await withFee(bn(600)));
+                await dai.approve(collateral.address, await withFee(bn(600)), { from: user });
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    oracle.address,   // Oracle address
-                    bn(600),           // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,                   // Owner of entry
+                    debtId,                 // Debt ID
+                    oracle.address,         // Oracle address
+                    await withFee(bn(600)), // Token Amount
+                    ratio(120),             // Liquidation Ratio
+                    ratio(150),             // Balance ratio
                     {
                         from: user,
                     }
@@ -2894,24 +2913,24 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const aucSnap = await balanceSnap(dai, auction.address, 'auction');
                 const claimTx = await collateral.claim(user, debtId, loanOracledata);
 
-                await colSnap.requireDecrease(bn(600));
-                await aucSnap.requireIncrease(bn(600));
+                await colSnap.requireDecrease(await withFee(bn(600)));
+                await aucSnap.requireIncrease(await withFee(bn(600)));
 
                 // Started auction event
                 const claimedEvent = searchEvent(claimTx, 'ClaimedExpired');
                 expect(claimedEvent._entryId).to.eq.BN(entryId);
                 expect(claimedEvent._dueTime).to.eq.BN(dueTime);
-                expect(claimedEvent._obligation).to.eq.BN(bn(2100));
-                expect(claimedEvent._obligationTokens).to.eq.BN(bn(1050));
-                expect(claimedEvent._marketValue).to.eq.BN(bn(525));
+                expect(claimedEvent._obligation).to.eq.BN(await withFee(bn(2100)));
+                expect(claimedEvent._obligationTokens).to.eq.BN(await withFee(bn(1051)));
+                expect(claimedEvent._marketValue).to.eq.BN(await withFee(bn(525)));
 
                 const auctionId = claimedEvent._auctionId;
 
                 // validate auction parameters
                 const auctionEntry = await auction.auctions(auctionId);
                 expect(auctionEntry.fromToken).to.be.equal(dai.address);
-                expect(auctionEntry.amount).to.eq.BN(bn(1050));
-                expect(auctionEntry.limit).to.eq.BN(bn(600));
+                expect(auctionEntry.amount).to.eq.BN(await withFee(bn(1051)));
+                expect(auctionEntry.limit).to.eq.BN(await withFee(bn(600)));
             });
             it('should not trigger a liquidation if already is in liquidation', async () => {
                 await model.setRelativeDueTime(debtId, true, bn(60));
@@ -2926,11 +2945,16 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             let debtId;
             let entryId;
             let auctionId;
+            let loanAmount;
+            let collateralAmount;
 
             beforeEach(async () => {
+                loanAmount = bn(1000);
+                collateralAmount = toTotal(await withFee(loanAmount), bn(12000));
+
                 // Request a loan
                 const modelData = await model.encodeData(
-                    bn(1000),
+                    loanAmount,
                     MAX_UINT64,
                     0,
                     MAX_UINT64
@@ -2938,14 +2962,14 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Request  loan
                 const requestReceipt = await loanManager.requestLoan(
-                    bn(1000),          // Requested amount
-                    model.address,    // Debt model
-                    address0x,        // Oracle
-                    user,             // Borrower
-                    address0x,        // Callback
-                    bn(0),             // Salt
-                    MAX_UINT64,       // Expiration
-                    modelData,        // Model data
+                    loanAmount,    // Requested amount
+                    model.address, // Debt model
+                    address0x,     // Oracle
+                    user,          // Borrower
+                    address0x,     // Callback
+                    bn(0),         // Salt
+                    MAX_UINT64,    // Expiration
+                    modelData,     // Model data
                     {
                         from: user,
                     }
@@ -2953,16 +2977,15 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await rcn.setBalance(user, bn(1200));
-                await rcn.setBalance(user, bn(1200));
-                await rcn.approve(collateral.address, bn(1200), { from: user });
+                await rcn.setBalance(user, collateralAmount);
+                await rcn.approve(collateral.address, collateralAmount, { from: user });
 
                 // Create collateral entry
                 await collateral.create(
                     user,             // Owner of entry
                     debtId,           // Debt ID
                     address0x,        // Oracle address
-                    bn(1200),          // Token Amount
+                    collateralAmount, // Token Amount
                     ratio(120),       // Liquidation Ratio
                     ratio(150),       // Balance ratio
                     {
@@ -2973,13 +2996,13 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 entryId = bn(1);
 
                 // Lend loan
-                await rcn.setBalance(anotherUser, bn(1000));
-                await rcn.approve(loanManager.address, bn(1000), { from: anotherUser });
+                await rcn.setBalance(anotherUser, loanAmount);
+                await rcn.approve(loanManager.address, loanAmount, { from: anotherUser });
                 await loanManager.lend(
                     debtId,             // Debt ID
                     [],                 // Oracle data
                     collateral.address, // Collateral cosigner
-                    bn(0),               // Cosigner limit
+                    bn(0),              // Cosigner limit
                     toBytes32(entryId), // Cosigner data
                     [],                 // Callback data
                     {
@@ -2989,16 +3012,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Trigger auction
                 await model.addDebt(debtId, bn(1));
+                loanAmount = loanAmount.add(bn(1));
                 const claimTx = await collateral.claim(user, debtId, []);
                 const claimedEvent = searchEvent(claimTx, 'ClaimedLiquidation');
                 auctionId = claimedEvent._auctionId;
             });
 
             it('Should fail to deposit collateral', async () => {
-                await rcn.setBalance(user, bn(100));
-                await rcn.approve(collateral.address, bn(100), { from: user });
+                await rcn.setBalance(user, 100);
+                await rcn.approve(collateral.address, 100, { from: user });
                 await tryCatchRevert(
-                    collateral.deposit(entryId, bn(100), { from: user }),
+                    collateral.deposit(entryId, 100, { from: user }),
                     'collateral: can\'t deposit during auction'
                 );
             });
@@ -3012,20 +3036,20 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
             it('Should deposit after auction closes', async () => {
                 // Close auction
-                await rcn.setBalance(anotherUser, bn(1000));
-                await rcn.approve(auction.address, bn(1000), { from: anotherUser });
+                await rcn.setBalance(anotherUser, 609);
+                await rcn.approve(auction.address, 609, { from: anotherUser });
                 await auction.take(auctionId, [], false, { from: anotherUser });
 
                 // Deposit
-                await rcn.setBalance(user, bn(100));
-                await rcn.approve(collateral.address, bn(100), { from: user });
-                await collateral.deposit(entryId, bn(100), { from: user });
+                await rcn.setBalance(user, 100);
+                await rcn.approve(collateral.address, 100, { from: user });
+                await collateral.deposit(entryId, 100, { from: user });
             });
 
             it('Should withdraw after auction closes', async () => {
                 // Close auction
-                await rcn.setBalance(anotherUser, bn(0));
-                await rcn.approve(auction.address, bn(1000), { from: anotherUser });
+                await rcn.setBalance(anotherUser, 0);
+                await rcn.approve(auction.address, await withFee(loanAmount), { from: anotherUser });
                 await auction.take(auctionId, [], false, { from: anotherUser });
 
                 // Withdraw
@@ -3077,12 +3101,12 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    oracle.address,   // Oracle address
-                    bn(600),           // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,                   // Owner of entry
+                    debtId,                 // Debt ID
+                    oracle.address,         // Oracle address
+                    await withFee(bn(600)), // Token Amount
+                    ratio(120),             // Liquidation Ratio
+                    ratio(150),             // Balance ratio
                     {
                         from: user,
                     }
@@ -3120,7 +3144,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should close auction above market', async () => {
-                await rcn.setBalance(anotherUser, bn(900));
+                await rcn.setBalance(anotherUser, await withFee(bn(900)));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
@@ -3129,14 +3153,14 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
 
                 // Pay auction
-                await rcn.approve(auction.address, bn(900), { from: anotherUser });
+                await rcn.approve(auction.address, await withFee(bn(900)), { from: anotherUser });
                 await auction.take(entryId, [], false, { from: anotherUser });
 
                 await engineRcnSnap.requireIncrease(bn(900));
-                await userRcnSnap.requireDecrease(bn(900));
-                await userDaiSnap.requireIncrease(bn(427));
-                await collateralDaiSnap.requireIncrease(bn(173));
-                await auctionDaiSnap.requireDecrease(bn(600));
+                await userRcnSnap.requireDecrease(await withFee(bn(900)));
+                await userDaiSnap.requireIncrease(await withFee(bn(427)));
+                await collateralDaiSnap.requireIncrease(await withFee(bn(174)));
+                await auctionDaiSnap.requireDecrease(await withFee(bn(600)));
 
                 // Should no longer be under-collateral
                 expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
@@ -3147,7 +3171,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
                 expect(entry.debtId).to.be.equal(debtId);
-                expect(entry.amount).to.eq.BN(bn(173));
+                expect(entry.amount).to.eq.BN(await withFee(bn(174)));
 
                 // Collateral should not be in auction
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(bn(0));
@@ -3155,7 +3179,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should close auction at market rate', async () => {
-                await rcn.setBalance(anotherUser, bn(900));
+                await rcn.setBalance(anotherUser, await withFee(bn(900)));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
@@ -3167,14 +3191,14 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await auction.increaseTime(bn(60).mul(bn(10)));
 
                 // Pay auction
-                await rcn.approve(auction.address, bn(900), { from: anotherUser });
+                await rcn.approve(auction.address, await withFee(bn(900)), { from: anotherUser });
                 await auction.take(entryId, [], false, { from: anotherUser });
 
                 await engineRcnSnap.requireIncrease(bn(900));
-                await userRcnSnap.requireDecrease(bn(900));
-                await userDaiSnap.requireIncrease(bn(450));
-                await collateralDaiSnap.requireIncrease(bn(150));
-                await auctionDaiSnap.requireDecrease(bn(600));
+                await userRcnSnap.requireDecrease(await withFee(bn(900)));
+                await userDaiSnap.requireIncrease(await withFee(bn(450)));
+                await collateralDaiSnap.requireIncrease(await withFee(bn(151)));
+                await auctionDaiSnap.requireDecrease(await withFee(bn(600)));
 
                 // Should no longer be under-collateral
                 expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
@@ -3185,7 +3209,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
                 expect(entry.debtId).to.be.equal(debtId);
-                expect(entry.amount).to.eq.BN(bn(150));
+                expect(entry.amount).to.eq.BN(await withFee(bn(151)));
 
                 // Collateral should not be in auction
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(bn(0));
@@ -3193,7 +3217,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should close auction 5% below market rate', async () => {
-                await rcn.setBalance(anotherUser, bn(900));
+                await rcn.setBalance(anotherUser, await withFee(bn(900)));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
@@ -3205,14 +3229,14 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await auction.increaseTime(bn(60).mul(bn(20)));
 
                 // Pay auction
-                await rcn.approve(auction.address, bn(900), { from: anotherUser });
+                await rcn.approve(auction.address, await withFee(bn(900)), { from: anotherUser });
                 await auction.take(entryId, [], false, { from: anotherUser });
 
                 await engineRcnSnap.requireIncrease(bn(900));
-                await userRcnSnap.requireDecrease(bn(900));
-                await userDaiSnap.requireIncrease(bn(473));
-                await collateralDaiSnap.requireIncrease(bn(127));
-                await auctionDaiSnap.requireDecrease(bn(600));
+                await userRcnSnap.requireDecrease(await withFee(bn(900)));
+                await userDaiSnap.requireIncrease(await withFee(bn(473)));
+                await collateralDaiSnap.requireIncrease(await withFee(bn(128)));
+                await auctionDaiSnap.requireDecrease(await withFee(bn(600)));
 
                 // Should no longer be under-collateral
                 expect(await collateral.claim.call(user, debtId, [])).to.be.equal(false);
@@ -3223,7 +3247,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
                 expect(entry.debtId).to.be.equal(debtId);
-                expect(entry.amount).to.eq.BN(bn(127));
+                expect(entry.amount).to.eq.BN(await withFee(bn(128)));
 
                 // Collateral should not be in auction
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(bn(0));
@@ -3231,7 +3255,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should close auction aprox 40% below market rate', async () => {
-                await rcn.setBalance(anotherUser, bn(900));
+                await rcn.setBalance(anotherUser, await withFee(bn(900)));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
@@ -3243,14 +3267,14 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await auction.increaseTime(bn(1956));
 
                 // Pay auction
-                await rcn.approve(auction.address, bn(900), { from: anotherUser });
+                await rcn.approve(auction.address, await withFee(bn(900)), { from: anotherUser });
                 await auction.take(entryId, [], false, { from: anotherUser });
 
                 await engineRcnSnap.requireIncrease(bn(900));
-                await userRcnSnap.requireDecrease(bn(900));
-                await userDaiSnap.requireIncrease(bn(501));
-                await collateralDaiSnap.requireIncrease(bn(99));
-                await auctionDaiSnap.requireDecrease(bn(600));
+                await userRcnSnap.requireDecrease(await withFee(bn(900)));
+                await userDaiSnap.requireIncrease(await withFee(bn(500)));
+                await collateralDaiSnap.requireIncrease(await withFee(bn(100)));
+                await auctionDaiSnap.requireDecrease(await withFee(bn(600)));
 
                 // Should no longer be under-collateral
                 expect(await collateral.claim.call(user, debtId, [])).to.be.equal(true);
@@ -3261,7 +3285,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
                 expect(entry.debtId).to.be.equal(debtId);
-                expect(entry.amount).to.eq.BN(bn(99));
+                expect(entry.amount).to.eq.BN(await withFee(bn(100)));
 
                 // Collateral should not be in auction
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(bn(0));
@@ -3269,7 +3293,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should close auction using all the collateral', async () => {
-                await rcn.setBalance(anotherUser, bn(900));
+                await rcn.setBalance(anotherUser, await withFee(bn(900)));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
@@ -3281,14 +3305,14 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await auction.increaseTime(bn(4513));
 
                 // Pay auction
-                await rcn.approve(auction.address, bn(900), { from: anotherUser });
+                await rcn.approve(auction.address, await withFee(bn(900)), { from: anotherUser });
                 await auction.take(entryId, [], false, { from: anotherUser });
 
                 await engineRcnSnap.requireIncrease(bn(900));
-                await userRcnSnap.requireDecrease(bn(900));
-                await userDaiSnap.requireIncrease(bn(600));
-                await collateralDaiSnap.requireIncrease(bn(0));
-                await auctionDaiSnap.requireDecrease(bn(600));
+                await userRcnSnap.requireDecrease(await withFee(bn(900)));
+                await userDaiSnap.requireIncrease(await withFee(bn(599)));
+                await collateralDaiSnap.requireIncrease(bn(2));
+                await auctionDaiSnap.requireDecrease(await withFee(bn(600)));
 
                 // Loan should be partially paid
                 expect(await model.getPaid(debtId)).to.eq.BN(bn(900));
@@ -3296,7 +3320,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
                 expect(entry.debtId).to.be.equal(debtId);
-                expect(entry.amount).to.eq.BN(bn(0));
+                expect(entry.amount).to.eq.BN(bn(2));
 
                 // Collateral should not be in auction
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(bn(0));
@@ -3304,7 +3328,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should close auction all the collateral, for half the base', async () => {
-                await rcn.setBalance(anotherUser, bn(450));
+                await rcn.setBalance(anotherUser, await withFee(bn(452)));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
@@ -3316,17 +3340,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await auction.increaseTime(bn(4513).add(bn(43200)));
 
                 // Pay auction
-                await rcn.approve(auction.address, bn(450), { from: anotherUser });
+                await rcn.approve(auction.address, await withFee(bn(452)), { from: anotherUser });
                 await auction.take(entryId, [], false, { from: anotherUser });
 
-                await engineRcnSnap.requireIncrease(bn(450));
-                await userRcnSnap.requireDecrease(bn(450));
-                await userDaiSnap.requireIncrease(bn(600));
-                await collateralDaiSnap.requireIncrease(bn(0));
-                await auctionDaiSnap.requireDecrease(bn(600));
+                await engineRcnSnap.requireIncrease(bn(452));
+                await userRcnSnap.requireDecrease(await withFee(bn(452)));
+                await userDaiSnap.requireIncrease(await withFee(bn(600)));
+                await collateralDaiSnap.requireIncrease(await withFee(bn(0)));
+                await auctionDaiSnap.requireDecrease(await withFee(bn(600)));
 
                 // Loan should be partially paid
-                expect(await model.getPaid(debtId)).to.eq.BN(bn(450));
+                expect(await model.getPaid(debtId)).to.eq.BN(bn(452));
 
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
@@ -3339,7 +3363,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should close auction all the collateral, after looping the base', async () => {
-                await rcn.setBalance(anotherUser, bn(450));
+                await rcn.setBalance(anotherUser, await withFee(bn(452)));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
@@ -3351,17 +3375,17 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await auction.increaseTime(bn(4513).add(bn(129600)));
 
                 // Pay auction
-                await rcn.approve(auction.address, bn(900), { from: anotherUser });
+                await rcn.approve(auction.address, await withFee(bn(452)), { from: anotherUser });
                 await auction.take(entryId, [], false, { from: anotherUser });
 
-                await engineRcnSnap.requireIncrease(bn(450));
-                await userRcnSnap.requireDecrease(bn(450));
-                await userDaiSnap.requireIncrease(bn(600));
+                await engineRcnSnap.requireIncrease(bn(452));
+                await userRcnSnap.requireDecrease(await withFee(bn(452)));
+                await userDaiSnap.requireIncrease(await withFee(bn(600)));
                 await collateralDaiSnap.requireIncrease(bn(0));
-                await auctionDaiSnap.requireDecrease(bn(600));
+                await auctionDaiSnap.requireDecrease(await withFee(bn(600)));
 
                 // Loan should be partially paid
-                expect(await model.getPaid(debtId)).to.eq.BN(bn(450));
+                expect(await model.getPaid(debtId)).to.eq.BN(bn(452));
 
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
@@ -3374,7 +3398,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             });
 
             it('Should close auction and send extra to collateral owner', async () => {
-                await rcn.setBalance(anotherUser, bn(900));
+                await rcn.setBalance(anotherUser, await withFee(bn(900)));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const auctionRcnSnap = await balanceSnap(rcn, auction.address, 'auction rcn');
@@ -3391,16 +3415,15 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 await model.setDebt(debtId, bn(100));
 
                 // Pay auction
-                await rcn.setBalance(anotherUser, bn(900));
-                await rcn.approve(auction.address, bn(900), { from: anotherUser });
+                await rcn.approve(auction.address, await withFee(bn(900)), { from: anotherUser });
                 await auction.take(entryId, [], false, { from: anotherUser });
 
                 await engineRcnSnap.requireIncrease(bn(100));
-                await userRcnSnap.requireDecrease(bn(900));
-                await userDaiSnap.requireIncrease(bn(450));
-                await collateralDaiSnap.requireIncrease(bn(150));
-                await collateralOwnerRcnSnap.requireIncrease(bn(800));
-                await auctionDaiSnap.requireDecrease(bn(600));
+                await userRcnSnap.requireDecrease(await withFee(bn(900)));
+                await userDaiSnap.requireIncrease(await withFee(bn(450)));
+                await collateralDaiSnap.requireIncrease(await withFee(bn(151)));
+                await collateralOwnerRcnSnap.requireIncrease(await withFee(bn(800)));
+                await auctionDaiSnap.requireDecrease(await withFee(bn(600)));
                 await auctionRcnSnap.requireConstant();
 
                 // Loan should be partially paid
@@ -3409,7 +3432,7 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
                 expect(entry.debtId).to.be.equal(debtId);
-                expect(entry.amount).to.eq.BN(bn(150));
+                expect(entry.amount).to.eq.BN(await withFee(bn(151)));
 
                 // Collateral should not be in auction
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(bn(0));
@@ -3463,17 +3486,18 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
 
-                await dai.setBalance(user, e(600));
-                await dai.approve(collateral.address, e(600), { from: user });
+                const total = await withFee(e(600));
+                await dai.setBalance(user, total);
+                await dai.approve(collateral.address, total, { from: user });
 
                 // Create collateral entry
                 await collateral.create(
-                    user,             // Owner of entry
-                    debtId,           // Debt ID
-                    oracle.address,   // Oracle address
-                    e(600),           // Token Amount
-                    ratio(120),       // Liquidation Ratio
-                    ratio(150),       // Balance ratio
+                    user,           // Owner of entry
+                    debtId,         // Debt ID
+                    oracle.address, // Oracle address
+                    total,          // Token Amount
+                    ratio(120),     // Liquidation Ratio
+                    ratio(150),     // Balance ratio
                     {
                         from: user,
                     }
@@ -3580,7 +3604,12 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
             afterEach(async () => {
                 const leftoverDai = collateralDai.sub(offeredDai);
 
-                await rcn.setBalance(anotherUser, requestedRcn);
+                collateralDai = collateralDai.add(await toFee(collateralDai));
+                requestedRcn = requestedRcn.add(await toFee(requestedRcn));
+                offeredDai = offeredDai.add(await toFee(offeredDai));
+
+                const feeAmount = await toFee(requestedRcn);
+                await rcn.setBalance(anotherUser, requestedRcn.add(feeAmount));
 
                 const auctionDaiSnap = await balanceSnap(dai, auction.address, 'auction dai');
                 const userDaiSnap = await balanceSnap(dai, anotherUser, 'another user dai');
@@ -3589,13 +3618,13 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 const collateralDaiSnap = await balanceSnap(dai, collateral.address, 'collateral dai');
 
                 // Pay auction
-                await rcn.approve(auction.address, requestedRcn, { from: anotherUser });
+                await rcn.approve(auction.address, requestedRcn.add(feeAmount), { from: anotherUser });
                 await auction.take(entryId, loanOracleData, false, { from: anotherUser });
 
-                await engineRcnSnap.requireIncrease(requestedRcn);
+                await engineRcnSnap.requireIncrease(requestedRcn.sub(feeAmount));
                 await userRcnSnap.requireDecrease(requestedRcn);
                 await userDaiSnap.requireIncrease(offeredDai);
-                await collateralDaiSnap.requireIncrease(leftoverDai);
+                await collateralDaiSnap.requireIncrease(leftoverDai.add(await toFee(leftoverDai)));
                 await auctionDaiSnap.requireDecrease(collateralDai);
 
                 // Check if the contract is under collateralized
@@ -3607,12 +3636,12 @@ contract('Test Collateral cosigner Diaspore', function ([_, stub, owner, user, a
                 }
 
                 // Loan should be partially paid
-                expect(await model.getPaid(debtId)).to.eq.BN(requestedRcn.mul(bn(2)));
+                expect(await model.getPaid(debtId)).to.eq.BN(requestedRcn.sub(feeAmount).mul(bn(2)));
 
                 // Collateral should have the leftover tokens
                 const entry = await collateral.entries(entryId);
                 expect(entry.debtId).to.be.equal(debtId);
-                expect(entry.amount).to.eq.BN(leftoverDai);
+                expect(entry.amount).to.eq.BN(leftoverDai.add(await toFee(leftoverDai)));
 
                 // Collateral should not be in auction
                 expect(await collateral.entryToAuction(entryId)).to.eq.BN(bn(0));

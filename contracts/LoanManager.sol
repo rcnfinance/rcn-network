@@ -77,7 +77,18 @@ contract LoanManager is BytesUtils, IDebtStatus {
     function getExpirationRequest(uint256 _id) external view returns (uint256) { return requests[bytes32(_id)].expiration; }
     function getApproved(uint256 _id) external view returns (bool) { return requests[bytes32(_id)].approved; }
     function getDueTime(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getDueTime(bytes32(_id)); }
-    function getClosingObligation(uint256 _id) external view returns (uint256) { return Model(requests[bytes32(_id)].model).getClosingObligation(bytes32(_id)); }
+    function getObligation(uint256 _id, uint64 _timestamp) external view returns (uint256 amount, uint256 fee, bool defined) {
+        (amount, defined) = Model(requests[bytes32(_id)].model).getObligation(bytes32(_id), _timestamp);
+        fee = debtEngine.toFee(bytes32(_id), amount);
+    }
+    function getClosingObligation(uint256 _id) external view returns (uint256 amount, uint256 fee) {
+        amount = Model(requests[bytes32(_id)].model).getClosingObligation(bytes32(_id));
+        fee = debtEngine.toFee(bytes32(_id), amount);
+    }
+    function getEstimateObligation(uint256 _id) external view returns (uint256 amount, uint256 fee) {
+        amount = Model(requests[bytes32(_id)].model).getEstimateObligation(bytes32(_id));
+        fee = debtEngine.toFee(bytes32(_id), amount);
+    }
     function getLoanData(uint256 _id) external view returns (bytes memory) { return requests[bytes32(_id)].loanData; }
     function getStatus(uint256 _id) external view returns (Status) {
         Request storage request = requests[bytes32(_id)];
@@ -100,7 +111,18 @@ contract LoanManager is BytesUtils, IDebtStatus {
     function getExpirationRequest(bytes32 _id) external view returns (uint256) { return requests[_id].expiration; }
     function getApproved(bytes32 _id) external view returns (bool) { return requests[_id].approved; }
     function getDueTime(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getDueTime(bytes32(_id)); }
-    function getClosingObligation(bytes32 _id) external view returns (uint256) { return Model(requests[_id].model).getClosingObligation(bytes32(_id)); }
+    function getObligation(bytes32 _id, uint64 _timestamp) external view returns (uint256 amount, uint256 fee, bool defined) {
+        (amount, defined) = Model(requests[_id].model).getObligation(_id, _timestamp);
+        fee = debtEngine.toFee(_id, amount);
+    }
+    function getClosingObligation(bytes32 _id) external view returns (uint256 amount, uint256 fee) {
+        amount = Model(requests[_id].model).getClosingObligation(_id);
+        fee = debtEngine.toFee(_id, amount);
+    }
+    function getEstimateObligation(bytes32 _id) external view returns (uint256 amount, uint256 fee) {
+        amount = Model(requests[_id].model).getEstimateObligation(_id);
+        fee = debtEngine.toFee(_id, amount);
+    }
     function getLoanData(bytes32 _id) external view returns (bytes memory) { return requests[_id].loanData; }
     function getStatus(bytes32 _id) external view returns (Status) {
         Request storage request = requests[_id];

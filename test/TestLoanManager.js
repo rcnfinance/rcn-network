@@ -33,6 +33,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
     let oracle;
     let loanApprover;
 
+    async function toFee (amount) {
+        const feePerc = await debtEngine.fee();
+        const BASE = await debtEngine.BASE();
+
+        return amount.mul(feePerc).div(BASE);
+    }
+
     async function getId (promise) {
         const receipt = await promise;
         const event = receipt.logs.find(l => l.event === 'Requested');
@@ -157,7 +164,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
     before('Create engine and model', async function () {
         rcn = await TestToken.new();
-        debtEngine = await DebtEngine.new(rcn.address, accounts[5], 0);
+        debtEngine = await DebtEngine.new(rcn.address, accounts[5], 100);
         loanManager = await LoanManager.new(debtEngine.address);
         model = await TestModel.new();
         await model.setEngine(debtEngine.address);
@@ -215,7 +222,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,    // Model
                 oracle.address,   // Oracle
                 borrower,         // Borrower
-                address0x, // Callback
+                address0x,        // Callback
                 salt,             // salt
                 expiration,       // Expiration
                 loanData,         // Loan data
@@ -265,8 +272,28 @@ contract('Test LoanManager Diaspore', function (accounts) {
             expect(await loanManager.getDueTime(id)).to.eq.BN(expiration);
             expect(await loanManager.methods['getDueTime(bytes32)'](id)).to.eq.BN(expiration);
 
-            expect(await loanManager.getClosingObligation(id)).to.eq.BN(amount);
-            expect(await loanManager.methods['getClosingObligation(bytes32)'](id)).to.eq.BN(amount);
+            const obligation = await loanManager.getObligation(id, expiration);
+            expect(obligation.amount).to.eq.BN(amount);
+            expect(obligation.fee).to.eq.BN(await toFee(amount));
+            assert.isTrue(obligation.defined);
+            const obligation32 = await loanManager.methods['getObligation(bytes32,uint64)'](id, expiration);
+            expect(obligation32.amount).to.eq.BN(amount);
+            expect(obligation32.fee).to.eq.BN(await toFee(amount));
+            assert.isTrue(obligation32.defined);
+
+            const closingObligation = await loanManager.getClosingObligation(id);
+            expect(closingObligation.amount).to.eq.BN(amount);
+            expect(closingObligation.fee).to.eq.BN(await toFee(amount));
+            const closingObligation32 = await loanManager.methods['getClosingObligation(bytes32)'](id);
+            expect(closingObligation32.amount).to.eq.BN(amount);
+            expect(closingObligation32.fee).to.eq.BN(await toFee(amount));
+
+            const estimateObligation = await loanManager.getEstimateObligation(id);
+            expect(estimateObligation.amount).to.eq.BN(amount);
+            expect(estimateObligation.fee).to.eq.BN(await toFee(amount));
+            const estimateObligation32 = await loanManager.methods['getEstimateObligation(bytes32)'](id);
+            expect(estimateObligation32.amount).to.eq.BN(amount);
+            expect(estimateObligation32.fee).to.eq.BN(await toFee(amount));
 
             assert.equal(await loanManager.getLoanData(id), loanData);
             assert.equal(await loanManager.methods['getLoanData(bytes32)'](id), loanData);

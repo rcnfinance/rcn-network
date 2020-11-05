@@ -26,21 +26,21 @@ library DiasporeUtils {
         uint256 _amount,
         address _sender,
         bytes memory _oracleData
-    ) internal returns (uint256 paid, uint256 tokens) {
+    ) internal returns (uint256 paid, uint256 paidToken, uint256 burnToken) {
         IERC20 token = IERC20(_manager.token());
         DebtEngine engine = DebtEngine(_manager.debtEngine());
         require(token.safeApprove(address(engine), _amount), "Error approve debt engine");
 
         uint256 prevBalance = token.balanceOf(address(this));
 
-        (paid, tokens) = engine.payToken(
+        (paid, paidToken, burnToken) = engine.payToken(
             _id,
-            _amount,
+            _amount - engine.toFee(_id, _amount),
             _sender,
             _oracleData
         );
 
         require(token.clearApprove(address(engine)), "Error clear approve");
-        require(prevBalance.sub(token.balanceOf(address(this))) <= tokens, "Debt engine pulled too many tokens");
+        require(prevBalance.sub(token.balanceOf(address(this))) <= paidToken.add(burnToken), "Debt engine pulled too many tokens");
     }
 }

@@ -16,7 +16,7 @@ import "./IDebtStatus.sol";
 
     All models should implement the 0xaf498c35 interface.
 
-    @author Agustin Aguilar
+    @author Agustin Aguilar <agustin@ripiocredit.network>  & Victor Fage <victor.fage@ripiocredit.network>
 */
 abstract contract Model is IERC165, IDebtStatus {
     // ///
@@ -152,7 +152,7 @@ abstract contract Model is IERC165, IDebtStatus {
 
         @param id Id of the registry
 
-        @return paid Total paid amount
+        @return paid Total paid amount(without debt engine fee)
     */
     function getPaid(bytes32 id) external view virtual returns (uint256 paid);
 
@@ -168,7 +168,7 @@ abstract contract Model is IERC165, IDebtStatus {
         @param id Id of the registry
         @param timestamp Timestamp of the obligation query
 
-        @return amount Amount pending to pay on the given timestamp
+        @return amount Amount(with debt engine fee) pending to pay on the given timestamp
         @return defined True If the amount returned is fixed and can't change
     */
     function getObligation(bytes32 id, uint64 timestamp) external view virtual returns (uint256 amount, bool defined);
@@ -185,7 +185,7 @@ abstract contract Model is IERC165, IDebtStatus {
 
         @param id Id of the registry
 
-        @return amount Amount required to fully paid the loan on the current timestamp
+        @return amount Amount(with debt engine fee) required to fully paid the loan on the current timestamp
     */
     function getClosingObligation(bytes32 id) external view virtual returns (uint256 amount);
 
@@ -246,7 +246,7 @@ abstract contract Model is IERC165, IDebtStatus {
 
         @param id Id of the registry
 
-        @return amount Expected payment amount
+        @return amount Expected payment amount(with debt engine fee)
     */
     function getEstimateObligation(bytes32 id) external view virtual returns (uint256 amount);
 
@@ -277,20 +277,20 @@ abstract contract Model is IERC165, IDebtStatus {
         @dev This method should only be callable by an operator
 
         @param id If of the registry
-        @param amount Amount to pay
+        @param amount Amount to pay(without debt engine fee)
 
         @return real Real amount paid
     */
     function addPaid(bytes32 id, uint256 amount) external virtual returns (uint256 real);
 
     /**
-        Adds a new amount to be paid on the debt model,
+        Adds a new amount(without debt engine fee) to be paid on the debt model,
             each model can handle the addition of more debt freely.
 
         @dev This method should only be callable by an operator
 
         @param id Id of the registry
-        @param amount Debt amount to add to the registry
+        @param amount Debt amount(without debt engine fee) to add to the registry
 
         @return added True if the debt was added
     */
