@@ -86,7 +86,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
     IERC20 public token;
 
-    uint256 private immutable UINT_128_OVERFLOW = 340282366920938463463374607431768211456;
+    uint256 private constant UINT_128_OVERFLOW = 340282366920938463463374607431768211456;
 
     mapping(bytes32 => Debt) public debts;
     mapping(address => uint256) public nonces;
