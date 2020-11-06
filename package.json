@@ -14,9 +14,9 @@
     "lint:sol:fix": "node_modules/.bin/solhint \"**/*.sol\" --fix",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
-    "console": "node_modules/.bin/truffle console",
-    "coverage": "bin/coverage.sh",
-    "compile:sol": "node_modules/.bin/truffle compile"
+    "compile:sol": "node_modules/.bin/truffle compile",
+    "coverage": "node_modules/.bin/truffle run coverage",
+    "test": "node_modules/.bin/truffle test"
   },
   "pre-commit": [
     "lint"

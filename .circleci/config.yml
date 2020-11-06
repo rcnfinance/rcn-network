@@ -74,7 +74,7 @@ jobs:
             # Run truffle test
             - run:
                 name: Run truffle tests
-                command: node_modules/.bin/truffle test
+                command: npm run test
 
     # The coverage job
     coverage:
@@ -100,7 +100,7 @@ jobs:
                 command:
                   rm -rf node_modules &&
                   npm install &&
-                  node_modules/.bin/truffle run coverage
+                  npm run coverage
             # Upload results
             - run:
                 name: Upload coverage to coveralls
