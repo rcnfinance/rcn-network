@@ -74,7 +74,7 @@ jobs:
             # Run truffle test
             - run:
                 name: Run truffle tests
-                command: truffle test test/collateral/TestCollateralLib.js
+                command: node_modules/.bin/truffle test test/collateral/TestCollateralLib.js
 
     # The coverage job
     coverage:
