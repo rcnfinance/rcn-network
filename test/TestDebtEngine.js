@@ -54,13 +54,17 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         }
     }
 
+    async function withFee (amount, oracle = { address: address0x }, oracleData = '') {
+        return bn(amount).add(await toFee(amount, oracle, oracleData));
+    }
+
     async function toFee (amount, oracle = { address: address0x }, oracleData = '') {
         const amountTokens = await toTokens(amount, oracle, oracleData);
 
         const feePerc = await debtEngine.fee();
         const BASE = await debtEngine.BASE();
 
-        return amountTokens.mul(feePerc).div(BASE);
+        return bn(amountTokens).mul(feePerc).div(BASE);
     }
 
     async function getId (promise) {
@@ -71,7 +75,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
     before('Create engine and model', async function () {
         rcn = await TestToken.new();
-        debtEngine = await DebtEngine.new(rcn.address, burner, 0);
+        debtEngine = await DebtEngine.new(rcn.address, burner, 100);
         testModel = await TestModel.new();
         oracle = await TestRateOracle.new();
         await testModel.setEngine(debtEngine.address);
@@ -124,21 +128,24 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         assert.notEqual(id1, id2);
     });
     it('Funds should follow the debt', async function () {
+        const laonAmount = bn(3000);
         const id = await getId(debtEngine.create(
             testModel.address,
             accounts[0],
             address0x,
-            await testModel.encodeData(3000, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
+            await testModel.encodeData(laonAmount, (await getBlockTime()) + 2000, 0, (await getBlockTime()) + 2000)
         ));
 
-        await rcn.setBalance(accounts[0], 4000);
+        const payAmount = bn(4000);
+        const payer = accounts[3];
+        await rcn.setBalance(payer, payAmount);
+        await rcn.approve(debtEngine.address, payAmount, { from: payer });
 
-        await rcn.approve(debtEngine.address, 4000);
-        await debtEngine.pay(id, 4000, accounts[3], []);
+        await debtEngine.pay(id, payAmount, payer, [], { from: payer });
 
-        expect(await rcn.balanceOf(accounts[0])).to.eq.BN('1000');
+        expect(await rcn.balanceOf(payer)).to.eq.BN(payAmount.sub(await withFee(laonAmount)));
         expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_PAID);
-        expect(await testModel.getPaid(id)).to.eq.BN('3000');
+        expect(await testModel.getPaid(id)).to.eq.BN(laonAmount);
 
         // Transfer debt
         await debtEngine.transferFrom(accounts[0], accounts[6], id);
@@ -146,7 +153,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         // Withdraw funds
         await rcn.setBalance(accounts[6], 0);
         await debtEngine.withdraw(id, accounts[6], { from: accounts[6] });
-        expect(await rcn.balanceOf(accounts[6])).to.eq.BN('3000');
+        expect(await rcn.balanceOf(accounts[6])).to.eq.BN(laonAmount);
     });
     it('Calling pay, payTokens, payBatch or payBatchTokens should get the same rate', async function () {
         const id1 = await getId(debtEngine.create(
@@ -228,8 +235,8 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         expect(await debtEngine.getStatus(id)).to.eq.BN(STATUS_ONGOING);
         expect(await testModel.getPaid(id)).to.eq.BN('50');
 
-        await rcn.setBalance(accounts[0], 100);
-        await rcn.approve(debtEngine.address, 100);
+        await rcn.setBalance(accounts[0], await withFee(100));
+        await rcn.approve(debtEngine.address, await withFee(100));
 
         // Try to pay with different gas limits
         const minGas = await debtEngine.methods['payToken(bytes32,uint256,address,bytes)'].estimateGas(id, 100, accounts[3], []);
@@ -1061,7 +1068,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const feeAmount = await toFee(payAmount);
             const prevBurnerBal = await rcn.balanceOf(burner);
 
-            const amountWithFee = payAmount.add(feeAmount);
+            const amountWithFee = await withFee(payAmount);
             await rcn.setBalance(payer, amountWithFee);
             await rcn.approve(debtEngine.address, amountWithFee, { from: payer });
 
@@ -1103,7 +1110,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const feeAmount2 = await toFee(payTotalAmount);
             const prevBurnerBal2 = await rcn.balanceOf(burner);
 
-            const amountWithFee2 = payTotalAmount.add(feeAmount2);
+            const amountWithFee2 = await withFee(payTotalAmount);
             await rcn.setBalance(payer, amountWithFee2);
             await rcn.approve(debtEngine.address, amountWithFee2, { from: payer });
 
@@ -1164,7 +1171,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const prevBurnerBal = await rcn.balanceOf(burner);
 
             const payAmountTokens = await toTokens(payAmount, oracle, oracleData);
-            const amountWithFee = payAmountTokens.add(feeAmount);
+            const amountWithFee = await withFee(payAmountTokens);
 
             await rcn.setBalance(payer, amountWithFee);
             await rcn.approve(debtEngine.address, amountWithFee, { from: payer });
@@ -1215,7 +1222,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const feeAmount2 = await toFee(payTotalAmount, oracle, oracleData);
             const prevBurnerBal2 = await rcn.balanceOf(burner);
 
-            const amountWithFee2 = payTotalAmountTokens.add(feeAmount2);
+            const amountWithFee2 = await withFee(payTotalAmountTokens);
             await rcn.setBalance(payer, amountWithFee2);
             await rcn.approve(debtEngine.address, amountWithFee2, { from: payer });
 
@@ -1695,7 +1702,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             const feeAmount = await toFee(payAmount);
             const prevBurnerBal = await rcn.balanceOf(burner);
-            const amountWithFee = payAmount.add(feeAmount);
+            const amountWithFee = await withFee(payAmount);
 
             await rcn.setBalance(payer, amountWithFee);
             await rcn.approve(debtEngine.address, amountWithFee, { from: payer });
@@ -1738,7 +1745,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const feeAmount2 = await toFee(payTotalAmount);
             const prevBurnerBal2 = await rcn.balanceOf(burner);
 
-            const amountWithFee2 = payTotalAmount.add(feeAmount2);
+            const amountWithFee2 = await withFee(payTotalAmount);
             await rcn.setBalance(payer, amountWithFee2);
             await rcn.approve(debtEngine.address, amountWithFee2, { from: payer });
 
@@ -1803,7 +1810,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const oracleEquivalent = bn('1');
             const _paid = payAmountTokens.mul(oracleEquivalent).div(oracleTokens);
 
-            const amountWithFee = payAmountTokens.add(feeAmount);
+            const amountWithFee = await withFee(payAmountTokens);
 
             await rcn.setBalance(payer, amountWithFee);
             await rcn.approve(debtEngine.address, amountWithFee, { from: payer });
@@ -1854,7 +1861,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             const feeAmount2 = await toFee(payTotalAmount, oracle, oracleData);
             const prevBurnerBal2 = await rcn.balanceOf(burner);
 
-            const amountWithFee2 = payTotalAmountTokens.add(feeAmount2);
+            const amountWithFee2 = await withFee(payTotalAmountTokens);
             await rcn.setBalance(payer, amountWithFee2);
             await rcn.approve(debtEngine.address, amountWithFee2, { from: payer });
 
