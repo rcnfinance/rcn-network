@@ -92,7 +92,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
     event SetBurner(address indexed _burner);
     event SetFee(uint128 _fee);
 
-    IERC20 public token;
+    IERC20 public immutable token;
     address public burner;
     uint128 public fee; // Fee is calculated FEE/BASE EX: 100/10000= 0.01 = 1%
 
