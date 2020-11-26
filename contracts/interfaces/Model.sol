@@ -34,7 +34,7 @@ abstract contract Model is IERC165, IDebtStatus {
         @param _timestamp Timestamp of the registry
         @param _status New status of the registry
     */
-    event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, Status _status);
+    event ChangedStatus(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
 
     /**
         @dev This emits when the obligation of debt change.
@@ -55,7 +55,7 @@ abstract contract Model is IERC165, IDebtStatus {
     /**
         @param _timestamp Timestamp of the registry
     */
-    event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, Status _status);
+    event ChangedDueTime(bytes32 indexed _id, uint256 _timestamp, uint256 _status);
 
     /**
         @param _timestamp Timestamp of the registry
