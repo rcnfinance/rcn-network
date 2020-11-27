@@ -15,7 +15,7 @@
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
     "test": "node_modules/.bin/truffle test",
-    "coverage": "bin/coverage.sh",
+    "coverage": "node_modules/.bin/truffle run coverage",
     "compile:sol": "node_modules/.bin/truffle compile"
   },
   "pre-commit": [
