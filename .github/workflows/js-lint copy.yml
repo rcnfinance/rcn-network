@@ -19,7 +19,4 @@ jobs:
           restore-keys: npm-v2-
       - run: npm ci
         if: steps.cache.outputs.cache-hit != 'true'
-      - run: npm run compile:sol
-      - run: npm run lint:js
-      - run: npm run lint:sol
       - run: npm run test
