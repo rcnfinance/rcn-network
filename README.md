@@ -1,8 +1,12 @@
 
 # RCN
+
+[![Status](https://github.com/rotcivegaf/rcn-network/workflows/badge.svg)](https://github.com/rotcivegaf/rcn-network/actions)
+
 [![Lint Status](https://github.com/rotcivegaf/rcn-network/workflows/lint/badge.svg)](https://github.com/rotcivegaf/rcn-network/actions)
 [![Test Status](https://github.com/rotcivegaf/rcn-network/workflows/test/badge.svg)](https://github.com/rotcivegaf/rcn-network/actions)
 [![Coverage Status](https://github.com/rotcivegaf/rcn-network/workflows/coverage/badge.svg)](https://github.com/rotcivegaf/rcn-network/actions)
+
 [![Coverage](https://codecov.io/gh/rotcivegaf/rcn-network/graph/badge.svg)](https://codecov.io/gh/rotcivegaf/rcn-network)
 
 RCN is a protocol based on smart contracts that standardizes credit lending through blockchain technology. The network can connect borrowers, lenders, and other network agents all over the world, allowing each one of them to manage the credit in their local currencies.
