@@ -17,4 +17,4 @@ jobs:
           key: npm-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: npm-v2-
 
-      - run: npm run test
+      - run: node --max-old-space-size=4096 node_modules/.bin/truffle run coverage
