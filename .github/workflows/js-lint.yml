@@ -5,16 +5,19 @@ on: push
 
 jobs:
   js-lint:
-    name: Lint js base
-
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Run Super-Linter
-        uses: github/super-linter@v3
-        env:
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 10.x
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: '**/node_modules'
+          key: npm-v2-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-v2-
+      - run: npm ci
+        if: steps.cache.outputs.cache-hit != 'true'
+      - run: npm run lint
+      - run: npm run test
