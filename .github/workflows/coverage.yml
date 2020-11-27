@@ -1,6 +1,5 @@
 name: Js Lint
 
-# Run this workflow every time a new commit pushed to your repository
 on: push
 
 jobs:
@@ -17,9 +16,5 @@ jobs:
           path: '**/node_modules'
           key: npm-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: npm-v2-
-      - run: npm ci
-        if: steps.cache.outputs.cache-hit != 'true'
-      - run: npm run compile:sol
-      - run: npm run lint:js
-      - run: npm run lint:sol
-      - run: npm run test
+
+      - run: npm run coverage
