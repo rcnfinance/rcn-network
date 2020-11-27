@@ -1,4 +1,4 @@
-name: Js Lint
+name: Coverage
 
 on: push
 
