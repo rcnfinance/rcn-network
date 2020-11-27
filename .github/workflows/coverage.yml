@@ -18,3 +18,4 @@ jobs:
           restore-keys: npm-v2-
 
       - run: npm run coverage
+      - uses: codecov/codecov-action@v1
