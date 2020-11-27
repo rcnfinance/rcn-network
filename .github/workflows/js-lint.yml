@@ -1,0 +1,20 @@
+name: Js Lint
+
+# Run this workflow every time a new commit pushed to your repository
+on: push
+
+jobs:
+  js-lint:
+    name: Lint js base
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run Super-Linter
+        uses: github/super-linter@v3
+        env:
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
