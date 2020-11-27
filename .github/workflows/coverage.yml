@@ -17,5 +17,7 @@ jobs:
           key: npm-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: npm-v2-
 
+      - run: npm ci
+        if: steps.cache.outputs.cache-hit != 'true'
       - run: npm run coverage
       - uses: codecov/codecov-action@v1
