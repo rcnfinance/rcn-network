@@ -124,6 +124,8 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         token = _token;
         burner = _burner;
         fee = _fee;
+        emit SetBurner(_burner);
+        emit SetFee(_fee);
     }
 
     function setBurner(address _burner) external onlyOwner {
