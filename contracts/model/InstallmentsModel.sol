@@ -159,7 +159,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
                 if (clock / duration >= config.installments && baseDebt + interest <= paid) { // Cant overflow
                     // Registry paid!
                     state.status = Status.PAID;
-                    emit ChangedStatus(id, now, Status.PAID);
+                    emit ChangedStatus(id, now, uint256(Status.PAID));
                     break;
                 }
 

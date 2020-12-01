@@ -289,7 +289,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
 
         if (totalDebt - newPay == 0) { // check overflow in min
             state.status = Status.PAID;
-            emit ChangedStatus(id, now, Status.PAID);
+            emit ChangedStatus(id, now, uint256(Status.PAID));
         }
     }
 
