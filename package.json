@@ -54,6 +54,7 @@
     "macaron-cli": "^6.4.1",
     "pre-commit": "^1.2.2",
     "rp-solidity-coverage": "^0.5.13",
+    "solidity-coverage": "^0.7.12",
     "solium": "^1.2.4",
     "truffle": "^5.0.20",
     "truffle-hdwallet-provider": "0.0.5",
