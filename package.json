@@ -8,15 +8,14 @@
     "test"
   ],
   "scripts": {
-    "lint:js": "eslint .",
-    "lint:js:fix": "eslint . --fix",
-    "lint:sol": "solium -d .",
-    "lint:sol:fix": "solium -d . --fix",
+    "lint:js": "node_modules/.bin/eslint .",
+    "lint:js:fix": "node_modules/.bin/eslint . --fix",
+    "lint:sol": "node_modules/.bin/solium -d .",
+    "lint:sol:fix": "node_modules/.bin/solium -d . --fix",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
-    "console": "truffle console",
-    "coverage": "bin/coverage.sh",
-    "test": "bin/test.sh"
+    "test": "node_modules/.bin/truffle test",
+    "coverage": "node_modules/.bin/truffle run coverage"
   },
   "pre-commit": [
     "lint"
@@ -55,6 +54,7 @@
     "macaron-cli": "^6.4.1",
     "pre-commit": "^1.2.2",
     "rp-solidity-coverage": "^0.5.13",
+    "solidity-coverage": "^0.7.12",
     "solium": "^1.2.4",
     "truffle": "^5.0.20",
     "truffle-hdwallet-provider": "0.0.5",

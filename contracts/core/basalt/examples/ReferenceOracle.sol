@@ -22,7 +22,7 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
 
     string private infoUrl;
 
-    Oracle public fallback;
+    Oracle public _fallback;
     mapping(bytes32 => RateCache) public cache;
 
     struct RateCache {
@@ -61,10 +61,10 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
         @dev Sets another oracle as the replacement to this oracle
         All "getRate" calls will be forwarded to this new oracle
 
-        @param _fallback New oracle
+        @param __fallback New oracle
     */
-    function setFallback(Oracle _fallback) public onlyOwner returns (bool) {
-        fallback = _fallback;
+    function setFallback(Oracle __fallback) public onlyOwner returns (bool) {
+        _fallback = __fallback;
         return true;
     }
 
@@ -94,9 +94,9 @@ contract ReferenceOracle is Oracle, SimpleDelegable, BytesUtils {
         @return the rate and decimals of the currency convertion
     */
     function getRate(bytes32 currency, bytes memory data) public returns (uint256, uint256) {
-        if (address(fallback) != address(0)) {
-            emit DelegatedCall(msg.sender, address(fallback));
-            return fallback.getRate(currency, data);
+        if (address(_fallback) != address(0)) {
+            emit DelegatedCall(msg.sender, address(_fallback));
+            return _fallback.getRate(currency, data);
         }
 
         uint256 timestamp = uint256(readBytes32(data, INDEX_TIMESTAMP));
