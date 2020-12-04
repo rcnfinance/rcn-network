@@ -39,7 +39,6 @@ build/
 .node-xmlhttprequest-*
 
 # Other
-node_modules
 .vscode
 
 # Solidity coverage
