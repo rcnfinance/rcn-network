@@ -70,7 +70,7 @@ function createLoan(
     uint256 _firstPayment,
     uint256 _expiration,
     string _metadata
-) public returns (uint256 id) {
+) public returns (uint256 id)
 ```
 
 #### Example
