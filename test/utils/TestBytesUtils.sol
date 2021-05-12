@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.4;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
@@ -79,7 +79,7 @@ contract TestThrowProxy {
     address public target;
     bytes private data;
 
-    constructor(address _target) public {
+    constructor(address _target) {
         target = _target;
     }
 
@@ -103,16 +103,16 @@ contract TestBytesUtils {
     }
 
     function testReadBytes() external {
-        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
+        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(uint160(address(this)))), keccak256("test"), bytes32(uint256(0x789)));
         Assert.equal(bytesUtils.pReadBytes32(testData, 0), bytes32(uint256(123)), "Read index 0, uint256");
-        Assert.equal(bytesUtils.pReadBytes32(testData, 1), bytes32(uint256(address(this))), "Read index 1, address");
+        Assert.equal(bytesUtils.pReadBytes32(testData, 1), bytes32(uint256(uint160(address(this)))), "Read index 1, address");
         Assert.equal(bytesUtils.pReadBytes32(testData, 2), keccak256("test"), "Read index 2, bytes32");
         Assert.equal(bytesUtils.pReadBytes32(testData, 3), bytes32(uint256(0x789)), "Read index 3, bytes32");
     }
 
     function testReadNonBytesMemory() external {
         TestThrowProxy throwProxy = new TestThrowProxy(address(bytesUtils));
-        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
+        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(uint160(address(this)))), keccak256("test"), bytes32(uint256(0x789)));
 
         // Test read index 4 (invalid)
         TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 4);
@@ -125,11 +125,11 @@ contract TestBytesUtils {
 
     function testInvalidLengthBytes() external {
         TestThrowProxy throwProxy = new TestThrowProxy(address(bytesUtils));
-        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(address(this))), bytes4(keccak256("test")));
+        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(uint160(address(this)))), bytes4(keccak256("test")));
 
         // Reading 0 & 1 items should work
         Assert.equal(bytesUtils.pReadBytes32(testData, 0), bytes32(uint256(123)), "Read index 0, uint256");
-        Assert.equal(bytesUtils.pReadBytes32(testData, 1), bytes32(uint256(address(this))), "Read index 1, address");
+        Assert.equal(bytesUtils.pReadBytes32(testData, 1), bytes32(uint256(uint160(address(this)))), "Read index 1, address");
 
         // Reading index 2 should fail, the word has less than 32 bytes
         TestBytesUtilsInterface(address(throwProxy)).pReadBytes32(testData, 2);
@@ -137,9 +137,9 @@ contract TestBytesUtils {
     }
 
     function testReadOffset() external {
-        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(address(this))), keccak256("test"), bytes32(uint256(0x789)));
+        bytes memory testData = abi.encodePacked(bytes32(uint256(123)), bytes32(uint256(uint160(address(this)))), keccak256("test"), bytes32(uint256(0x789)));
         Assert.equal(bytesUtils.pRead(testData, 0, 32), bytes32(uint256(123)), "Read index 0, uint256");
-        Assert.equal(bytesUtils.pRead(testData, 32, 32), bytes32(uint256(address(this))), "Read index 1, address");
+        Assert.equal(bytesUtils.pRead(testData, 32, 32), bytes32(uint256(uint160(address(this)))), "Read index 1, address");
         Assert.equal(bytesUtils.pRead(testData, 64, 32), keccak256("test"), "Read index 2, bytes32");
         Assert.equal(bytesUtils.pRead(testData, 96, 32), bytes32(uint256(0x789)), "Read index 3, bytes32");
     }
@@ -150,7 +150,7 @@ contract TestBytesUtils {
         bytes32 test6 = keccak256("test4");
         bytes memory data = abi.encodePacked(uint8(uint256(12)), address(this), test4, test5, test6, uint128(uint256(124)), true, uint16(uint256(5355)));
         Assert.equal(bytesUtils.pRead(data, 0, 1), bytes32(uint256(12)), "Read value 0");
-        Assert.equal(address(uint256(bytesUtils.pRead(data, 1, 20))), address(this), "Read value 1");
+        Assert.equal(address(uint160(uint256(bytesUtils.pRead(data, 1, 20)))), address(this), "Read value 1");
         Assert.equal(bytesUtils.pRead(data, 1 + 20, 32), test4, "Read value 2");
         Assert.equal(bytesUtils.pRead(data, 1 + 20 + 32, 32), test5, "Read value 3");
         Assert.equal(bytesUtils.pRead(data, 1 + 20 + 32 + 32, 32), test6, "Read value 4");
@@ -162,7 +162,7 @@ contract TestBytesUtils {
     function testDecode() external {
         bytes32 test4 = keccak256("test4");
 
-        bytes memory data = abi.encodePacked(uint8(uint256(12)), true, test4, address(this), uint256(0) - 1, uint64(now));
+        bytes memory data = abi.encodePacked(uint8(uint256(12)), true, test4, address(this), uint256(0) - 1, uint64(block.timestamp));
         (bytes32 a) = bytesUtils.pDecode(data, 1);
         Assert.equal(uint256(a), 12, "Decode 1 item");
         bytes32 b;
@@ -179,21 +179,21 @@ contract TestBytesUtils {
         Assert.equal(uint256(a), 12, "Decode 4 items");
         Assert.equal(b, bytes32(uint256(1)), "Decode 4 items");
         Assert.equal(c, test4, "Decode 4 items");
-        Assert.equal(address(uint256(d)), address(this), "Decode 4 items");
+        Assert.equal(address(uint160(uint256(d))), address(this), "Decode 4 items");
         bytes32 e;
         (a, b, c, d, e) = bytesUtils.pDecode(data, 1, 1, 32, 20, 32);
         Assert.equal(uint256(a), 12, "Decode 5 items");
         Assert.equal(b, bytes32(uint256(1)), "Decode 5 items");
         Assert.equal(c, test4, "Decode 5 items");
-        Assert.equal(address(uint256(d)), address(this), "Decode 5 items");
+        Assert.equal(address(uint160(uint256(d))), address(this), "Decode 5 items");
         Assert.equal(uint256(e), uint256(0) - 1, "Decode 5 items");
         bytes32 f;
         (a, b, c, d, e, f) = bytesUtils.pDecode(data, 1, 1, 32, 20, 32, 8);
         Assert.equal(uint256(a), 12, "Decode 6 items");
         Assert.equal(b, bytes32(uint256(1)), "Decode 6 items");
         Assert.equal(c, test4, "Decode 6 items");
-        Assert.equal(address(uint256(d)), address(this), "Decode 6 items");
+        Assert.equal(address(uint160(uint256(d))), address(this), "Decode 6 items");
         Assert.equal(uint256(e), uint256(0) - 1, "Decode 6 items");
-        Assert.equal(uint256(f), now, "Decode 6 items");
+        Assert.equal(uint256(f), block.timestamp, "Decode 6 items");
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.4;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
@@ -41,7 +41,7 @@ contract TestSafeCast {
     bytes32 signedOneInt256 = 0x8000000000000000000000000000000000000000000000000000000000000000;
     bytes32 maxInt256 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
-    constructor() public {
+    constructor() {
         safeCast = new TestSafeCastMock();
     }
 
@@ -64,7 +64,7 @@ contract TestSafeCast {
         (success,) = address(safeCast).call(
             abi.encodeWithSelector(
                 safeCast.toUint256.selector,
-                int256(maxUint256)
+                int256(uint256(maxUint256))
             )
         );
 
@@ -72,8 +72,8 @@ contract TestSafeCast {
     }
 
     function testToUint256() external {
-        Assert.equal(int256(zeroInt256).toUint256(), 0, "");
-        Assert.equal(int256(maxInt256).toUint256(), (2 ** 255) - 1, "");
+        Assert.equal(int256(uint256(zeroInt256)).toUint256(), 0, "");
+        Assert.equal(int256(uint256(maxInt256)).toUint256(), (2 ** 255) - 1, "");
         Assert.equal(int256(62).toUint256(), 62, "");
 
         // Overflow cast tests
@@ -81,7 +81,7 @@ contract TestSafeCast {
         (success,) = address(safeCast).call(
             abi.encodeWithSelector(
                 safeCast.toUint256.selector,
-                int256(minInt256)
+                int256(uint256(minInt256))
             )
         );
 
@@ -90,7 +90,7 @@ contract TestSafeCast {
         (success,) = address(safeCast).call(
             abi.encodeWithSelector(
                 safeCast.toUint256.selector,
-                int256(signedOneInt256)
+                int256(uint256(signedOneInt256))
             )
         );
 
@@ -116,7 +116,7 @@ contract TestSafeCast {
         (success,) = address(safeCast).call(
             abi.encodeWithSelector(
                 safeCast.toInt256.selector,
-                int256(minInt256)
+                int256(uint256(minInt256))
             )
         );
 
@@ -125,7 +125,7 @@ contract TestSafeCast {
         (success,) = address(safeCast).call(
             abi.encodeWithSelector(
                 safeCast.toInt256.selector,
-                int256(signedOneInt256)
+                int256(uint256(signedOneInt256))
             )
         );
 

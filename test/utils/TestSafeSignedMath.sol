@@ -1,4 +1,4 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.4;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
@@ -40,7 +40,7 @@ contract TestSafeSignedMath {
 
     TestSafeSignedMathMock safeSignedMath;
 
-    constructor() public {
+    constructor() {
         safeSignedMath = new TestSafeSignedMathMock();
     }
 
@@ -84,7 +84,7 @@ contract TestSafeSignedMath {
         (success,) = address(safeSignedMath).call(
             abi.encodeWithSelector(
                 safeSignedMath.sub.selector,
-                int256((2 ** 256) / 2),
+                int256(uint256((2 ** 256) / 2)),
                 int256(1)
             )
         );

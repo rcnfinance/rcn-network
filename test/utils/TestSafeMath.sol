@@ -1,4 +1,4 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.4;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
@@ -36,7 +36,7 @@ contract TestSafeMath {
 
     TestSafeMathMock private safeMath;
 
-    constructor() public {
+    constructor() {
         safeMath = new TestSafeMathMock();
     }
 
