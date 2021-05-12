@@ -11,6 +11,7 @@ import "./utils/Ownable.sol";
 
 contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
     using IsContract for address;
+    using SafeMath for uint256;
 
     event Created(
         bytes32 indexed _id,
