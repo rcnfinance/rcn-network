@@ -1,4 +1,4 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.4;
 
 import "../interfaces/IERC20.sol";
 import "../interfaces/Cosigner.sol";
