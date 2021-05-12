@@ -98,7 +98,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         configs[id] = Config({
             installments: installments,
             duration: duration,
-            lentTime: uint64(now),
+            lentTime: uint64(block.timestamp),
             cuota: cuota,
             interestRate: interestRate,
             timeUnit: timeUnit
@@ -116,7 +116,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         Config storage config = configs[id];
         State storage state = states[id];
 
-        _advanceClock(id, uint64(now) - config.lentTime); // Now its always greater than config.lentTime
+        _advanceClock(id, uint64(block.timestamp) - config.lentTime); // Now its always greater than config.lentTime
 
         if (state.status != Status.PAID) {
             // State & config memory load
@@ -159,7 +159,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
                 if (clock / duration >= config.installments && baseDebt + interest <= paid) { // Cant overflow
                     // Registry paid!
                     state.status = Status.PAID;
-                    emit ChangedStatus(id, now, uint256(Status.PAID));
+                    emit ChangedStatus(id, block.timestamp, uint256(Status.PAID));
                     break;
                 }
 
@@ -183,7 +183,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
     }
 
     function fixClock(bytes32 id, uint64 target) external returns (bool) {
-        require(target <= now, "Forbidden advance clock into the future");
+        require(target <= block.timestamp, "Forbidden advance clock into the future");
         Config storage config = configs[id];
         State storage state = states[id];
         uint64 lentTime = config.lentTime;
@@ -275,7 +275,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
 
     function run(bytes32 id) external override returns (bool) {
         Config storage config = configs[id];
-        return _advanceClock(id, uint64(now) - config.lentTime); // Now its always greater than config.lentTime
+        return _advanceClock(id, uint64(block.timestamp) - config.lentTime); // Now its always greater than config.lentTime
     }
 
     function validate(bytes calldata data) external override view returns (bool) {
@@ -381,7 +381,7 @@ contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescripto
         // Static storage loads
         uint256 installments = config.installments;
         uint256 cuota = config.cuota;
-        uint256 currentClock = uint64(now) - config.lentTime; // Now its always greater than config.lentTime
+        uint256 currentClock = uint64(block.timestamp) - config.lentTime; // Now its always greater than config.lentTime
 
         uint256 interest;
         uint256 clock = state.clock;

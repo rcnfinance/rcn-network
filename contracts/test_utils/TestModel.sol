@@ -130,11 +130,11 @@ contract TestModel is ERC165, BytesUtils, Ownable {
             while (aux / aux != 2) aux++;
             return aux;
         } else if (entry.errorFlag == ERROR_WRITE_STORAGE_STATUS) {
-            entry.lastPing = uint64(now);
-            return uint64(now);
+            entry.lastPing = uint64(block.timestamp);
+            return uint64(block.timestamp);
         }
 
-        uint256 total = now >= entry.interestTime ? entry.total + entry.interestAmount : entry.total;
+        uint256 total = block.timestamp >= entry.interestTime ? entry.total + entry.interestAmount : entry.total;
         return entry.paid < total ? STATUS_ONGOING : STATUS_PAID;
     }
 
@@ -164,8 +164,8 @@ contract TestModel is ERC165, BytesUtils, Ownable {
 
     function _getClosingObligation(bytes32 _id) internal view returns (uint256 obligation) {
         Entry storage entry = registry[_id];
-        if (now >= entry.dueTime) {
-            (obligation, ) = _getObligation(_id, uint64(now));
+        if (block.timestamp >= entry.dueTime) {
+            (obligation, ) = _getObligation(_id, uint64(block.timestamp));
         } else {
             (obligation, ) = _getObligation(_id, entry.dueTime);
         }
@@ -209,16 +209,16 @@ contract TestModel is ERC165, BytesUtils, Ownable {
         registry[_id] = Entry({
             errorFlag: 0,
             dueTime: dueTime,
-            lastPing: uint64(now),
+            lastPing: uint64(block.timestamp),
             total: total,
             interestTime: interestTime,
             interestAmount: interestAmount,
             paid: 0
         });
 
-        emit ChangedStatus(_id, now, STATUS_ONGOING);
-        emit ChangedDueTime(_id, now, dueTime);
-        emit ChangedFinalTime(_id, now, dueTime);
+        emit ChangedStatus(_id, block.timestamp, STATUS_ONGOING);
+        emit ChangedDueTime(_id, block.timestamp, dueTime);
+        emit ChangedFinalTime(_id, block.timestamp, dueTime);
 
         return true;
     }
@@ -242,7 +242,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
             return _amount;
         }
 
-        uint256 total = entry.total + (now >= entry.interestTime ? entry.interestAmount : 0);
+        uint256 total = entry.total + (block.timestamp >= entry.interestTime ? entry.interestAmount : 0);
         uint256 paid = entry.paid;
 
         uint256 pending = total - paid;
@@ -254,7 +254,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
 
         emit AddedPaid(_id, real);
         if (paid == total) {
-            emit ChangedStatus(_id, now, STATUS_PAID);
+            emit ChangedStatus(_id, block.timestamp, STATUS_PAID);
         }
     }
 
@@ -272,8 +272,8 @@ contract TestModel is ERC165, BytesUtils, Ownable {
             entry.total = uint128(total);
 
             emit AddedDebt(_id, _amount);
-            if (now >= entry.dueTime) {
-                emit ChangedObligation(_id, now, total - paid);
+            if (block.timestamp >= entry.dueTime) {
+                emit ChangedObligation(_id, block.timestamp, total - paid);
             }
 
             return true;
@@ -296,14 +296,14 @@ contract TestModel is ERC165, BytesUtils, Ownable {
             return aux == 1;
         }
 
-        if (now != prevPing) {
+        if (block.timestamp != prevPing) {
             uint256 dueTime = entry.dueTime;
 
-            if (now >= dueTime && prevPing < dueTime) {
+            if (block.timestamp >= dueTime && prevPing < dueTime) {
                 emit ChangedObligation(_id, dueTime, entry.total);
             }
 
-            entry.lastPing = uint64(now);
+            entry.lastPing = uint64(block.timestamp);
             return true;
         }
     }
@@ -314,14 +314,14 @@ contract TestModel is ERC165, BytesUtils, Ownable {
 
     function setRelativeDueTime(bytes32 _id, bool _before, uint256 _delta) external {
         if (_before) {
-            registry[_id].dueTime = uint64(now - _delta);
+            registry[_id].dueTime = uint64(block.timestamp - _delta);
         } else {
-            registry[_id].dueTime = uint64(now + _delta);
+            registry[_id].dueTime = uint64(block.timestamp + _delta);
         }
     }
 
     function _validate(uint256 _due, uint256 _interestTime) internal view {
-        require(_due > now, "TestModel._validate: Due time already past");
+        require(_due > block.timestamp, "TestModel._validate: Due time already past");
         require(_interestTime >= _due, "TestModel._validate: Interest time should be more or equal than due time");
     }
 

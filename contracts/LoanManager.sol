@@ -382,7 +382,7 @@ contract LoanManager is BytesUtils, IDebtStatus {
         Request storage request = requests[_id];
         require(request.open, "Request is no longer open");
         require(request.approved, "The request is not approved by the borrower");
-        require(request.expiration > now, "The request is expired");
+        require(request.expiration > block.timestamp, "The request is expired");
 
         request.open = false;
 
@@ -458,8 +458,8 @@ contract LoanManager is BytesUtils, IDebtStatus {
     function cosign(uint256 _id, uint256 _cost) external returns (bool) {
         Request storage request = requests[bytes32(_id)];
         require(request.cosigner != address(0), "Cosigner 0x0 is not valid");
-        require(request.expiration > now, "Request is expired");
         require(request.cosigner == address(uint256(msg.sender) + 2), "Cosigner not valid"); // Cant overflow
+        require(request.expiration > block.timestamp, "Request is expired");
         request.cosigner = msg.sender;
         if (_cost != 0){
             require(request.salt >= _cost, "Cosigner cost exceeded");
@@ -542,7 +542,7 @@ contract LoanManager is BytesUtils, IDebtStatus {
         bytes memory _callbackData
     ) public returns (bytes32 id) {
         // Validate request
-        require(uint256(read(_requestData, O_EXPIRATION, L_EXPIRATION)) > now, "Loan request is expired");
+        require(uint256(read(_requestData, O_EXPIRATION, L_EXPIRATION)) > block.timestamp, "Loan request is expired");
 
         // Get id
         uint256 innerSalt;

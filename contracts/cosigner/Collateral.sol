@@ -596,7 +596,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
                 .readStatic(_oracleData)
                 .toTokens(debt);
 
-        return entry.inLiquidation(debt) || now > _getModel(debtId).getDueTime(debtId);
+        return entry.inLiquidation(debt) || block.timestamp > _getModel(debtId).getDueTime(debtId);
     }
 
     /**

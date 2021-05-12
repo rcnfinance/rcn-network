@@ -230,7 +230,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         @return The current Unix timestamp
     */
     function _now() internal virtual view returns (uint256) {
-        return now;
+        return block.timestamp;
     }
 
     /**
