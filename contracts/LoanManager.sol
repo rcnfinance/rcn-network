@@ -58,7 +58,7 @@ contract LoanManager is BytesUtils, IDebtStatus {
     event SettledLend(bytes32 indexed _id, address _lender, uint256 _tokens);
     event SettledCancel(bytes32 indexed _id, address _canceler);
 
-    constructor(DebtEngine _debtEngine) public {
+    constructor(DebtEngine _debtEngine) {
         debtEngine = _debtEngine;
         token = debtEngine.token();
         require(address(token) != address(0), "Error loading token");

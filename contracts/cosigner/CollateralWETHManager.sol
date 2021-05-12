@@ -21,7 +21,7 @@ contract CollateralWETHManager is Ownable {
         _;
     }
 
-    constructor(IWETH9 _weth, Collateral _collateral) public {
+    constructor(IWETH9 _weth, Collateral _collateral) {
         weth = _weth;
         emit SetWeth(_weth);
 

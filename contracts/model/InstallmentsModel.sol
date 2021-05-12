@@ -10,7 +10,7 @@ import "../utils/BytesUtils.sol";
 contract InstallmentsModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor {
     mapping(bytes4 => bool) private _supportedInterface;
 
-    constructor() public {
+    constructor() {
         _registerInterface(MODEL_INTERFACE);
         _registerInterface(MODEL_DESCRIPTOR_INTERFACE);
     }

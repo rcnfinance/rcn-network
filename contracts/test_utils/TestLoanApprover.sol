@@ -18,7 +18,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
 
     ErrorBehavior public errorBehavior;
 
-    constructor() public {
+    constructor() {
         _registerInterface(0x76ba6009);
         _registerInterface(0xcd40239e);
         _registerInterface(0xbbfa4397);

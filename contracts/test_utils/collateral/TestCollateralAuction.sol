@@ -7,7 +7,7 @@ import "../../interfaces/IERC20.sol";
 contract TestCollateralAuction is CollateralAuction {
     uint256 public time;
 
-    constructor(IERC20 _base) public CollateralAuction(_base) { }
+    constructor(IERC20 _base) CollateralAuction(_base) { }
 
     function setTime(uint256 _t) external {
         time = _t;

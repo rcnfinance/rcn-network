@@ -115,7 +115,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         IERC20 _token,
         address _burner,
         uint128 _fee
-    ) public ERC721Base("RCN Debt Record", "RDR") {
+    ) ERC721Base("RCN Debt Record", "RDR") {
         // Sanity checks
         require(_burner != address(0), "Burner 0x0 is not valid");
         require(address(_token).isContract(), "Token should be a contract");

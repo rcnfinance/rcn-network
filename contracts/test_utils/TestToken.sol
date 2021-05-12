@@ -91,7 +91,7 @@ contract TestToken is StandardToken {
     event CreatedToken(address _address);
     event SetBalance(address _address, uint256 _balance);
 
-    constructor() public {
+    constructor() {
         emit CreatedToken(address(this));
     }
 

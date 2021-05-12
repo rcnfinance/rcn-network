@@ -19,7 +19,7 @@ contract TestCosigner is Cosigner, BytesUtils {
 
     IERC20 public token;
 
-    constructor(IERC20 _token) public {
+    constructor(IERC20 _token) {
         token = _token;
     }
 

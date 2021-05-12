@@ -16,7 +16,7 @@ contract TestCollateralAuctionMock {
     mapping(uint256 => IERC20) public entryToToken;
     uint256 auctionId = 1;
 
-    constructor(LoanManager _loanManager) public {
+    constructor(LoanManager _loanManager) {
         loanManager = _loanManager;
         loanManagerToken = _loanManager.token();
     }

@@ -22,7 +22,7 @@ contract TestCollateralHandler {
 
     bool skipPayment;
 
-    constructor(Collateral _collateral) public {
+    constructor(Collateral _collateral) {
         collateral = _collateral;
         LoanManager loanManager = _collateral.loanManager();
         debtEngine = loanManager.debtEngine();

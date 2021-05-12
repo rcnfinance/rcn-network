@@ -42,7 +42,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     event _setPunitoryInterest(bytes32 _id, uint128 _punitoryInterest);
     event _setInterestTimestamp(bytes32 _id, uint256 _interestTimestamp);
 
-    constructor() public {
+    constructor() {
         _registerInterface(MODEL_INTERFACE);
         _registerInterface(MODEL_DESCRIPTOR_INTERFACE);
     }

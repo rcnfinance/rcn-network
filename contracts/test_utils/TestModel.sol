@@ -46,7 +46,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
 
     mapping(bytes4 => bool) private _supportedInterface;
 
-    constructor() public {
+    constructor() {
         _registerInterface(MODEL_INTERFACE);
     }
 
