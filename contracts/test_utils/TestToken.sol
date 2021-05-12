@@ -105,7 +105,7 @@ contract TestToken is StandardToken {
         emit Transfer(address(0), beneficiary, tokens);
         emit Mint(beneficiary, tokens);
         totalSupply = totalSupply.add(tokens);
-        msg.sender.transfer(msg.value);
+        payable(msg.sender).transfer(msg.value);
     }
 
     function setBalance(address _address, uint256 _balance) external {

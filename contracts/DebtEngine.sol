@@ -564,7 +564,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         Model _model,
         uint256 _available
     ) internal returns (uint256) {
-        require(_model != Model(0), "Debt does not exist");
+        require(_model != Model(address(0)), "Debt does not exist");
 
         (bool success, bytes32 paid) = _safeGasCall(
             address(_model),
@@ -646,7 +646,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
     function run(bytes32 _id) external returns (bool) {
         Debt storage debt = debts[_id];
-        require(debt.model != Model(0), "Debt does not exist");
+        require(debt.model != Model(address(0)), "Debt does not exist");
 
         (bool success, bytes32 result) = _safeGasCall(
             address(debt.model),

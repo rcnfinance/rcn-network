@@ -186,7 +186,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // Use the token provided by the oracle
         // if no oracle is provided, the token is assumed to be `loanManagerToken`
-        IERC20 token = _oracle == RateOracle(0) ? loanManagerToken : IERC20(_oracle.token());
+        IERC20 token = _oracle == RateOracle(address(0)) ? loanManagerToken : IERC20(_oracle.token());
 
         // Create the entry, and push on entries array
         entries.push(
