@@ -1,7 +1,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../utils/SafeMath.sol";
 import "../utils/SafeCast.sol";
 import "../utils/IsContract.sol";
@@ -110,7 +110,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         // Pull tokens for the auction, the full `_limit` is pulled
         // any exceeding tokens will be returned at the end of the auction
-        require(_fromToken.safeTransferFrom(msg.sender, address(this), _limit), "auction: error pulling _fromToken");
+        _fromToken.safeTransferFrom(msg.sender, address(this), _limit);
 
         // Create and store the auction
         auctions.push(Auction({
@@ -176,7 +176,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // Send the auctioned tokens to the sender
         // this is done first, because the sender may be doing arbitrage
         // and for that, it needs the tokens that's going to sell
-        require(fromToken.safeTransfer(msg.sender, selling), "auction: error sending tokens");
+        fromToken.safeTransfer(msg.sender, selling);
 
         // If a callback is requested, we ping the sender so it can perform arbitrage
         if (_callback) {
@@ -189,7 +189,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         require(baseToken.transferFrom(msg.sender, owner, requesting), "auction: error pulling tokens");
 
         // Send any leftOver tokens
-        require(fromToken.safeTransfer(owner, leftOver), "auction: error sending leftover tokens");
+        fromToken.safeTransfer(owner, leftOver);
 
         // Callback to owner to process the closed auction
         CollateralAuctionCallback(owner).auctionClosed(

@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../utils/Fixed224x32.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../utils/ERC721Base.sol";
-import "../utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../utils/SafeMath.sol";
 import "../utils/DiasporeUtils.sol";
 import "../utils/OracleUtils.sol";
@@ -202,7 +202,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         entryId = entries.length - 1;
 
         // Pull the ERC20 tokens
-        require(token.safeTransferFrom(_owner, address(this), _amount), "collateral: error pulling tokens from owner");
+        token.safeTransferFrom(_owner, address(this), _amount);
 
         // Generate the ERC721 Token
         _generate(entryId, _owner);
@@ -241,7 +241,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralLib.Entry storage entry = entries[_entryId];
 
         // Pull the ERC20 tokens
-        require(entry.token.safeTransferFrom(msg.sender, address(this), _amount), "collateral: error pulling tokens");
+        entry.token.safeTransferFrom(msg.sender, address(this), _amount);
 
         // Register the deposit of amount on the entry
         entry.amount = entry.amount.add(_amount);
@@ -293,7 +293,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         entry.amount = entryAmount.sub(_amount);
 
         // Send the amount of ERC20 tokens to `_to`
-        require(entry.token.safeTransfer(_to, _amount), "collateral: error sending tokens");
+        entry.token.safeTransfer(_to, _amount);
 
         // Emit the withdrawal event
         emit Withdraw(_entryId, _to, _amount);
@@ -327,7 +327,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         delete entries[_entryId];
 
         // Send the amount of ERC20 tokens to `_to`
-        require(token.safeTransfer(_to, amount), "collateral: error sending tokens");
+        token.safeTransfer(_to, amount);
     }
 
     /**
@@ -358,13 +358,13 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Send all colleteral to handler
         uint256 lent = entry.amount;
         entry.amount = 0;
-        require(entry.token.safeTransfer(address(_handler), lent), "collateral: error sending tokens");
+        entry.token.safeTransfer(address(_handler), lent);
 
         // Callback to the handler
         uint256 surplus = _handler.handle(_entryId, lent, _data);
 
         // Expect to pull back any exceeding collateral
-        require(entry.token.safeTransferFrom(address(_handler), address(this), surplus), "collateral: error pulling tokens");
+        entry.token.safeTransferFrom(address(_handler), address(this), surplus);
         entry.amount = surplus;
 
         // Read collateral/debt ratio, should be better than previus one
@@ -430,13 +430,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // If we have exceeding tokens
         // send them to the owner of the collateral
         if (paidToken < _received) {
-            require(
-                loanManagerToken.safeTransfer(
-                    _ownerOf(entryId),
-                    _received - paidToken
-                ),
-                "collateral: error sending tokens"
-            );
+            loanManagerToken.safeTransfer(_ownerOf(entryId), _received - paidToken);
         }
 
         // Return leftover collateral to the collateral entry
@@ -798,7 +792,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         delete entry.amount;
 
         // Approve auction contract
-        require(_token.safeApprove(address(_auction), _amount), "collateral: error approving auctioneer");
+        _token.safeApprove(address(_auction), _amount);
 
         // Start auction
         _auctionId = _auction.create(
@@ -810,7 +804,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         );
 
         // Clear approve
-        require(_token.clearApprove(address(_auction)), "collateral: error clearing approve");
+        _token.safeApprove(address(_auction), 0);
 
         // Save Auction ID
         entryToAuction[_entryId] = _auctionId;
