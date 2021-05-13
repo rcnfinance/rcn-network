@@ -1,7 +1,7 @@
 pragma solidity ^0.8.4;
 
 import "../interfaces/RateOracle.sol";
-import "../interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../utils/Fixed224x32.sol";
 
 import "../utils/OracleUtils.sol";

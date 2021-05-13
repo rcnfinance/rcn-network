@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "../LoanManager.sol";
 import "../interfaces/Cosigner.sol";
-import "../interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../utils/BytesUtils.sol";
 
 

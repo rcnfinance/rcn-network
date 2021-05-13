@@ -1,6 +1,6 @@
 pragma solidity ^0.8.4;
 
-import "../../interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../utils/SafeERC20.sol";
 import "../../cosigner/Collateral.sol";
 import "../../cosigner/interfaces/CollateralHandler.sol";

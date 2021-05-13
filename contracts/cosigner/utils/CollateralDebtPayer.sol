@@ -1,7 +1,7 @@
 pragma solidity ^0.8.4;
 
 import "../../interfaces/TokenConverter.sol";
-import "../../interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../utils/SafeERC20.sol";
 import "../interfaces/CollateralHandler.sol";
 import "../../DebtEngine.sol";
