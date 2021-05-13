@@ -9,7 +9,7 @@ import "../LoanManager.sol";
 
 import "./interfaces/CollateralAuctionCallback.sol";
 import "./interfaces/CollateralHandler.sol";
-import "../utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../utils/Fixed224x32.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../utils/ERC721Base.sol";

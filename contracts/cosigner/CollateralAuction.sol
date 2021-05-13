@@ -7,7 +7,7 @@ import "../utils/SafeCast.sol";
 import "../utils/IsContract.sol";
 import "../utils/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/CollateralAuctionCallback.sol";
 
 
