@@ -4,13 +4,13 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/Model.sol";
 import "./interfaces/IDebtStatus.sol";
 import "./interfaces/RateOracle.sol";
-import "./utils/IsContract.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./utils/ERC721Base.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
-    using IsContract for address;
+    using Address for address;
     using SafeMath for uint256;
 
     event Created(

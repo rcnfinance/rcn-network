@@ -6,7 +6,7 @@ import "./interfaces/LoanCallback.sol";
 import "./interfaces/RateOracle.sol";
 import "./interfaces/Cosigner.sol";
 import "./utils/ImplementsInterface.sol";
-import "./utils/IsContract.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./utils/SafeMath.sol";
 import "./utils/BytesUtils.sol";
 import "./interfaces/IDebtStatus.sol";
@@ -14,7 +14,7 @@ import "./interfaces/IDebtStatus.sol";
 
 contract LoanManager is BytesUtils, IDebtStatus {
     using ImplementsInterface for address;
-    using IsContract for address;
+    using Address for address;
     using SafeMath for uint256;
 
     uint256 public constant GAS_CALLBACK = 300000;

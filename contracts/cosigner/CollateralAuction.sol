@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../utils/SafeMath.sol";
 import "../utils/SafeCast.sol";
-import "../utils/IsContract.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "../utils/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -22,7 +22,7 @@ import "./interfaces/CollateralAuctionCallback.sol";
         the auction has a fixed rate of 1:1
 */
 contract CollateralAuction is ReentrancyGuard, Ownable {
-    using IsContract for address payable;
+    using Address for address payable;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using SafeCast for uint256;

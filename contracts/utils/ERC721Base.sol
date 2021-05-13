@@ -2,7 +2,7 @@ pragma solidity ^0.8.4;
 
 import "../utils/SafeMath.sol";
 import "./ERC165.sol";
-import "../utils/IsContract.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 
 interface URIProvider {
@@ -12,7 +12,7 @@ interface URIProvider {
 
 contract ERC721Base is ERC165 {
     using SafeMath for uint256;
-    using IsContract for address;
+    using Address for address;
 
     mapping(uint256 => address) private _holderOf;
 
