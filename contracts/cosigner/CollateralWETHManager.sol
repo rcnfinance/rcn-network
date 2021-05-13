@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 import "../interfaces/IWETH9.sol";
 import "./Collateral.sol";
 
-import "../utils/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 contract CollateralWETHManager is Ownable {

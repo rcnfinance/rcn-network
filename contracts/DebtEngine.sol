@@ -6,7 +6,7 @@ import "./interfaces/IDebtStatus.sol";
 import "./interfaces/RateOracle.sol";
 import "./utils/IsContract.sol";
 import "./utils/ERC721Base.sol";
-import "./utils/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 contract DebtEngine is ERC721Base, Ownable, IDebtStatus {

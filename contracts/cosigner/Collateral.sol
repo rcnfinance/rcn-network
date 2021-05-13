@@ -11,7 +11,7 @@ import "./interfaces/CollateralAuctionCallback.sol";
 import "./interfaces/CollateralHandler.sol";
 import "../utils/ReentrancyGuard.sol";
 import "../utils/Fixed224x32.sol";
-import "../utils/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../utils/ERC721Base.sol";
 import "../utils/SafeERC20.sol";
 import "../utils/SafeMath.sol";

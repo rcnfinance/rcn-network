@@ -2,7 +2,7 @@ pragma solidity ^0.8.4;
 
 import "../interfaces/Model.sol";
 import "./interfaces/ModelDescriptor.sol";
-import "../utils/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../utils/ERC165.sol";
 import "../utils/SafeMath.sol";
 import "../utils/BytesUtils.sol";

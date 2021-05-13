@@ -6,7 +6,7 @@ import "../utils/SafeMath.sol";
 import "../utils/SafeCast.sol";
 import "../utils/IsContract.sol";
 import "../utils/Math.sol";
-import "../utils/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../utils/ReentrancyGuard.sol";
 import "./interfaces/CollateralAuctionCallback.sol";
 
@@ -164,7 +164,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // how much `fromToken` is being sold and how much
         // `baseToken` is requested
         (uint256 selling, uint256 requesting) = _offer(auction);
-        address owner = _owner;
+        address owner = owner();
 
         // Any non-offered `fromToken` is going
         // to be returned to the owner
