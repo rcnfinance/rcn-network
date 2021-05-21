@@ -162,7 +162,7 @@ contract TestBytesUtils {
     function testDecode() external {
         bytes32 test4 = keccak256("test4");
 
-        bytes memory data = abi.encodePacked(uint8(uint256(12)), true, test4, address(this), uint256(0) - 1, uint64(block.timestamp));
+        bytes memory data = abi.encodePacked(uint8(uint256(12)), true, test4, address(this), type(uint256).max, uint64(block.timestamp));
         (bytes32 a) = bytesUtils.pDecode(data, 1);
         Assert.equal(uint256(a), 12, "Decode 1 item");
         bytes32 b;
@@ -186,14 +186,14 @@ contract TestBytesUtils {
         Assert.equal(b, bytes32(uint256(1)), "Decode 5 items");
         Assert.equal(c, test4, "Decode 5 items");
         Assert.equal(address(uint160(uint256(d))), address(this), "Decode 5 items");
-        Assert.equal(uint256(e), uint256(0) - 1, "Decode 5 items");
+        Assert.equal(uint256(e), type(uint256).max, "Decode 5 items");
         bytes32 f;
         (a, b, c, d, e, f) = bytesUtils.pDecode(data, 1, 1, 32, 20, 32, 8);
         Assert.equal(uint256(a), 12, "Decode 6 items");
         Assert.equal(b, bytes32(uint256(1)), "Decode 6 items");
         Assert.equal(c, test4, "Decode 6 items");
         Assert.equal(address(uint160(uint256(d))), address(this), "Decode 6 items");
-        Assert.equal(uint256(e), uint256(0) - 1, "Decode 6 items");
+        Assert.equal(uint256(e), type(uint256).max, "Decode 6 items");
         Assert.equal(uint256(f), block.timestamp, "Decode 6 items");
     }
 }
