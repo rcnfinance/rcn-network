@@ -1,6 +1,6 @@
 pragma solidity ^0.8.4;
 
-import "../utils/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 library Fixed224x32 {
@@ -14,7 +14,7 @@ library Fixed224x32 {
     function from(
         uint256 _num
     ) internal pure returns (bytes32) {
-        return bytes32(_num.mult(BASE));
+        return bytes32(_num.mul(BASE));
     }
 
     function raw(
@@ -50,7 +50,7 @@ library Fixed224x32 {
         uint256 a = uint256(_a);
         uint256 b = uint256(_b);
 
-        return bytes32((a.mult(b) >> DEC_BITS));
+        return bytes32((a.mul(b) >> DEC_BITS));
     }
 
     function floor(
@@ -78,7 +78,7 @@ library Fixed224x32 {
         uint256 a = uint256(_a);
         uint256 b = uint256(_b);
 
-        return bytes32((a.mult(BASE)) / b);
+        return bytes32((a.mul(BASE)) / b);
     }
 
     function gt(

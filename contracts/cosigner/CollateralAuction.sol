@@ -2,10 +2,10 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../utils/SafeMath.sol";
-import "../utils/SafeCast.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "../utils/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/CollateralAuctionCallback.sol";
@@ -106,7 +106,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // Calculate how much time takes the auction to offer all the `_limit` tokens
         // in exchange for the requested base `_amount`, this delta defines the linear
         // function of the first half of the auction
-        uint32 limitDelta = ((_limit - _start).mult(DELTA_TO_MARKET) / (_ref - _start)).toUint32();
+        uint32 limitDelta = ((_limit - _start).mul(DELTA_TO_MARKET) / (_ref - _start)).toUint32();
 
         // Pull tokens for the auction, the full `_limit` is pulled
         // any exceeding tokens will be returned at the end of the auction
@@ -276,7 +276,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         if (deltaTime < _auction.limitDelta) {
             uint256 deltaAmount = _auction.limit - _auction.startOffer;
-            _amount = _auction.startOffer.add(deltaAmount.mult(deltaTime) / _auction.limitDelta);
+            _amount = _auction.startOffer.add(deltaAmount.mul(deltaTime) / _auction.limitDelta);
         } else {
             _amount = _auction.limit;
         }
@@ -303,7 +303,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         if (ogDeltaTime > _auction.limitDelta) {
             uint256 deltaTime = ogDeltaTime - _auction.limitDelta;
-            return _auction.amount.sub(_auction.amount.mult(deltaTime % DELTA_FINISH) / DELTA_FINISH);
+            return _auction.amount.sub(_auction.amount.mul(deltaTime % DELTA_FINISH) / DELTA_FINISH);
         } else {
             return _auction.amount;
         }

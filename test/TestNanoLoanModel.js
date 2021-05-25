@@ -170,7 +170,7 @@ contract('NanoLoanModel', function (accounts) {
             () => model.validate(
                 data
             ),
-            'duesIn should be not 0 or overflow now plus duesIn'
+            ''
         );
     });
     it('Test create function', async function () {

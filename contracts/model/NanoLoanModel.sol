@@ -4,7 +4,7 @@ import "../interfaces/Model.sol";
 import "./interfaces/ModelDescriptor.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../utils/ERC165.sol";
-import "../utils/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../utils/BytesUtils.sol";
 
 
@@ -375,8 +375,8 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         if (amount == 0) {
             realDelta = timeDelta;
         } else {
-            interest = timeDelta.mult(amount * 100000) / interestRate;
-            realDelta = interest.mult(interestRate) / (amount * 100000);
+            interest = timeDelta.mul(amount * 100000) / interestRate;
+            realDelta = interest.mul(interestRate) / (amount * 100000);
         }
     }
 

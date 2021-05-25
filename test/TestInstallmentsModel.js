@@ -393,7 +393,7 @@ contract('Installments model test', function (accounts) {
                     web3.utils.randomHex(20),
                     { from: creator }
                 ),
-                'The owner should be the sender'
+                'Ownable: caller is not the owner'
             );
         });
 
@@ -403,7 +403,7 @@ contract('Installments model test', function (accounts) {
                     web3.utils.randomHex(20),
                     { from: creator }
                 ),
-                'The owner should be the sender'
+                'Ownable: caller is not the owner'
             );
         });
     });

@@ -37,7 +37,7 @@
     "url": "https://github.com/ripio/rcn-network"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.0.0"
+    "@openzeppelin/contracts": "4.1.0"
   },
   "homepage": "https://ripiocredit.network",
   "devDependencies": {

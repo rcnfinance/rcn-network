@@ -239,9 +239,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 id,
                 await oracle.encodeRate(bn('1'), bn('1')),
                 cosigner.address,
-                '0x',
+                0,
                 await cosigner.customData(),
-                '0x',
+                [],
                 { from: lender }
             );
 
@@ -3664,14 +3664,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             await tryCatchRevert(
                 () => loanManager.lend(
-                    id,                 // Index
-                    [],                 // OracleData
-                    address0x,   // Cosigner
-                    '0',                // Cosigner limit
-                    [],                 // Cosigner data
-                    ['0x01'],           // Callback data
-                    { from: lender }    // Owner/Lender
-                ), 'callback: wrong data'
+                    id,              // Index
+                    [],              // OracleData
+                    address0x,       // Cosigner
+                    '0',             // Cosigner limit
+                    [],              // Cosigner data
+                    '0x01',          // Callback data
+                    { from: lender } // Owner/Lender
+                ),
+                'callback: wrong data'
             );
 
             expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);

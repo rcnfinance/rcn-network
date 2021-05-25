@@ -174,7 +174,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     creator,
                     { from: creator }
                 ),
-                'The owner should be the sender'
+                'Ownable: caller is not the owner'
             );
         });
         it('Try set new url without be the owner', async function () {
@@ -183,7 +183,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     '',
                     { from: creator }
                 ),
-                'The owner should be the sender'
+                'Ownable: caller is not the owner'
             );
         });
     });
@@ -335,7 +335,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     ratio(200),
                     { from: creator }
                 ),
-                'collateral: error pulling tokens from owner'
+                'SafeERC20: ERC20 operation did not succeed'
             );
 
             await rcn.setBalance(owner, 1, { from: owner });
@@ -351,7 +351,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     ratio(200),
                     { from: creator }
                 ),
-                'collateral: error pulling tokens from owner'
+                'SafeERC20: ERC20 operation did not succeed'
             );
         });
     });
@@ -574,7 +574,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: borrower }
                 ),
-                'msg.sender Not authorized'
+                'collateral: Sender not authorized'
             );
         });
         it('Should withdraw token in a paid debt', async function () {
@@ -769,7 +769,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     [],
                     { from: borrower }
                 ),
-                'msg.sender Not authorized'
+                'collateral: Sender not authorized'
             );
         });
     });

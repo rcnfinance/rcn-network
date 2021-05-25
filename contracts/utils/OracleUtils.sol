@@ -1,7 +1,7 @@
 pragma solidity ^0.8.4;
 
 import "../interfaces/RateOracle.sol";
-import "./SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 library OracleUtils {
@@ -105,7 +105,7 @@ library OracleUtils {
         if (_sample.tokens == 1 && _sample.equivalent == 1) {
             tokens = _base;
         } else {
-            uint256 mul = _base.mult(_sample.tokens);
+            uint256 mul = _base.mul(_sample.tokens);
             tokens = mul.div(_sample.equivalent);
             if (ceil && mul % tokens != 0) {
                 tokens = tokens.add(1);
@@ -132,7 +132,7 @@ library OracleUtils {
         if (_sample.tokens == 1 && _sample.equivalent == 1) {
             base = _tokens;
         } else {
-            uint256 mul = _tokens.mult(_sample.equivalent);
+            uint256 mul = _tokens.mul(_sample.equivalent);
             base = mul.div(_sample.tokens);
             if (ceil && mul % base != 0) {
                 base = base.add(1);

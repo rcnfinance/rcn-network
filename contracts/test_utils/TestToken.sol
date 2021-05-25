@@ -1,7 +1,7 @@
 /* solium-disable */
 pragma solidity ^0.8.4;
 
-import "../utils/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 /*  ERC 20 token */
@@ -102,7 +102,7 @@ contract TestToken is StandardToken {
     }
 
     function buyTokens(address beneficiary) public payable {
-        uint256 tokens = msg.value.mult(PRICE);
+        uint256 tokens = msg.value.mul(PRICE);
         balances[beneficiary] = tokens.add(balances[beneficiary]);
         emit Transfer(address(0), beneficiary, tokens);
         emit Mint(beneficiary, tokens);

@@ -23,10 +23,6 @@ async function getETHBalance (address) {
     return bn(await web3.eth.getBalance(address));
 }
 
-async function toGasUsed (tx) {
-    return bn(tx.receipt.gasUsed);
-}
-
 contract('Test WETH manager for collateral cosigner', function (accounts) {
     const owner = accounts[1];
     const creator = accounts[2];
@@ -82,10 +78,10 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
 
         const entryId = await collateral.getEntriesLength();
         await collWETHManager.create(
-            loanId,           // debtId
-            oracle.address,   // entry oracle
-            ratio(150),       // liquidationRatio
-            ratio(200),       // balanceRatio
+            loanId,         // debtId
+            oracle.address, // entry oracle
+            ratio(150),     // liquidationRatio
+            ratio(200),     // balanceRatio
             {
                 from: creator,
                 value: entryAmount,
@@ -93,8 +89,8 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
         );
 
         return {
-            entryId: entryId,
-            loanId: loanId,
+            entryId,
+            loanId,
         };
     }
 
@@ -154,7 +150,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                     address0x,
                     { from: borrower }
                 ),
-                'The owner should be the sender'
+                'Ownable: caller is not the owner'
             );
         });
         it('Try set a new Collateral without be the owner', async function () {
@@ -163,7 +159,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                     address0x,
                     { from: borrower }
                 ),
-                'The owner should be the sender'
+                'Ownable: caller is not the owner'
             );
         });
     });
@@ -179,7 +175,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                     [],
                     { from: borrower }
                 ),
-                'msg.sender Not authorized'
+                'CollateralWETHManager: Sender not authorized'
             );
         });
     });
@@ -192,7 +188,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             const prevETHBalWETH = await getETHBalance(weth9.address);
             const prevETHBalCreator = await getETHBalance(creator);
 
-            const tx = await collWETHManager.create(
+            await collWETHManager.create(
                 loanId,         // debtId
                 oracle.address, // entry oracle
                 ratio(150),     // liquidationRatio
@@ -200,7 +196,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                 {
                     from: creator,
                     value: entryAmount,
-                    gasPrice: 1,
+                    gasPrice: 0,
                 }
             );
 
@@ -209,9 +205,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             // Check balance
             expect(await getETHBalance(collWETHManager.address)).to.eq.BN(0);
             expect(await getETHBalance(weth9.address)).to.eq.BN(prevETHBalWETH.add(entryAmount));
-            expect(await getETHBalance(creator)).to.eq.BN(
-                prevETHBalCreator.sub(entryAmount).sub(await toGasUsed(tx))
-            );
+            expect(await getETHBalance(creator)).to.eq.BN(prevETHBalCreator.sub(entryAmount));
         });
     });
     describe('Function deposit', async function () {
@@ -221,21 +215,19 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             const prevETHBalWETH = await getETHBalance(weth9.address);
             const prevETHBalDepositer = await getETHBalance(depositer);
 
-            const tx = await collWETHManager.deposit(
+            await collWETHManager.deposit(
                 ids.entryId,
                 {
                     from: depositer,
                     value: amount,
-                    gasPrice: 1,
+                    gasPrice: 0,
                 }
             );
 
             // Check balance
             expect(await getETHBalance(collWETHManager.address)).to.eq.BN(0);
             expect(await getETHBalance(weth9.address)).to.eq.BN(prevETHBalWETH.add(amount));
-            expect(await getETHBalance(depositer)).to.eq.BN(
-                prevETHBalDepositer.sub(amount).sub(await toGasUsed(tx))
-            );
+            expect(await getETHBalance(depositer)).to.eq.BN(prevETHBalDepositer.sub(amount));
         });
     });
     describe('Function withdraw', async function () {
@@ -249,19 +241,19 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             const prevETHBalBorrower = await getETHBalance(borrower);
             const prevETHBalCreator = await getETHBalance(creator);
 
-            const tx = await collWETHManager.withdraw(
+            await collWETHManager.withdraw(
                 ids.entryId,
                 borrower,
                 amount,
                 [],
-                { from: creator, gasPrice: 1 }
+                { from: creator, gasPrice: 0 }
             );
 
             // Check balance
             expect(await getETHBalance(collWETHManager.address)).to.eq.BN(0);
             expect(await getETHBalance(weth9.address)).to.eq.BN(prevETHBalWETH.sub(amount));
             expect(await getETHBalance(borrower)).to.eq.BN(prevETHBalBorrower.add(amount));
-            expect(await getETHBalance(creator)).to.eq.BN(prevETHBalCreator.sub(await toGasUsed(tx)));
+            expect(await getETHBalance(creator)).to.eq.BN(prevETHBalCreator);
         });
         it('Try Withdraw WETH of an entry without authorization', async function () {
             const ids = await createDefaultCollateral();
@@ -274,7 +266,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                     [],
                     { from: creator }
                 ),
-                'msg.sender Not authorized'
+                'collateral: Sender not authorized'
             );
         });
     });

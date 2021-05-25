@@ -2,7 +2,6 @@ const TestModel = artifacts.require('TestModel');
 const DebtEngine = artifacts.require('DebtEngine');
 const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
-const TestURIProvider = artifacts.require('TestURIProvider');
 
 const {
     expect,
@@ -288,30 +287,6 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     101
                 ),
                 'The fee should be lower or equal than 1%'
-            );
-        });
-    });
-    describe('Function setURIProvider', function () {
-        it('Should set the URI provider', async function () {
-            const URIProvider = await TestURIProvider.new();
-
-            const SetURIProvider = await toEvents(
-                debtEngine.setURIProvider(
-                    URIProvider.address,
-                    { from: accounts[0] }
-                ),
-                'SetURIProvider'
-            );
-
-            assert.equal(SetURIProvider._uriProvider, URIProvider.address);
-        });
-        it('Try set URI provider without ownership', async function () {
-            await tryCatchRevert(
-                () => debtEngine.setURIProvider(
-                    address0x,
-                    { from: accounts[1] }
-                ),
-                ''
             );
         });
     });
@@ -637,7 +612,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     bn('9999'),
                     data
                 ),
-                'Asset already exists'
+                'ERC721: token already minted'
             );
         });
     });
@@ -828,7 +803,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     bn('79999'),
                     data
                 ),
-                'Asset already exists'
+                'ERC721: token already minted'
             );
         });
     });
@@ -3521,7 +3496,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 0);
             await rcn.setBalance(accounts[2], 0);
 
-            await tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 1100), 'Sub overflow');
+            await tryCatchRevert(debtEngine.withdrawPartial(id, accounts[2], 1100), '');
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN('0');
@@ -3551,7 +3526,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     accounts[2],
                     '0xfffffffffffffffffffffffffffffffff'
                 ),
-                'Sub overflow'
+                ''
             );
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');

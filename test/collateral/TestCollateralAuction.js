@@ -125,7 +125,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                         from: owner,
                     }
                 ),
-                'auction: error pulling _fromToken'
+                'SafeERC20: ERC20 operation did not succeed'
             );
         });
         it('Should fail to create if creator did not approve the contract', async () => {
@@ -142,7 +142,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                         from: owner,
                     }
                 ),
-                'auction: error pulling _fromToken'
+                'SafeERC20: ERC20 operation did not succeed'
             );
         });
     });
