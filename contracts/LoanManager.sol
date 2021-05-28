@@ -1,4 +1,4 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
 import "./DebtEngine.sol";
 import "./interfaces/LoanApprover.sol";
