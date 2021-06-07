@@ -6,9 +6,6 @@ const expect = require('chai')
 
 module.exports.expect = expect;
 
-module.exports.address0x = '0x0000000000000000000000000000000000000000';
-module.exports.bytes320x = '0x0000000000000000000000000000000000000000000000000000000000000000';
-
 module.exports.STATUS_REQUEST = '0';
 module.exports.STATUS_ONGOING = '1';
 module.exports.STATUS_PAID = '2';
@@ -51,42 +48,11 @@ module.exports.toBytes32 = (source) => {
     return '0x' + source;
 };
 
-module.exports.increaseTime = function increaseTime (duration) {
-    const id = Date.now();
-    const delta = duration.toNumber !== undefined ? duration.toNumber() : duration;
-
-    return new Promise((resolve, reject) => {
-        web3.currentProvider.send({
-            jsonrpc: '2.0',
-            method: 'evm_increaseTime',
-            params: [delta],
-            id: id,
-        },
-        err1 => {
-            if (err1) return reject(err1);
-
-            web3.currentProvider.send({
-                jsonrpc: '2.0',
-                method: 'evm_mine',
-                id: id + 1,
-            },
-            (err2, res) => {
-                return err2 ? reject(err2) : resolve(res);
-            });
-        });
-    });
-};
-
 module.exports.isRevertErrorMessage = (error) => {
     if (error.message.search('invalid opcode') >= 0) return true;
     if (error.message.search('revert') >= 0) return true;
     if (error.message.search('out of gas') >= 0) return true;
     return false;
-};
-
-module.exports.getBlockTime = async () => {
-    const block = await web3.eth.getBlock(await web3.eth.getBlockNumber());
-    return block.timestamp;
 };
 
 module.exports.getTxTime = async (tx) => {
@@ -110,28 +76,6 @@ module.exports.assertThrow = async (promise) => {
         assert(
             invalidJump || outOfGas || revert || invalidOpcode,
             'Expected throw, got \'' + error + '\' instead',
-        );
-        return;
-    }
-    throw new Error('Expected throw not received');
-};
-
-// the promiseFunction should be a function
-module.exports.tryCatchRevert = async (promise, message, headMsg = 'revert ') => {
-    if (message === '') {
-        headMsg = headMsg.slice(0, -1);
-        console.log('    \u001b[93m\u001b[2m\u001b[1m⬐ Warning:\u001b[0m\u001b[30m\u001b[1m There is an empty revert/require message');
-    }
-    try {
-        if (promise instanceof Function) {
-            await promise();
-        } else {
-            await promise;
-        }
-    } catch (error) {
-        assert(
-            error.message.search(headMsg + message) >= 0 || process.env.SOLIDITY_COVERAGE,
-            'Expected a revert \'' + headMsg + message + '\', got \'' + error.message + '\' instead'
         );
         return;
     }

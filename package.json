@@ -41,6 +41,7 @@
   },
   "homepage": "https://ripiocredit.network",
   "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.11",
     "bn-chai": "^1.0.1",
     "chai": "^4.2.0",
     "eslint": "^4.19.1",

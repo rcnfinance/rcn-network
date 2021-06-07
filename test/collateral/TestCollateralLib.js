@@ -4,10 +4,13 @@ const TestCollateralLib = artifacts.require('TestCollateralLib');
 const TestToken = artifacts.require('TestToken');
 
 const {
+    constants,
+    expectRevert,
+} = require('@openzeppelin/test-helpers');
+
+const {
     expect,
     bn,
-    tryCatchRevert,
-    address0x,
 } = require('../Helper.js');
 
 function ratio (num) {
@@ -53,9 +56,9 @@ contract('Test Collateral lib', function ([_]) {
         const token = await TestToken.new();
         const debtId = web3.utils.randomHex(32);
 
-        await tryCatchRevert(
+        await expectRevert(
             lib.create(
-                address0x,
+                constants.ZERO_ADDRESS,
                 token.address,
                 debtId,
                 bn(1000),
@@ -70,9 +73,9 @@ contract('Test Collateral lib', function ([_]) {
         const token = await TestToken.new();
         const debtId = web3.utils.randomHex(32);
 
-        await tryCatchRevert(
+        await expectRevert(
             lib.create(
-                address0x,
+                constants.ZERO_ADDRESS,
                 token.address,
                 debtId,
                 bn(1000),
@@ -87,9 +90,9 @@ contract('Test Collateral lib', function ([_]) {
         const token = await TestToken.new();
         const debtId = web3.utils.randomHex(32);
 
-        await tryCatchRevert(
+        await expectRevert(
             lib.create(
-                address0x,
+                constants.ZERO_ADDRESS,
                 token.address,
                 debtId,
                 bn(1000),
@@ -103,10 +106,10 @@ contract('Test Collateral lib', function ([_]) {
         const lib = await TestCollateralLib.new();
         const debtId = web3.utils.randomHex(32);
 
-        await tryCatchRevert(
+        await expectRevert(
             lib.create(
-                address0x,
-                address0x,
+                constants.ZERO_ADDRESS,
+                constants.ZERO_ADDRESS,
                 debtId,
                 bn(1000),
                 ratio(105),
@@ -121,7 +124,7 @@ contract('Test Collateral lib', function ([_]) {
         const debtId = web3.utils.randomHex(32);
 
         await lib.create(
-            address0x,
+            constants.ZERO_ADDRESS,
             token.address,
             debtId,
             bn(1000),
@@ -156,7 +159,7 @@ contract('Test Collateral lib', function ([_]) {
         const debtId = web3.utils.randomHex(32);
 
         await lib.create(
-            address0x,
+            constants.ZERO_ADDRESS,
             token.address,
             debtId,
             bn(1000),
@@ -206,7 +209,7 @@ contract('Test Collateral lib', function ([_]) {
         const debtId = web3.utils.randomHex(32);
 
         await lib.create(
-            address0x,
+            constants.ZERO_ADDRESS,
             token.address,
             debtId,
             bn(1000),
@@ -237,7 +240,7 @@ contract('Test Collateral lib', function ([_]) {
         const debtId = web3.utils.randomHex(32);
 
         await lib.create(
-            address0x,
+            constants.ZERO_ADDRESS,
             token.address,
             debtId,
             bn(1200),
@@ -325,7 +328,7 @@ contract('Test Collateral lib', function ([_]) {
         const debtId = web3.utils.randomHex(32);
 
         await lib.create(
-            address0x,
+            constants.ZERO_ADDRESS,
             token.address,
             debtId,
             bn(1000),
@@ -393,7 +396,7 @@ contract('Test Collateral lib', function ([_]) {
         const debtId = web3.utils.randomHex(32);
 
         await lib.create(
-            address0x,
+            constants.ZERO_ADDRESS,
             token.address,
             debtId,
             bn(1000),

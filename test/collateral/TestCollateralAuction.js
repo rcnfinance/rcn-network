@@ -3,7 +3,11 @@ const CollateralAuction = artifacts.require('TestCollateralAuction');
 const TestToken = artifacts.require('TestToken');
 const TestAuctionCallback = artifacts.require('TestAuctionCallback');
 
-const { tryCatchRevert, searchEvent } = require('../Helper.js');
+const {
+    expectRevert,
+} = require('@openzeppelin/test-helpers');
+
+const { searchEvent } = require('../Helper.js');
 
 const BN = web3.utils.BN;
 const expect = require('chai')
@@ -69,7 +73,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
     });
     describe('Fail to create an auction', () => {
         it('Should fail to create with reference below offer', async () => {
-            await tryCatchRevert(
+            await expectRevert(
                 auction.create(
                     token.address,
                     b(1010),
@@ -84,7 +88,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             );
         });
         it('Should fail to create with limit below reference', async () => {
-            await tryCatchRevert(
+            await expectRevert(
                 auction.create(
                     token.address,
                     b(900),
@@ -99,7 +103,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             );
         });
         it('Should fail to create with limit below offer', async () => {
-            await tryCatchRevert(
+            await expectRevert(
                 auction.create(
                     token.address,
                     b(900),
@@ -114,7 +118,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             );
         });
         it('Should fail to create if creator has not enough tokens', async () => {
-            await tryCatchRevert(
+            await expectRevert(
                 auction.create(
                     token.address,
                     b(900),
@@ -131,7 +135,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         it('Should fail to create if creator did not approve the contract', async () => {
             await token.setBalance(owner, b(2000));
 
-            await tryCatchRevert(
+            await expectRevert(
                 auction.create(
                     token.address,
                     b(900),
@@ -779,13 +783,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             await auction.take(id, [], false, { from: anotherUser });
 
-            await tryCatchRevert(
+            await expectRevert(
                 auction.take(id, [], false),
                 'auction: does not exists',
             );
         });
         it('Should fail to take auction without balance', async () => {
-            await tryCatchRevert(
+            await expectRevert(
                 auction.take(id, [], false),
                 'ERC20: transfer amount exceeds balance',
             );
@@ -879,7 +883,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
 
         // Take auction with callback contract
-        await tryCatchRevert(
+        await expectRevert(
             () => callback.take(auction.address, id, data),
             'auction: error during callback onTake()',
         );

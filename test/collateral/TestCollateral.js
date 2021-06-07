@@ -9,16 +9,17 @@ const TestCollateralAuctionMock = artifacts.require('TestCollateralAuctionMock')
 const TestCollateralHandler = artifacts.require('TestCollateralHandler');
 
 const {
+    constants,
+    time,
+    expectRevert,
+} = require('@openzeppelin/test-helpers');
+
+const {
     expect,
     bn,
     random32bn,
-    address0x,
-    bytes320x,
-    getBlockTime,
     toEvents,
-    tryCatchRevert,
     toBytes32,
-    increaseTime,
 } = require('../Helper.js');
 
 contract('Test Collateral cosigner Diaspore', function (accounts) {
@@ -59,7 +60,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
     async function createDefaultLoan () {
         const loanAmount = WEI;
-        const duration = bn(await getBlockTime()).add(bn(60 * 60));
+        const duration = bn(await time.latest()).add(bn(60 * 60));
 
         const interestAmount = bn('1');
         const interestTime = duration.add(bn(60 * 60));
@@ -69,9 +70,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         const loanTx = loanManager.requestLoan(
             loanAmount,        // Amount
             model.address,     // Model
-            address0x,         // Oracle
+            constants.ZERO_ADDRESS,         // Oracle
             borrower,          // Borrower
-            address0x,         // Callback
+            constants.ZERO_ADDRESS,         // Callback
             random32bn(),      // salt
             duration,          // Expiration
             loanData,          // Loan data
@@ -160,7 +161,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
     it('The cost should be 0', async function () {
         expect(await collateral.cost(
-            address0x,
+            constants.ZERO_ADDRESS,
             0,
             [],
             [],
@@ -168,7 +169,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
     describe('Functions onlyOwner', async function () {
         it('Try redeem an entry without being the owner', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.redeem(
                     0,
                     creator,
@@ -178,7 +179,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
         });
         it('Try set new url without be the owner', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.setUrl(
                     '',
                     { from: creator },
@@ -215,7 +216,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateral.create(
                     creator,
                     loanId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     entryAmount,
                     liquidationRatio,
                     balanceRatio,
@@ -227,7 +228,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             // Control collateral creation event
             expect(Created._entryId).to.eq.BN(collId);
             assert.equal(Created._debtId, loanId);
-            assert.equal(Created._oracle, address0x);
+            assert.equal(Created._oracle, constants.ZERO_ADDRESS);
             assert.equal(Created._token, rcn.address);
             expect(Created._amount).to.eq.BN(entryAmount);
             expect(Created._liquidationRatio).to.eq.BN(liquidationRatio);
@@ -287,11 +288,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try create a new collateral with address 0 as owner', async function () {
             const loanId = await createDefaultLoan();
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.create(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     loanId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     1,
                     ratio(150),
                     ratio(200),
@@ -304,13 +305,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             const loanId = await createDefaultLoan();
             await rcn.setBalance(owner, WEI.mul(bn(100)), { from: owner });
             await rcn.approve(loanManager.address, WEI.mul(bn(100)), { from: owner });
-            await loanManager.lend(loanId, [], address0x, 0, [], [], { from: owner });
+            await loanManager.lend(loanId, [], constants.ZERO_ADDRESS, 0, [], [], { from: owner });
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.create(
                     creator,
                     loanId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     0,
                     ratio(150),
                     ratio(200),
@@ -325,11 +326,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await rcn.setBalance(creator, 1, { from: owner });
             await rcn.approve(collateral.address, 0, { from: creator });
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.create(
                     creator,
                     loanId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     1,
                     ratio(150),
                     ratio(200),
@@ -341,11 +342,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await rcn.setBalance(owner, 1, { from: owner });
             await rcn.approve(collateral.address, 0, { from: owner });
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.create(
                     owner,
                     loanId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     1,
                     ratio(150),
                     ratio(200),
@@ -398,7 +399,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try deposit 0 amount on entry collateral', async function () {
             const ids = await lendDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.deposit(
                     ids.entryId,
                     0,
@@ -410,10 +411,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try deposit collateral in a inAuction entry', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 61);
-            await collateral.claim(address0x, ids.loanId, []);
+            await time.increase(60 * 61);
+            await collateral.claim(constants.ZERO_ADDRESS, ids.loanId, []);
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.deposit(
                     ids.entryId,
                     1,
@@ -467,7 +468,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try withdraw 0 amount on entry collateral', async function () {
             const ids = await createDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 async () => collateral.withdraw(
                     ids.entryId,
                     borrower,
@@ -481,7 +482,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try withdraw high balance', async function () {
             const ids = await createDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 async () => collateral.withdraw(
                     ids.entryId,
                     borrower,
@@ -535,7 +536,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try withdraw total balance on lent entry', async function () {
             const ids = await lendDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 async () => collateral.withdraw(
                     ids.entryId,
                     borrower,
@@ -549,13 +550,13 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try withdraw collateral in a inAuction entry', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 61);
-            await collateral.claim(address0x, ids.loanId, []);
+            await time.increase(60 * 61);
+            await collateral.claim(constants.ZERO_ADDRESS, ids.loanId, []);
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.withdraw(
                     ids.entryId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     1,
                     [],
                     { from: creator },
@@ -566,10 +567,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try withdraw an entry without being authorized', async function () {
             const ids = await lendDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.withdraw(
                     ids.entryId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     0,
                     [],
                     { from: borrower },
@@ -667,8 +668,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(entry.balanceRatio).to.eq.BN(0);
             expect(entry.burnFee).to.eq.BN(0);
             expect(entry.rewardFee).to.eq.BN(0);
-            assert.equal(entry.token, address0x);
-            assert.equal(entry.debtId, bytes320x);
+            assert.equal(entry.token, constants.ZERO_ADDRESS);
+            assert.equal(entry.debtId, constants.ZERO_BYTES32);
             expect(entry.amount).to.eq.BN(0);
             // Balance of collateral
             expect(await auxToken.balanceOf(collateral.address)).to.eq.BN(prevCollBalance.sub(collAmount));
@@ -677,7 +678,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try redeem an entry with a loan in not ERROR status', async function () {
             const ids = await lendDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.redeem(
                     ids.entryId,
                     creator,
@@ -747,7 +748,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 total,
                 entryAmount,
             );
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.borrowCollateral(
                     ids.entryId,
                     testCollateralHandler.address,
@@ -761,10 +762,10 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try borrowCollateral an entry without being authorized', async function () {
             const ids = await lendDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.borrowCollateral(
                     ids.entryId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     [],
                     [],
                     { from: borrower },
@@ -777,8 +778,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should close an auction', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 61);
-            await collateral.claim(address0x, ids.loanId, []);
+            await time.increase(60 * 61);
+            await collateral.claim(constants.ZERO_ADDRESS, ids.loanId, []);
 
             const leftover = bn(1000);
             const received = await toFee(bn(1000));
@@ -803,8 +804,8 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Should close an auction, pay the loan and received more tokens', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 61);
-            await collateral.claim(address0x, ids.loanId, []);
+            await time.increase(60 * 61);
+            await collateral.claim(constants.ZERO_ADDRESS, ids.loanId, []);
 
             const received = WEI.mul(bn(4));
             await rcn.setBalance(testCollateralAuctionMock.address, received, { from: owner });
@@ -824,9 +825,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             expect(await rcn.balanceOf(creator)).to.eq.BN(prevCreatorBalance.add(WEI.mul(bn(3)).sub(fee)));
         });
         it('Try close an auction without be the auction contract', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.auctionClosed(
-                    bytes320x,
+                    constants.ZERO_BYTES32,
                     0,
                     0,
                     [],
@@ -835,9 +836,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
         });
         it('Try close an inexist auction', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => testCollateralAuctionMock.toAuctionClosed(
-                    bytes320x,
+                    constants.ZERO_BYTES32,
                     0,
                     0,
                     [],
@@ -872,7 +873,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await rcn.setBalance(creator, loanAmount);
             await rcn.approve(loanManager.address, loanAmount, { from: creator });
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => loanManager.lend(
                     loanId,
                     [],
@@ -886,9 +887,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             );
         });
         it('Try request cosign with wrong sender', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.requestCosign(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     2,
                     [],
                     [],
@@ -899,7 +900,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
     });
     describe('Function claim', function () {
         it('Try claim the entry 0', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.canClaim(
                     0,
                     [],
@@ -907,9 +908,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 'collateral: collateral not found for debtId',
             );
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.claim(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     0,
                     [],
                 ),
@@ -919,14 +920,14 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         it('Try claim an entry in auction', async function () {
             const ids = await lendDefaultCollateral();
 
-            await increaseTime(60 * 61);
-            await collateral.claim(address0x, ids.loanId, []);
+            await time.increase(60 * 61);
+            await collateral.claim(constants.ZERO_ADDRESS, ids.loanId, []);
 
             assert.isFalse(await collateral.canClaim(ids.loanId, []));
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collateral.claim(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     ids.loanId,
                     [],
                 ),
@@ -940,7 +941,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             assert.isFalse(await collateral.canClaim(ids.loanId, []));
 
-            await increaseTime(60 * 61);
+            await time.increase(60 * 61);
 
             assert.isTrue(await collateral.canClaim(ids.loanId, []));
 
@@ -953,7 +954,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const ClaimedExpired = await toEvents(
                 collateral.claim(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     ids.loanId,
                     [],
                 ),
@@ -984,11 +985,11 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             assert.isFalse(await collateral.canClaim(ids.loanId, []));
 
-            await increaseTime(60 * 61 * 2);
+            await time.increase(60 * 61 * 2);
 
             assert.isTrue(await collateral.canClaim(ids.loanId, []));
 
-            const now = await getBlockTime();
+            const now = await time.latest();
             const obligation = await loanManager.getObligation(ids.loanId, now);
             const total = obligation.amount.add(obligation.fee);
 
@@ -998,7 +999,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const ClaimedExpired = await toEvents(
                 collateral.claim(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     ids.loanId,
                     [],
                 ),
@@ -1057,7 +1058,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             const ClaimedLiquidation = await toEvents(
                 collateral.claim(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     ids.loanId,
                     [],
                 ),

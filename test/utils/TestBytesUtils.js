@@ -1,10 +1,7 @@
 const TestBytesUtils = artifacts.require('TestBytesUtils');
 
-const {
-    bn,
-    tryCatchRevert,
-    getBlockTime,
-} = require('../Helper.js');
+const { time, expectRevert } = require('@openzeppelin/test-helpers');
+const { bn } = require('../Helper.js');
 
 contract('Test BytesUtils', function ([_]) {
     let bytesUtils;
@@ -27,7 +24,7 @@ contract('Test BytesUtils', function ([_]) {
             ],
         );
 
-        now = await getBlockTime();
+        now = await time.latest();
         dataDecode = [
             '0x0c',
             '0x01',
@@ -47,7 +44,7 @@ contract('Test BytesUtils', function ([_]) {
             assert.equal(await bytesUtils.pReadBytes32(testData, 3), web3.utils.toTwosComplement('789'));
         });
         it('Try read out of array', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => bytesUtils.pReadBytes32(
                     testData,
                     4,
@@ -55,7 +52,7 @@ contract('Test BytesUtils', function ([_]) {
                 'Reading bytes out of bounds',
             );
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => bytesUtils.pReadBytes32(
                     [],
                     0,
@@ -79,7 +76,7 @@ contract('Test BytesUtils', function ([_]) {
             assert.equal(await bytesUtils.pReadBytes32(testData, 1), web3.utils.toTwosComplement(bytesUtils.address));
 
             // Reading index 2 should fail, the word has less than 32 bytes
-            await tryCatchRevert(
+            await expectRevert(
                 () => bytesUtils.pReadBytes32(
                     testData,
                     2,

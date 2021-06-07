@@ -10,12 +10,15 @@ const TestToken = artifacts.require('TestToken');
 const TestRateOracle = artifacts.require('TestRateOracle');
 
 const {
+    constants,
+    time,
+    expectRevert,
+} = require('@openzeppelin/test-helpers');
+
+const {
     expect,
     bn,
-    address0x,
-    getBlockTime,
     toEvents,
-    tryCatchRevert,
     random32bn,
 } = require('../Helper.js');
 
@@ -52,7 +55,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
 
     async function createDefaultLoan () {
         const loanAmount = WEI;
-        const duration = bn(await getBlockTime()).add(bn(60 * 60));
+        const duration = bn(await time.latest()).add(bn(60 * 60));
 
         const MAX_UINT64 = bn(2).pow(bn(64)).sub(bn(1));
         const loanData = await model.encodeData(loanAmount, duration, 0, MAX_UINT64);
@@ -60,9 +63,9 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
         const loanTx = loanManager.requestLoan(
             loanAmount,        // Amount
             model.address,     // Model
-            address0x,         // Oracle
+            constants.ZERO_ADDRESS,         // Oracle
             borrower,          // Borrower
-            address0x,         // Callback
+            constants.ZERO_ADDRESS,         // Callback
             random32bn(),      // salt
             duration,          // Expiration
             loanData,          // Loan data
@@ -145,18 +148,18 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
     });
     describe('Functions onlyOwner', async function () {
         it('Try set a new WETH without being the owner', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => collWETHManager.setWeth(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     { from: borrower },
                 ),
                 'Ownable: caller is not the owner',
             );
         });
         it('Try set a new Collateral without be the owner', async function () {
-            await tryCatchRevert(
+            await expectRevert(
                 () => collWETHManager.setCollateral(
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     { from: borrower },
                 ),
                 'Ownable: caller is not the owner',
@@ -167,10 +170,10 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
         it('Try withdraw balance without being the owner of the entry', async function () {
             const ids = await createDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collWETHManager.withdraw(
                     ids.entryId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     1,
                     [],
                     { from: borrower },
@@ -258,10 +261,10 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
         it('Try Withdraw WETH of an entry without authorization', async function () {
             const ids = await createDefaultCollateral();
 
-            await tryCatchRevert(
+            await expectRevert(
                 () => collWETHManager.withdraw(
                     ids.entryId,
-                    address0x,
+                    constants.ZERO_ADDRESS,
                     1,
                     [],
                     { from: creator },
