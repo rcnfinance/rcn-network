@@ -85,7 +85,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(2000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -97,7 +97,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 address0x,        // Callback
                 bn(0),             // Salt
                 MAX_UINT64,       // Expiration
-                modelData         // Model data
+                modelData,         // Model data
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -115,7 +115,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(130),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             // Inspect entry
@@ -145,7 +145,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(2000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -157,7 +157,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 address0x,        // Callback
                 bn(0),             // Salt
                 MAX_UINT64,       // Expiration
-                modelData         // Model data
+                modelData,         // Model data
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -175,7 +175,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(130),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             // Inspect entry
@@ -211,7 +211,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             // Inspect entry
@@ -241,7 +241,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(2000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -256,7 +256,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,        // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -274,7 +274,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(130),       // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
             });
 
@@ -303,9 +303,9 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                         [],                   // Callback data
                         {
                             from: anotherUser,
-                        }
+                        },
                     ),
-                    'collateral: incorrect debtId or the entry does not exists'
+                    'collateral: incorrect debtId or the entry does not exists',
                 );
             });
 
@@ -320,7 +320,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 // Lend loan
@@ -336,9 +336,9 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                         [],                   // Callback data
                         {
                             from: anotherUser,
-                        }
+                        },
                     ),
-                    'collateral: entry not collateralized'
+                    'collateral: entry not collateralized',
                 );
             });
         });
@@ -355,7 +355,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(2000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -367,7 +367,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 address0x,      // Callback
                 bn(0),          // Salt
                 MAX_UINT64,     // Expiration
-                modelData       // Model data
+                modelData,       // Model data
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -386,9 +386,9 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(130),     // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 ),
-                'SafeERC20: ERC20 operation did not succeed'
+                'ERC20: transfer amount exceeds balance',
             );
         });
         it('Should fail to create collateral if liquidation ratio is below BASE', async () => {
@@ -402,7 +402,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(2000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -414,7 +414,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 address0x,      // Callback
                 bn(0),          // Salt
                 MAX_UINT64,     // Expiration
-                modelData       // Model data
+                modelData,       // Model data
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -433,9 +433,9 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(60),      // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 ),
-                'collateral-lib: _liquidationRatio should be above one'
+                'collateral-lib: _liquidationRatio should be above one',
             );
         });
         it('Should fail to create collateral if base ratio is below liquidation ratio', async () => {
@@ -449,7 +449,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(2000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -461,7 +461,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 address0x,      // Callback
                 bn(0),          // Salt
                 MAX_UINT64,     // Expiration
-                modelData       // Model data
+                modelData,       // Model data
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -480,9 +480,9 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(106),     // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 ),
-                'collateral-lib: _liquidationRatio should be below _balanceRatio'
+                'collateral-lib: _liquidationRatio should be below _balanceRatio',
             );
         });
         it('Should fail to create collateral if loan was already lent', async () => {
@@ -491,7 +491,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(2000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request loan
@@ -506,7 +506,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -530,21 +530,21 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(bn(106)),  // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 ),
-                'collateral: loan request should be open'
+                'collateral: loan request should be open',
             );
         });
         it('Should fail to request cosign if caller is not the debt engine', async () => {
             await tryCatchRevert(
                 collateral.requestCosign(address0x, bn(1), [], []),
-                'collateral: only the loanManager can request cosign'
+                'collateral: only the loanManager can request cosign',
             );
         });
         it('Should fail to request cosign if debtId is zero', async () => {
             await tryCatchRevert(
                 collateral.requestCosign(address0x, bn(0), [], []),
-                'collateral: invalid debtId'
+                'collateral: invalid debtId',
             );
         });
     });
@@ -566,7 +566,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             // Deposit more RCN
@@ -600,7 +600,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             // Deposit more RCN
@@ -636,7 +636,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             // Deposit more RCN
@@ -669,7 +669,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             // Deposit more RCN
@@ -678,7 +678,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
             await rcn.approve(collateral.address, bn(100), { from: user });
             await tryCatchRevert(
                 collateral.deposit(entryId, bn(100), { from: user }),
-                'SafeERC20: ERC20 operation did not succeed'
+                'ERC20: transfer amount exceeds balance',
             );
 
             // Check balances
@@ -705,7 +705,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -734,7 +734,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -762,13 +762,13 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
             await tryCatchRevert(
                 collateral.withdraw(entryId, user, bn(0), [], { from: user }),
-                'collateral: The amount of withdraw not be 0'
+                'collateral: The amount of withdraw not be 0',
             );
 
             expect(await rcn.balanceOf(collateral.address)).to.eq.BN(bn(2500));
@@ -782,7 +782,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -797,7 +797,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -814,7 +814,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -831,7 +831,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             await collateral.withdraw(entryId, anotherUser, bn(1000), [], { from: user });
@@ -853,7 +853,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -868,7 +868,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -885,7 +885,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -902,7 +902,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             await collateral.withdraw(entryId, user, bn(1750), [], { from: user });
@@ -924,7 +924,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -939,7 +939,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -956,7 +956,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -973,12 +973,12 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             await tryCatchRevert(
                 collateral.withdraw(entryId, user, bn(0), [], { from: user }),
-                'collateral: The amount of withdraw not be 0'
+                'collateral: The amount of withdraw not be 0',
             );
 
             expect(await dai.balanceOf(collateral.address)).to.eq.BN(bn(2500));
@@ -1002,7 +1002,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request loan
@@ -1017,7 +1017,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,           // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1034,7 +1034,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1051,7 +1051,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             await collateral.withdraw(entryId, user, bn(2312), [], { from: user });
@@ -1069,7 +1069,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -1084,7 +1084,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1101,7 +1101,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1118,14 +1118,14 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             expect(await loanManager.getCosigner(debtId)).to.be.equal(collateral.address);
 
             await tryCatchRevert(
                 collateral.withdraw(entryId, anotherUser, bn(1301), [], { from: user }),
-                'collateral: withdrawable collateral is not enough'
+                'collateral: withdrawable collateral is not enough',
             );
         });
         it('Should fail to withdraw rcn collateral from a lent loan with Oracle, below liquidation ratio', async () => {
@@ -1140,7 +1140,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request  loan
@@ -1155,7 +1155,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1173,7 +1173,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1190,12 +1190,12 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             await tryCatchRevert(
                 collateral.withdraw(entryId, user, bn(2201), [], { from: user }),
-                'collateral: withdrawable collateral is not enough'
+                'collateral: withdrawable collateral is not enough',
             );
         });
         it('Should fail to withdraw token collateral from a lent loan with Oracle, below liquidation ratio', async () => {
@@ -1214,7 +1214,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request loan
@@ -1229,7 +1229,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,           // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1246,7 +1246,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1263,12 +1263,12 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             await tryCatchRevert(
                 collateral.withdraw(entryId, user, bn(2351), [], { from: user }),
-                'collateral: withdrawable collateral is not enough'
+                'collateral: withdrawable collateral is not enough',
             );
         });
     });
@@ -1290,7 +1290,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(106),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1312,7 +1312,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 loanAmount,
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request loan
@@ -1327,7 +1327,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1344,7 +1344,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1361,7 +1361,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             // Pay loan
@@ -1375,7 +1375,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],
                 {
                     from: user,
-                }
+                },
             );
 
             // Redeem entry
@@ -1394,7 +1394,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request loan
@@ -1409,7 +1409,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1426,7 +1426,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1443,7 +1443,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             // Simulate an error
@@ -1473,7 +1473,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request loan
@@ -1488,7 +1488,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1505,7 +1505,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1522,13 +1522,13 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             // Redeem entry
             await tryCatchRevert(
                 collateral.withdraw(entryId, user, bn(2500), [], { from: user }),
-                'collateral: withdrawable collateral is not enough'
+                'collateral: withdrawable collateral is not enough',
             );
         });
         it('Should fail emergency redeem a loan if status is not error', async () => {
@@ -1537,7 +1537,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request loan
@@ -1552,7 +1552,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1569,7 +1569,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1586,13 +1586,13 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             // Redeem entry
             await tryCatchRevert(
                 collateral.redeem(entryId, anotherUser, { from: owner }),
-                'collateral: the debt should be in status error'
+                'collateral: the debt should be in status error',
             );
         });
         it('Should fail emergency redeem a loan if caller is not the owner', async () => {
@@ -1601,7 +1601,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 bn(1000),
                 MAX_UINT64,
                 0,
-                MAX_UINT64
+                MAX_UINT64,
             );
 
             // Request loan
@@ -1616,7 +1616,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 modelData,        // Model data
                 {
                     from: user,
-                }
+                },
             );
 
             const debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1633,7 +1633,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 ratio(150),       // Balance ratio
                 {
                     from: user,
-                }
+                },
             );
 
             const entryId = bn(1);
@@ -1650,7 +1650,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 [],                 // Callback data
                 {
                     from: anotherUser,
-                }
+                },
             );
 
             // Simulate an error
@@ -1659,7 +1659,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
             // Redeem entry
             await tryCatchRevert(
                 collateral.redeem(entryId, anotherUser, { from: user }),
-                'Ownable: caller is not the owner'
+                'Ownable: caller is not the owner',
             );
         });
     });
@@ -1674,7 +1674,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(1000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request loan
@@ -1689,7 +1689,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,        // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1706,7 +1706,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),       // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -1723,7 +1723,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
             });
 
@@ -1805,7 +1805,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 // Try keeping the collateral
                 await tryCatchRevert(
                     collateral.borrowCollateral(entryId, altHandler.address, data, [], { from: user }),
-                    'collateral: ratio should increase'
+                    'collateral: ratio should increase',
                 );
             });
 
@@ -1818,7 +1818,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 // Try keeping the collateral
                 await tryCatchRevert(
                     collateral.borrowCollateral(entryId, altHandler.address, data, [], { from: user }),
-                    'collateral: ratio should increase'
+                    'collateral: ratio should increase',
                 );
             });
         });
@@ -1842,7 +1842,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(1000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -1857,7 +1857,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,        // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -1875,7 +1875,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),             // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -1892,7 +1892,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
             });
 
@@ -2034,7 +2034,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(1000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -2049,7 +2049,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,        // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -2067,7 +2067,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),              // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -2084,7 +2084,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
             });
 
@@ -2226,7 +2226,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(2000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request loan
@@ -2241,7 +2241,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,        // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -2259,7 +2259,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),              // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -2276,7 +2276,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
             });
             it('should not trigger a liquidation', async () => {
@@ -2422,7 +2422,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(2000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request loan
@@ -2437,7 +2437,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,          // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -2455,7 +2455,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),             // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -2472,7 +2472,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
             });
             it('should not trigger a liquidation', async () => {
@@ -2611,7 +2611,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(1000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -2626,7 +2626,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,        // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -2644,7 +2644,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),              // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -2661,7 +2661,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
             });
             it('should not trigger a liquidation', async () => {
@@ -2724,7 +2724,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(1000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -2739,7 +2739,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,        // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -2757,7 +2757,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),             // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -2774,7 +2774,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
             });
             it('should not trigger a liquidation', async () => {
@@ -2842,7 +2842,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(2000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -2857,7 +2857,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,          // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -2875,7 +2875,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),             // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -2892,7 +2892,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
             });
             it('should not trigger a liquidation', async () => {
@@ -2954,7 +2954,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     loanAmount,
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -2969,7 +2969,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,     // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -2987,7 +2987,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),       // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -3004,7 +3004,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
 
                 // Trigger auction
@@ -3020,14 +3020,14 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                 await rcn.approve(collateral.address, 100, { from: user });
                 await tryCatchRevert(
                     collateral.deposit(entryId, 100, { from: user }),
-                    'collateral: can\'t deposit during auction'
+                    'collateral: can\'t deposit during auction',
                 );
             });
 
             it('Should fail to withdraw collateral', async () => {
                 await tryCatchRevert(
                     collateral.withdraw(entryId, user, bn(1), [], { from: user }),
-                    'collateral: can\'t withdraw during auction'
+                    'collateral: can\'t withdraw during auction',
                 );
             });
 
@@ -3073,7 +3073,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     bn(1000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -3088,7 +3088,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,        // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -3106,7 +3106,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),             // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -3123,7 +3123,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
 
                 // Freeze time of the auction
@@ -3463,7 +3463,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     e(2000),
                     MAX_UINT64,
                     0,
-                    MAX_UINT64
+                    MAX_UINT64,
                 );
 
                 // Request  loan
@@ -3478,7 +3478,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     modelData,          // Model data
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 debtId = requestReceipt.receipt.logs.find((e) => e.event === 'Requested').args._id;
@@ -3497,7 +3497,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     ratio(150),     // Balance ratio
                     {
                         from: user,
-                    }
+                    },
                 );
 
                 entryId = bn(1);
@@ -3514,7 +3514,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
                     [],                 // Callback data
                     {
                         from: anotherUser,
-                    }
+                    },
                 );
 
                 // Freeze time of the auction
@@ -3648,7 +3648,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
         it('Should fail to try close auction from another address', async () => {
             await tryCatchRevert(
                 collateral.auctionClosed(bn(0), bn(0), bn(0), []),
-                'collateral: caller should be the auctioner'
+                'collateral: caller should be the auctioner',
             );
         });
         it('Should fail to try close auction if ID does not exists', async () => {
@@ -3656,7 +3656,7 @@ contract('Test Collateral cosigner Diaspore Alt', function ([_, stub, owner, use
 
             await tryCatchRevert(
                 collateral.auctionClosed(bn(2), bn(0), bn(0), [], { from: user }),
-                'collateral: entry does not exists'
+                'collateral: entry does not exists',
             );
         });
     });

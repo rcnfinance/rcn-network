@@ -37,7 +37,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(1000),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         const entry = await lib.entry();
@@ -60,9 +60,9 @@ contract('Test Collateral lib', function ([_]) {
                 debtId,
                 bn(1000),
                 ratio(110),
-                ratio(105)
+                ratio(105),
             ),
-            'collateral-lib: _liquidationRatio should be below _balanceRatio'
+            'collateral-lib: _liquidationRatio should be below _balanceRatio',
         );
     });
     it('Should fail create collateral entry with liquidation ratio equal to balance ratio', async () => {
@@ -77,9 +77,9 @@ contract('Test Collateral lib', function ([_]) {
                 debtId,
                 bn(1000),
                 ratio(110),
-                ratio(110)
+                ratio(110),
             ),
-            'collateral-lib: _liquidationRatio should be below _balanceRatio'
+            'collateral-lib: _liquidationRatio should be below _balanceRatio',
         );
     });
     it('Should fail create collateral entry with liquidation below 100', async () => {
@@ -94,9 +94,9 @@ contract('Test Collateral lib', function ([_]) {
                 debtId,
                 bn(1000),
                 ratio(99),
-                ratio(110)
+                ratio(110),
             ),
-            'collateral-lib: _liquidationRatio should be above one'
+            'collateral-lib: _liquidationRatio should be above one',
         );
     });
     it('Should fail create collateral entry with no token', async () => {
@@ -110,9 +110,9 @@ contract('Test Collateral lib', function ([_]) {
                 debtId,
                 bn(1000),
                 ratio(105),
-                ratio(110)
+                ratio(110),
             ),
-            'collateral-lib: _token can\'t be address zero'
+            'collateral-lib: _token can\'t be address zero',
         );
     });
     it('Should convert amount without RateOracle', async () => {
@@ -126,7 +126,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(1000),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         expect(await lib.toBase()).to.eq.BN(bn(1000));
@@ -143,7 +143,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(1000),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         // 1 BASE == 0.5 TOKEN
@@ -161,7 +161,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(1000),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         expect(await lib.ratio(bn(1000))).to.eq.BN(ratio(100));
@@ -185,7 +185,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(500),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         // 1 BASE == 0.5 TOKEN
@@ -211,7 +211,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(1000),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         // Balance is not required
@@ -242,7 +242,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(1200),
             ratio(120),
-            ratio(150)
+            ratio(150),
         );
 
         // Balance is not required
@@ -268,7 +268,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(500),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         // 1 BASE == 0.5 TOKEN
@@ -303,7 +303,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(600),
             ratio(120),
-            ratio(150)
+            ratio(150),
         );
 
         // 1 BASE == 0.5 TOKEN
@@ -330,7 +330,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(1000),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         // Can't withdraw collateral
@@ -363,7 +363,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(500),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         // 1 BASE == 0.5 TOKEN
@@ -398,7 +398,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(1000),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         // Not in liquidation
@@ -431,7 +431,7 @@ contract('Test Collateral lib', function ([_]) {
             debtId,
             bn(500),
             ratio(110),
-            ratio(150)
+            ratio(150),
         );
 
         // 1 BASE == 0.5 TOKEN

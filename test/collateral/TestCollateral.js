@@ -75,7 +75,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             random32bn(),      // salt
             duration,          // Expiration
             loanData,          // Loan data
-            { from: borrower } // Creator
+            { from: borrower }, // Creator
         );
 
         return getId(loanTx);
@@ -96,9 +96,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 entryAmount,      // amount
                 ratio(150),       // liquidationRatio
                 ratio(200),       // balanceRatio
-                { from: creator } // sender
+                { from: creator }, // sender
             ),
-            'Created'
+            'Created',
         );
 
         return {
@@ -121,7 +121,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             bn(0),                  // Collateral cosigner cost
             toBytes32(ids.entryId), // Collateral ID reference
             [],                     // Callback data
-            { from: creator }
+            { from: creator },
         );
 
         return ids;
@@ -150,9 +150,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
         const SetUrl = await toEvents(
             collateral.setUrl(
                 url,
-                { from: owner }
+                { from: owner },
             ),
-            'SetUrl'
+            'SetUrl',
         );
 
         assert.equal(SetUrl._url, url);
@@ -163,7 +163,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             address0x,
             0,
             [],
-            []
+            [],
         )).to.eq.BN(0);
     });
     describe('Functions onlyOwner', async function () {
@@ -172,18 +172,18 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 () => collateral.redeem(
                     0,
                     creator,
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Ownable: caller is not the owner'
+                'Ownable: caller is not the owner',
             );
         });
         it('Try set new url without be the owner', async function () {
             await tryCatchRevert(
                 () => collateral.setUrl(
                     '',
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Ownable: caller is not the owner'
+                'Ownable: caller is not the owner',
             );
         });
     });
@@ -219,9 +219,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     entryAmount,
                     liquidationRatio,
                     balanceRatio,
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Created'
+                'Created',
             );
 
             // Control collateral creation event
@@ -262,9 +262,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     entryAmount,
                     liquidationRatio,
                     balanceRatio,
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Created'
+                'Created',
             );
 
             // Control collateral creation event
@@ -295,9 +295,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     1,
                     ratio(150),
                     ratio(200),
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: _owner should not be address 0'
+                'collateral: _owner should not be address 0',
             );
         });
         it('Try create a new collateral for a closed loan', async function () {
@@ -314,9 +314,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     0,
                     ratio(150),
                     ratio(200),
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: loan request should be open'
+                'collateral: loan request should be open',
             );
         });
         it('Try create a new collateral without approval of the token collateral', async function () {
@@ -333,9 +333,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     1,
                     ratio(150),
                     ratio(200),
-                    { from: creator }
+                    { from: creator },
                 ),
-                'SafeERC20: ERC20 operation did not succeed'
+                'ERC20: transfer amount exceeds allowance',
             );
 
             await rcn.setBalance(owner, 1, { from: owner });
@@ -349,9 +349,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     1,
                     ratio(150),
                     ratio(200),
-                    { from: creator }
+                    { from: creator },
                 ),
-                'SafeERC20: ERC20 operation did not succeed'
+                'ERC20: transfer amount exceeds allowance',
             );
         });
     });
@@ -372,9 +372,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateral.deposit(
                     ids.entryId,
                     depositAmount,
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Deposited'
+                'Deposited',
             );
 
             // Test event
@@ -402,9 +402,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 () => collateral.deposit(
                     ids.entryId,
                     0,
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: The amount of deposit should not be 0'
+                'collateral: The amount of deposit should not be 0',
             );
         });
         it('Try deposit collateral in a inAuction entry', async function () {
@@ -417,9 +417,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 () => collateral.deposit(
                     ids.entryId,
                     1,
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: can\'t deposit during auction'
+                'collateral: can\'t deposit during auction',
             );
         });
     });
@@ -439,9 +439,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     borrower,
                     withdrawAmount,
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Withdraw'
+                'Withdraw',
             );
 
             // Test event
@@ -473,9 +473,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     borrower,
                     0,
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: The amount of withdraw not be 0'
+                'collateral: The amount of withdraw not be 0',
             );
         });
         it('Try withdraw high balance', async function () {
@@ -487,9 +487,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     borrower,
                     (await collateral.entries(ids.entryId)).amount.add(bn(1)),
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: withdrawable collateral is not enough'
+                'collateral: withdrawable collateral is not enough',
             );
         });
         it('Should withdraw token on lent entry', async function () {
@@ -507,9 +507,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     borrower,
                     withdrawAmount,
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Withdraw'
+                'Withdraw',
             );
 
             // Test event
@@ -541,9 +541,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     borrower,
                     (await collateral.entries(ids.entryId)).amount,
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: withdrawable collateral is not enough'
+                'collateral: withdrawable collateral is not enough',
             );
         });
         it('Try withdraw collateral in a inAuction entry', async function () {
@@ -558,9 +558,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     address0x,
                     1,
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: can\'t withdraw during auction'
+                'collateral: can\'t withdraw during auction',
             );
         });
         it('Try withdraw an entry without being authorized', async function () {
@@ -572,9 +572,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     address0x,
                     0,
                     [],
-                    { from: borrower }
+                    { from: borrower },
                 ),
-                'collateral: Sender not authorized'
+                'collateral: Sender not authorized',
             );
         });
         it('Should withdraw token in a paid debt', async function () {
@@ -596,7 +596,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 testCollateralHandler.address,
                 [],
                 [],
-                { from: creator }
+                { from: creator },
             );
 
             expect((await loanManager.getClosingObligation(ids.loanId)).amount).to.eq.BN(0);
@@ -613,9 +613,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     borrower,
                     withdrawAmount,
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Withdraw'
+                'Withdraw',
             );
 
             // Test event
@@ -653,9 +653,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateral.redeem(
                     ids.entryId,
                     accounts[7],
-                    { from: owner }
+                    { from: owner },
                 ),
-                'Redeemed'
+                'Redeemed',
             );
 
             expect(Redeemed._entryId).to.eq.BN(ids.entryId);
@@ -681,9 +681,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 () => collateral.redeem(
                     ids.entryId,
                     creator,
-                    { from: owner }
+                    { from: owner },
                 ),
-                'collateral: the debt should be in status error'
+                'collateral: the debt should be in status error',
             );
         });
     });
@@ -703,7 +703,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
 
             await testCollateralHandler.setHandlerConst(
                 total,
-                prevEntry.amount.sub(total)
+                prevEntry.amount.sub(total),
             );
 
             const BorrowCollateral = await toEvents(
@@ -712,9 +712,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     testCollateralHandler.address,
                     [],
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'BorrowCollateral'
+                'BorrowCollateral',
             );
 
             // Test event
@@ -745,7 +745,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await rcn.setBalance(testCollateralHandler.address, 0, { from: owner });
             await testCollateralHandler.setHandlerConst(
                 total,
-                entryAmount
+                entryAmount,
             );
             await tryCatchRevert(
                 () => collateral.borrowCollateral(
@@ -753,9 +753,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     testCollateralHandler.address,
                     [],
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'Error pulling tokens'
+                'ERC20: transfer amount exceeds balance',
             );
         });
         it('Try borrowCollateral an entry without being authorized', async function () {
@@ -767,9 +767,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     address0x,
                     [],
                     [],
-                    { from: borrower }
+                    { from: borrower },
                 ),
-                'collateral: Sender not authorized'
+                'collateral: Sender not authorized',
             );
         });
     });
@@ -790,7 +790,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 auctionId,
                 leftover,
                 received,
-                []
+                [],
             );
 
             expect(await collateral.entryToAuction(ids.entryId)).to.eq.BN(0);
@@ -817,7 +817,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 auctionId,
                 0,
                 received,
-                []
+                [],
             );
 
             const fee = await toFee(WEI);
@@ -829,9 +829,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     bytes320x,
                     0,
                     0,
-                    []
+                    [],
                 ),
-                'collateral: caller should be the auctioner'
+                'collateral: caller should be the auctioner',
             );
         });
         it('Try close an inexist auction', async function () {
@@ -840,9 +840,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     bytes320x,
                     0,
                     0,
-                    []
+                    [],
                 ),
-                'collateral: entry does not exists'
+                'collateral: entry does not exists',
             );
         });
     });
@@ -862,9 +862,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     entryAmount,      // amount
                     ratio(150),       // liquidationRatio
                     ratio(200),       // balanceRatio
-                    { from: creator } // sender
+                    { from: creator }, // sender
                 ),
-                'Created'
+                'Created',
             );
             const entryId = Created._entryId;
 
@@ -880,9 +880,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     0,
                     toBytes32(entryId),
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: entry not collateralized'
+                'collateral: entry not collateralized',
             );
         });
         it('Try request cosign with wrong sender', async function () {
@@ -891,9 +891,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                     address0x,
                     2,
                     [],
-                    []
+                    [],
                 ),
-                'collateral: only the loanManager can request cosign'
+                'collateral: only the loanManager can request cosign',
             );
         });
     });
@@ -902,18 +902,18 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
             await tryCatchRevert(
                 () => collateral.canClaim(
                     0,
-                    []
+                    [],
                 ),
-                'collateral: collateral not found for debtId'
+                'collateral: collateral not found for debtId',
             );
 
             await tryCatchRevert(
                 () => collateral.claim(
                     address0x,
                     0,
-                    []
+                    [],
                 ),
-                'collateral: collateral not found for debtId'
+                'collateral: collateral not found for debtId',
             );
         });
         it('Try claim an entry in auction', async function () {
@@ -928,9 +928,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 () => collateral.claim(
                     address0x,
                     ids.loanId,
-                    []
+                    [],
                 ),
-                'collateral: auction already exists'
+                'collateral: auction already exists',
             );
         });
     });
@@ -955,9 +955,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateral.claim(
                     address0x,
                     ids.loanId,
-                    []
+                    [],
                 ),
-                'ClaimedExpired'
+                'ClaimedExpired',
             );
             const auctionId = await collateral.entryToAuction(ids.entryId);
 
@@ -1000,9 +1000,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateral.claim(
                     address0x,
                     ids.loanId,
-                    []
+                    [],
                 ),
-                'ClaimedExpired'
+                'ClaimedExpired',
             );
             const auctionId = await collateral.entryToAuction(ids.entryId);
 
@@ -1059,9 +1059,9 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
                 collateral.claim(
                     address0x,
                     ids.loanId,
-                    []
+                    [],
                 ),
-                'ClaimedLiquidation'
+                'ClaimedLiquidation',
             );
 
             const auctionId = await collateral.entryToAuction(ids.entryId);

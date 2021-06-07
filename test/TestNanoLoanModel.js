@@ -44,7 +44,7 @@ contract('NanoLoanModel', function (accounts) {
             defaultParams.interestRate,
             defaultParams.interestRatePunitory,
             defaultParams.duesIn,
-            defaultParams.cancelableAt
+            defaultParams.cancelableAt,
         );
     });
 
@@ -66,21 +66,21 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             monthInSec,
-            cancelableAt
+            cancelableAt,
         );
 
         await tryCatchRevert(
             () => model.validate(
-                data.slice(0, -2)
+                data.slice(0, -2),
             ),
-            'Invalid data length'
+            'Invalid data length',
         );
 
         await tryCatchRevert(
             () => model.validate(
-                data + '00'
+                data + '00',
             ),
-            'Invalid data length'
+            'Invalid data length',
         );
 
         // a data with cancelable at more than dues in
@@ -89,13 +89,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             1,
-            2
+            2,
         );
         await tryCatchRevert(
             () => model.validate(
-                data
+                data,
             ),
-            'The cancelableAt should be less or equal than duesIn'
+            'The cancelableAt should be less or equal than duesIn',
         );
 
         // a data with interest rate less than 1000
@@ -104,13 +104,13 @@ contract('NanoLoanModel', function (accounts) {
             1000,
             interestRatePunitory,
             monthInSec,
-            cancelableAt
+            cancelableAt,
         );
         await tryCatchRevert(
             () => model.validate(
-                data
+                data,
             ),
-            'Interest rate too high'
+            'Interest rate too high',
         );
 
         // a data with interest rate punitory less than 1000
@@ -119,13 +119,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             1000,
             monthInSec,
-            cancelableAt
+            cancelableAt,
         );
         await tryCatchRevert(
             () => model.validate(
-                data
+                data,
             ),
-            'Punitory interest rate too high'
+            'Punitory interest rate too high',
         );
 
         // a data with amount 0
@@ -134,13 +134,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             monthInSec,
-            cancelableAt
+            cancelableAt,
         );
         await tryCatchRevert(
             () => model.validate(
-                data
+                data,
             ),
-            'amount can\'t be 0'
+            'amount can\'t be 0',
         );
 
         // data with dues in equal 0
@@ -149,13 +149,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             0,
-            0
+            0,
         );
         await tryCatchRevert(
             () => model.validate(
-                data
+                data,
             ),
-            'duesIn should be not 0 or overflow now plus duesIn'
+            'duesIn should be not 0 or overflow now plus duesIn',
         );
 
         // data with Max value dues in to try make overflow
@@ -164,13 +164,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             maxUint(64),
-            cancelableAt
+            cancelableAt,
         );
         await tryCatchRevert(
             () => model.validate(
-                data
+                data,
             ),
-            ''
+            '',
         );
     });
     it('Test create function', async function () {

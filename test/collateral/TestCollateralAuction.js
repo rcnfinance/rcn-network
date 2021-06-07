@@ -38,7 +38,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -78,9 +78,9 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     b(50),
                     {
                         from: owner,
-                    }
+                    },
                 ),
-                'auction: offer should be below refence offer'
+                'auction: offer should be below refence offer',
             );
         });
         it('Should fail to create with limit below reference', async () => {
@@ -93,9 +93,9 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     b(50),
                     {
                         from: owner,
-                    }
+                    },
                 ),
-                'auction: reference offer should be below or equal to limit'
+                'auction: reference offer should be below or equal to limit',
             );
         });
         it('Should fail to create with limit below offer', async () => {
@@ -108,9 +108,9 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     b(50),
                     {
                         from: owner,
-                    }
+                    },
                 ),
-                'auction: reference offer should be below or equal to limit'
+                'auction: reference offer should be below or equal to limit',
             );
         });
         it('Should fail to create if creator has not enough tokens', async () => {
@@ -123,9 +123,9 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     b(50),
                     {
                         from: owner,
-                    }
+                    },
                 ),
-                'SafeERC20: ERC20 operation did not succeed'
+                'ERC20: transfer amount exceeds balance',
             );
         });
         it('Should fail to create if creator did not approve the contract', async () => {
@@ -140,9 +140,9 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     b(50),
                     {
                         from: owner,
-                    }
+                    },
                 ),
-                'SafeERC20: ERC20 operation did not succeed'
+                'ERC20: transfer amount exceeds allowance',
             );
         });
     });
@@ -166,7 +166,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     b(250),
                     {
                         from: owner,
-                    }
+                    },
                 );
 
                 expect(await base.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -266,7 +266,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                     b(4000),
                     {
                         from: owner,
-                    }
+                    },
                 );
 
                 expect(await base.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -363,7 +363,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -417,7 +417,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -473,7 +473,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             await auction.increaseTime(b(6300));
@@ -529,7 +529,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             await auction.increaseTime(b(12600));
@@ -585,7 +585,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             await auction.increaseTime(b(55800));
@@ -641,7 +641,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -697,7 +697,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -754,7 +754,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -781,13 +781,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
             await tryCatchRevert(
                 auction.take(id, [], false),
-                'auction: does not exists'
+                'auction: does not exists',
             );
         });
         it('Should fail to take auction without balance', async () => {
             await tryCatchRevert(
                 auction.take(id, [], false),
-                'auction: error pulling tokens'
+                'ERC20: transfer amount exceeds balance',
             );
         });
     });
@@ -809,7 +809,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
                 b(50),
                 {
                     from: owner,
-                }
+                },
             );
 
             expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -861,7 +861,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
             b(50),
             {
                 from: owner,
-            }
+            },
         );
 
         expect(await token.balanceOf(auction.address)).to.eq.BN(b(2000));
@@ -881,7 +881,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         // Take auction with callback contract
         await tryCatchRevert(
             () => callback.take(auction.address, id, data),
-            'auction: error during callback onTake()'
+            'auction: error during callback onTake()',
         );
 
         expect(await callback.callbackCalled()).to.be.equal(false);

@@ -66,7 +66,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             random32bn(),      // salt
             duration,          // Expiration
             loanData,          // Loan data
-            { from: borrower } // Creator
+            { from: borrower }, // Creator
         );
 
         return getId(loanTx);
@@ -85,7 +85,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             {
                 from: creator,
                 value: entryAmount,
-            }
+            },
         );
 
         return {
@@ -116,9 +116,9 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             const SetWeth = await toEvents(
                 collWETHManager.setWeth(
                     owner,
-                    { from: owner }
+                    { from: owner },
                 ),
-                'SetWeth'
+                'SetWeth',
             );
 
             assert.equal(SetWeth._weth, owner);
@@ -132,9 +132,9 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             const SetCollateral = await toEvents(
                 collWETHManager.setCollateral(
                     owner,
-                    { from: owner }
+                    { from: owner },
                 ),
-                'SetCollateral'
+                'SetCollateral',
             );
 
             assert.equal(SetCollateral._collateral, owner);
@@ -148,18 +148,18 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             await tryCatchRevert(
                 () => collWETHManager.setWeth(
                     address0x,
-                    { from: borrower }
+                    { from: borrower },
                 ),
-                'Ownable: caller is not the owner'
+                'Ownable: caller is not the owner',
             );
         });
         it('Try set a new Collateral without be the owner', async function () {
             await tryCatchRevert(
                 () => collWETHManager.setCollateral(
                     address0x,
-                    { from: borrower }
+                    { from: borrower },
                 ),
-                'Ownable: caller is not the owner'
+                'Ownable: caller is not the owner',
             );
         });
     });
@@ -173,9 +173,9 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                     address0x,
                     1,
                     [],
-                    { from: borrower }
+                    { from: borrower },
                 ),
-                'CollateralWETHManager: Sender not authorized'
+                'CollateralWETHManager: Sender not authorized',
             );
         });
     });
@@ -197,7 +197,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                     from: creator,
                     value: entryAmount,
                     gasPrice: 0,
-                }
+                },
             );
 
             // Check ownership
@@ -221,7 +221,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                     from: depositer,
                     value: amount,
                     gasPrice: 0,
-                }
+                },
             );
 
             // Check balance
@@ -246,7 +246,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                 borrower,
                 amount,
                 [],
-                { from: creator, gasPrice: 0 }
+                { from: creator, gasPrice: 0 },
             );
 
             // Check balance
@@ -264,9 +264,9 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
                     address0x,
                     1,
                     [],
-                    { from: creator }
+                    { from: creator },
                 ),
-                'collateral: Sender not authorized'
+                'collateral: Sender not authorized',
             );
         });
     });
