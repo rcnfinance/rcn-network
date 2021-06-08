@@ -192,7 +192,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const testDebtEngine = await TestDebtEngine.new(constants.ZERO_ADDRESS);
 
             await expectRevert(
-                () => LoanManager.new(testDebtEngine.address),
+                LoanManager.new(testDebtEngine.address),
                 'Error loading token',
             );
         });
@@ -204,7 +204,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('13132123');
             const amount = bn('1');
-            const expiration = (await time.latest()) + 11100;
+            const expiration = (await time.latest()).add(bn(11100));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -312,7 +312,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('3');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -354,7 +354,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('1');
             const amount = bn('1031230');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -424,7 +424,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('2');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -459,11 +459,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = constants.ZERO_ADDRESS;
             const salt = bn('319');
             const amount = bn('143441230');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             await expectRevert(
-                () => loanManager.requestLoan(
+                loanManager.requestLoan(
                     amount,
                     model.address,
                     constants.ZERO_ADDRESS,
@@ -484,7 +484,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('23');
             const amount = bn('30');
-            const expiration = (await time.latest()) + 900;
+            const expiration = (await time.latest()).add(bn(900));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await loanManager2.calcId(
@@ -515,7 +515,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager2.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager2.lend(
+                loanManager2.lend(
                     id,
                     [],
                     constants.ZERO_ADDRESS,
@@ -532,11 +532,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('11319');
             const amount = bn('441230');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
             const loanData = await model.encodeData(0, expiration, 0, expiration);
 
             await expectRevert(
-                () => loanManager.requestLoan(
+                loanManager.requestLoan(
                     amount,
                     model.address,
                     constants.ZERO_ADDRESS,
@@ -555,7 +555,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('19');
             const amount = bn('1431230');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             await loanManager.requestLoan(
@@ -571,7 +571,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             await expectRevert(
-                () => loanManager.requestLoan(
+                loanManager.requestLoan(
                     amount,
                     model.address,
                     constants.ZERO_ADDRESS,
@@ -590,7 +590,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const creator = accounts[4];
             const salt = bn('33422');
             const amount = bn('4555');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -631,7 +631,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             await expectRevert(
-                () => loanManager.requestLoan(
+                loanManager.requestLoan(
                     amount,
                     model.address,
                     constants.ZERO_ADDRESS,
@@ -649,7 +649,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('1');
             const amount = bn('1031230');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -720,7 +720,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('13132123');
             const amount = bn('10230');
-            const expiration = (await time.latest()) + 11100;
+            const expiration = (await time.latest()).add(bn(11100));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -763,7 +763,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('1312123');
             const amount = bn('130');
-            const expiration = (await time.latest()) + 1100;
+            const expiration = (await time.latest()).add(bn(1100));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -790,7 +790,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             await expectRevert(
-                () => loanManager.approveRequest(
+                loanManager.approveRequest(
                     id,
                     { from: creator },
                 ),
@@ -804,7 +804,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('4');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -847,7 +847,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('5');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -884,7 +884,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('6');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -932,7 +932,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('4');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -967,7 +967,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('5');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -1000,7 +1000,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('6');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -1033,7 +1033,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('7');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -1066,7 +1066,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = loanApprover.address;
             const salt = bn('1561561');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -1110,7 +1110,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = debtEngine.address;
             const salt = bn('7');
             const amount = bn('1000');
-            const expiration = (await time.latest()) + 1000;
+            const expiration = (await time.latest()).add(bn(1000));
 
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -1143,7 +1143,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('23');
             const amount = bn('30');
-            const expiration = (await time.latest()) + 900;
+            const expiration = (await time.latest()).add(bn(900));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1208,7 +1208,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('19982229');
             const amount = bn('90880');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1240,7 +1240,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const id0x0Data = await cosigner.customData();
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     cosigner.address,   // Cosigner
@@ -1262,7 +1262,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('213');
             const amount = bn('300');
-            const expiration = (await time.latest()) + 9010;
+            const expiration = (await time.latest()).add(bn(9010));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1292,7 +1292,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     constants.ZERO_ADDRESS,
@@ -1309,7 +1309,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('313');
             const amount = bn('440');
-            const expiration = (await time.latest()) + 1010;
+            const expiration = (await time.latest()).add(bn(1010));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1340,10 +1340,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             // approve requests
             await loanManager.approveRequest(id, { from: borrower });
-            await time.increase(2000);
+            await time.increaseTo(expiration);
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     constants.ZERO_ADDRESS,
@@ -1359,7 +1359,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('763');
             const amount = bn('700');
-            const expiration = (await time.latest()) + 9010;
+            const expiration = (await time.latest()).add(bn(9010));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1386,7 +1386,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     constants.ZERO_ADDRESS,
@@ -1403,7 +1403,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2223');
             const amount = bn('32231');
-            const expiration = (await time.latest()) + 3300;
+            const expiration = (await time.latest()).add(bn(3300));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1443,7 +1443,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     constants.ZERO_ADDRESS,
@@ -1468,7 +1468,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amountETH = bn('6545');
             const amountRCN = amountETH.mul(tokens).div(equivalent);
 
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amountETH, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1525,7 +1525,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('5545');
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1588,7 +1588,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('1998');
             const amount = bn('90880');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1620,7 +1620,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const id0x0Data = await cosigner.customData();
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     cosigner.address,   // Cosigner
@@ -1641,7 +1641,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('546546');
             const amount = bn('11');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1673,7 +1673,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
             const maxCostData = await cosigner.customData();
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     cosigner.address,   // Cosigner
@@ -1694,7 +1694,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('57476');
             const amount = bn('574');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1725,7 +1725,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const badData = await cosigner.badData();
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     cosigner.address,   // Cosigner
@@ -1746,7 +1746,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('42342');
             const amount = bn('44444');
-            const expiration = (await time.latest()) + 1600;
+            const expiration = (await time.latest()).add(bn(1600));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1775,8 +1775,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await expectRevert(
-                () => loanManager.lend(
+            await expectRevert.unspecified(
+                loanManager.lend(
                     id,
                     [],
                     accounts[8],        // Address as cosigner
@@ -1785,7 +1785,6 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],
                     { from: lender },
                 ),
-                '',
             );
 
             expect(await rcn.balanceOf(borrower)).to.eq.BN('0');
@@ -1796,7 +1795,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('87868');
             const amount = bn('456345');
-            const expiration = (await time.latest()) + 1600;
+            const expiration = (await time.latest()).add(bn(1600));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1827,7 +1826,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const noCosignData = await cosigner.noCosignData();
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     cosigner.address,   // Cosigner
@@ -1850,7 +1849,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('5545');
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1881,7 +1880,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const data = await cosigner.data();
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,
                     [],
                     cosigner.address,   // Cosigner
@@ -1904,7 +1903,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('3434225');
             const amount = bn('55');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -1960,7 +1959,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('3522');
             const amount = bn('5000');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -2019,7 +2018,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('6000');
             const amount = bn('6000');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -2046,7 +2045,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             await expectRevert(
-                () => loanManager.cancel(
+                loanManager.cancel(
                     id,
                     { from: lender },
                 ),
@@ -2058,7 +2057,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('33422');
             const amount = bn('4555');
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -2098,7 +2097,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             await expectRevert(
-                () => loanManager.cancel(
+                loanManager.cancel(
                     id,
                     { from: lender },
                 ),
@@ -2113,7 +2112,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2181,7 +2180,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2234,7 +2233,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2011');
             const amount = bn('666');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2257,7 +2256,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2283,7 +2282,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('33');
             const amount = bn('666');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2306,7 +2305,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2332,7 +2331,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2385,7 +2384,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2433,7 +2432,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2');
             const amount = bn('33622');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2463,7 +2462,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2488,7 +2487,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2');
             const amount = bn('33622');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2518,7 +2517,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2543,7 +2542,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2566,7 +2565,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2591,7 +2590,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('20');
             const amount = bn('33622');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2614,7 +2613,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2649,7 +2648,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await loanManager2.encodeRequest(
@@ -2674,7 +2673,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager2.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager2.settleLend(
+                loanManager2.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2703,7 +2702,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amountETH = bn('3320');
             const amountRCN = amountETH.mul(tokens).div(equivalent);
 
-            const expiration = (await time.latest()) + 1700;
+            const expiration = (await time.latest()).add(bn(1700));
             const loanData = await model.encodeData(amountETH, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2765,7 +2764,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2775,7 +2774,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                 model.address,
                 constants.ZERO_ADDRESS,
                 salt,
-                expiration - 10000,
+                expiration.sub(bn(10000)),
                 loanData,
             );
 
@@ -2789,7 +2788,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount, { from: lender });
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2814,7 +2813,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2837,7 +2836,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2862,7 +2861,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2898,7 +2897,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             );
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -2925,7 +2924,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('355320');
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -2984,7 +2983,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('273263');
             const amount = bn('32134');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3009,7 +3008,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const id0x0Data = await cosigner.customData();
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     cosigner.address, // Cosigner
@@ -3036,7 +3035,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('432354');
             const amount = bn('66');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3061,7 +3060,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const maxCostData = await cosigner.customData();
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     cosigner.address, // Cosigner
@@ -3088,7 +3087,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('273263');
             const amount = bn('32134');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3112,7 +3111,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const badData = await cosigner.badData();
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     cosigner.address,   // Cosigner
@@ -3139,7 +3138,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('273263');
             const amount = bn('32134');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3161,8 +3160,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.setBalance(lender, amount);
             await rcn.approve(loanManager.address, amount, { from: lender });
 
-            await expectRevert(
-                () => loanManager.settleLend(
+            await expectRevert.unspecified(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     accounts[8],        // Address as cosigner
@@ -3173,8 +3172,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     borrowerSigSL,
                     [],
                     { from: lender },
-                ),
-                '',
+                )
             );
 
             expect(await rcn.balanceOf(borrower)).to.eq.BN('0');
@@ -3188,7 +3186,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('273263');
             const amount = bn('32134');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3212,7 +3210,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const noCosignData = await cosigner.noCosignData();
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     cosigner.address,   // Cosigner
@@ -3241,7 +3239,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const amount = bn('74575');
             const cosignerCost = await cosigner.getDummyCost();
             const totalCost = cosignerCost.add(amount);
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3265,7 +3263,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const data = await cosigner.data();
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     cosigner.address,   // Cosigner
@@ -3293,7 +3291,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('2956');
             const amount = bn('9320');
-            const expiration = (await time.latest()) + 3400;
+            const expiration = (await time.latest()).add(bn(3400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3327,7 +3325,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const borrower = accounts[2];
             const salt = bn('564465');
             const amount = bn('9999');
-            const expiration = (await time.latest()) + 3400;
+            const expiration = (await time.latest()).add(bn(3400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3363,7 +3361,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const otherAcc = accounts[7];
             const salt = bn('5345');
             const amount = bn('9977699');
-            const expiration = (await time.latest()) + 3400;
+            const expiration = (await time.latest()).add(bn(3400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const encodeData = await calcSettleId(
@@ -3380,7 +3378,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const settleData = encodeData[0];
 
             await expectRevert(
-                () => loanManager.settleCancel(
+                loanManager.settleCancel(
                     settleData,
                     loanData,
                     { from: otherAcc },
@@ -3396,7 +3394,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await time.latest()) + 900;
+            const expiration = (await time.latest()).add(bn(900));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -3456,7 +3454,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await time.latest()) + 900;
+            const expiration = (await time.latest()).add(bn(900));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callbackData = web3.utils.randomHex(120);
 
@@ -3518,7 +3516,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await time.latest()) + 900;
+            const expiration = (await time.latest()).add(bn(900));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -3553,7 +3551,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setReturn(false);
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
                     constants.ZERO_ADDRESS,   // Cosigner
@@ -3574,7 +3572,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await time.latest()) + 900;
+            const expiration = (await time.latest()).add(bn(900));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -3608,7 +3606,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setRequireLender(lender);
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,              // Index
                     [],              // OracleData
                     constants.ZERO_ADDRESS,       // Cosigner
@@ -3630,7 +3628,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -3682,7 +3680,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
             const callbackdata = web3.utils.randomHex(260);
@@ -3736,7 +3734,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -3767,7 +3765,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setReturn(false);
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -3790,7 +3788,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -3817,7 +3815,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await rcn.approve(loanManager.address, amount.mul(bn('2')), { from: lender });
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -3840,7 +3838,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('991231');
             const amount = bn('30');
-            const expiration = (await time.latest()) + 900;
+            const expiration = (await time.latest()).add(bn(900));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -3875,7 +3873,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setBurnGas(300001);
 
             await expectRevert(
-                () => loanManager.lend(
+                loanManager.lend(
                     id,                 // Index
                     [],                 // OracleData
                     constants.ZERO_ADDRESS,   // Cosigner
@@ -3883,7 +3881,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     [],                 // Cosigner data
                     [],                 // Callback data
                     { from: lender },    // Owner/Lender
-                ), 'Returned error: VM Exception while processing transaction: revert', '',
+                ), 'Returned error: VM Exception while processing transaction: revert',
             );
 
             expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);
@@ -3896,7 +3894,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
@@ -3927,7 +3925,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             await callback.setBurnGas(300001);
 
             await expectRevert(
-                () => loanManager.settleLend(
+                loanManager.settleLend(
                     settleData,
                     loanData,
                     constants.ZERO_ADDRESS,
@@ -3938,7 +3936,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     borrowerSig,
                     [],
                     { from: lender },
-                ), 'Returned error: VM Exception while processing transaction: revert', '',
+                ), 'Returned error: VM Exception while processing transaction: revert',
             );
 
             expect(await loanManager.getStatus(id)).to.not.eq.BN(STATUS_ONGOING);
@@ -3950,7 +3948,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('99123');
             const amount = bn('30');
-            const expiration = (await time.latest()) + 900;
+            const expiration = (await time.latest()).add(bn(900));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
             const id = await calcId(
@@ -4011,7 +4009,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
             const lender = accounts[3];
             const salt = bn('2763');
             const amount = bn('3320');
-            const expiration = (await time.latest()) + 7400;
+            const expiration = (await time.latest()).add(bn(7400));
             const loanData = await model.encodeData(amount, expiration, 0, expiration);
             const callback = await TestLoanCallback.new();
 
