@@ -45,7 +45,7 @@ contract('Test BytesUtils', function ([_]) {
         });
         it('Try read out of array', async function () {
             await expectRevert(
-                () => bytesUtils.pReadBytes32(
+                bytesUtils.pReadBytes32(
                     testData,
                     4,
                 ),
@@ -53,7 +53,7 @@ contract('Test BytesUtils', function ([_]) {
             );
 
             await expectRevert(
-                () => bytesUtils.pReadBytes32(
+                bytesUtils.pReadBytes32(
                     [],
                     0,
                 ),
@@ -77,7 +77,7 @@ contract('Test BytesUtils', function ([_]) {
 
             // Reading index 2 should fail, the word has less than 32 bytes
             await expectRevert(
-                () => bytesUtils.pReadBytes32(
+                bytesUtils.pReadBytes32(
                     testData,
                     2,
                 ),

@@ -73,14 +73,14 @@ contract('NanoLoanModel', function (accounts) {
         );
 
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data.slice(0, -2),
             ),
             'Invalid data length',
         );
 
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data + '00',
             ),
             'Invalid data length',
@@ -95,7 +95,7 @@ contract('NanoLoanModel', function (accounts) {
             2,
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'The cancelableAt should be less or equal than duesIn',
@@ -110,7 +110,7 @@ contract('NanoLoanModel', function (accounts) {
             cancelableAt,
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'Interest rate too high',
@@ -125,7 +125,7 @@ contract('NanoLoanModel', function (accounts) {
             cancelableAt,
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'Punitory interest rate too high',
@@ -140,7 +140,7 @@ contract('NanoLoanModel', function (accounts) {
             cancelableAt,
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'amount can\'t be 0',
@@ -155,7 +155,7 @@ contract('NanoLoanModel', function (accounts) {
             0,
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'duesIn should be not 0 or overflow now plus duesIn',
@@ -169,11 +169,10 @@ contract('NanoLoanModel', function (accounts) {
             maxUint(64),
             cancelableAt,
         );
-        await expectRevert(
-            () => model.validate(
+        await expectRevert.unspecified(
+            model.validate(
                 data,
             ),
-            '',
         );
     });
     it('Test create function', async function () {

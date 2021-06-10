@@ -149,7 +149,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
     describe('Functions onlyOwner', async function () {
         it('Try set a new WETH without being the owner', async function () {
             await expectRevert(
-                () => collWETHManager.setWeth(
+                collWETHManager.setWeth(
                     constants.ZERO_ADDRESS,
                     { from: borrower },
                 ),
@@ -158,7 +158,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
         });
         it('Try set a new Collateral without be the owner', async function () {
             await expectRevert(
-                () => collWETHManager.setCollateral(
+                collWETHManager.setCollateral(
                     constants.ZERO_ADDRESS,
                     { from: borrower },
                 ),
@@ -171,7 +171,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             const ids = await createDefaultCollateral();
 
             await expectRevert(
-                () => collWETHManager.withdraw(
+                collWETHManager.withdraw(
                     ids.entryId,
                     constants.ZERO_ADDRESS,
                     1,
@@ -262,7 +262,7 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
             const ids = await createDefaultCollateral();
 
             await expectRevert(
-                () => collWETHManager.withdraw(
+                collWETHManager.withdraw(
                     ids.entryId,
                     constants.ZERO_ADDRESS,
                     1,

@@ -25,9 +25,9 @@ contract('Installments model test', function (accounts) {
     const owner = accounts[2];
     const creator = accounts[3];
 
-    const secInDay = 86400;
-    const secInMonth = secInDay * 30;
-    const secInYear = secInMonth * 12;
+    const secInDay = bn(86400);
+    const secInMonth = secInDay.mul(bn(30));
+    const secInYear = secInMonth.mul(bn(12));
 
     async function ping () {
         try {
@@ -173,14 +173,14 @@ contract('Installments model test', function (accounts) {
         );
 
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data.slice(0, -2),
             ),
             'Invalid data length',
         );
 
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data + '00',
             ),
             'Invalid data length',
@@ -195,7 +195,7 @@ contract('Installments model test', function (accounts) {
             1, // timeUnit
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'Cuota can\'t be 0',
@@ -210,7 +210,7 @@ contract('Installments model test', function (accounts) {
             1, // timeUnit
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'Installments can\'t be 0',
@@ -225,7 +225,7 @@ contract('Installments model test', function (accounts) {
             0, // timeUnit
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'Time unit can\'t be 0',
@@ -240,7 +240,7 @@ contract('Installments model test', function (accounts) {
             1, // timeUnit
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'Time unit must be lower or equal than installment duration',
@@ -255,7 +255,7 @@ contract('Installments model test', function (accounts) {
             1, // timeUnit
         );
         await expectRevert(
-            () => model.validate(
+            model.validate(
                 data,
             ),
             'Interest rate by time unit is too low',
@@ -273,13 +273,13 @@ contract('Installments model test', function (accounts) {
 
         expect(await model.getDueTime(id)).to.eq.BN(0);
 
-        const lentTime = bn(await getTxTime(model.create(id, data, { from: accountEngine })));
+        const lentTime = await getTxTime(model.create(id, data, { from: accountEngine }));
 
         let dueTime = bn(secInMonth).add(lentTime);
         expect(await model.getDueTime(id)).to.eq.BN(dueTime);
 
-        const lastPayment = bn(secInMonth * 2);
-        await time.increase(5 * secInDay);
+        const lastPayment = bn(secInMonth.mul(bn(2)));
+        await time.increase(secInDay.mul(bn(5)));
         await model.addPaid(id, 110, { from: accountEngine });
 
         dueTime = lastPayment.sub(lastPayment.mod(bn(secInMonth))).add(lentTime);
@@ -304,38 +304,38 @@ contract('Installments model test', function (accounts) {
         assert.equal(obligation[1], calculateObligation.defined);
         assert.isTrue(obligation[1]);
 
-        obligation = await model.getObligation(id, lentTime + secInMonth);
-        calculateObligation = await getObligation(id, lentTime + secInMonth);
+        obligation = await model.getObligation(id, lentTime.add(secInMonth));
+        calculateObligation = await getObligation(id, lentTime.add(secInMonth));
         expect(obligation[0]).to.eq.BN(calculateObligation.amount);
         assert.equal(obligation[1], calculateObligation.defined);
         assert.isTrue(obligation[1]);
 
-        obligation = await model.getObligation(id, lentTime + secInMonth * 2);
-        calculateObligation = await getObligation(id, lentTime + secInMonth * 2);
+        obligation = await model.getObligation(id, lentTime.add(secInMonth.mul(bn(2))));
+        calculateObligation = await getObligation(id, lentTime.add(secInMonth.mul(bn(2))));
         expect(obligation[0]).to.eq.BN(calculateObligation.amount);
         assert.equal(obligation[1], calculateObligation.defined);
         assert.isFalse(obligation[1]);
 
         await time.increase(secInMonth);
 
-        obligation = await model.getObligation(id, lentTime + secInMonth * 2);
-        calculateObligation = await getObligation(id, lentTime + secInMonth * 2);
+        obligation = await model.getObligation(id, lentTime.add(secInMonth.mul(bn(2))));
+        calculateObligation = await getObligation(id, lentTime.add(secInMonth.mul(bn(2))));
         expect(obligation[0]).to.eq.BN(calculateObligation.amount);
         assert.equal(obligation[1], calculateObligation.defined);
         assert.isFalse(obligation[1]);
 
         await model.addPaid(id, calculateObligation.amount, { from: accountEngine });
 
-        obligation = await model.getObligation(id, lentTime + secInMonth * 2);
-        calculateObligation = await getObligation(id, lentTime + secInMonth * 2);
+        obligation = await model.getObligation(id, lentTime.add(secInMonth.mul(bn(2))));
+        calculateObligation = await getObligation(id, lentTime.add(secInMonth.mul(bn(2))));
         expect(obligation[0]).to.eq.BN(calculateObligation.amount);
         assert.equal(obligation[1], calculateObligation.defined);
         assert.isTrue(obligation[1]);
 
         await model.addPaid(id, cuota.mul(bn(10)), { from: accountEngine });
 
-        obligation = await model.getObligation(id, lentTime + secInMonth * 2);
-        calculateObligation = await getObligation(id, lentTime + secInMonth * 2);
+        obligation = await model.getObligation(id, lentTime.add(secInMonth.mul(bn(2))));
+        calculateObligation = await getObligation(id, lentTime.add(secInMonth.mul(bn(2))));
         expect(obligation[0]).to.eq.BN(calculateObligation.amount);
         assert.equal(obligation[1], calculateObligation.defined);
         assert.isTrue(obligation[1]);
@@ -357,7 +357,7 @@ contract('Installments model test', function (accounts) {
         expect(await model.getClosingObligation(id)).to.eq.BN(calculateObligation);
         expect(await model.getEstimateObligation(id)).to.eq.BN(calculateObligation);
 
-        await time.increase(secInMonth * 2);
+        await time.increase(secInMonth.mul(bn(2)));
         // clock < currentClock
         calculateObligation = await _getClosingObligation(id);
         expect(await model.getClosingObligation(id)).to.eq.BN(calculateObligation);
@@ -379,7 +379,7 @@ contract('Installments model test', function (accounts) {
     });
     it('Function addDebt must always revert', async function () {
         await expectRevert(
-            () => model.addDebt(
+            model.addDebt(
                 web3.utils.randomHex(20),
                 0,
                 { from: accountEngine },
@@ -390,7 +390,7 @@ contract('Installments model test', function (accounts) {
     describe('Functions onlyOwner', function () {
         it('Function setDescriptor', async function () {
             await expectRevert(
-                () => model.setDescriptor(
+                model.setDescriptor(
                     web3.utils.randomHex(20),
                     { from: creator },
                 ),
@@ -399,7 +399,7 @@ contract('Installments model test', function (accounts) {
         });
         it('Function setEngine', async function () {
             await expectRevert(
-                () => model.setEngine(
+                model.setEngine(
                     web3.utils.randomHex(20),
                     { from: creator },
                 ),
@@ -410,7 +410,7 @@ contract('Installments model test', function (accounts) {
     describe('Functions onlyEngine', function () {
         it('Function create', async function () {
             await expectRevert(
-                () => model.create(
+                model.create(
                     constants.ZERO_BYTES32,
                     [],
                     { from: creator },
@@ -420,7 +420,7 @@ contract('Installments model test', function (accounts) {
         });
         it('Function addPaid', async function () {
             await expectRevert(
-                () => model.addPaid(
+                model.addPaid(
                     constants.ZERO_BYTES32,
                     1,
                     { from: creator },
@@ -430,7 +430,7 @@ contract('Installments model test', function (accounts) {
         });
         it('Function addDebt', async function () {
             await expectRevert(
-                () => model.addDebt(
+                model.addDebt(
                     constants.ZERO_BYTES32,
                     1,
                     { from: creator },
@@ -460,7 +460,7 @@ contract('Installments model test', function (accounts) {
         });
         it('Try get status of inexists loan', async function () {
             await expectRevert(
-                () => model.getStatus(
+                model.getStatus(
                     web3.utils.randomHex(32),
                 ),
                 'The registry does not exist',
@@ -514,7 +514,7 @@ contract('Installments model test', function (accounts) {
             const cuota = bn(110);
             const interestRate = bn(toInterestRate(240));
             const installments = bn(10);
-            const duration = bn(secInMonth);
+            const duration = secInMonth;
             const timeUnit = bn(1);
             const data = await model.encodeData(
                 cuota, // cuota
@@ -529,7 +529,7 @@ contract('Installments model test', function (accounts) {
                 data,
                 { from: accountEngine },
             );
-            const createdTime = bn(await getTxTime(createTx));
+            const createdTime = await getTxTime(createTx);
 
             const events = await toEvents(
                 createTx,
@@ -542,7 +542,7 @@ contract('Installments model test', function (accounts) {
 
             const _setClock = events[1];
             assert.equal(_setClock._id, id);
-            assert.equal(_setClock._to, secInMonth);
+            expect(_setClock._to).to.eq.BN(duration);
 
             expect(await model.getFrequency(id)).to.eq.BN(duration);
             expect(await model.getInstallments(id)).to.eq.BN(installments);
@@ -581,7 +581,7 @@ contract('Installments model test', function (accounts) {
             await model.create(id, data, { from: accountEngine });
 
             await expectRevert(
-                () => model.create(
+                model.create(
                     id,
                     data,
                     { from: accountEngine },
@@ -659,7 +659,7 @@ contract('Installments model test', function (accounts) {
             await model.create(id, data, { from: accountEngine });
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('0', 'First obligation should be 0');
-            expect(await model.getDueTime(id)).to.eq.BN(await time.latest() + secInMonth, 'Next due time should be in 1 installments');
+            expect(await model.getDueTime(id)).to.eq.BN((await time.latest()).add(secInMonth), 'Next due time should be in 1 installments');
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('110', 'Obligation on due time should be 110');
             expect((await model.getObligation(id, (await model.getDueTime(id)).sub(bn('1'))))[0]).to.eq.BN('0', 'Obligation before due time should be 0');
 
@@ -667,7 +667,7 @@ contract('Installments model test', function (accounts) {
 
             expect(await model.getPaid(id)).to.eq.BN('330', 'Paid amount should be 330');
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('0', 'Current obligation should be 0');
-            await almostEqual(model.getDueTime(id), await time.latest() + 4 * secInMonth, 'Next due time should be in 4 installments');
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(4))), 'Next due time should be in 4 installments');
         });
         it('Test pay in advance', async function () {
             const id = web3.utils.randomHex(32);
@@ -699,9 +699,9 @@ contract('Installments model test', function (accounts) {
             await model.create(id, data, { from: accountEngine });
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('0', 'First obligation should be 0');
-            expect(await model.getDueTime(id)).to.eq.BN(await time.latest() + secInYear, 'Next due time should be in 1 installments');
+            expect(await model.getDueTime(id)).to.eq.BN((await time.latest()).add(secInYear), 'Next due time should be in 1 installments');
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN(web3.utils.toWei('110'), 'Obligation on due time should be 110');
-            expect((await model.getObligation(id, await model.getDueTime(id) - 1))[0]).to.eq.BN('0', 'Obligation before due time should be 0');
+            expect((await model.getObligation(id, (await model.getDueTime(id)).sub(bn(1))))[0]).to.eq.BN('0', 'Obligation before due time should be 0');
 
             await model.addPaid(id, web3.utils.toWei('110'), { from: accountEngine });
 
@@ -724,7 +724,7 @@ contract('Installments model test', function (accounts) {
 
             const now = await time.latest();
             await expectRevert(
-                () => model.fixClock(id, now + 1),
+                model.fixClock(id, now.add(bn(1))),
                 'Forbidden advance clock into the future',
             );
 
@@ -732,7 +732,7 @@ contract('Installments model test', function (accounts) {
             await model.addPaid(id, bn('99963').mul(bn('4')), { from: accountEngine });
 
             await expectRevert(
-                model.fixClock(id, (await time.latest()) + secInYear),
+                model.fixClock(id, (await time.latest()).add(secInYear)),
                 'Forbidden advance clock into the future',
             );
         });
@@ -746,7 +746,7 @@ contract('Installments model test', function (accounts) {
                 1, // timeUnit
             );
 
-            const lentTime = bn(await getTxTime(model.create(id, data, { from: accountEngine })));
+            const lentTime = await getTxTime(model.create(id, data, { from: accountEngine }));
 
             await expectRevert(
                 model.fixClock(id, lentTime),
@@ -762,7 +762,7 @@ contract('Installments model test', function (accounts) {
             await model.addPaid(id, 99963 * 4, { from: accountEngine });
 
             await expectRevert(
-                model.fixClock(id, await time.latest() - 10),
+                model.fixClock(id, (await time.latest()).sub(bn(10))),
                 'Clock can\'t go negative',
             );
         });
@@ -782,7 +782,7 @@ contract('Installments model test', function (accounts) {
             await model.addPaid(id, 99963 * 4, { from: accountEngine });
 
             await expectRevert(
-                model.fixClock(id, await time.latest() - 10),
+                model.fixClock(id, (await time.latest()).sub(bn(10))),
                 'Clock is ahead of target',
             );
         });
@@ -800,7 +800,7 @@ contract('Installments model test', function (accounts) {
 
             await model.create(id, data, { from: accountEngine });
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('0', 'First obligation should be 0');
-            await almostEqual(model.getDueTime(id), await time.latest() + secInMonth, 'Next due time should be in 1 installments');
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth), 'Next due time should be in 1 installments');
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('300', 'Obligation on due time should be 300');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
 
@@ -808,19 +808,19 @@ contract('Installments model test', function (accounts) {
 
             expect(await model.getPaid(id)).to.eq.BN('110');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + secInMonth, 'Next due time should be in 1 installments');
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth), 'Next due time should be in 1 installments');
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('190', 'Obligation on due time should be 300 - paid');
 
             await model.addPaid(id, 200, { from: accountEngine });
 
             expect(await model.getPaid(id)).to.eq.BN('310');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + 2 * secInMonth, 'Next due time should be in 2 installments');
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(2))), 'Next due time should be in 2 installments');
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('290', 'Obligation on due time should be 300 - paid');
 
-            await time.increase(50 * secInDay);
+            await time.increase(secInDay.mul(bn(50)));
             await model.run(id, { from: accountEngine });
-            await time.increase(5 * secInDay);
+            await time.increase(secInDay.mul(bn(5)));
 
             await model.addPaid(id, 1000, { from: accountEngine });
             expect(await model.getStatus(id)).to.eq.BN(STATUS_PAID);
@@ -840,7 +840,7 @@ contract('Installments model test', function (accounts) {
             await model.create(id, data, { from: accountEngine });
 
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('110');
             expect(await model.getClosingObligation(id)).to.eq.BN('1100');
 
@@ -864,7 +864,7 @@ contract('Installments model test', function (accounts) {
             await model.create(id, data, { from: accountEngine });
 
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('110');
             expect(await model.getClosingObligation(id)).to.eq.BN('1100');
 
@@ -872,21 +872,21 @@ contract('Installments model test', function (accounts) {
 
             expect(await model.getPaid(id)).to.eq.BN('330');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + 4 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(4))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('110');
 
             await model.addPaid(id, 150, { from: accountEngine });
 
             expect(await model.getPaid(id)).to.eq.BN('480');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + 5 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(5))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('70');
 
             await model.addPaid(id, 4000, { from: accountEngine });
 
             expect(await model.getPaid(id)).to.eq.BN('1100');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_PAID);
-            await almostEqual(model.getDueTime(id), await time.latest() + 10 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(10))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('0');
         });
         it('It should calculate the interest like the test doc test 1', async function () {
@@ -902,31 +902,31 @@ contract('Installments model test', function (accounts) {
             await model.create(id, data, { from: accountEngine });
 
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
             expect(await model.getClosingObligation(id)).to.eq.BN(bn('99963').mul(bn('12')));
 
             // Pay the full next installment in a couple of days
-            await time.increase(2 * secInDay);
+            await time.increase(secInDay.mul(bn(2)));
             await model.run(id, { from: accountEngine });
-            await time.increase(5 * secInDay);
+            await time.increase(secInDay.mul(bn(5)));
             await model.run(id, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 23 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(23))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 53 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(53))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
             expect(await model.getPaid(id)).to.eq.BN('99963');
 
             // Wait a month and a week
-            await time.increase((30 + 7) * secInDay);
+            await time.increase(secInDay.mul(bn(30 + 7)));
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 46 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(46))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Wait a month
@@ -934,24 +934,24 @@ contract('Installments model test', function (accounts) {
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 46 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(46))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Wait to the next payment, exactly
             await time.increase(secInMonth);
 
             // Wait to the next payment, exactly
-            await time.increase(16 * secInDay);
+            await time.increase(secInDay.mul(bn(16)));
 
             // Past the payment date by 5 days
-            await time.increase(5 * secInDay);
+            await time.increase(secInDay.mul(bn(5)));
 
             await model.run(id, { from: accountEngine });
 
             // Ping contract
             await model.setEngine(accountEngine, { from: owner });
 
-            await almostEqual(model.getDueTime(id), await time.latest() - 5 * secInDay, '', 5);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))), '', 5);
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('100691');
 
             await model.addPaid(id, 100691, { from: accountEngine });
@@ -972,31 +972,31 @@ contract('Installments model test', function (accounts) {
             await model.create(id, data, { from: accountEngine });
 
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
             expect(await model.getClosingObligation(id)).to.eq.BN(bn('99963').mul(bn('12')));
 
             // Pay the full next installment in a couple of days
-            await time.increase(2 * secInDay);
+            await time.increase(secInDay.mul(bn(2)));
             await model.run(id, { from: accountEngine });
-            await time.increase(5 * secInDay);
+            await time.increase(secInDay.mul(bn(5)));
             await model.run(id, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 23 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(23))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 53 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(53))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
             expect(await model.getPaid(id)).to.eq.BN('99963');
 
             // Wait a month and a week
-            await time.increase((30 + 7) * secInDay);
+            await time.increase(secInDay.mul(bn(30 + 7)));
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 46 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(46))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Wait a month
@@ -1004,24 +1004,24 @@ contract('Installments model test', function (accounts) {
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 46 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(46))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Wait to the next payment, exactly
             await time.increase(secInMonth);
 
             // Wait to the next payment, exactly
-            await time.increase(16 * secInDay);
+            await time.increase(secInDay.mul(bn(16)));
 
             await model.run(id, { from: accountEngine });
 
             // Past the payment date by 5 days
-            await time.increase(5 * secInDay);
+            await time.increase(secInDay.mul(bn(5)));
 
             // Ping contract
             await model.setEngine(accountEngine, { from: owner });
 
-            await almostEqual(model.getDueTime(id), await time.latest() - 5 * secInDay, '', 5);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))), '', 5);
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('100691');
 
             await model.addPaid(id, 100691, { from: accountEngine });
@@ -1042,32 +1042,32 @@ contract('Installments model test', function (accounts) {
             await model.create(id, data, { from: accountEngine });
 
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-            await almostEqual(model.getDueTime(id), await time.latest() + secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
             expect(await model.getClosingObligation(id)).to.eq.BN(bn('99963').mul(bn('12')));
 
             // Pay the full next installment in a couple of days
-            await time.increase(2 * secInDay);
+            await time.increase(secInDay.mul(bn(2)));
             await model.run(id, { from: accountEngine });
-            await time.increase(5 * secInDay);
+            await time.increase(secInDay.mul(bn(5)));
 
             await ping();
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 23 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(23))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 53 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(53))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
             expect(await model.getPaid(id)).to.eq.BN('99963');
 
             // Wait a month and a week
-            await time.increase((30 + 7) * secInDay);
+            await time.increase(secInDay.mul(bn(30 + 7)));
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 46 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(46))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Wait a month
@@ -1075,7 +1075,7 @@ contract('Installments model test', function (accounts) {
 
             await model.addPaid(id, 99963, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 46 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(46))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Wait to the next payment, exactly
@@ -1084,13 +1084,13 @@ contract('Installments model test', function (accounts) {
             await model.run(id, { from: accountEngine });
 
             // Wait to the next payment, exactly
-            await time.increase(16 * secInDay);
+            await time.increase(secInDay.mul(bn(16)));
 
             // Past the payment date by 5 days
-            await time.increase(5 * secInDay);
+            await time.increase(secInDay.mul(bn(5)));
 
             await ping();
-            await almostEqual(model.getDueTime(id), await time.latest() - 5 * secInDay, '', 5);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))), '', 5);
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('100691');
 
             await model.addPaid(id, 100691, { from: accountEngine });
@@ -1112,27 +1112,27 @@ contract('Installments model test', function (accounts) {
 
             await model.addPaid(id, 99963 * 3, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 4 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(4))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Pass 4 months to the next loan expire time
-            await time.increase(4 * secInMonth);
+            await time.increase(secInMonth.mul(bn(4)));
 
             // Pass 12 days from the due date
-            await time.increase(12 * secInDay);
+            await time.increase(secInDay.mul(bn(12)));
             await ping();
 
-            await almostEqual(model.getDueTime(id), await time.latest() - 12 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(12))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('101712');
 
             await model.addPaid(id, 101712, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 18 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(18))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('0');
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Advance to the next month
-            await time.increase(18 * secInDay);
+            await time.increase(secInDay.mul(bn(18)));
 
             // And to the next...
             await time.increase(secInMonth);
@@ -1166,29 +1166,29 @@ contract('Installments model test', function (accounts) {
 
             await model.addPaid(id, 99963 * 3, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 4 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(4))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Pass 4 months to the next loan expire time
-            await time.increase(2 * secInMonth);
+            await time.increase(secInMonth.mul(bn(2)));
             await model.run(id, { from: accountEngine });
-            await time.increase(2 * secInMonth);
+            await time.increase(secInMonth.mul(bn(2)));
 
             // Pass 12 days from the due date
-            await time.increase(12 * secInDay);
+            await time.increase(secInDay.mul(bn(12)));
             await ping();
 
-            await almostEqual(model.getDueTime(id), await time.latest() - 12 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(12))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('101712');
 
             await model.addPaid(id, 101712, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 18 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(18))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('0');
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Advance to the next month
-            await time.increase(18 * secInDay);
+            await time.increase(secInDay.mul(bn(18)));
 
             // And to the next...
             await time.increase(secInMonth);
@@ -1224,29 +1224,29 @@ contract('Installments model test', function (accounts) {
 
             await model.addPaid(id, 99963 * 3, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 4 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(4))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Pass 4 months to the next loan expire time
-            await time.increase(2 * secInMonth - 2);
+            await time.increase(secInMonth.mul(bn(2)).sub(bn(2)));
             await model.run(id, { from: accountEngine });
-            await time.increase(2 * secInMonth + 2);
+            await time.increase(secInMonth.mul(bn(2)).add(bn(2)));
 
             // Pass 12 days from the due date
-            await time.increase(12 * secInDay);
+            await time.increase(secInDay.mul(bn(12)));
             await ping();
 
-            await almostEqual(model.getDueTime(id), await time.latest() - 12 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(12))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('101712');
 
             await model.addPaid(id, 101712, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 18 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(18))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('0');
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             // Advance to the next month
-            await time.increase(18 * secInDay);
+            await time.increase(secInDay.mul(bn(18)));
 
             // And to the next...
             await time.increase(secInMonth);
@@ -1254,9 +1254,9 @@ contract('Installments model test', function (accounts) {
             await model.run(id, { from: accountEngine });
 
             // And to the next...
-            await time.increase(29 * secInDay + 10);
+            await time.increase(secInDay.mul(bn(29)).add(bn(10)));
             await model.run(id, { from: accountEngine });
-            await time.increase(secInDay - 10);
+            await time.increase(secInDay.sub(bn(10)));
 
             await model.addPaid(id, 250000, { from: accountEngine });
 
@@ -1285,24 +1285,24 @@ contract('Installments model test', function (accounts) {
             // Pay the next 4 months in advance
             await model.addPaid(id, 99963 * 4, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 5 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(5))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             expect(await model.getPaid(id)).to.eq.BN(bn('99963').mul(bn('4')), 'Paid should be the amount of 3 installments');
 
             // Lets stop the payments
             // Advance 4 months and take a look
-            await time.increase((4 + 4) * secInMonth);
+            await time.increase(secInMonth.mul(bn(4 + 4)));
 
             await ping();
-            await almostEqual(model.getDueTime(id), await time.latest() - 3 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInMonth.mul(bn(3))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('426091');
 
             // Advance the last 4 months
-            await time.increase(4 * secInMonth);
+            await time.increase(secInMonth.mul(bn(4)));
 
             await ping();
-            await almostEqual(model.getDueTime(id), await time.latest() - 7 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInMonth.mul(bn(7))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('922155');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING, 'Loan should be ongoing');
         });
@@ -1321,24 +1321,24 @@ contract('Installments model test', function (accounts) {
             // Pay the next 4 months in advance
             await model.addPaid(id, 99963 * 4, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 5 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(5))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             expect(await model.getPaid(id)).to.eq.BN(bn('99963').mul(bn('4')), 'Paid should be the amount of 3 installments');
 
             // Lets stop the payments
             // Advance 4 months and take a look
-            await time.increase((4 + 4) * secInMonth);
+            await time.increase(secInMonth.mul(bn(4 + 4)));
 
             await model.run(id, { from: accountEngine });
-            await almostEqual(model.getDueTime(id), await time.latest() - 3 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInMonth.mul(bn(3))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('426091');
 
             // Advance the last 4 months
-            await time.increase(4 * secInMonth);
+            await time.increase(secInMonth.mul(bn(4)));
 
             await ping();
-            await almostEqual(model.getDueTime(id), await time.latest() - 7 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInMonth.mul(bn(7))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('922155');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING, 'Loan should be ongoing');
         });
@@ -1357,24 +1357,24 @@ contract('Installments model test', function (accounts) {
             // Pay the next 4 months in advance
             await model.addPaid(id, 99963 * 4, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 5 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(5))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             expect(await model.getPaid(id)).to.eq.BN(bn('99963').mul(bn('4')), 'Paid should be the amount of 3 installments');
 
             // Lets stop the payments
             // Advance 4 months and take a look
-            await time.increase((4 + 4) * secInMonth);
+            await time.increase(secInMonth.mul(bn(4 + 4)));
 
             await ping();
-            await almostEqual(model.getDueTime(id), await time.latest() - 3 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInMonth.mul(bn(3))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('426091');
 
             // Advance the last 4 months
-            await time.increase(4 * secInMonth);
+            await time.increase(secInMonth.mul(bn(4)));
 
             await model.run(id, { from: accountEngine });
-            await almostEqual(model.getDueTime(id), await time.latest() - 7 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInMonth.mul(bn(7))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('922155');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING, 'Loan should be ongoing');
         });
@@ -1393,27 +1393,27 @@ contract('Installments model test', function (accounts) {
             // Pay the next 4 months in advance
             await model.addPaid(id, 99963 * 4, { from: accountEngine });
 
-            await almostEqual(model.getDueTime(id), await time.latest() + 5 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).add(secInMonth.mul(bn(5))));
             expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
             expect(await model.getPaid(id)).to.eq.BN(bn('99963').mul(bn('4')), 'Paid should be the amount of 3 installments');
 
             // Lets stop the payments
             // Advance 4 months and take a look
-            await time.increase((4 + 4) * secInMonth);
+            await time.increase(secInMonth.mul(bn(4 + 4)));
 
             await ping();
-            await almostEqual(model.getDueTime(id), await time.latest() - 3 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInMonth.mul(bn(3))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('426091');
 
             // Advance the last 4 months
-            await time.increase(1 * secInMonth);
+            await time.increase(secInMonth);
             await ping();
-            await model.fixClock(id, (await time.latest()) - 15 * secInDay);
-            await time.increase(3 * secInMonth);
+            await model.fixClock(id, (await time.latest()).sub(secInDay.mul(bn(15))));
+            await time.increase(secInMonth.mul(bn(3)));
             await ping();
 
-            await almostEqual(model.getDueTime(id), await time.latest() - 7 * secInMonth);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInMonth.mul(bn(7))));
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('922154');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_ONGOING, 'Loan should be ongoing');
         });
@@ -1424,34 +1424,34 @@ contract('Installments model test', function (accounts) {
                 toInterestRate(35 * 1.5), // interestRate
                 12, // installments
                 secInMonth, // duration
-                secInDay * 2, // timeUnit
+                secInDay.mul(bn(2)), // timeUnit
             );
 
             await model.create(id, data, { from: accountEngine });
 
-            await time.increase(31 * secInDay);
+            await time.increase(secInDay.mul(bn(31)));
 
             await ping();
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('10000');
-            await almostEqual(model.getDueTime(id), await time.latest() - secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay));
 
             await model.run(id, { from: accountEngine });
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('10000');
-            await almostEqual(model.getDueTime(id), await time.latest() - secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay));
 
-            await time.increase(3 * secInDay);
+            await time.increase(secInDay.mul(bn(3)));
 
             await ping();
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('10058');
-            await almostEqual(model.getDueTime(id), await time.latest() - 4 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(4))));
 
             await model.run(id, { from: accountEngine });
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('10058');
-            await almostEqual(model.getDueTime(id), await time.latest() - 4 * secInDay);
+            await almostEqual(model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(4))));
         });
     });
 });

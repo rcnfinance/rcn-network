@@ -62,7 +62,7 @@ module.exports.getTxTime = async (tx) => {
 
     const blockNumber = tx.receipt.blockNumber;
     const block = await web3.eth.getBlock(blockNumber);
-    return block.timestamp;
+    return this.bn(block.timestamp);
 };
 
 module.exports.assertThrow = async (promise) => {
