@@ -7,13 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
         env:
             SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
             ssh-agent -a $SSH_AUTH_SOCK > /dev/null
             ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
-
       - uses: actions/setup-node@v1
         with:
           node-version: 12.x
@@ -23,10 +21,8 @@ jobs:
           path: '**/node_modules'
           key: npm-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: npm-v2-
-
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-
       - run: npm ci
         if: steps.cache.outputs.cache-hit != 'true'
       - run: npm run lint:js
