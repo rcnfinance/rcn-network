@@ -10,21 +10,14 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12.x
-      - name: Setup SSH Keys and known_hosts
-        env:
-            SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-        run: |
-            ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-            ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
       - uses: actions/cache@v2
         id: cache
         with:
           path: '**/node_modules'
           key: npm-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: npm-v2-
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      - run: npm ci
+
+      - run: npm i
         if: steps.cache.outputs.cache-hit != 'true'
       - run: npm run lint:js
       - run: npm run lint:sol
