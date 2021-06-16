@@ -65,23 +65,6 @@ module.exports.getTxTime = async (tx) => {
     return this.bn(block.timestamp);
 };
 
-module.exports.assertThrow = async (promise) => {
-    try {
-        await promise;
-    } catch (error) {
-        const invalidJump = error.message.search('invalid JUMP') >= 0;
-        const revert = error.message.search('revert') >= 0;
-        const invalidOpcode = error.message.search('invalid opcode') > 0;
-        const outOfGas = error.message.search('out of gas') >= 0;
-        assert(
-            invalidJump || outOfGas || revert || invalidOpcode,
-            'Expected throw, got \'' + error + '\' instead',
-        );
-        return;
-    }
-    throw new Error('Expected throw not received');
-};
-
 module.exports.toInterestRate = (interest) => {
     const secondsInYear = 360 * 86400;
     const rawInterest = Math.floor(10000000 / interest);
@@ -123,11 +106,6 @@ module.exports.toEvents = async (tx, ...events) => {
     }
     eventObjs = eventObjs.map(x => x.args);
     return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
-};
-
-module.exports.eventNotEmitted = async (receipt, eventName) => {
-    const logsCount = receipt.logs.length;
-    assert.equal(logsCount, 0, 'Should have not emitted the event ' + eventName);
 };
 
 module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {

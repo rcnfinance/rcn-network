@@ -6,6 +6,7 @@ const TestRateOracle = artifacts.require('TestRateOracle');
 const {
     constants,
     time,
+    expectEvent,
     expectRevert,
 } = require('@openzeppelin/test-helpers');
 
@@ -16,7 +17,6 @@ const {
     STATUS_ONGOING,
     STATUS_ERROR,
     toEvents,
-    assertThrow,
     random32bn,
 } = require('./Helper.js');
 
@@ -296,15 +296,12 @@ contract('Test DebtEngine Diaspore', function (accounts) {
         it('Should set the burner', async function () {
             const newBurner = accounts[6];
 
-            const SetBurner = await toEvents(
-                debtEngine.setBurner(
-                    newBurner,
-                    { from: accounts[0] },
-                ),
+            expectEvent(
+                await debtEngine.setBurner(newBurner, { from: accounts[0] }),
                 'SetBurner',
+                { _burner: newBurner },
             );
 
-            assert.equal(SetBurner._burner, newBurner);
             assert.equal(await debtEngine.burner(), newBurner);
 
             await debtEngine.setBurner(burner, { from: accounts[0] });
@@ -1257,7 +1254,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 0);
             await rcn.approve(debtEngine.address, 0);
 
-            await assertThrow(debtEngine.pay(id, 1, constants.ZERO_ADDRESS, data));
+            await expectRevert(
+                debtEngine.pay(id, 1, constants.ZERO_ADDRESS, data),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
@@ -1312,7 +1312,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await testModel.setErrorFlag(id, 9);
 
-            await assertThrow(debtEngine.pay(id, 100, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS));
+            await expectRevert(
+                debtEngine.pay(id, 100, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS),
+                'Paid can\'t be more than requested',
+            );
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
@@ -1331,14 +1334,20 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], value);
             await rcn.approve(debtEngine.address, value);
 
-            await assertThrow(debtEngine.pay(id, 1000, constants.ZERO_ADDRESS, data));
+            await expectRevert(
+                debtEngine.pay(id, 1000, constants.ZERO_ADDRESS, data),
+                'Oracle provided invalid rate',
+            );
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
             expect(await testModel.getPaid(id)).to.eq.BN('0');
 
             data = await oracle.encodeRate(14123, 0);
 
-            await assertThrow(debtEngine.pay(id, 1000, constants.ZERO_ADDRESS, data));
+            await expectRevert(
+                debtEngine.pay(id, 1000, constants.ZERO_ADDRESS, data),
+                'Oracle provided invalid rate',
+            );
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
             expect(await testModel.getPaid(id)).to.eq.BN('0');
@@ -1354,7 +1363,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 1000);
             await rcn.approve(debtEngine.address, 1000);
 
-            await assertThrow(debtEngine.pay(id, 2000, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS));
+            await expectRevert(
+                debtEngine.pay(id, 2000, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
@@ -2137,7 +2149,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await testModel.setErrorFlag(id, 9);
 
-            await assertThrow(debtEngine.payToken(id, 100, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS));
+            await expectRevert(
+                debtEngine.payToken(id, 100, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS),
+                'Paid can\'t exceed available',
+            );
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(prevBalance);
@@ -2153,7 +2168,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 1000);
             await rcn.approve(debtEngine.address, 1000);
 
-            await assertThrow(debtEngine.payToken(id, 2000, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS));
+            await expectRevert(
+                debtEngine.payToken(id, 2000, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
         });
@@ -2171,14 +2189,20 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], value);
             await rcn.approve(debtEngine.address, value);
 
-            await assertThrow(debtEngine.payToken(id, 1000, constants.ZERO_ADDRESS, data));
+            await expectRevert(
+                debtEngine.payToken(id, 1000, constants.ZERO_ADDRESS, data),
+                'Oracle provided invalid rate',
+            );
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
             expect(await testModel.getPaid(id)).to.eq.BN('0');
 
             data = await oracle.encodeRate(14123, 0);
 
-            await assertThrow(debtEngine.payToken(id, 1000, constants.ZERO_ADDRESS, data));
+            await expectRevert(
+                debtEngine.payToken(id, 1000, constants.ZERO_ADDRESS, data),
+                'Oracle provided invalid rate',
+            );
 
             expect(await rcn.balanceOf(accounts[0])).to.eq.BN(value);
             expect(await testModel.getPaid(id)).to.eq.BN('0');
@@ -2216,7 +2240,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 constants.ZERO_ADDRESS,
                 await testModel.encodeData(3000, (await time.latest()).add(bn(2000)), 0, (await time.latest()).add(bn(2000))),
             ));
-            await assertThrow(
+            await expectRevert(
                 debtEngine.payBatch(
                     [id],
                     [10, 20],
@@ -2225,8 +2249,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     constants.ZERO_ADDRESS,
                     { from: accounts[2] },
                 ),
+                '_ids and _amounts should have the same length',
             );
-            await assertThrow(
+            await expectRevert(
                 debtEngine.payBatch(
                     [id, id],
                     [10],
@@ -2235,6 +2260,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     constants.ZERO_ADDRESS,
                     { from: accounts[2] },
                 ),
+                '_ids and _amounts should have the same length',
             );
         });
         it('Pay 0 loans should make no change', async function () {
@@ -2407,8 +2433,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 0);
             await rcn.approve(debtEngine.address, 0);
 
-            await assertThrow(debtEngine.payBatch([id, id], [1, 0], constants.ZERO_ADDRESS, oracle.address, data));
-            await assertThrow(debtEngine.payBatch([id], [1], constants.ZERO_ADDRESS, oracle.address, data));
+            await expectRevert(
+                debtEngine.payBatch([id, id], [1, 0], constants.ZERO_ADDRESS, oracle.address, data),
+                'ERC20: transfer amount exceeds balance',
+            );
+            await expectRevert(
+                debtEngine.payBatch([id], [1], constants.ZERO_ADDRESS, oracle.address, data),
+                'ERC20: transfer amount exceeds balance',
+            );
             await debtEngine.payBatch([id], [0], constants.ZERO_ADDRESS, oracle.address, data);
 
             expect(await testModel.getPaid(id)).to.eq.BN('0');
@@ -2453,7 +2485,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await testModel.setErrorFlag(id1, 9);
 
-            await assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []));
+            await expectRevert(
+                debtEngine.payBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
+                'Paid can\'t be more than requested',
+            );
 
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
@@ -2477,7 +2512,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 500);
             await rcn.approve(debtEngine.address, 500);
 
-            await assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []));
+            await expectRevert(
+                debtEngine.payBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
@@ -2500,7 +2538,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 1500);
             await rcn.approve(debtEngine.address, 1500);
 
-            await assertThrow(debtEngine.payBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []));
+            await expectRevert(
+                debtEngine.payBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
@@ -2643,7 +2684,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                 constants.ZERO_ADDRESS,
                 await testModel.encodeData(3000, (await time.latest()).add(bn(2000)), 0, (await time.latest()).add(bn(2000))),
             ));
-            await assertThrow(
+            await expectRevert(
                 debtEngine.payTokenBatch(
                     [id],
                     [10, 20],
@@ -2652,8 +2693,9 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     constants.ZERO_ADDRESS,
                     { from: accounts[2] },
                 ),
+                '_ids and _amounts should have the same length',
             );
-            await assertThrow(
+            await expectRevert(
                 debtEngine.payTokenBatch(
                     [id, id],
                     [10],
@@ -2662,6 +2704,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
                     constants.ZERO_ADDRESS,
                     { from: accounts[2] },
                 ),
+                '_ids and _amounts should have the same length',
             );
         });
         it('Pay token batch shoud not overflow the debt balance', async function () {
@@ -2693,7 +2736,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], value);
             await rcn.approve(debtEngine.address, value);
 
-            await assertThrow(debtEngine.payTokenBatch([id2, id], [10, value], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []));
+            await expectRevert(
+                debtEngine.payTokenBatch([id2, id], [10, value], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await testModel.getPaid(id)).to.eq.BN('3000');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
@@ -2727,7 +2773,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await testModel.setErrorFlag(id2, 9);
 
-            await assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []));
+            await expectRevert(
+                debtEngine.payTokenBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
+                'Paid can\'t be more than requested',
+            );
 
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
@@ -2751,7 +2800,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 500);
             await rcn.approve(debtEngine.address, 500);
 
-            await assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []));
+            await expectRevert(
+                debtEngine.payTokenBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
@@ -2774,7 +2826,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], 1500);
             await rcn.approve(debtEngine.address, 1500);
 
-            await assertThrow(debtEngine.payTokenBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []));
+            await expectRevert(
+                debtEngine.payTokenBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await testModel.getPaid(id1)).to.eq.BN('0');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
@@ -3237,7 +3292,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], value);
             await rcn.approve(debtEngine.address, value);
 
-            await assertThrow(debtEngine.pay(id, value, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS));
+            await expectRevert(
+                debtEngine.pay(id, value, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS),
+                'uint128 Overflow',
+            );
 
             const ndebt = await debtEngine.debts(id);
             expect(ndebt[1]).to.eq.BN('3000');
@@ -3268,7 +3326,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], value);
             await rcn.approve(debtEngine.address, value);
 
-            await assertThrow(debtEngine.payToken(id, bn('2').pow(bn('129')), constants.ZERO_ADDRESS, constants.ZERO_ADDRESS));
+            await expectRevert(
+                debtEngine.payToken(id, bn('2').pow(bn('129')), constants.ZERO_ADDRESS, constants.ZERO_ADDRESS),
+                'uint128 Overflow',
+            );
 
             const ndebt = await debtEngine.debts(id);
             expect(ndebt[1]).to.eq.BN('3000');
@@ -3306,7 +3367,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(accounts[0], value);
             await rcn.approve(debtEngine.address, value);
 
-            await assertThrow(debtEngine.payBatch([id2, id], [10, bn('2').pow(bn('129'))], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []));
+            await expectRevert(
+                debtEngine.payBatch([id2, id], [10, bn('2').pow(bn('129'))], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
+                'uint128 Overflow',
+            );
 
             expect(await testModel.getPaid(id)).to.eq.BN('3000');
             expect(await testModel.getPaid(id2)).to.eq.BN('0');
@@ -3333,8 +3397,14 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             await rcn.setBalance(accounts[3], 0);
             await rcn.setBalance(accounts[2], 0);
-            await assertThrow(debtEngine.withdraw(id, accounts[3], { from: accounts[3] }));
-            await assertThrow(debtEngine.withdraw(id, accounts[2], { from: accounts[3] }));
+            await expectRevert(
+                debtEngine.withdraw(id, accounts[3], { from: accounts[3] }),
+                'Sender not authorized',
+            );
+            await expectRevert(
+                debtEngine.withdraw(id, accounts[2], { from: accounts[3] }),
+                'Sender not authorized',
+            );
 
             expect(await rcn.balanceOf(accounts[3])).to.eq.BN('0');
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
@@ -3361,7 +3431,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(debtEngine.address, 0);
 
             await rcn.setBalance(accounts[2], 0);
-            await assertThrow(debtEngine.withdraw(id, accounts[2], { from: accounts[2] }));
+            await expectRevert(
+                debtEngine.withdraw(id, accounts[2], { from: accounts[2] }),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
 
@@ -3399,7 +3472,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
             // Next withdraw should fail, no longer approved
             await rcn.setBalance(accounts[7], 0);
-            assertThrow(debtEngine.withdraw(id, accounts[7], { from: accounts[7] }));
+            await expectRevert(
+                debtEngine.withdraw(id, accounts[7], { from: accounts[7] }),
+                'Sender not authorized',
+            );
             debtEngine.withdrawBatch([id], accounts[7], { from: accounts[7] });
             expect(await rcn.balanceOf(accounts[7])).to.eq.BN('0');
 
@@ -3699,7 +3775,10 @@ contract('Test DebtEngine Diaspore', function (accounts) {
             await rcn.setBalance(debtEngine.address, 0);
 
             await rcn.setBalance(accounts[2], 0);
-            await assertThrow(debtEngine.withdrawBatch([id, id2], accounts[2], { from: accounts[2] }));
+            await expectRevert(
+                debtEngine.withdrawBatch([id, id2], accounts[2], { from: accounts[2] }),
+                'ERC20: transfer amount exceeds balance',
+            );
 
             expect(await rcn.balanceOf(accounts[2])).to.eq.BN('0');
 
