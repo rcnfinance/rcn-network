@@ -3172,7 +3172,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
                     borrowerSigSL,
                     [],
                     { from: lender },
-                )
+                ),
             );
 
             expect(await rcn.balanceOf(borrower)).to.eq.BN('0');

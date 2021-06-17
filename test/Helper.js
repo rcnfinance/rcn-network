@@ -108,13 +108,13 @@ module.exports.toEvents = async (tx, ...events) => {
     return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
 };
 
-module.exports.almostEqual = async (p1, p2, reason, margin = 3) => {
+module.exports.almostEqual = (p1, p2, reason, margin = 3) => {
     margin = this.bn(margin);
-    const a = this.bn(await p1);
-    const b = this.bn(await p2);
+    const a = this.bn(p1);
+    const b = this.bn(p2);
     const diff = a.sub(b).abs();
 
-    assert.isTrue(diff.lt(margin), reason);
+    assert.isTrue(diff.lte(margin), reason);
 };
 
 module.exports.balanceSnap = async (token, address, account = '') => {
