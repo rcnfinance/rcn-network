@@ -36,10 +36,10 @@
   "bugs": {
     "url": "https://github.com/ripio/rcn-network"
   },
+  "homepage": "https://ripiocredit.network",
   "dependencies": {
     "@openzeppelin/contracts": "4.1.0"
   },
-  "homepage": "https://ripiocredit.network",
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.11",
     "bn-chai": "^1.0.1",
