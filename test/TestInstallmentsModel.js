@@ -682,7 +682,7 @@ contract('Installments model test', function (accounts) {
         it('Test pay single installment', async function () {
             const id = web3.utils.randomHex(32);
             const data = await model.encodeData(
-                web3.utils.toWei(110), // cuota
+                web3.utils.toWei('110'), // cuota
                 toInterestRate(20), // interestRate
                 1, // installments
                 secInYear, // duration
@@ -692,13 +692,13 @@ contract('Installments model test', function (accounts) {
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN(0, 'First obligation should be 0');
             expect(await model.getDueTime(id)).to.eq.BN((await time.latest()).add(secInYear), 'Next due time should be in 1 installments');
-            expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN(web3.utils.toWei(110), 'Obligation on due time should be 110');
+            expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN(web3.utils.toWei('110'), 'Obligation on due time should be 110');
             expect((await model.getObligation(id, (await model.getDueTime(id)).sub(bn(1))))[0]).to.eq.BN(0, 'Obligation before due time should be 0');
 
-            await model.addPaid(id, web3.utils.toWei(110), { from: accountEngine });
+            await model.addPaid(id, web3.utils.toWei('110'), { from: accountEngine });
 
             expect(await model.getStatus(id)).to.eq.BN(STATUS_PAID, 'Status should be paid');
-            expect(await model.getPaid(id)).to.eq.BN(web3.utils.toWei(110), 'Paid should be cuota * installments');
+            expect(await model.getPaid(id)).to.eq.BN(web3.utils.toWei('110'), 'Paid should be cuota * installments');
         });
     });
     describe('Function fixClock, run, _advanceClock', function () {
@@ -1129,7 +1129,7 @@ contract('Installments model test', function (accounts) {
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('165727');
 
-            await model.addPaid(id, web3.utils.toWei(1), { from: accountEngine });
+            await model.addPaid(id, web3.utils.toWei('1'), { from: accountEngine });
             expect(await model.getPaid(id)).to.eq.BN('1217180');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_PAID);
         });
@@ -1185,7 +1185,7 @@ contract('Installments model test', function (accounts) {
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('165727');
 
-            await model.addPaid(id, web3.utils.toWei(1), { from: accountEngine });
+            await model.addPaid(id, web3.utils.toWei('1'), { from: accountEngine });
             expect(await model.getPaid(id)).to.eq.BN('1217180');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_PAID);
         });
@@ -1243,7 +1243,7 @@ contract('Installments model test', function (accounts) {
 
             expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('165727');
 
-            await model.addPaid(id, web3.utils.toWei(1), { from: accountEngine });
+            await model.addPaid(id, web3.utils.toWei('1'), { from: accountEngine });
             expect(await model.getPaid(id)).to.eq.BN('1217180');
             expect(await model.getStatus(id)).to.eq.BN(STATUS_PAID);
         });
