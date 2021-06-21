@@ -84,30 +84,6 @@ module.exports.searchEvent = (tx, eventName) => {
     return event[0];
 };
 
-module.exports.toEvents = async (tx, ...events) => {
-    if (tx instanceof Promise) {
-        tx = await tx;
-    }
-
-    const logs = tx.logs;
-
-    let eventObjs = [].concat.apply(
-        [],
-        events.map(
-            event => logs.filter(
-                log => log.event === event
-            )
-        )
-    );
-
-    if (eventObjs.length === 0 || eventObjs.some(x => x === undefined)) {
-        console.log('\t\u001b[91m\u001b[2m\u001b[1mError: The event dont find');
-        assert.fail();
-    }
-    eventObjs = eventObjs.map(x => x.args);
-    return (eventObjs.length === 1) ? eventObjs[0] : eventObjs;
-};
-
 module.exports.almostEqual = (p1, p2, reason, margin = 3) => {
     margin = this.bn(margin);
     const a = this.bn(p1);

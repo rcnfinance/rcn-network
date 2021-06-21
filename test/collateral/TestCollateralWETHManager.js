@@ -12,13 +12,13 @@ const TestRateOracle = artifacts.require('TestRateOracle');
 const {
     constants,
     time,
+    expectEvent,
     expectRevert,
 } = require('@openzeppelin/test-helpers');
 
 const {
     expect,
     bn,
-    toEvents,
     random32bn,
 } = require('../Helper.js');
 
@@ -116,15 +116,12 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
 
     describe('Function setWeth', async function () {
         it('Set a new weth contract', async function () {
-            const SetWeth = await toEvents(
-                collWETHManager.setWeth(
-                    owner,
-                    { from: owner },
-                ),
+            expectEvent(
+                await collWETHManager.setWeth(owner, { from: owner }),
                 'SetWeth',
+                { _weth: owner },
             );
 
-            assert.equal(SetWeth._weth, owner);
             assert.equal(await collWETHManager.weth(), owner);
 
             await collWETHManager.setWeth(weth9.address, { from: owner });
@@ -132,15 +129,12 @@ contract('Test WETH manager for collateral cosigner', function (accounts) {
     });
     describe('Function setCollateral', async function () {
         it('Set a new collateral contract', async function () {
-            const SetCollateral = await toEvents(
-                collWETHManager.setCollateral(
-                    owner,
-                    { from: owner },
-                ),
+            expectEvent(
+                await collWETHManager.setCollateral(owner, { from: owner }),
                 'SetCollateral',
+                { _collateral: owner },
             );
 
-            assert.equal(SetCollateral._collateral, owner);
             assert.equal(await collWETHManager.collateral(), owner);
 
             await collWETHManager.setCollateral(collateral.address, { from: owner });

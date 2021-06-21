@@ -4,6 +4,7 @@ const ModelDescriptor = artifacts.require('ModelDescriptor');
 const {
     constants,
     time,
+    expectEvent,
     expectRevert,
 } = require('@openzeppelin/test-helpers');
 
@@ -12,7 +13,6 @@ const {
     bn,
     STATUS_PAID,
     STATUS_ONGOING,
-    toEvents,
     toInterestRate,
     getTxTime,
     almostEqual,
@@ -129,14 +129,11 @@ contract('Installments model test', function (accounts) {
         assert.isFalse(await auxModel.isOperator(owner));
         assert.isFalse(await auxModel.isOperator(engine));
 
-        const _setEngine = await toEvents(
-            auxModel.setEngine(
-                engine,
-                { from: owner },
-            ),
+        expectEvent(
+            await auxModel.setEngine(engine, { from: owner }),
             '_setEngine',
+            { _engine: engine },
         );
-        assert.equal(_setEngine._engine, engine);
 
         assert.equal(await auxModel.engine(), engine);
         assert.isTrue(await auxModel.isOperator(engine));
@@ -467,15 +464,11 @@ contract('Installments model test', function (accounts) {
 
             const descriptor = web3.utils.toChecksumAddress(web3.utils.randomHex(20));
 
-            const _setDescriptor = await toEvents(
-                auxModel.setDescriptor(
-                    descriptor,
-                    { from: owner },
-                ),
+            expectEvent(
+                await auxModel.setDescriptor(descriptor, { from: owner }),
                 '_setDescriptor',
+                { _descriptor: descriptor },
             );
-
-            assert.equal(_setDescriptor._descriptor, descriptor);
 
             assert.equal(await auxModel.descriptor(), descriptor);
         });
@@ -516,25 +509,15 @@ contract('Installments model test', function (accounts) {
                 timeUnit, // timeUnit
             );
 
-            const createTx = await model.create(
+            const receipt = await model.create(
                 id,
                 data,
                 { from: accountEngine },
             );
-            const createdTime = await getTxTime(createTx);
+            const createdTime = await getTxTime(receipt);
 
-            const events = await toEvents(
-                createTx,
-                'Created',
-                '_setClock',
-            );
-
-            const Created = events[0];
-            assert.equal(Created._id, id);
-
-            const _setClock = events[1];
-            assert.equal(_setClock._id, id);
-            expect(_setClock._to).to.eq.BN(duration);
+            expectEvent(receipt, 'Created', { _id: id });
+            expectEvent(receipt, '_setClock', { _id: id, _to: duration });
 
             expect(await model.getFrequency(id)).to.eq.BN(duration);
             expect(await model.getInstallments(id)).to.eq.BN(installments);
@@ -599,23 +582,14 @@ contract('Installments model test', function (accounts) {
             const prevStates = await model.states(id);
             const paidAmount = 1;
 
-            const events = await toEvents(
-                model.addPaid(
-                    id,
-                    paidAmount,
-                    { from: accountEngine },
-                ),
-                '_setPaidBase',
-                'AddedPaid',
+            const receipt = await model.addPaid(
+                id,
+                paidAmount,
+                { from: accountEngine },
             );
 
-            const Created = events[0];
-            assert.equal(Created._id, id);
-            expect(Created._paidBase).to.eq.BN(1);
-
-            const _setClock = events[1];
-            assert.equal(_setClock._id, id);
-            expect(_setClock._paid).to.eq.BN(1);
+            expectEvent(receipt, '_setPaidBase', { _id: id, _paidBase: bn(1) });
+            expectEvent(receipt, 'AddedPaid', { _id: id, _paid: bn(1) });
 
             expect(await model.getPaid(id)).to.eq.BN(paidAmount);
 
