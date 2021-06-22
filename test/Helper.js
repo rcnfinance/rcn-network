@@ -71,13 +71,6 @@ module.exports.toInterestRate = (interest) => {
     return rawInterest * secondsInYear;
 };
 
-module.exports.buyTokens = async (token, amount, account) => {
-    const prevAmount = await token.balanceOf(account);
-    await token.buyTokens(account, { from: account, value: amount / 4000 });
-    const newAmount = await token.balanceOf(account);
-    assert.equal(newAmount.sub(prevAmount), amount.toString(), 'Should have minted tokens');
-};
-
 module.exports.searchEvent = (tx, eventName) => {
     const event = tx.logs.filter(x => x.event === eventName).map(x => x.args);
     assert.equal(event.length, 1, 'Should have only one ' + eventName);
