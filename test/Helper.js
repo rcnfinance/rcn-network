@@ -48,13 +48,6 @@ module.exports.toBytes32 = (source) => {
     return '0x' + source;
 };
 
-module.exports.isRevertErrorMessage = (error) => {
-    if (error.message.search('invalid opcode') >= 0) return true;
-    if (error.message.search('revert') >= 0) return true;
-    if (error.message.search('out of gas') >= 0) return true;
-    return false;
-};
-
 module.exports.getTxTime = async (tx) => {
     if (tx instanceof Promise) {
         tx = await tx;
@@ -69,12 +62,6 @@ module.exports.toInterestRate = (interest) => {
     const secondsInYear = 360 * 86400;
     const rawInterest = Math.floor(10000000 / interest);
     return rawInterest * secondsInYear;
-};
-
-module.exports.searchEvent = (tx, eventName) => {
-    const event = tx.logs.filter(x => x.event === eventName).map(x => x.args);
-    assert.equal(event.length, 1, 'Should have only one ' + eventName);
-    return event[0];
 };
 
 module.exports.almostEqual = (p1, p2, reason, margin = 3) => {
