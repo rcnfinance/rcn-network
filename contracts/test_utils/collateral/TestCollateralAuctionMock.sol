@@ -1,9 +1,9 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
-import "../../interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../cosigner/Collateral.sol";
 
-import "../../utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 
 contract TestCollateralAuctionMock {
@@ -14,7 +14,7 @@ contract TestCollateralAuctionMock {
     Collateral public collateral;
 
     mapping(uint256 => IERC20) public entryToToken;
-    uint256 auctionId = 1;
+    uint256 public auctionId = 1;
 
     constructor(LoanManager _loanManager) {
         loanManager = _loanManager;
@@ -36,7 +36,7 @@ contract TestCollateralAuctionMock {
         entryToToken[id] = _fromToken;
         auctionId++;
 
-        require(_fromToken.safeTransferFrom(msg.sender, address(this), _limit), "TestCollateralAuctionMock: Error pulling tokens");
+        _fromToken.safeTransferFrom(msg.sender, address(this), _limit);
     }
 
     function toAuctionClosed(

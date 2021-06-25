@@ -1,25 +1,18 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
 import "../interfaces/IWETH9.sol";
 import "./Collateral.sol";
 
-import "../utils/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 
-contract CollateralWETHManager is Ownable {
+contract CollateralWETHManager is Ownable, IERC721Receiver {
     event SetWeth(IWETH9 _weth);
     event SetCollateral(Collateral _collateral);
 
     IWETH9 public weth;
     Collateral public collateral;
-
-    /**
-        @dev Check if the sender is the owner of the collateral
-    */
-    modifier isAuthorized(uint256 _entryId) {
-        require(collateral.isAuthorized(msg.sender, _entryId), "msg.sender Not authorized");
-        _;
-    }
 
     constructor(IWETH9 _weth, Collateral _collateral) {
         weth = _weth;
@@ -68,7 +61,7 @@ contract CollateralWETHManager is Ownable {
         uint96 _liquidationRatio,
         uint96 _balanceRatio
     ) external payable returns (uint256 entryId) {
-        depositApprove();
+        _depositApprove();
 
         entryId = collateral.create(
             address(this),
@@ -91,7 +84,7 @@ contract CollateralWETHManager is Ownable {
     function deposit(
         uint256 _entryId
     ) external payable {
-        depositApprove();
+        _depositApprove();
 
         collateral.deposit(_entryId, msg.value);
     }
@@ -99,7 +92,7 @@ contract CollateralWETHManager is Ownable {
     /**
         @dev Convert the ETH to WETH and approve collateral to use the WETH
     */
-    function depositApprove() internal {
+    function _depositApprove() internal {
         weth.deposit{ value: msg.value }();
         weth.approve(address(collateral), msg.value);
     }
@@ -118,7 +111,8 @@ contract CollateralWETHManager is Ownable {
         address payable _to,
         uint256 _amount,
         bytes calldata _oracleData
-    ) external isAuthorized(_entryId) {
+    ) external {
+        require(collateral.isApprovedOrOwner(msg.sender, _entryId), "CollateralWETHManager: Sender not authorized");
         collateral.withdraw(
             _entryId,
             address(this),
@@ -126,7 +120,7 @@ contract CollateralWETHManager is Ownable {
             _oracleData
         );
 
-        withdrawTransfer(_to, _amount);
+        _withdrawTransfer(_to, _amount);
     }
 
     /**
@@ -135,7 +129,7 @@ contract CollateralWETHManager is Ownable {
         @param _to The beneficiary of the ETH
         @param _amount The amount of ETH to be transfer
     */
-    function withdrawTransfer(
+    function _withdrawTransfer(
         address payable _to,
         uint256 _amount
     ) internal {
@@ -148,4 +142,16 @@ contract CollateralWETHManager is Ownable {
     */
     fallback() external payable { }
     receive() external payable { }
+
+    /**
+        @dev Use to receive ERC721 token
+    */
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external override returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
+    }
 }

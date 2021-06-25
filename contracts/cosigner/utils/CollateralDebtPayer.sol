@@ -1,8 +1,8 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
 import "../../interfaces/TokenConverter.sol";
-import "../../interfaces/IERC20.sol";
-import "../../utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/CollateralHandler.sol";
 import "../../DebtEngine.sol";
 import "../Collateral.sol";
@@ -111,10 +111,7 @@ contract CollateralDebtPayer is CollateralHandler {
         // Refund extra base token
         if (paidToken < paying) {
             require(action.refundTo != address(0), "collateral-debt-payer: refundTo should not be the address 0");
-            require(
-                action.base.safeTransfer(collateral.ownerOf(_entryId), paying - fee - paidToken),
-                "collateral-debt-payer: error sending base surplus"
-            );
+            action.base.safeTransfer(collateral.ownerOf(_entryId), paying - fee - paidToken);
         }
 
         // Approve surplus return to collateral
@@ -144,7 +141,7 @@ contract CollateralDebtPayer is CollateralHandler {
             // The TokenConverter is trusted to perform the token convertion
             // a faulty TokenConverter could only damage the collateral owner funds
             // who is selecting the token converter in the first place
-            require(_action.token.safeApprove(address(_action.converter), _action.amount), "collateral-debt-payer: error approving auction converter");
+            _action.token.safeApprove(address(_action.converter), _action.amount);
 
             bought = _action.converter.convertFrom(
                 _action.token,
@@ -153,7 +150,7 @@ contract CollateralDebtPayer is CollateralHandler {
                 _action.minReturn
             );
 
-            _action.token.clearApprove(address(_action.converter));
+            _action.token.safeApprove(address(_action.converter), 0);
         }
     }
 
@@ -171,7 +168,7 @@ contract CollateralDebtPayer is CollateralHandler {
         uint256 _paying,
         uint256 _fee
     ) private returns (uint256 paid) {
-        require(_action.base.safeApprove(address(_action.engine), _paying), "collateral-debt-payer: error approving engine");
+        _action.base.safeApprove(address(_action.engine), _paying);
         (, paid, ) = _action.engine.payToken(
             _action.debtId,
             _paying - _fee,

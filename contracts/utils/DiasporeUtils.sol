@@ -1,8 +1,7 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
-import "./SafeERC20.sol";
-import "./SafeMath.sol";
-import "../interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/RateOracle.sol";
 import "../interfaces/Model.sol";
 import "../LoanManager.sol";
@@ -29,7 +28,7 @@ library DiasporeUtils {
     ) internal returns (uint256 paid, uint256 paidToken, uint256 burnToken) {
         IERC20 token = IERC20(_manager.token());
         DebtEngine engine = DebtEngine(_manager.debtEngine());
-        require(token.safeApprove(address(engine), _amount), "Error approve debt engine");
+        token.safeApprove(address(engine), _amount);
 
         uint256 prevBalance = token.balanceOf(address(this));
 
@@ -40,7 +39,7 @@ library DiasporeUtils {
             _oracleData
         );
 
-        require(token.clearApprove(address(engine)), "Error clear approve");
+        token.safeApprove(address(engine), 0);
         require(prevBalance.sub(token.balanceOf(address(this))) <= paidToken.add(burnToken), "Debt engine pulled too many tokens");
     }
 }

@@ -1,6 +1,6 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
-import "../interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/Cosigner.sol";
 import "../interfaces/Model.sol";
 import "../interfaces/IDebtStatus.sol";
@@ -9,12 +9,11 @@ import "../LoanManager.sol";
 
 import "./interfaces/CollateralAuctionCallback.sol";
 import "./interfaces/CollateralHandler.sol";
-import "../utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../utils/Fixed224x32.sol";
-import "../utils/Ownable.sol";
-import "../utils/ERC721Base.sol";
-import "../utils/SafeERC20.sol";
-import "../utils/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../utils/DiasporeUtils.sol";
 import "../utils/OracleUtils.sol";
 import "./CollateralAuction.sol";
@@ -27,7 +26,7 @@ import "./CollateralLib.sol";
     @notice Handles the creation, activation and liquidation trigger
         of collateral guarantees for RCN loans.
 */
-contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, CollateralAuctionCallback, IDebtStatus {
+contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuctionCallback, IDebtStatus {
     using CollateralLib for CollateralLib.Entry;
     using OracleUtils for OracleUtils.Sample;
     using OracleUtils for RateOracle;
@@ -133,7 +132,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     constructor(
         LoanManager _loanManager,
         CollateralAuction _auction
-    ) ERC721Base("RCN Collateral Cosigner", "RCC") {
+    ) ERC721("RCN Collateral Cosigner", "RCC") {
         loanManager = _loanManager;
         loanManagerToken = loanManager.token();
         // Invalid entry of index 0
@@ -152,6 +151,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     */
     function getEntriesLength() external view returns (uint256) {
         return entries.length;
+    }
+
+    function isApprovedOrOwner(address _spender, uint256 _entryId) external view returns (bool) {
+        return _isApprovedOrOwner(_spender, _entryId);
     }
 
     /**
@@ -202,10 +205,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         entryId = entries.length - 1;
 
         // Pull the ERC20 tokens
-        require(token.safeTransferFrom(_owner, address(this), _amount), "collateral: error pulling tokens from owner");
+        token.safeTransferFrom(_owner, address(this), _amount);
 
         // Generate the ERC721 Token
-        _generate(entryId, _owner);
+        _safeMint(_owner, entryId);
 
         // Emit the collateral creation event
         emit Created(
@@ -241,7 +244,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralLib.Entry storage entry = entries[_entryId];
 
         // Pull the ERC20 tokens
-        require(entry.token.safeTransferFrom(msg.sender, address(this), _amount), "collateral: error pulling tokens");
+        entry.token.safeTransferFrom(msg.sender, address(this), _amount);
 
         // Register the deposit of amount on the entry
         entry.amount = entry.amount.add(_amount);
@@ -268,7 +271,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         address _to,
         uint256 _amount,
         bytes calldata _oracleData
-    ) external nonReentrant() onlyAuthorized(_entryId) {
+    ) external nonReentrant() {
+        require(_isApprovedOrOwner(msg.sender, _entryId), "collateral: Sender not authorized");
         require(_amount != 0, "collateral: The amount of withdraw not be 0");
 
         // Withdrawals are disabled during collateral auctions
@@ -293,7 +297,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         entry.amount = entryAmount.sub(_amount);
 
         // Send the amount of ERC20 tokens to `_to`
-        require(entry.token.safeTransfer(_to, _amount), "collateral: error sending tokens");
+        entry.token.safeTransfer(_to, _amount);
 
         // Emit the withdrawal event
         emit Withdraw(_entryId, _to, _amount);
@@ -327,7 +331,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         delete entries[_entryId];
 
         // Send the amount of ERC20 tokens to `_to`
-        require(token.safeTransfer(_to, amount), "collateral: error sending tokens");
+        token.safeTransfer(_to, amount);
     }
 
     /**
@@ -347,7 +351,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         CollateralHandler _handler,
         bytes calldata _data,
         bytes calldata _oracleData
-    ) external nonReentrant() onlyAuthorized(_entryId) {
+    ) external nonReentrant() {
+        require(_isApprovedOrOwner(msg.sender, _entryId), "collateral: Sender not authorized");
         // Read entry
         CollateralLib.Entry storage entry = entries[_entryId];
         bytes32 debtId = entry.debtId;
@@ -358,13 +363,13 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // Send all colleteral to handler
         uint256 lent = entry.amount;
         entry.amount = 0;
-        require(entry.token.safeTransfer(address(_handler), lent), "collateral: error sending tokens");
+        entry.token.safeTransfer(address(_handler), lent);
 
         // Callback to the handler
         uint256 surplus = _handler.handle(_entryId, lent, _data);
 
         // Expect to pull back any exceeding collateral
-        require(entry.token.safeTransferFrom(address(_handler), address(this), surplus), "collateral: error pulling tokens");
+        entry.token.safeTransferFrom(address(_handler), address(this), surplus);
         entry.amount = surplus;
 
         // Read collateral/debt ratio, should be better than previus one
@@ -430,13 +435,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         // If we have exceeding tokens
         // send them to the owner of the collateral
         if (paidToken < _received) {
-            require(
-                loanManagerToken.safeTransfer(
-                    _ownerOf(entryId),
-                    _received - paidToken
-                ),
-                "collateral: error sending tokens"
-            );
+            loanManagerToken.safeTransfer(ownerOf(entryId), _received - paidToken);
         }
 
         // Return leftover collateral to the collateral entry
@@ -682,7 +681,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
             (uint256 obligation, uint256 fee,) = loanManager.getObligation(_debtId, uint64(_now));
 
             // Add 5% extra to account for accrued interest during the auction
-            obligation = obligation.add(fee).mult(105).div(100);
+            obligation = obligation.add(fee).mul(105).div(100);
 
             // Valuate the debt amount in loanManagerToken
             uint256 obligationTokens = _toToken(_debtId, obligation, _oracleData);
@@ -787,7 +786,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
 
         // The initial offer is 5% below the current market offer
         // provided by the oracle, the market offer should be reached after 10 minutes
-        uint256 initialOffer = _marketValue.mult(95).div(100);
+        uint256 initialOffer = _marketValue.mul(95).div(100);
 
         // Read storage
         CollateralAuction _auction = auction;
@@ -798,7 +797,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         delete entry.amount;
 
         // Approve auction contract
-        require(_token.safeApprove(address(_auction), _amount), "collateral: error approving auctioneer");
+        _token.safeApprove(address(_auction), _amount);
 
         // Start auction
         _auctionId = _auction.create(
@@ -810,7 +809,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
         );
 
         // Clear approve
-        require(_token.clearApprove(address(_auction)), "collateral: error clearing approve");
+        _token.safeApprove(address(_auction), 0);
 
         // Save Auction ID
         entryToAuction[_entryId] = _auctionId;
@@ -818,7 +817,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721Base, Collatera
     }
 
     function _getModel(bytes32 _debtId) internal view returns (Model) {
-        (,,,,, address model,,,,,,) = loanManager.requests(_debtId);
-        return Model(model);
+        //(,,,,, address model,,,,,,) = loanManager.requests(_debtId);
+        //return Model(model);
+        return Model(loanManager.getModel(_debtId));
     }
 }

@@ -1,12 +1,15 @@
 const NanoLoanModel = artifacts.require('NanoLoanModel');
 
 const {
+    time,
+    expectRevert,
+} = require('@openzeppelin/test-helpers');
+
+const {
     expect,
     bn,
     STATUS_PAID,
-    tryCatchRevert,
     toInterestRate,
-    increaseTime,
     toBytes32,
 } = require('./Helper.js');
 
@@ -44,7 +47,7 @@ contract('NanoLoanModel', function (accounts) {
             defaultParams.interestRate,
             defaultParams.interestRatePunitory,
             defaultParams.duesIn,
-            defaultParams.cancelableAt
+            defaultParams.cancelableAt,
         );
     });
 
@@ -66,21 +69,21 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             monthInSec,
-            cancelableAt
+            cancelableAt,
         );
 
-        await tryCatchRevert(
-            () => model.validate(
-                data.slice(0, -2)
+        await expectRevert(
+            model.validate(
+                data.slice(0, -2),
             ),
-            'Invalid data length'
+            'Invalid data length',
         );
 
-        await tryCatchRevert(
-            () => model.validate(
-                data + '00'
+        await expectRevert(
+            model.validate(
+                data + '00',
             ),
-            'Invalid data length'
+            'Invalid data length',
         );
 
         // a data with cancelable at more than dues in
@@ -89,13 +92,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             1,
-            2
+            2,
         );
-        await tryCatchRevert(
-            () => model.validate(
-                data
+        await expectRevert(
+            model.validate(
+                data,
             ),
-            'The cancelableAt should be less or equal than duesIn'
+            'The cancelableAt should be less or equal than duesIn',
         );
 
         // a data with interest rate less than 1000
@@ -104,13 +107,13 @@ contract('NanoLoanModel', function (accounts) {
             1000,
             interestRatePunitory,
             monthInSec,
-            cancelableAt
+            cancelableAt,
         );
-        await tryCatchRevert(
-            () => model.validate(
-                data
+        await expectRevert(
+            model.validate(
+                data,
             ),
-            'Interest rate too high'
+            'Interest rate too high',
         );
 
         // a data with interest rate punitory less than 1000
@@ -119,13 +122,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             1000,
             monthInSec,
-            cancelableAt
+            cancelableAt,
         );
-        await tryCatchRevert(
-            () => model.validate(
-                data
+        await expectRevert(
+            model.validate(
+                data,
             ),
-            'Punitory interest rate too high'
+            'Punitory interest rate too high',
         );
 
         // a data with amount 0
@@ -134,13 +137,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             monthInSec,
-            cancelableAt
+            cancelableAt,
         );
-        await tryCatchRevert(
-            () => model.validate(
-                data
+        await expectRevert(
+            model.validate(
+                data,
             ),
-            'amount can\'t be 0'
+            'amount can\'t be 0',
         );
 
         // data with dues in equal 0
@@ -149,13 +152,13 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             0,
-            0
+            0,
         );
-        await tryCatchRevert(
-            () => model.validate(
-                data
+        await expectRevert(
+            model.validate(
+                data,
             ),
-            'duesIn should be not 0 or overflow now plus duesIn'
+            'duesIn should be not 0 or overflow now plus duesIn',
         );
 
         // data with Max value dues in to try make overflow
@@ -164,13 +167,12 @@ contract('NanoLoanModel', function (accounts) {
             interestRate,
             interestRatePunitory,
             maxUint(64),
-            cancelableAt
+            cancelableAt,
         );
-        await tryCatchRevert(
-            () => model.validate(
-                data
+        await expectRevert.unspecified(
+            model.validate(
+                data,
             ),
-            'duesIn should be not 0 or overflow now plus duesIn'
         );
     });
     it('Test create function', async function () {
@@ -198,7 +200,7 @@ contract('NanoLoanModel', function (accounts) {
         /* const tx = */await model.create(id, defaultData, { from: owner });
         // const timestamp = bn((await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp.toString());
 
-        await increaseTime(1000000);
+        await time.increase(1000000);
 
         await model.addPaid(id, 1000, { from: owner });
 
@@ -214,7 +216,7 @@ contract('NanoLoanModel', function (accounts) {
         const id = toBytes32(idCounter++);
         await model.create(id, defaultData, { from: owner });
 
-        await increaseTime(monthInSec.toNumber() * 2);
+        await time.increase(monthInSec.toNumber() * 2);
 
         const interestTotal = amount.mul(bn('30')).div(bn('12')).div(bn('100')); // 250
         const interestPTotal = amount.add(interestTotal).mul(bn('60')).div(bn('12')).div(bn('100')); // 512.5
@@ -258,7 +260,7 @@ contract('NanoLoanModel', function (accounts) {
             await model.create(id, params, { from: owner });
 
             // forward time, d1 days
-            await increaseTime(bn(d1).mul(sd).toNumber());
+            await time.increase(bn(d1).mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await model.run(id);
@@ -268,7 +270,7 @@ contract('NanoLoanModel', function (accounts) {
             assert.isBelow(d1Diff.toNumber(), 2, 'The v1 should aprox the interest rate in the d1 timestamp');
 
             // forward time, d2 days
-            await increaseTime(bn(d2).mul(sd).toNumber());
+            await time.increase(bn(d2).mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             const d2PendingAmount = await model.getClosingObligation(id);
@@ -276,7 +278,7 @@ contract('NanoLoanModel', function (accounts) {
             assert.isBelow(d2Diff.toNumber(), 2, 'The v2 should aprox the interest rate in the d2 timestamp');
 
             // forward time, d3 days
-            await increaseTime(bn(d3).mul(sd).toNumber());
+            await time.increase(bn(d3).mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             await model.run(id);
@@ -285,7 +287,7 @@ contract('NanoLoanModel', function (accounts) {
             assert.isBelow(d3Diff.toNumber(), 2, 'The v3 should aprox the interest rate in the d3 timestamp');
 
             // forward time, d4 days
-            await increaseTime(bn(d4).mul(sd).toNumber());
+            await time.increase(bn(d4).mul(sd).toNumber());
 
             // check that the interest accumulated it's close to the defined by the test
             const d4PendingAmount = await model.getClosingObligation(id);

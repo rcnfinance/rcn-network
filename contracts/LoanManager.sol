@@ -1,4 +1,4 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
 import "./DebtEngine.sol";
 import "./interfaces/LoanApprover.sol";
@@ -6,15 +6,15 @@ import "./interfaces/LoanCallback.sol";
 import "./interfaces/RateOracle.sol";
 import "./interfaces/Cosigner.sol";
 import "./utils/ImplementsInterface.sol";
-import "./utils/IsContract.sol";
-import "./utils/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./utils/BytesUtils.sol";
 import "./interfaces/IDebtStatus.sol";
 
 
 contract LoanManager is BytesUtils, IDebtStatus {
     using ImplementsInterface for address;
-    using IsContract for address;
+    using Address for address;
     using SafeMath for uint256;
 
     uint256 public constant GAS_CALLBACK = 300000;
@@ -130,6 +130,9 @@ contract LoanManager is BytesUtils, IDebtStatus {
     }
     function ownerOf(bytes32 _id) external view returns (address) {
         return debtEngine.ownerOf(uint256(_id));
+    }
+    function getModel(bytes32 _id) external view returns (address) {
+        return requests[_id].model;
     }
 
     function getCallback(bytes32 _id) external view returns (address) { return requests[_id].callback; }
@@ -823,7 +826,7 @@ contract LoanManager is BytesUtils, IDebtStatus {
 
         emit ReadedOracle(_oracle, tokens, equivalent);
 
-        return tokens.mult(_amount) / equivalent;
+        return tokens.mul(_amount) / equivalent;
     }
 
     /**

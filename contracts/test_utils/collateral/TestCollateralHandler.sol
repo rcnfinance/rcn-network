@@ -1,7 +1,7 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
-import "../../interfaces/IERC20.sol";
-import "../../utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../cosigner/Collateral.sol";
 import "../../cosigner/interfaces/CollateralHandler.sol";
 import "../../DebtEngine.sol";
@@ -62,7 +62,7 @@ contract TestCollateralHandler {
         } else {
             (bytes32 debtId,,, IERC20 token,,) = collateral.entries(_entryId);
 
-            require(loanManagerToken.safeApprove(address(debtEngine), amountToPay), "TestCollateralHandler: Error approve debt engine");
+            loanManagerToken.safeApprove(address(debtEngine), amountToPay);
 
             debtEngine.payToken(
                 debtId,
@@ -71,7 +71,7 @@ contract TestCollateralHandler {
                 _data
             );
 
-            require(token.safeApprove(address(collateral), amountReturn), "TestCollateralHandler: error approving collateral");
+            token.safeApprove(address(collateral), amountReturn);
 
             emit Handle(amountToPay, amountReturn);
 

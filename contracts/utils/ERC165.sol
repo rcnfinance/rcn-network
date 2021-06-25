@@ -1,6 +1,6 @@
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
-import "../interfaces/IERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 
 /**

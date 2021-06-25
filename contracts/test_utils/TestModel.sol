@@ -1,8 +1,8 @@
 /* solium-disable */
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
 import "../utils/ERC165.sol";
-import "../utils/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../utils/BytesUtils.sol";
 
 
@@ -104,7 +104,7 @@ contract TestModel is ERC165, BytesUtils, Ownable {
     }
 
     function isOperator(address _operator) external view returns (bool) {
-        return _operator == _owner;
+        return _operator == owner();
     }
 
     function validate(bytes calldata _data) external view returns (bool) {
