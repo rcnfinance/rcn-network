@@ -3830,7 +3830,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
           [],                 // Cosigner data
           [],                 // Callback data
           { from: lender },    // Owner/Lender
-        ), 'Returned error: VM Exception while processing transaction: revert',
+        ),
+        'revert',
       );
 
       expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);
@@ -3885,7 +3886,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
           borrowerSig,
           [],
           { from: lender },
-        ), 'Returned error: VM Exception while processing transaction: revert',
+        ),
+        'revert',
       );
 
       expect(await loanManager.getStatus(id)).to.not.eq.BN(STATUS_ONGOING);
