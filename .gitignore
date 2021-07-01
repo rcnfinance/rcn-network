@@ -44,3 +44,5 @@ build/
 # Solidity coverage
 .solidity_coverage/
 .coverage_env/
+/artifacts/
+/cache/
