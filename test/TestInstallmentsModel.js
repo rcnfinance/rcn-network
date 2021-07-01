@@ -690,7 +690,7 @@ contract('Installments model test', function (accounts) {
 
       const now = await time.latest();
       await expectRevert(
-        model.fixClock(id, now.add(bn(1))),
+        model.fixClock(id, now.add(bn(2))),
         'Forbidden advance clock into the future',
       );
 
@@ -900,7 +900,7 @@ contract('Installments model test', function (accounts) {
 
       await model.addPaid(id, 99963, { from: accountEngine });
 
-      almostEqual(await model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(46))), 10);
+      almostEqual(await model.getDueTime(id), (await time.latest()).add(secInDay.mul(bn(46))));
       expect((await model.getObligation(id, await model.getDueTime(id)))[0]).to.eq.BN('99963');
 
       // Wait to the next payment, exactly
@@ -914,7 +914,7 @@ contract('Installments model test', function (accounts) {
 
       await model.run(id, { from: accountEngine });
 
-      almostEqual(await model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))), '', 5);
+      almostEqual(await model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))));
       expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('100691');
 
       await model.addPaid(id, 100691, { from: accountEngine });
@@ -981,7 +981,7 @@ contract('Installments model test', function (accounts) {
       // Past the payment date by 5 days
       await time.increase(secInDay.mul(bn(5)));
 
-      almostEqual(await model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))), '', 5);
+      almostEqual(await model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))));
       expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('100691');
 
       await model.addPaid(id, 100691, { from: accountEngine });
@@ -1047,7 +1047,7 @@ contract('Installments model test', function (accounts) {
       // Past the payment date by 5 days
       await time.increase(secInDay.mul(bn(5)));
 
-      almostEqual(await model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))), '', 5);
+      almostEqual(await model.getDueTime(id), (await time.latest()).sub(secInDay.mul(bn(5))));
       expect((await model.getObligation(id, await time.latest()))[0]).to.eq.BN('100691');
 
       await model.addPaid(id, 100691, { from: accountEngine });

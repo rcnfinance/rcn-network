@@ -64,7 +64,7 @@ module.exports.toInterestRate = (interest) => {
     return rawInterest * secondsInYear;
 };
 
-module.exports.almostEqual = (p1, p2, reason, margin = 3) => {
+module.exports.almostEqual = (p1, p2, reason, margin = 100) => {
     margin = this.bn(margin);
     const a = this.bn(p1);
     const b = this.bn(p2);
