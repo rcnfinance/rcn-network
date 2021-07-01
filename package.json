@@ -15,7 +15,7 @@
     "lint:fix": "npm run lint:js:fix",
     "test": "node_modules/.bin/hardhat test",
     "coverage": "node_modules/.bin/hardhat coverage",
-    "compile:sol": "node_modules/.bin/hardhat compile"
+    "compile": "node_modules/.bin/hardhat compile"
   },
   "pre-commit": [
     "lint"
