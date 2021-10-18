@@ -1,4 +1,4 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 import "../interfaces/LoanApprover.sol";
 import "../utils/ERC165.sol";
@@ -18,7 +18,7 @@ contract TestLoanApprover is ERC165, LoanApprover, BytesUtils {
 
     ErrorBehavior public errorBehavior;
 
-    constructor() public {
+    constructor() {
         _registerInterface(0x76ba6009);
         _registerInterface(0xcd40239e);
         _registerInterface(0xbbfa4397);

@@ -27,7 +27,7 @@
     "eol-last": ["error", "always"],
     "eqeqeq": ["error", "smart"],
     "generator-star-spacing": ["error", "before"],
-    "indent": ["error", 4],
+    "indent": ["error", 2],
     "linebreak-style": ["error", "unix"],
     "no-debugger": "off",
     "no-dupe-args": "error",

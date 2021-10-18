@@ -1,16 +1,18 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
-import "./interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/Model.sol";
 import "./interfaces/IDebtStatus.sol";
 import "./interfaces/RateOracle.sol";
-import "./utils/IsContract.sol";
-import "./utils/ERC721Base.sol";
-import "./utils/Ownable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
-contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
-    using IsContract for address;
+contract DebtEngine is ERC721, Ownable, IDebtStatus {
+    using Address for address;
+    using SafeMath for uint256;
 
     event Created(
         bytes32 indexed _id,
@@ -115,7 +117,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         IERC20 _token,
         address _burner,
         uint128 _fee
-    ) public ERC721Base("RCN Debt Record", "RDR") {
+    ) ERC721("RCN Debt Record", "RDR") {
         // Sanity checks
         require(_burner != address(0), "Burner 0x0 is not valid");
         require(address(_token).isContract(), "Token should be a contract");
@@ -126,6 +128,10 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         fee = _fee;
         emit SetBurner(_burner);
         emit SetFee(_fee);
+    }
+
+    function isApprovedOrOwner(address _spender, uint256 _entryId) external view returns (bool) {
+        return _isApprovedOrOwner(_spender, _entryId);
     }
 
     function setBurner(address _burner) external onlyOwner {
@@ -140,10 +146,6 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
         fee = _fee;
         emit SetFee(_fee);
-    }
-
-    function setURIProvider(URIProvider _provider) external onlyOwner {
-        _setURIProvider(_provider);
     }
 
     function create(
@@ -171,7 +173,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
             oracle: _oracle
         });
 
-        _generate(uint256(id), _owner);
+        _safeMint(_owner, uint256(id));
         require(_model.create(id, _data), "Error creating debt in model");
 
         emit Created({
@@ -209,7 +211,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
             oracle: _oracle
         });
 
-        _generate(uint256(id), _owner);
+        _safeMint(_owner, uint256(id));
         require(_model.create(id, _data), "Error creating debt in model");
 
         emit Created2({
@@ -244,7 +246,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
             oracle: _oracle
         });
 
-        _generate(uint256(id), _owner);
+        _safeMint(_owner, uint256(id));
         require(_model.create(id, _data), "Error creating debt in model");
 
         emit Created3({
@@ -548,7 +550,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
             return 0;
 
         // Get burn token amount from fee percentage
-        burnToken = _amount.multdiv(_fee, BASE);
+        burnToken = _amount.mul(_fee).div(BASE);
 
         if (burnToken == 0)
             return 0;
@@ -564,7 +566,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         Model _model,
         uint256 _available
     ) internal returns (uint256) {
-        require(_model != Model(0), "Debt does not exist");
+        require(_model != Model(address(0)), "Debt does not exist");
 
         (bool success, bytes32 paid) = _safeGasCall(
             address(_model),
@@ -619,7 +621,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         uint256 _equivalent
     ) internal pure returns (uint256 _result) {
         require(_tokens != 0 && _equivalent != 0, "Oracle provided invalid rate");
-        uint256 aux = _tokens.mult(_amount);
+        uint256 aux = _tokens.mul(_amount);
         _result = aux / _equivalent;
         if (aux % _equivalent > 0) {
             _result = _result.add(1);
@@ -641,12 +643,12 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         uint256 _equivalent
     ) internal pure returns (uint256) {
         require(_tokens != 0 && _equivalent != 0, "Oracle provided invalid rate");
-        return _amount.mult(_equivalent) / _tokens;
+        return _amount.mul(_equivalent) / _tokens;
     }
 
     function run(bytes32 _id) external returns (bool) {
         Debt storage debt = debts[_id];
-        require(debt.model != Model(0), "Debt does not exist");
+        require(debt.model != Model(address(0)), "Debt does not exist");
 
         (bool success, bytes32 result) = _safeGasCall(
             address(debt.model),
@@ -687,7 +689,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
     function withdraw(bytes32 _id, address _to) external returns (uint256 amount) {
         require(_to != address(0x0), "_to should not be 0x0");
-        require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
+        require(_isApprovedOrOwner(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
         amount = debt.balance;
         debt.balance = 0;
@@ -702,7 +704,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
 
     function withdrawPartial(bytes32 _id, address _to, uint256 _amount) external returns (bool success) {
         require(_to != address(0x0), "_to should not be 0x0");
-        require(_isAuthorized(msg.sender, uint256(_id)), "Sender not authorized");
+        require(_isApprovedOrOwner(msg.sender, uint256(_id)), "Sender not authorized");
         Debt storage debt = debts[_id];
         debt.balance = uint128(uint256(debt.balance).sub(_amount));
         require(token.transfer(_to, _amount), "Error sending tokens");
@@ -721,7 +723,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         uint256 balance;
         for (uint256 i = 0; i < _ids.length; i++) {
             target = _ids[i];
-            if (_isAuthorized(msg.sender, uint256(target))) {
+            if (_isApprovedOrOwner(msg.sender, uint256(target))) {
                 balance = debts[target].balance;
                 debts[target].balance = 0;
                 total += balance;
@@ -783,7 +785,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
             paidToken = _toToken(_amountToPay, tokens, equivalent);
         }
 
-        feeAmount = paidToken.multdiv(debt.fee, BASE);
+        feeAmount = paidToken.mul(debt.fee).div(BASE);
     }
 
     function toFee(
@@ -795,7 +797,7 @@ contract DebtEngine is ERC721Base, Ownable, IDebtStatus {
         if (debt.fee == 0)
             return 0;
 
-        feeAmount = _amount.multdiv(debt.fee, BASE);
+        feeAmount = _amount.mul(debt.fee).div(BASE);
     }
 
     function _safeGasStaticCall(

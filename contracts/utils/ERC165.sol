@@ -1,6 +1,6 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
-import "../interfaces/IERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 
 /**
@@ -24,9 +24,7 @@ contract ERC165 is IERC165 {
     * @dev A contract implementing SupportsInterfaceWithLookup
     * implement ERC165 itself
     */
-    constructor()
-        internal
-    {
+    constructor() {
         _registerInterface(_InterfaceId_ERC165);
     }
 

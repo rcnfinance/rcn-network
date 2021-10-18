@@ -1,12 +1,10 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 
 contract TestDebtEngine {
     address public token;
 
-    constructor (
-        address _token
-    ) public {
+    constructor (address _token ) {
         token = _token;
     }
 

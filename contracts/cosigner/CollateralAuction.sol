@@ -1,13 +1,13 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
-import "../interfaces/IERC20.sol";
-import "../utils/SafeERC20.sol";
-import "../utils/SafeMath.sol";
-import "../utils/SafeCast.sol";
-import "../utils/IsContract.sol";
-import "../utils/Math.sol";
-import "../utils/Ownable.sol";
-import "../utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/CollateralAuctionCallback.sol";
 
 
@@ -22,7 +22,7 @@ import "./interfaces/CollateralAuctionCallback.sol";
         the auction has a fixed rate of 1:1
 */
 contract CollateralAuction is ReentrancyGuard, Ownable {
-    using IsContract for address payable;
+    using Address for address payable;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using SafeCast for uint256;
@@ -58,7 +58,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         uint256 _requesting
     );
 
-    constructor(IERC20 _baseToken) public {
+    constructor(IERC20 _baseToken) {
         baseToken = _baseToken;
         // Auction IDs start at 1
         auctions.push();
@@ -106,11 +106,11 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // Calculate how much time takes the auction to offer all the `_limit` tokens
         // in exchange for the requested base `_amount`, this delta defines the linear
         // function of the first half of the auction
-        uint32 limitDelta = ((_limit - _start).mult(DELTA_TO_MARKET) / (_ref - _start)).toUint32();
+        uint32 limitDelta = ((_limit - _start).mul(DELTA_TO_MARKET) / (_ref - _start)).toUint32();
 
         // Pull tokens for the auction, the full `_limit` is pulled
         // any exceeding tokens will be returned at the end of the auction
-        require(_fromToken.safeTransferFrom(msg.sender, address(this), _limit), "auction: error pulling _fromToken");
+        _fromToken.safeTransferFrom(msg.sender, address(this), _limit);
 
         // Create and store the auction
         auctions.push(Auction({
@@ -164,7 +164,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // how much `fromToken` is being sold and how much
         // `baseToken` is requested
         (uint256 selling, uint256 requesting) = _offer(auction);
-        address owner = _owner;
+        address owner = owner();
 
         // Any non-offered `fromToken` is going
         // to be returned to the owner
@@ -176,7 +176,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         // Send the auctioned tokens to the sender
         // this is done first, because the sender may be doing arbitrage
         // and for that, it needs the tokens that's going to sell
-        require(fromToken.safeTransfer(msg.sender, selling), "auction: error sending tokens");
+        fromToken.safeTransfer(msg.sender, selling);
 
         // If a callback is requested, we ping the sender so it can perform arbitrage
         if (_callback) {
@@ -189,7 +189,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         require(baseToken.transferFrom(msg.sender, owner, requesting), "auction: error pulling tokens");
 
         // Send any leftOver tokens
-        require(fromToken.safeTransfer(owner, leftOver), "auction: error sending leftover tokens");
+        fromToken.safeTransfer(owner, leftOver);
 
         // Callback to owner to process the closed auction
         CollateralAuctionCallback(owner).auctionClosed(
@@ -230,7 +230,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
         @return The current Unix timestamp
     */
     function _now() internal virtual view returns (uint256) {
-        return now;
+        return block.timestamp;
     }
 
     /**
@@ -276,7 +276,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         if (deltaTime < _auction.limitDelta) {
             uint256 deltaAmount = _auction.limit - _auction.startOffer;
-            _amount = _auction.startOffer.add(deltaAmount.mult(deltaTime) / _auction.limitDelta);
+            _amount = _auction.startOffer.add(deltaAmount.mul(deltaTime) / _auction.limitDelta);
         } else {
             _amount = _auction.limit;
         }
@@ -303,7 +303,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
 
         if (ogDeltaTime > _auction.limitDelta) {
             uint256 deltaTime = ogDeltaTime - _auction.limitDelta;
-            return _auction.amount.sub(_auction.amount.mult(deltaTime % DELTA_FINISH) / DELTA_FINISH);
+            return _auction.amount.sub(_auction.amount.mul(deltaTime % DELTA_FINISH) / DELTA_FINISH);
         } else {
             return _auction.amount;
         }

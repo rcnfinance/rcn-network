@@ -1,9 +1,9 @@
 /* solium-disable */
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 import "../LoanManager.sol";
 import "../interfaces/Cosigner.sol";
-import "../interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../utils/BytesUtils.sol";
 
 
@@ -19,7 +19,7 @@ contract TestCosigner is Cosigner, BytesUtils {
 
     IERC20 public token;
 
-    constructor(IERC20 _token) public {
+    constructor(IERC20 _token) {
         token = _token;
     }
 

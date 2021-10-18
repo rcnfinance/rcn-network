@@ -1,10 +1,10 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 import "../interfaces/Model.sol";
 import "./interfaces/ModelDescriptor.sol";
-import "../utils/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../utils/ERC165.sol";
-import "../utils/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../utils/BytesUtils.sol";
 
 
@@ -42,7 +42,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     event _setPunitoryInterest(bytes32 _id, uint128 _punitoryInterest);
     event _setInterestTimestamp(bytes32 _id, uint256 _interestTimestamp);
 
-    constructor() public {
+    constructor() {
         _registerInterface(MODEL_INTERFACE);
         _registerInterface(MODEL_DESCRIPTOR_INTERFACE);
     }
@@ -151,7 +151,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         require(_interestRatePunitory > 1000, "Punitory interest rate too high");
         require(_amount != 0, "amount can't be 0");
 
-        require(uint64(now) + _duesIn > uint64(now), "duesIn should be not 0 or overflow now plus duesIn");
+        require(uint64(block.timestamp) + _duesIn > uint64(block.timestamp), "duesIn should be not 0 or overflow now plus duesIn");
         // cancelableAt cant make overflow because:
         //     cancelableAt <= duesIn
         // and we check the sum of duesIn and now in the previus requiere
@@ -167,7 +167,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
 
     function getObligation(bytes32 id, uint64 timestamp) external override view returns (uint256 amount, bool defined) {
         amount = _getObligation(id, timestamp);
-        defined = timestamp == now || timestamp <= states[id].interestTimestamp;
+        defined = timestamp == block.timestamp || timestamp <= states[id].interestTimestamp;
     }
 
     function _getObligation(bytes32 id, uint256 timestamp) internal view returns (uint256 total){
@@ -197,7 +197,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     }
 
     function getClosingObligation(bytes32 id) external override view returns (uint256 total){
-        return _getObligation(id, now);
+        return _getObligation(id, block.timestamp);
     }
 
     function getDueTime(bytes32 id) external override view returns (uint256) {
@@ -217,7 +217,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
     }
 
     function getEstimateObligation(bytes32 id) external override view returns (uint256 total) {
-        return _getObligation(id, now);
+        return _getObligation(id, block.timestamp);
     }
 
     /**
@@ -245,16 +245,16 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
             amount: amount,
             interestRate: interestRate,
             interestRatePunitory: interestRatePunitory,
-            dueTime: uint64(now) + duesIn, // check overflow in validate
+            dueTime: uint64(block.timestamp) + duesIn, // check overflow in validate
             id: id
         });
         emit Created(id);
 
-        states[id].interestTimestamp = uint64(now);
-        emit _setInterestTimestamp(id, now);
+        states[id].interestTimestamp = uint64(block.timestamp);
+        emit _setInterestTimestamp(id, block.timestamp);
 
         if (cancelableAt != 0)
-            _addInterest(id, now + uint256(cancelableAt)); // check overflow in validate
+            _addInterest(id, block.timestamp + uint256(cancelableAt)); // check overflow in validate
 
         return true;
     }
@@ -276,7 +276,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         State storage state = states[id];
 
         require(state.status != Status.PAID, "The loan status should not be paid");
-        _addInterest(id, now);
+        _addInterest(id, block.timestamp);
 
         uint256 totalDebt = configs[id].amount.add(state.interest).add(state.punitoryInterest);
 
@@ -289,7 +289,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
 
         if (totalDebt - newPay == 0) { // check overflow in min
             state.status = Status.PAID;
-            emit ChangedStatus(id, now, uint256(Status.PAID));
+            emit ChangedStatus(id, block.timestamp, uint256(Status.PAID));
         }
     }
 
@@ -375,8 +375,8 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         if (amount == 0) {
             realDelta = timeDelta;
         } else {
-            interest = timeDelta.mult(amount * 100000) / interestRate;
-            realDelta = interest.mult(interestRate) / (amount * 100000);
+            interest = timeDelta.mul(amount * 100000) / interestRate;
+            realDelta = interest.mul(interestRate) / (amount * 100000);
         }
     }
 
@@ -392,7 +392,7 @@ contract NanoLoanModel is ERC165, BytesUtils, Ownable, Model, ModelDescriptor, M
         @return true If the interest was updated
     */
     function run(bytes32 id) external override returns (bool) {
-        return _addInterest(id, now);
+        return _addInterest(id, block.timestamp);
     }
 
     /**
