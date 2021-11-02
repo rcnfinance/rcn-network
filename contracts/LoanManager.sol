@@ -8,6 +8,7 @@ import "./interfaces/Cosigner.sol";
 import "./utils/ImplementsInterface.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./utils/BytesUtils.sol";
 import "./interfaces/IDebtStatus.sol";
 
@@ -15,6 +16,7 @@ import "./interfaces/IDebtStatus.sol";
 contract LoanManager is BytesUtils, IDebtStatus {
     using ImplementsInterface for address;
     using Address for address;
+    using ECDSA for bytes32;
     using SafeMath for uint256;
 
     uint256 public constant GAS_CALLBACK = 300000;
@@ -343,24 +345,9 @@ contract LoanManager is BytesUtils, IDebtStatus {
             if (borrower.isContract() && borrower.implementsMethod(0x76ba6009)) {
                 approved = _requestContractApprove(_id, borrower);
             } else {
-                bytes32 _hash = keccak256(
-                    abi.encodePacked(
-                        _id,
-                        "sign approve request"
-                    )
-                );
+                bytes32 _hash = keccak256(abi.encodePacked(_id, "sign approve request"));
 
-                address signer = ecrecovery(
-                    keccak256(
-                        abi.encodePacked(
-                            "\x19Ethereum Signed Message:\n32",
-                            _hash
-                        )
-                    ),
-                    _signature
-                );
-
-                if (borrower == signer) {
+                if (borrower == _hash.toEthSignedMessageHash().recover(_signature)) {
                     emit ApprovedBySignature(_id);
                     approved = true;
                 }
@@ -651,14 +638,9 @@ contract LoanManager is BytesUtils, IDebtStatus {
 
             emit BorrowerByCallback(_id);
         } else {
-            _hash = keccak256(
-                abi.encodePacked(
-                    _id,
-                    "sign settle lend as borrower"
-                )
-            );
+            _hash = keccak256(abi.encodePacked(_id, "sign settle lend as borrower"));
             require(
-                borrower == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash)), _borrowerSig),
+                borrower == _hash.toEthSignedMessageHash().recover(_borrowerSig),
                 "Invalid borrower signature"
             );
 
@@ -674,14 +656,9 @@ contract LoanManager is BytesUtils, IDebtStatus {
 
                 emit CreatorByCallback(_id);
             } else {
-                _hash = keccak256(
-                    abi.encodePacked(
-                        _id,
-                        "sign settle lend as creator"
-                    )
-                );
+                _hash = keccak256(abi.encodePacked(_id, "sign settle lend as creator"));
                 require(
-                    creator == ecrecovery(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash)), _creatorSig),
+                    creator == _hash.toEthSignedMessageHash().recover(_creatorSig),
                     "Invalid creator signature"
                 );
 
@@ -796,24 +773,6 @@ contract LoanManager is BytesUtils, IDebtStatus {
         salt = uint256(_salt);
         expiration = uint64(uint256(_expiration));
         creator = address(uint160(uint256(read(_data, O_CREATOR, L_CREATOR))));
-    }
-
-    function ecrecovery(bytes32 _hash, bytes memory _sig) internal pure returns (address) {
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-
-        assembly {
-            r := mload(add(_sig, 32))
-            s := mload(add(_sig, 64))
-            v := and(mload(add(_sig, 65)), 255)
-        }
-
-        if (v < 27) {
-            v += 27;
-        }
-
-        return ecrecover(_hash, v, r, s);
     }
 
     function _currencyToToken(

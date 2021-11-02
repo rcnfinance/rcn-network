@@ -1099,20 +1099,20 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
-        amount,           // Amount
-        model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
-        borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
-        salt,             // salt
-        expiration,       // Expiration
-        loanData,         // Loan data
-        { from: creator }, // Creator
+        amount,                 // Amount
+        model.address,          // Model
+        constants.ZERO_ADDRESS, // Oracle
+        borrower,               // Borrower
+        constants.ZERO_ADDRESS, // Callback
+        salt,                   // salt
+        expiration,             // Expiration
+        loanData,               // Loan data
+        { from: creator },      // Creator
       ));
 
       const receipt = await loanManager.registerApproveRequest(
         id,
-        [],
+        await web3.eth.sign(id, creator),
         { from: accounts[2] },
       );
       assert.isFalse(await loanManager.getApproved(id));
@@ -2531,7 +2531,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           [],
           [],
           creatorSig,
-          [],
+          await web3.eth.sign(id, creator),
           [],
           { from: lender },
         ),
@@ -2578,7 +2578,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           '0',
           [],
           [],
-          [],
+          await web3.eth.sign(id, borrower),
           borrowerSig,
           [],
           { from: lender },
