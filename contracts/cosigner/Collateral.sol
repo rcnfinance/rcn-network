@@ -111,11 +111,11 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
 
     // Fixed for all collaterals, defined
     // during the contract creation
-    LoanManager public loanManager;
-    IERC20 public loanManagerToken;
+    LoanManager public immutable loanManager;
+    IERC20 public immutable loanManagerToken;
 
     // Liquidation auctions
-    CollateralAuction public auction;
+    CollateralAuction public immutable auction;
     mapping(uint256 => uint256) public entryToAuction;
     mapping(uint256 => uint256) public auctionToEntry;
 
@@ -134,7 +134,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
         CollateralAuction _auction
     ) ERC721("RCN Collateral Cosigner", "RCC") {
         loanManager = _loanManager;
-        loanManagerToken = loanManager.token();
+        loanManagerToken = _loanManager.token();
         // Invalid entry of index 0
         entries.push();
         // Create auction contract
@@ -515,9 +515,8 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
         // Validate debtId, can't be zero
         require(_debtId != 0, "collateral: invalid debtId");
 
-        LoanManager _loanManager = loanManager;
         // Only the loanManager can request consignments
-        require(address(_loanManager) == msg.sender, "collateral: only the loanManager can request cosign");
+        require(address(loanManager) == msg.sender, "collateral: only the loanManager can request cosign");
 
         // Load entryId from provided `_data`
         uint256 entryId = abi.decode(_data, (uint256));
@@ -536,7 +535,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
         debtToEntry[debtId] = entryId;
 
         // Callback loanManager and cosign
-        require(_loanManager.cosign(_debtId, 0), "collateral: error during cosign");
+        require(loanManager.cosign(_debtId, 0), "collateral: error during cosign");
 
         // Emit the `Started` event
         emit Started(entryId);
@@ -585,12 +584,11 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
 
         CollateralLib.Entry memory entry = entries[entryId];
 
-        LoanManager _loanManager = loanManager;
-        (uint256 debt, uint256 fee) = _loanManager.getClosingObligation(debtId);
+        (uint256 debt, uint256 fee) = loanManager.getClosingObligation(debtId);
         debt += fee;
 
         if (debt != 0)
-            debt = _loanManager
+            debt = loanManager
                 .oracle(debtId)
                 .readStatic(_oracleData)
                 .toTokens(debt);
@@ -750,12 +748,11 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
         bytes memory _data
     ) internal returns (uint256 debtInTokens) {
         uint256 fee;
-        LoanManager _loanManager = loanManager;
-        (debtInTokens, fee) = _loanManager.getClosingObligation(debtId);
+        (debtInTokens, fee) = loanManager.getClosingObligation(debtId);
         debtInTokens += fee;
 
         if (debtInTokens != 0)
-            debtInTokens = _loanManager
+            debtInTokens = loanManager
                 .oracle(debtId)
                 .read(_data)
                 .toTokens(debtInTokens);
@@ -789,7 +786,6 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
         uint256 initialOffer = _marketValue.mul(95).div(100);
 
         // Read storage
-        CollateralAuction _auction = auction;
         uint256 _amount = entry.amount;
         IERC20 _token = entry.token;
 
@@ -797,10 +793,10 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
         delete entry.amount;
 
         // Approve auction contract
-        _token.safeApprove(address(_auction), _amount);
+        _token.safeApprove(address(auction), _amount);
 
         // Start auction
-        _auctionId = _auction.create(
+        _auctionId = auction.create(
             _token,          // Token we are selling
             initialOffer,    // Initial offer of tokens
             _marketValue,    // Market reference offer provided by the Oracle
@@ -809,7 +805,7 @@ contract Collateral is ReentrancyGuard, Ownable, Cosigner, ERC721, CollateralAuc
         );
 
         // Clear approve
-        _token.safeApprove(address(_auction), 0);
+        _token.safeApprove(address(auction), 0);
 
         // Save Auction ID
         entryToAuction[_entryId] = _auctionId;

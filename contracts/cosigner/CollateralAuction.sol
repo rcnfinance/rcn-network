@@ -30,7 +30,7 @@ contract CollateralAuction is ReentrancyGuard, Ownable {
     uint256 private constant DELTA_TO_MARKET = 10 minutes;
     uint256 private constant DELTA_FINISH = 1 days;
 
-    IERC20 public baseToken;
+    IERC20 public immutable baseToken;
     Auction[] public auctions;
 
     struct Auction {

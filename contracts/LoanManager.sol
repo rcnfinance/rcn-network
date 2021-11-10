@@ -21,8 +21,8 @@ contract LoanManager is BytesUtils, IDebtStatus {
 
     uint256 public constant GAS_CALLBACK = 300000;
 
-    DebtEngine public debtEngine;
-    IERC20 public token;
+    DebtEngine public immutable debtEngine;
+    IERC20 public immutable token;
 
     mapping(bytes32 => Request) public requests;
     mapping(bytes32 => bool) public canceledSettles;
@@ -62,8 +62,9 @@ contract LoanManager is BytesUtils, IDebtStatus {
 
     constructor(DebtEngine _debtEngine) {
         debtEngine = _debtEngine;
-        token = debtEngine.token();
-        require(address(token) != address(0), "Error loading token");
+        IERC20 _token = _debtEngine.token();
+        require(address(_token) != address(0), "Error loading token");
+        token = _token;
     }
 
     // uint256 getters(legacy)
