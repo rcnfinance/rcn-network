@@ -329,7 +329,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
           ratio(200),
           { from: creator },
         ),
-        'ERC20: transfer amount exceeds allowance',
+        'ERC20: insufficient allowance',
       );
 
       await rcn.setBalance(owner, 1, { from: owner });
@@ -345,7 +345,7 @@ contract('Test Collateral cosigner Diaspore', function (accounts) {
           ratio(200),
           { from: creator },
         ),
-        'ERC20: transfer amount exceeds allowance',
+        'ERC20: insufficient allowance',
       );
     });
   });

@@ -1,5 +1,5 @@
 /* solium-disable */
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "../utils/ERC165.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";

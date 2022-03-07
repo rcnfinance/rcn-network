@@ -118,7 +118,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
           bn(50),
           { from: owner },
         ),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
     });
     it('Should fail to create if creator did not approve the contract', async () => {
@@ -133,7 +133,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
           bn(50),
           { from: owner },
         ),
-        'ERC20: transfer amount exceeds allowance',
+        'ERC20: insufficient allowance',
       );
     });
   });
@@ -718,7 +718,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
     it('Should fail to take auction without balance', async () => {
       await expectRevert(
         auction.take(id, [], false),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
     });
   });

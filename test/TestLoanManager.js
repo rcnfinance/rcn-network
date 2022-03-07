@@ -1377,7 +1377,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           [],
           { from: accounts[9] },
         ),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
     });
     it('Try lend a closed loan', async function () {
@@ -1868,7 +1868,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           [],                 // Callback data
           { from: lender },
         ),
-        'ERC20: transfer amount exceeds allowance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
@@ -2806,7 +2806,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           [],
           { from: lender },
         ),
-        'ERC20: transfer amount exceeds allowance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
@@ -3230,7 +3230,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           [],
           { from: lender },
         ),
-        'ERC20: transfer amount exceeds allowance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);

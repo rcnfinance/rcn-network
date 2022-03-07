@@ -1217,7 +1217,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.pay(id, 1, constants.ZERO_ADDRESS, data),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await testModel.getPaid(id)).to.eq.BN(0);
@@ -1326,7 +1326,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.pay(id, 2000, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await testModel.getPaid(id)).to.eq.BN(0);
@@ -2107,7 +2107,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.payToken(id, 2000, constants.ZERO_ADDRESS, constants.ZERO_ADDRESS),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await testModel.getPaid(id)).to.eq.BN(0);
@@ -2372,11 +2372,11 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.payBatch([id, id], [1, 0], constants.ZERO_ADDRESS, oracle.address, data),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
       await expectRevert(
         debtEngine.payBatch([id], [1], constants.ZERO_ADDRESS, oracle.address, data),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
       await debtEngine.payBatch([id], [0], constants.ZERO_ADDRESS, oracle.address, data);
 
@@ -2451,7 +2451,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.payBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await testModel.getPaid(id1)).to.eq.BN(0);
@@ -2477,7 +2477,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.payBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await testModel.getPaid(id1)).to.eq.BN(0);
@@ -2675,7 +2675,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.payTokenBatch([id2, id], [10, value], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await testModel.getPaid(id)).to.eq.BN(3000);
@@ -2739,7 +2739,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.payTokenBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await testModel.getPaid(id1)).to.eq.BN(0);
@@ -2765,7 +2765,7 @@ contract('Test DebtEngine Diaspore', function (accounts) {
 
       await expectRevert(
         debtEngine.payTokenBatch([id1, id2], [1000, 1000], constants.ZERO_ADDRESS, constants.ZERO_ADDRESS, []),
-        'ERC20: transfer amount exceeds balance',
+        'ERC20: insufficient allowance',
       );
 
       expect(await testModel.getPaid(id1)).to.eq.BN(0);
