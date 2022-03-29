@@ -48,7 +48,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
     return event.args._id;
   }
 
-  async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data, _callback = constants.ZERO_ADDRESS) {
+  async function calcId (_amount, _borrower, _creator, _model, _oracle, _salt, _expiration, _data, _callback = ethers.constants.AddressZero) {
     const _two = '0x02';
     const controlId = await loanManager.calcId(
       _amount,
@@ -92,7 +92,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       { t: 'bytes', v: _data },
     );
 
-    expect(internalSalt).to.eq.BN(controlInternalSalt, 'bug internalSalt');
+    expect(internalSalt).to.equal(controlInternalSalt, 'bug internalSalt');
     assert.equal(id, controlId, 'bug calcId');
     return id;
   }
@@ -106,7 +106,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
     _salt,
     _expiration,
     _data,
-    _callback = constants.ZERO_ADDRESS,
+    _callback = ethers.constants.AddressZero,
   ) {
     const _two = '0x02';
     const encodeData = await loanManager.encodeRequest(
@@ -151,7 +151,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       { t: 'bytes', v: _data },
     );
 
-    expect(internalSalt).to.eq.BN(controlInternalSalt, 'bug internalSalt');
+    expect(internalSalt).to.equal(controlInternalSalt, 'bug internalSalt');
     assert.equal(id, controlId, 'bug calcId');
     return encodeData;
   }
@@ -184,12 +184,12 @@ contract('Test LoanManager Diaspore', function (accounts) {
     await rcn.setBalance(debtEngine.address, 0);
     await rcn.setBalance(loanApprover.address, 0);
 
-    expect(await rcn.totalSupply()).to.eq.BN(0);
+    expect(await rcn.totalSupply()).to.equal(0);
   });
 
   describe('Constructor', function () {
     it('Try instance a LoanManager instance with token == 0x0', async function () {
-      const testDebtEngine = await TestDebtEngine.new(constants.ZERO_ADDRESS);
+      const testDebtEngine = await TestDebtEngine.new(ethers.constants.AddressZero);
 
       await expectRevert(
         LoanManager.new(testDebtEngine.address),
@@ -204,7 +204,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('13132123');
       const amount = bn(1);
-      const expiration = (await time.latest()).add(bn(11100));
+      const expiration = (await getNow()).add(bn(11100));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -223,7 +223,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         model.address,          // Model
         oracle.address,         // Oracle
         borrower,               // Borrower
-        constants.ZERO_ADDRESS, // Callback
+        ethers.constants.AddressZero, // Callback
         salt,                   // salt
         expiration,             // Expiration
         loanData,               // Loan data
@@ -258,49 +258,49 @@ contract('Test LoanManager Diaspore', function (accounts) {
       assert.equal(await loanManager.getCosigner(id), cosigner.address);
       assert.equal(await loanManager.methods['getCosigner(bytes32)'](id), cosigner.address);
 
-      assert.equal(await loanManager.getCurrency(id), constants.ZERO_BYTES32);
-      assert.equal(await loanManager.methods['getCurrency(bytes32)'](id), constants.ZERO_BYTES32);
+      assert.equal(await loanManager.getCurrency(id), ethers.constants.HashZero);
+      assert.equal(await loanManager.methods['getCurrency(bytes32)'](id), ethers.constants.HashZero);
 
-      expect(await loanManager.getAmount(id)).to.eq.BN(1);
-      expect(await loanManager.methods['getAmount(bytes32)'](id)).to.eq.BN(1);
+      expect(await loanManager.getAmount(id)).to.equal(1);
+      expect(await loanManager.methods['getAmount(bytes32)'](id)).to.equal(1);
 
-      expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
-      expect(await loanManager.methods['getExpirationRequest(bytes32)'](id)).to.eq.BN(expiration);
+      expect(await loanManager.getExpirationRequest(id)).to.equal(expiration);
+      expect(await loanManager.methods['getExpirationRequest(bytes32)'](id)).to.equal(expiration);
 
       assert.isTrue(await loanManager.getApproved(id));
       assert.isTrue(await loanManager.methods['getApproved(bytes32)'](id));
 
-      expect(await loanManager.getDueTime(id)).to.eq.BN(expiration);
-      expect(await loanManager.methods['getDueTime(bytes32)'](id)).to.eq.BN(expiration);
+      expect(await loanManager.getDueTime(id)).to.equal(expiration);
+      expect(await loanManager.methods['getDueTime(bytes32)'](id)).to.equal(expiration);
 
       const obligation = await loanManager.getObligation(id, expiration);
-      expect(obligation.amount).to.eq.BN(amount);
-      expect(obligation.fee).to.eq.BN(await toFee(amount));
+      expect(obligation.amount).to.equal(amount);
+      expect(obligation.fee).to.equal(await toFee(amount));
       assert.isTrue(obligation.defined);
       const obligation32 = await loanManager.methods['getObligation(bytes32,uint64)'](id, expiration);
-      expect(obligation32.amount).to.eq.BN(amount);
-      expect(obligation32.fee).to.eq.BN(await toFee(amount));
+      expect(obligation32.amount).to.equal(amount);
+      expect(obligation32.fee).to.equal(await toFee(amount));
       assert.isTrue(obligation32.defined);
 
       const closingObligation = await loanManager.getClosingObligation(id);
-      expect(closingObligation.amount).to.eq.BN(amount);
-      expect(closingObligation.fee).to.eq.BN(await toFee(amount));
+      expect(closingObligation.amount).to.equal(amount);
+      expect(closingObligation.fee).to.equal(await toFee(amount));
       const closingObligation32 = await loanManager.methods['getClosingObligation(bytes32)'](id);
-      expect(closingObligation32.amount).to.eq.BN(amount);
-      expect(closingObligation32.fee).to.eq.BN(await toFee(amount));
+      expect(closingObligation32.amount).to.equal(amount);
+      expect(closingObligation32.fee).to.equal(await toFee(amount));
 
       const estimateObligation = await loanManager.getEstimateObligation(id);
-      expect(estimateObligation.amount).to.eq.BN(amount);
-      expect(estimateObligation.fee).to.eq.BN(await toFee(amount));
+      expect(estimateObligation.amount).to.equal(amount);
+      expect(estimateObligation.fee).to.equal(await toFee(amount));
       const estimateObligation32 = await loanManager.methods['getEstimateObligation(bytes32)'](id);
-      expect(estimateObligation32.amount).to.eq.BN(amount);
-      expect(estimateObligation32.fee).to.eq.BN(await toFee(amount));
+      expect(estimateObligation32.amount).to.equal(amount);
+      expect(estimateObligation32.fee).to.equal(await toFee(amount));
 
       assert.equal(await loanManager.getLoanData(id), loanData);
       assert.equal(await loanManager.methods['getLoanData(bytes32)'](id), loanData);
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
-      expect(await loanManager.methods['getStatus(bytes32)'](id)).to.eq.BN(STATUS_ONGOING);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_ONGOING);
+      expect(await loanManager.methods['getStatus(bytes32)'](id)).to.equal(STATUS_ONGOING);
 
       assert.equal(await loanManager.ownerOf(id), lender);
       assert.equal(await loanManager.methods['ownerOf(bytes32)'](id), lender);
@@ -312,7 +312,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('3');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
@@ -320,7 +320,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         amount,
         borrower,
         creator,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
       );
@@ -328,16 +328,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const id = await getId(loanManager.requestLoan(
         amount,                 // Amount
         model.address,          // Model
-        constants.ZERO_ADDRESS, // Oracle
+        ethers.constants.AddressZero, // Oracle
         borrower,               // Borrower
-        constants.ZERO_ADDRESS, // Callback
+        ethers.constants.AddressZero, // Callback
         salt,                   // salt
         expiration,             // Expiration
         loanData,               // Loan data
         { from: creator },      // Creator
       ));
 
-      expect(await loanManager.internalSalt(id)).to.eq.BN(pInternalSalt);
+      expect(await loanManager.internalSalt(id)).to.equal(pInternalSalt);
     });
     it('Should fail internal salt if id does not exist', async function () {
       await expectRevert(
@@ -354,7 +354,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn(1);
       const amount = bn('1031230');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -362,7 +362,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -372,9 +372,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.requestLoan(
           amount,                 // Amount
           model.address,          // Model
-          constants.ZERO_ADDRESS, // Oracle
+          ethers.constants.AddressZero, // Oracle
           borrower,               // Borrower
-          constants.ZERO_ADDRESS, // Callback
+          ethers.constants.AddressZero, // Callback
           salt,                   // salt
           expiration,             // Expiration
           loanData,               // Loan data
@@ -386,7 +386,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           _amount: amount,
           _model: model.address,
           _creator: creator,
-          _oracle: constants.ZERO_ADDRESS,
+          _oracle: ethers.constants.AddressZero,
           _borrower: borrower,
           _salt: salt,
           _loanData: loanData,
@@ -398,25 +398,25 @@ contract('Test LoanManager Diaspore', function (accounts) {
       assert.isTrue(request.open, 'The request should be open');
       assert.isFalse(await loanManager.getApproved(id), 'The request should not be approved');
       assert.isFalse(request.approved, 'The request should not be approved');
-      expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
-      expect(request.expiration).to.eq.BN(expiration);
+      expect(await loanManager.getExpirationRequest(id)).to.equal(expiration);
+      expect(request.expiration).to.equal(expiration);
       assert.equal(await loanManager.getCurrency(id), 0x0);
-      expect(await loanManager.getAmount(id)).to.eq.BN(amount);
-      expect(request.amount).to.eq.BN(amount);
+      expect(await loanManager.getAmount(id)).to.equal(amount);
+      expect(request.amount).to.equal(amount);
       assert.equal(await loanManager.getCosigner(id), 0x0);
-      assert.equal(request.cosigner, constants.ZERO_ADDRESS);
+      assert.equal(request.cosigner, ethers.constants.AddressZero);
       assert.equal(request.model, model.address);
       assert.equal(await loanManager.getCreator(id), creator);
       assert.equal(request.creator, creator);
-      assert.equal(await loanManager.getOracle(id), constants.ZERO_ADDRESS);
-      assert.equal(request.oracle, constants.ZERO_ADDRESS);
+      assert.equal(await loanManager.getOracle(id), ethers.constants.AddressZero);
+      assert.equal(request.oracle, ethers.constants.AddressZero);
       assert.equal(await loanManager.getBorrower(id), borrower);
       assert.equal(request.borrower, borrower);
-      expect(request.salt).to.eq.BN(salt);
+      expect(request.salt).to.equal(salt);
       assert.equal(request.loanData, loanData);
       assert.isFalse(await loanManager.canceledSettles(id));
-      expect(await loanManager.getStatus(id)).to.eq.BN(0);
-      expect(await loanManager.getDueTime(id)).to.eq.BN(0);
+      expect(await loanManager.getStatus(id)).to.equal(0);
+      expect(await loanManager.getDueTime(id)).to.equal(0);
     });
     it('Different loan managers should have different ids', async function () {
       const loanManager2 = await LoanManager.new(debtEngine.address);
@@ -425,16 +425,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('2');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id1 = await getId(loanManager.requestLoan(
         amount,                 // Amount
         model.address,          // Model
-        constants.ZERO_ADDRESS, // Oracle
+        ethers.constants.AddressZero, // Oracle
         borrower,               // Borrower
-        constants.ZERO_ADDRESS, // Callback
+        ethers.constants.AddressZero, // Callback
         salt,                   // salt
         expiration,             // Expiration
         loanData,               // Loan data
@@ -444,9 +444,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const id2 = await getId(loanManager2.requestLoan(
         amount,                 // Amount
         model.address,          // Model
-        constants.ZERO_ADDRESS, // Oracle
+        ethers.constants.AddressZero, // Oracle
         borrower,               // Borrower
-        constants.ZERO_ADDRESS, // Callback
+        ethers.constants.AddressZero, // Callback
         salt,                   // salt
         expiration,             // Expiration
         loanData,               // Loan data
@@ -455,21 +455,21 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
       assert.notEqual(id1, id2);
     });
-    it('Try request loan with constants.ZERO_ADDRESS as borrower', async function () {
+    it('Try request loan with ethers.constants.AddressZero as borrower', async function () {
       const creator = accounts[1];
-      const borrower = constants.ZERO_ADDRESS;
+      const borrower = ethers.constants.AddressZero;
       const salt = bn('319');
       const amount = bn('143441230');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       await expectRevert(
         loanManager.requestLoan(
           amount,
           model.address,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           borrower,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           salt,
           expiration,
           loanData,
@@ -485,7 +485,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('23');
       const amount = bn('30');
-      const expiration = (await time.latest()).add(bn(900));
+      const expiration = (await getNow()).add(bn(900));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await loanManager2.calcId(
@@ -493,8 +493,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -503,9 +503,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager2.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -519,7 +519,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager2.lend(
           id,
           [],
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -528,21 +528,21 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Error creating the debt',
       );
     });
-    it('Try request loan with constants.ZERO_ADDRESS as borrower', async function () {
+    it('Try request loan with ethers.constants.AddressZero as borrower', async function () {
       const creator = accounts[1];
       const borrower = accounts[2];
       const salt = bn('11319');
       const amount = bn('441230');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
       const loanData = await model.encodeData(0, expiration, 0, expiration);
 
       await expectRevert(
         loanManager.requestLoan(
           amount,
           model.address,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           borrower,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           salt,
           expiration,
           loanData,
@@ -556,15 +556,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('19');
       const amount = bn('1431230');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -575,9 +575,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.requestLoan(
           amount,
           model.address,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           borrower,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           salt,
           expiration,
           loanData,
@@ -591,7 +591,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const creator = accounts[4];
       const salt = bn('33422');
       const amount = bn('4555');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -599,7 +599,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -608,9 +608,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -635,9 +635,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.requestLoan(
           amount,
           model.address,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           borrower,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           salt,
           expiration,
           loanData,
@@ -650,7 +650,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn(1);
       const amount = bn('1031230');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -658,7 +658,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -668,9 +668,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.requestLoan(
           amount,                 // Amount
           model.address,          // Model
-          constants.ZERO_ADDRESS, // Oracle
+          ethers.constants.AddressZero, // Oracle
           borrower,               // Borrower
-          constants.ZERO_ADDRESS, // Callback
+          ethers.constants.AddressZero, // Callback
           salt,                   // salt
           expiration,             // Expiration
           loanData,               // Loan data
@@ -682,7 +682,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
           _amount: amount,
           _model: model.address,
           _creator: borrower,
-          _oracle: constants.ZERO_ADDRESS,
+          _oracle: ethers.constants.AddressZero,
           _borrower: borrower,
           _salt: salt,
           _loanData: loanData,
@@ -695,25 +695,25 @@ contract('Test LoanManager Diaspore', function (accounts) {
       assert.isTrue(request.approved, 'The request should be approved');
 
       assert.isTrue(request.open, 'The request should be open');
-      expect(await loanManager.getExpirationRequest(id)).to.eq.BN(expiration);
-      expect(request.expiration).to.eq.BN(expiration);
-      assert.equal(await loanManager.getCurrency(id), constants.ZERO_BYTES32);
-      expect(await loanManager.getAmount(id)).to.eq.BN(amount);
-      expect(request.amount).to.eq.BN(amount);
-      assert.equal(await loanManager.getCosigner(id), constants.ZERO_ADDRESS);
-      assert.equal(request.cosigner, constants.ZERO_ADDRESS);
+      expect(await loanManager.getExpirationRequest(id)).to.equal(expiration);
+      expect(request.expiration).to.equal(expiration);
+      assert.equal(await loanManager.getCurrency(id), ethers.constants.HashZero);
+      expect(await loanManager.getAmount(id)).to.equal(amount);
+      expect(request.amount).to.equal(amount);
+      assert.equal(await loanManager.getCosigner(id), ethers.constants.AddressZero);
+      assert.equal(request.cosigner, ethers.constants.AddressZero);
       assert.equal(request.model, model.address);
       assert.equal(await loanManager.getCreator(id), borrower);
       assert.equal(request.creator, borrower);
-      assert.equal(await loanManager.getOracle(id), constants.ZERO_ADDRESS);
-      assert.equal(request.oracle, constants.ZERO_ADDRESS);
+      assert.equal(await loanManager.getOracle(id), ethers.constants.AddressZero);
+      assert.equal(request.oracle, ethers.constants.AddressZero);
       assert.equal(await loanManager.getBorrower(id), borrower);
       assert.equal(request.borrower, borrower);
-      expect(request.salt).to.eq.BN(salt);
+      expect(request.salt).to.equal(salt);
       assert.equal(request.loanData, loanData);
       assert.isFalse(await loanManager.canceledSettles(id));
-      expect(await loanManager.getStatus(id)).to.eq.BN(0);
-      expect(await loanManager.getDueTime(id)).to.eq.BN(0);
+      expect(await loanManager.getStatus(id)).to.equal(0);
+      expect(await loanManager.getDueTime(id)).to.equal(0);
     });
   });
   describe('Function approveRequest', function () {
@@ -722,7 +722,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('13132123');
       const amount = bn('10230');
-      const expiration = (await time.latest()).add(bn(11100));
+      const expiration = (await getNow()).add(bn(11100));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -730,7 +730,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -739,9 +739,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,                 // Amount
         model.address,          // Model
-        constants.ZERO_ADDRESS, // Oracle
+        ethers.constants.AddressZero, // Oracle
         borrower,               // Borrower
-        constants.ZERO_ADDRESS, // Callback
+        ethers.constants.AddressZero, // Callback
         salt,                   // salt
         expiration,             // Expiration
         loanData,               // Loan data
@@ -762,7 +762,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('1312123');
       const amount = bn('130');
-      const expiration = (await time.latest()).add(bn(1100));
+      const expiration = (await getNow()).add(bn(1100));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -770,7 +770,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -779,9 +779,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -803,16 +803,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('4');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -839,16 +839,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('5');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -876,16 +876,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('6');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -920,16 +920,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = loanApprover.address;
       const salt = bn('4');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -955,16 +955,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = loanApprover.address;
       const salt = bn('5');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -988,16 +988,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = loanApprover.address;
       const salt = bn('6');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -1021,16 +1021,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = loanApprover.address;
       const salt = bn('7');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -1054,16 +1054,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = loanApprover.address;
       const salt = bn('1561561');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,           // Amount
         model.address,    // Model
-        constants.ZERO_ADDRESS,        // Oracle
+        ethers.constants.AddressZero,        // Oracle
         borrower,         // Borrower
-        constants.ZERO_ADDRESS,        // Callback
+        ethers.constants.AddressZero,        // Callback
         salt,             // salt
         expiration,       // Expiration
         loanData,         // Loan data
@@ -1094,16 +1094,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = debtEngine.address;
       const salt = bn('7');
       const amount = bn('1000');
-      const expiration = (await time.latest()).add(bn(1000));
+      const expiration = (await getNow()).add(bn(1000));
 
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await getId(loanManager.requestLoan(
         amount,                 // Amount
         model.address,          // Model
-        constants.ZERO_ADDRESS, // Oracle
+        ethers.constants.AddressZero, // Oracle
         borrower,               // Borrower
-        constants.ZERO_ADDRESS, // Callback
+        ethers.constants.AddressZero, // Callback
         salt,                   // salt
         expiration,             // Expiration
         loanData,               // Loan data
@@ -1127,7 +1127,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('23');
       const amount = bn('30');
-      const expiration = (await time.latest()).add(bn(900));
+      const expiration = (await getNow()).add(bn(900));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1135,7 +1135,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1144,9 +1144,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1160,7 +1160,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.lend(
           id,                     // Index
           [],                     // OracleData
-          constants.ZERO_ADDRESS, // Cosigner
+          ethers.constants.AddressZero, // Cosigner
           '0',                    // Cosigner limit
           [],                     // Cosigner data
           [],                     // Callback data
@@ -1170,17 +1170,17 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { _id: id, _lender: lender, _tokens: amount },
       );
 
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0, 'The lender does not have to have tokens');
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amount, 'The borrower should have ' + amount.toString() + ' tokens');
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(0, 'The lender does not have to have tokens');
+      expect(await rcn.balanceOf(borrower)).to.equal(amount, 'The borrower should have ' + amount.toString() + ' tokens');
 
       const debt = await debtEngine.debts(id);
       assert.isFalse(debt.error, 'The debt should not have error');
-      assert.equal(await loanManager.getCurrency(id), constants.ZERO_BYTES32);
-      expect(debt.balance).to.eq.BN(0, 'The debt should not be balance');
+      assert.equal(await loanManager.getCurrency(id), ethers.constants.HashZero);
+      expect(debt.balance).to.equal(0, 'The debt should not be balance');
       assert.equal(debt.model, model.address, 'The model should be the model');
       assert.equal(debt.creator, loanManager.address, 'The creator should be the loanManager');
-      assert.equal(debt.oracle, constants.ZERO_ADDRESS, 'The debt should not have oracle');
+      assert.equal(debt.oracle, ethers.constants.AddressZero, 'The debt should not have oracle');
 
       assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
       assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
@@ -1190,7 +1190,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('19982229');
       const amount = bn('90880');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1198,7 +1198,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1207,9 +1207,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1234,9 +1234,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosigner cost exceeded',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try lend a loan without approve of the borrower', async function () {
       const creator = accounts[1];
@@ -1244,7 +1244,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('213');
       const amount = bn('300');
-      const expiration = (await time.latest()).add(bn(9010));
+      const expiration = (await getNow()).add(bn(9010));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1252,7 +1252,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1261,9 +1261,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1277,7 +1277,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.lend(
           id,
           [],
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -1291,7 +1291,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('313');
       const amount = bn('440');
-      const expiration = (await time.latest()).add(bn(1010));
+      const expiration = (await getNow()).add(bn(1010));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1299,7 +1299,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1308,9 +1308,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1322,13 +1322,13 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
       // approve requests
       await loanManager.approveRequest(id, { from: borrower });
-      await time.increaseTo(expiration);
+      await increaseTimeTo(expiration);
 
       await expectRevert(
         loanManager.lend(
           id,
           [],
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -1341,7 +1341,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('763');
       const amount = bn('700');
-      const expiration = (await time.latest()).add(bn(9010));
+      const expiration = (await getNow()).add(bn(9010));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1349,7 +1349,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1358,9 +1358,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1371,7 +1371,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.lend(
           id,
           [],
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -1385,7 +1385,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2223');
       const amount = bn('32231');
-      const expiration = (await time.latest()).add(bn(3300));
+      const expiration = (await getNow()).add(bn(3300));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1393,7 +1393,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1402,9 +1402,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1417,7 +1417,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.lend(
         id,                 // Index
         [],                 // OracleData
-        constants.ZERO_ADDRESS,          // Cosigner
+        ethers.constants.AddressZero,          // Cosigner
         '0',                // Cosigner limit
         [],                 // Cosigner data
         [],                 // Callback data
@@ -1428,7 +1428,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.lend(
           id,
           [],
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -1450,7 +1450,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const amountETH = bn('6545');
       const amountRCN = amountETH.mul(tokens).div(equivalent);
 
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amountETH, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1469,7 +1469,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         model.address,
         oracle.address,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1482,23 +1482,23 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.lend(
         id,
         oracleData,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         [],
         { from: lender },
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0, 'The lender does not have to have tokens');
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amountRCN);
+      expect(await rcn.balanceOf(lender)).to.equal(0, 'The lender does not have to have tokens');
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amountRCN);
 
       const request = await loanManager.requests(id);
       assert.equal(request.oracle, oracle.address);
-      assert.equal(await loanManager.getCurrency(id), constants.ZERO_BYTES32);
-      assert.equal(request.cosigner, constants.ZERO_ADDRESS);
-      expect(request.salt).to.eq.BN(salt);
+      assert.equal(await loanManager.getCurrency(id), ethers.constants.HashZero);
+      assert.equal(request.cosigner, ethers.constants.AddressZero);
+      expect(request.salt).to.equal(salt);
     });
     it('Use cosigner in lend', async function () {
       const borrower = accounts[2];
@@ -1507,7 +1507,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const amount = bn('5545');
       const cosignerCost = await cosigner.getDummyCost();
       const totalCost = cosignerCost.add(amount);
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1515,7 +1515,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1524,9 +1524,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1551,23 +1551,23 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { _id: id, _cosigner: cosigner.address, _cost: cosignerCost },
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(cosignerCost);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0, 'The lender does not have to have tokens');
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(cosignerCost);
+      expect(await rcn.balanceOf(lender)).to.equal(0, 'The lender does not have to have tokens');
 
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amount, 'The borrower should have ' + amount.toString() + ' tokens');
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amount, 'The borrower should have ' + amount.toString() + ' tokens');
 
       const request = await loanManager.requests(id);
       assert.equal(request.cosigner, cosigner.address);
-      expect(request.salt).to.eq.BN(salt);
+      expect(request.salt).to.equal(salt);
     });
     it('Try lend a loan with cosigner and send 0x0 as id parameter of Cosign function', async function () {
       const borrower = accounts[2];
       const lender = accounts[3];
       const salt = bn('1998');
       const amount = bn('90880');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1575,7 +1575,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1584,9 +1584,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1595,7 +1595,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
       await rcn.setBalance(lender, amount);
       await rcn.approve(loanManager.address, amount, { from: lender });
-      await cosigner.setCustomData(constants.ZERO_BYTES32, '0');
+      await cosigner.setCustomData(ethers.constants.HashZero, '0');
       const id0x0Data = await cosigner.customData();
 
       await expectRevert(
@@ -1611,16 +1611,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosigner 0x0 is not valid',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try lend a loan with cosigner cost very high', async function () {
       const borrower = accounts[2];
       const lender = accounts[3];
       const salt = bn('546546');
       const amount = bn('11');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1628,7 +1628,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1637,9 +1637,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1664,16 +1664,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosigner cost exceeded',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try lend a loan with cosigner and Cosign function return false', async function () {
       const borrower = accounts[2];
       const lender = accounts[3];
       const salt = bn('57476');
       const amount = bn('574');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1681,7 +1681,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1690,9 +1690,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1716,16 +1716,16 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosign method returned false',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try lend when cosigner is not a cosigner contract', async function () {
       const borrower = accounts[2];
       const lender = accounts[3];
       const salt = bn('42342');
       const amount = bn('44444');
-      const expiration = (await time.latest()).add(bn(1600));
+      const expiration = (await getNow()).add(bn(1600));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1733,7 +1733,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1742,9 +1742,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1766,15 +1766,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         ),
       );
 
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try lend a loan with cosigner and requestCosign dont callback to the engine with Cosign', async function () {
       const borrower = accounts[2];
       const lender = accounts[3];
       const salt = bn('87868');
       const amount = bn('456345');
-      const expiration = (await time.latest()).add(bn(1600));
+      const expiration = (await getNow()).add(bn(1600));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1782,7 +1782,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1791,9 +1791,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1817,9 +1817,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosigner didn\'t callback',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try lend a loan with cosigner and dont have balance to pay the cosign', async function () {
       const borrower = accounts[2];
@@ -1828,7 +1828,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const amount = bn('5545');
       const cosignerCost = await cosigner.getDummyCost();
       const totalCost = cosignerCost.add(amount);
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1836,7 +1836,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1845,9 +1845,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1871,9 +1871,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'ERC20: insufficient allowance',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(totalCost);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(totalCost);
     });
   });
   describe('Function cancel', function () {
@@ -1882,7 +1882,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('3434225');
       const amount = bn('55');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1890,7 +1890,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1899,9 +1899,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1917,14 +1917,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const request = await loanManager.requests(id);
       assert.isFalse(request.open);
       assert.isFalse(request.approved);
-      expect(request.expiration).to.eq.BN(0);
-      expect(request.amount).to.eq.BN(0);
-      assert.equal(request.cosigner, constants.ZERO_ADDRESS);
-      assert.equal(request.model, constants.ZERO_ADDRESS);
-      assert.equal(request.creator, constants.ZERO_ADDRESS);
-      assert.equal(request.oracle, constants.ZERO_ADDRESS);
-      assert.equal(request.borrower, constants.ZERO_ADDRESS);
-      expect(request.salt).to.eq.BN(0);
+      expect(request.expiration).to.equal(0);
+      expect(request.amount).to.equal(0);
+      assert.equal(request.cosigner, ethers.constants.AddressZero);
+      assert.equal(request.model, ethers.constants.AddressZero);
+      assert.equal(request.creator, ethers.constants.AddressZero);
+      assert.equal(request.oracle, ethers.constants.AddressZero);
+      assert.equal(request.borrower, ethers.constants.AddressZero);
+      expect(request.salt).to.equal(0);
       assert.equal(request.loanData, null);
 
       assert.isTrue(await loanManager.canceledSettles(id));
@@ -1934,7 +1934,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('3522');
       const amount = bn('5000');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1942,7 +1942,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1951,9 +1951,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -1969,14 +1969,14 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const request = await loanManager.requests(id);
       assert.isFalse(request.open);
       assert.isFalse(request.approved);
-      expect(request.expiration).to.eq.BN(0);
-      expect(request.amount).to.eq.BN(0);
-      assert.equal(request.cosigner, constants.ZERO_ADDRESS);
-      assert.equal(request.model, constants.ZERO_ADDRESS);
-      assert.equal(request.creator, constants.ZERO_ADDRESS);
-      assert.equal(request.oracle, constants.ZERO_ADDRESS);
-      assert.equal(request.borrower, constants.ZERO_ADDRESS);
-      expect(request.salt).to.eq.BN(0);
+      expect(request.expiration).to.equal(0);
+      expect(request.amount).to.equal(0);
+      assert.equal(request.cosigner, ethers.constants.AddressZero);
+      assert.equal(request.model, ethers.constants.AddressZero);
+      assert.equal(request.creator, ethers.constants.AddressZero);
+      assert.equal(request.oracle, ethers.constants.AddressZero);
+      assert.equal(request.borrower, ethers.constants.AddressZero);
+      expect(request.salt).to.equal(0);
       assert.equal(request.loanData, null);
 
       assert.isTrue(await loanManager.canceledSettles(id));
@@ -1988,7 +1988,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('6000');
       const amount = bn('6000');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -1996,7 +1996,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2005,9 +2005,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2027,7 +2027,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('33422');
       const amount = bn('4555');
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -2035,7 +2035,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2044,9 +2044,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2059,7 +2059,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.lend(
         id,
         [],
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         [],
@@ -2082,7 +2082,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2090,7 +2090,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2108,7 +2108,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2121,22 +2121,22 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { _id: id, _lender: lender, _tokens: amount },
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0, 'The lender does not have to have tokens');
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amount, 'The borrower should have ' + amount.toString() + ' tokens');
+      expect(await rcn.balanceOf(lender)).to.equal(0, 'The lender does not have to have tokens');
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amount, 'The borrower should have ' + amount.toString() + ' tokens');
 
       const request = await loanManager.requests(id);
       assert.isFalse(request.open, 'The request should not be open');
       assert.isTrue(request.approved, 'The request should be approved');
-      expect(request.expiration).to.eq.BN(expiration);
+      expect(request.expiration).to.equal(expiration);
       assert.equal(await loanManager.getCurrency(id), 0x0);
-      expect(request.amount).to.eq.BN(amount);
+      expect(request.amount).to.equal(amount);
       assert.equal(request.cosigner, 0x0);
       assert.equal(request.model, model.address);
       assert.equal(request.creator, creator);
-      assert.equal(request.oracle, constants.ZERO_ADDRESS);
+      assert.equal(request.oracle, ethers.constants.AddressZero);
       assert.equal(request.borrower, borrower);
-      expect(request.salt).to.eq.BN(salt);
+      expect(request.salt).to.equal(salt);
 
       assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
       assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
@@ -2147,7 +2147,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('20');
       const amount = bn('33622');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2155,7 +2155,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2172,7 +2172,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const receipt = await loanManager.settleLend(
         settleData,
         loanData,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         [],
@@ -2185,10 +2185,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
       expectEvent(receipt, 'CreatorByCallback', { _id: id });
       expectEvent(receipt, 'BorrowerBySignature', { _id: id });
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(creator)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amount, 'The borrower should have ' + amount.toString() + ' tokens');
+      expect(await rcn.balanceOf(lender)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(creator)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amount, 'The borrower should have ' + amount.toString() + ' tokens');
     });
     it('Try should settleLend a loan using LoanApproverContract as borrower and return wrong id', async function () {
       const creator = accounts[1];
@@ -2196,7 +2196,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2011');
       const amount = bn('666');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2204,7 +2204,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2222,7 +2222,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2234,10 +2234,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Borrower contract rejected the loan',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(creator)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(creator)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
     });
     it('Try should settleLend a loan using LoanApproverContract as creator and return wrong id', async function () {
       const creator = loanApprover.address;
@@ -2245,7 +2245,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('33');
       const amount = bn('666');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2253,7 +2253,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2271,7 +2271,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2283,10 +2283,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Creator contract rejected the loan',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(creator)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(creator)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
     });
     it('Should settleLend a loan using LoanApproverContract as borrower', async function () {
       const creator = accounts[1];
@@ -2294,7 +2294,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('20');
       const amount = bn('33622');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2302,7 +2302,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2319,7 +2319,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const receipt = await loanManager.settleLend(
         settleData,
         loanData,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         [],
@@ -2332,10 +2332,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
       expectEvent(receipt, 'BorrowerByCallback', { _id: id });
       expectEvent(receipt, 'CreatorBySignature', { _id: id });
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0, 'The lender does not have to have tokens');
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(creator)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amount, 'The borrower should have ' + amount.toString() + ' tokens');
+      expect(await rcn.balanceOf(lender)).to.equal(0, 'The lender does not have to have tokens');
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(creator)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amount, 'The borrower should have ' + amount.toString() + ' tokens');
     });
     it('Should settleLend a loan using LoanApproverContract as creator and borrower', async function () {
       const creator = loanApprover.address;
@@ -2343,7 +2343,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('20');
       const amount = bn('33622');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2351,7 +2351,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2367,7 +2367,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2380,9 +2380,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { _id: id },
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0, 'The lender does not have to have tokens');
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amount, 'The borrower should have ' + amount.toString() + ' tokens');
+      expect(await rcn.balanceOf(lender)).to.equal(0, 'The lender does not have to have tokens');
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amount, 'The borrower should have ' + amount.toString() + ' tokens');
     });
     it('Try settleLend a canceled settle by the borrower', async function () {
       const creator = accounts[1];
@@ -2390,7 +2390,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2');
       const amount = bn('33622');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2398,7 +2398,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2423,7 +2423,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2435,9 +2435,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Settle was canceled',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
     });
     it('Try settleLend a canceled settle by the creator', async function () {
       const creator = accounts[1];
@@ -2445,7 +2445,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2');
       const amount = bn('33622');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2453,7 +2453,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2478,7 +2478,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2490,9 +2490,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Settle was canceled',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
     });
     it('Try settleLend without borrower signature', async function () {
       const creator = accounts[1];
@@ -2500,7 +2500,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('20');
       const amount = bn('33622');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2508,7 +2508,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2526,7 +2526,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2538,9 +2538,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Invalid borrower signature',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
     });
     it('Try settleLend without creator signature', async function () {
       const creator = accounts[1];
@@ -2548,7 +2548,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('20');
       const amount = bn('33622');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2556,7 +2556,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2574,7 +2574,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2586,9 +2586,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Invalid creator signature',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
     });
     it('SettleLend a loan should be fail if the model create return a diferent id', async function () {
       function calcSignature (_loanManager, _id, _message) {
@@ -2606,15 +2606,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await loanManager2.encodeRequest(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         creator,
@@ -2634,7 +2634,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager2.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2660,7 +2660,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const amountETH = bn('3320');
       const amountRCN = amountETH.mul(tokens).div(equivalent);
 
-      const expiration = (await time.latest()).add(bn(1700));
+      const expiration = (await getNow()).add(bn(1700));
       const loanData = await model.encodeData(amountETH, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2685,7 +2685,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.settleLend(
         settleData,
         loanData,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         oracleData,
@@ -2695,24 +2695,24 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { from: lender },
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0, 'The lender does not have to have tokens');
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amountRCN);
+      expect(await rcn.balanceOf(lender)).to.equal(0, 'The lender does not have to have tokens');
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amountRCN);
 
       const request = await loanManager.requests(id);
       assert.isFalse(request.open, 'The request should not be open');
       assert.isTrue(request.approved, 'The request should be approved');
-      expect(request.expiration).to.eq.BN(expiration);
+      expect(request.expiration).to.equal(expiration);
       assert.equal(request.oracle, oracle.address);
-      expect(request.amount).to.eq.BN(amountETH);
-      assert.equal(request.cosigner, constants.ZERO_ADDRESS);
+      expect(request.amount).to.equal(amountETH);
+      assert.equal(request.cosigner, ethers.constants.AddressZero);
       assert.equal(request.model, model.address);
       assert.equal(request.creator, creator);
       assert.equal(request.oracle, oracle.address);
       assert.equal(request.borrower, borrower);
-      expect(request.salt).to.eq.BN(salt);
+      expect(request.salt).to.equal(salt);
 
-      assert.equal(await loanManager.getCurrency(id), constants.ZERO_BYTES32);
+      assert.equal(await loanManager.getCurrency(id), ethers.constants.HashZero);
       assert.equal(await debtEngine.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
       assert.equal(await loanManager.ownerOf(id), lender, 'The lender should be the owner of the new ERC721');
     });
@@ -2722,7 +2722,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2730,7 +2730,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration.sub(bn(10000)),
         loanData,
@@ -2749,7 +2749,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2761,9 +2761,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Loan request is expired',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
     });
     it('Try settleLend without approve tokens to loanManager', async function () {
       const creator = accounts[1];
@@ -2771,7 +2771,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2779,7 +2779,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2797,7 +2797,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2809,9 +2809,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'ERC20: insufficient allowance',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
     });
     it('Try settleLend a request already exist', async function () {
       const creator = accounts[1];
@@ -2819,7 +2819,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2827,7 +2827,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2844,7 +2844,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.settleLend(
         settleData,
         loanData,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         [],
@@ -2858,7 +2858,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -2870,9 +2870,9 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Request already exist',
       );
 
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amount, 'The borrower should have ' + amount.toString() + ' tokens');
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amount, 'The borrower should have ' + amount.toString() + ' tokens');
     });
     it('Use cosigner in settleLend', async function () {
       const creator = accounts[1];
@@ -2882,7 +2882,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const amount = bn('355320');
       const cosignerCost = await cosigner.getDummyCost();
       const totalCost = cosignerCost.add(amount);
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2890,7 +2890,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2922,15 +2922,15 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { _id: id, _cosigner: cosigner.address, _cost: cosignerCost },
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(cosignerCost);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(0, 'The lender does not have to have tokens');
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(amount, 'The borrower should have ' + amount.toString() + ' tokens');
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(cosignerCost);
+      expect(await rcn.balanceOf(lender)).to.equal(0, 'The lender does not have to have tokens');
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(amount, 'The borrower should have ' + amount.toString() + ' tokens');
 
       const request = await loanManager.requests(id);
       assert.equal(request.cosigner, cosigner.address);
-      expect(request.salt).to.eq.BN(salt);
+      expect(request.salt).to.equal(salt);
     });
     it('Try settleLend with cosigner and send 0x0 as id parameter of Cosign function', async function () {
       const creator = accounts[1];
@@ -2938,7 +2938,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('273263');
       const amount = bn('32134');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2946,7 +2946,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -2959,7 +2959,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
       await rcn.setBalance(lender, amount);
       await rcn.approve(loanManager.address, amount, { from: lender });
-      await cosigner.setCustomData(constants.ZERO_BYTES32, '0');
+      await cosigner.setCustomData(ethers.constants.HashZero, '0');
       const id0x0Data = await cosigner.customData();
 
       await expectRevert(
@@ -2978,11 +2978,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosigner 0x0 is not valid',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try settleLend with cosigner cost very high', async function () {
       const creator = accounts[1];
@@ -2990,7 +2990,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('432354');
       const amount = bn('66');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -2998,7 +2998,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3030,11 +3030,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosigner cost exceeded',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try settleLend with cosigner and Cosign function return false', async function () {
       const creator = accounts[1];
@@ -3042,7 +3042,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('273263');
       const amount = bn('32134');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -3050,7 +3050,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3081,11 +3081,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosign method returned false',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try settleLend when cosigner is not a cosigner contract', async function () {
       const creator = accounts[1];
@@ -3093,7 +3093,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('273263');
       const amount = bn('32134');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -3101,7 +3101,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3130,10 +3130,10 @@ contract('Test LoanManager Diaspore', function (accounts) {
         ),
       );
 
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try settleLend a loan with cosigner and requestCosign dont callback to the engine with Cosign', async function () {
       const creator = accounts[1];
@@ -3141,7 +3141,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('273263');
       const amount = bn('32134');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -3149,7 +3149,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3180,11 +3180,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'Cosigner didn\'t callback',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(amount);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(amount);
     });
     it('Try settleLend a loan with cosigner and dont have balance to pay the cosign', async function () {
       const creator = accounts[1];
@@ -3194,7 +3194,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const amount = bn('74575');
       const cosignerCost = await cosigner.getDummyCost();
       const totalCost = cosignerCost.add(amount);
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -3202,7 +3202,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3233,11 +3233,11 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'ERC20: insufficient allowance',
       );
 
-      expect(await rcn.balanceOf(cosigner.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(borrower)).to.eq.BN(0);
-      expect(await rcn.balanceOf(debtEngine.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(loanManager.address)).to.eq.BN(0);
-      expect(await rcn.balanceOf(lender)).to.eq.BN(totalCost);
+      expect(await rcn.balanceOf(cosigner.address)).to.equal(0);
+      expect(await rcn.balanceOf(borrower)).to.equal(0);
+      expect(await rcn.balanceOf(debtEngine.address)).to.equal(0);
+      expect(await rcn.balanceOf(loanManager.address)).to.equal(0);
+      expect(await rcn.balanceOf(lender)).to.equal(totalCost);
     });
   });
   describe('Function settleCancel', function () {
@@ -3246,7 +3246,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('2956');
       const amount = bn('9320');
-      const expiration = (await time.latest()).add(bn(3400));
+      const expiration = (await getNow()).add(bn(3400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -3254,7 +3254,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3279,7 +3279,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const borrower = accounts[2];
       const salt = bn('564465');
       const amount = bn('9999');
-      const expiration = (await time.latest()).add(bn(3400));
+      const expiration = (await getNow()).add(bn(3400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -3287,7 +3287,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3314,7 +3314,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const otherAcc = accounts[7];
       const salt = bn('5345');
       const amount = bn('9977699');
-      const expiration = (await time.latest()).add(bn(3400));
+      const expiration = (await getNow()).add(bn(3400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const encodeData = await calcSettleId(
@@ -3322,7 +3322,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3347,7 +3347,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('99123');
       const amount = bn('30');
-      const expiration = (await time.latest()).add(bn(900));
+      const expiration = (await getNow()).add(bn(900));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -3355,7 +3355,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3365,7 +3365,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
         callback.address,
         salt,
@@ -3384,7 +3384,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.lend(
           id,                     // Index
           [],                     // OracleData
-          constants.ZERO_ADDRESS, // Cosigner
+          ethers.constants.AddressZero, // Cosigner
           '0',                    // Cosigner limit
           [],                     // Cosigner data
           [],                     // Callback data
@@ -3394,7 +3394,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { _id: id, _lender: lender, _tokens: amount },
       );
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_ONGOING);
       assert.equal(await loanManager.getCallback(id), callback.address);
 
       assert.equal(await callback.caller(), loanManager.address);
@@ -3405,7 +3405,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('99123');
       const amount = bn('30');
-      const expiration = (await time.latest()).add(bn(900));
+      const expiration = (await getNow()).add(bn(900));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
       const callbackData = web3.utils.randomHex(120);
 
@@ -3414,7 +3414,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3424,7 +3424,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
         callback.address,
         salt,
@@ -3444,7 +3444,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.lend(
           id,                     // Index
           [],                     // OracleData
-          constants.ZERO_ADDRESS, // Cosigner
+          ethers.constants.AddressZero, // Cosigner
           '0',                    // Cosigner limit
           [],                     // Cosigner data
           callbackData,           // Callback data
@@ -3454,7 +3454,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { _id: id, _lender: lender, _tokens: amount },
       );
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_ONGOING);
       assert.equal(await loanManager.getCallback(id), callback.address);
 
       assert.equal(await callback.caller(), loanManager.address);
@@ -3465,7 +3465,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('99123');
       const amount = bn('30');
-      const expiration = (await time.latest()).add(bn(900));
+      const expiration = (await getNow()).add(bn(900));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -3473,7 +3473,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3483,7 +3483,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
         callback.address,
         salt,
@@ -3503,7 +3503,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.lend(
           id,                 // Index
           [],                 // OracleData
-          constants.ZERO_ADDRESS,   // Cosigner
+          ethers.constants.AddressZero,   // Cosigner
           '0',                // Cosigner limit
           [],                 // Cosigner data
           [],                 // Callback data
@@ -3511,8 +3511,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         ), 'Rejected by loan callback',
       );
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);
-      assert.equal(await callback.caller(), constants.ZERO_ADDRESS);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_REQUEST);
+      assert.equal(await callback.caller(), ethers.constants.AddressZero);
       assert.equal(await loanManager.getCallback(id), callback.address);
     });
     it('Should fail if callback reverts', async function () {
@@ -3521,7 +3521,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('99123');
       const amount = bn('30');
-      const expiration = (await time.latest()).add(bn(900));
+      const expiration = (await getNow()).add(bn(900));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -3529,7 +3529,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3539,7 +3539,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
         callback.address,
         salt,
@@ -3558,7 +3558,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.lend(
           id,              // Index
           [],              // OracleData
-          constants.ZERO_ADDRESS,       // Cosigner
+          ethers.constants.AddressZero,       // Cosigner
           '0',             // Cosigner limit
           [],              // Cosigner data
           '0x01',          // Callback data
@@ -3567,8 +3567,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'callback: wrong data',
       );
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);
-      assert.equal(await callback.caller(), constants.ZERO_ADDRESS);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_REQUEST);
+      assert.equal(await callback.caller(), ethers.constants.AddressZero);
       assert.equal(await loanManager.getCallback(id), callback.address);
     });
     it('Should call loan callback on settleLend', async function () {
@@ -3577,7 +3577,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
       const callback = await TestLoanCallback.new();
 
@@ -3586,7 +3586,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3609,7 +3609,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.settleLend(
         settleData,
         loanData,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         [],
@@ -3621,7 +3621,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
 
       assert.equal(await callback.caller(), loanManager.address);
       assert.equal(await loanManager.getCallback(id), callback.address);
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_ONGOING);
     });
     it('Should send callback data to callback on settleLend', async function () {
       const creator = accounts[1];
@@ -3629,7 +3629,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
       const callback = await TestLoanCallback.new();
       const callbackdata = web3.utils.randomHex(260);
@@ -3639,7 +3639,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3663,7 +3663,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.settleLend(
         settleData,
         loanData,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         [],
@@ -3673,7 +3673,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { from: lender },
       );
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_ONGOING);
       assert.equal(await loanManager.getCallback(id), callback.address);
       assert.equal(await callback.caller(), loanManager.address);
     });
@@ -3683,7 +3683,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
       const callback = await TestLoanCallback.new();
 
@@ -3692,7 +3692,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3717,7 +3717,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -3729,7 +3729,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       );
 
       expect(await loanManager.getStatus(id)).to.not.eq.BN(STATUS_ONGOING);
-      assert.equal(await loanManager.getCallback(id), constants.ZERO_ADDRESS);
+      assert.equal(await loanManager.getCallback(id), ethers.constants.AddressZero);
     });
     it('Should fail if callback reverts on settleLend', async function () {
       const creator = accounts[1];
@@ -3737,7 +3737,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
       const callback = await TestLoanCallback.new();
 
@@ -3746,7 +3746,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3767,7 +3767,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -3779,7 +3779,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       );
 
       expect(await loanManager.getStatus(id)).to.not.eq.BN(STATUS_ONGOING);
-      assert.equal(await loanManager.getCallback(id), constants.ZERO_ADDRESS);
+      assert.equal(await loanManager.getCallback(id), ethers.constants.AddressZero);
     });
     it('Should limit gas usage on callback', async function () {
       const callback = await TestLoanCallback.new();
@@ -3787,7 +3787,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('991231');
       const amount = bn('30');
-      const expiration = (await time.latest()).add(bn(900));
+      const expiration = (await getNow()).add(bn(900));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -3795,7 +3795,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3805,7 +3805,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
         callback.address,
         salt,
@@ -3825,7 +3825,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.lend(
           id,                 // Index
           [],                 // OracleData
-          constants.ZERO_ADDRESS,   // Cosigner
+          ethers.constants.AddressZero,   // Cosigner
           '0',                // Cosigner limit
           [],                 // Cosigner data
           [],                 // Callback data
@@ -3834,8 +3834,8 @@ contract('Test LoanManager Diaspore', function (accounts) {
         'revert',
       );
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_REQUEST);
-      assert.equal(await callback.caller(), constants.ZERO_ADDRESS);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_REQUEST);
+      assert.equal(await callback.caller(), ethers.constants.AddressZero);
       assert.equal(await loanManager.getCallback(id), callback.address);
     });
     it('Should limit gas usage on callback using settleLend', async function () {
@@ -3844,7 +3844,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
       const callback = await TestLoanCallback.new();
 
@@ -3853,7 +3853,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3878,7 +3878,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         loanManager.settleLend(
           settleData,
           loanData,
-          constants.ZERO_ADDRESS,
+          ethers.constants.AddressZero,
           '0',
           [],
           [],
@@ -3891,7 +3891,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       );
 
       expect(await loanManager.getStatus(id)).to.not.eq.BN(STATUS_ONGOING);
-      assert.equal(await loanManager.getCallback(id), constants.ZERO_ADDRESS);
+      assert.equal(await loanManager.getCallback(id), ethers.constants.AddressZero);
     });
     it('Should allow low gas usage on callback', async function () {
       const callback = await TestLoanCallback.new();
@@ -3899,7 +3899,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('99123');
       const amount = bn('30');
-      const expiration = (await time.latest()).add(bn(900));
+      const expiration = (await getNow()).add(bn(900));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
 
       const id = await calcId(
@@ -3907,7 +3907,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         borrower,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3917,7 +3917,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.requestLoan(
         amount,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         borrower,
         callback.address,
         salt,
@@ -3937,7 +3937,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         await loanManager.lend(
           id,                     // Index
           [],                     // OracleData
-          constants.ZERO_ADDRESS, // Cosigner
+          ethers.constants.AddressZero, // Cosigner
           '0',                    // Cosigner limit
           [],                     // Cosigner data
           [],                     // Callback data
@@ -3947,7 +3947,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { _id: id, _lender: lender, _tokens: amount },
       );
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_ONGOING);
       assert.equal(await loanManager.getCallback(id), callback.address);
 
       assert.equal(await callback.caller(), loanManager.address);
@@ -3958,7 +3958,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       const lender = accounts[3];
       const salt = bn('2763');
       const amount = bn('3320');
-      const expiration = (await time.latest()).add(bn(7400));
+      const expiration = (await getNow()).add(bn(7400));
       const loanData = await model.encodeData(amount, expiration, 0, expiration);
       const callback = await TestLoanCallback.new();
 
@@ -3967,7 +3967,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         borrower,
         creator,
         model.address,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         salt,
         expiration,
         loanData,
@@ -3991,7 +3991,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
       await loanManager.settleLend(
         settleData,
         loanData,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         '0',
         [],
         [],
@@ -4001,7 +4001,7 @@ contract('Test LoanManager Diaspore', function (accounts) {
         { from: lender },
       );
 
-      expect(await loanManager.getStatus(id)).to.eq.BN(STATUS_ONGOING);
+      expect(await loanManager.getStatus(id)).to.equal(STATUS_ONGOING);
       assert.equal(await loanManager.getCallback(id), callback.address);
       assert.equal(await callback.caller(), loanManager.address);
     });

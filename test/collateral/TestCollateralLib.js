@@ -23,8 +23,8 @@ function unratio (enc) {
 
 async function expectTuple (promise, v0, v1) {
   const result = await promise;
-  expect(result[0]).to.eq.BN(bn(v0));
-  expect(result[1]).to.eq.BN(bn(v1));
+  expect(result[0]).to.equal(bn(v0));
+  expect(result[1]).to.equal(bn(v1));
 }
 
 contract('Test Collateral lib', function ([_]) {
@@ -45,11 +45,11 @@ contract('Test Collateral lib', function ([_]) {
 
     const entry = await lib.entry();
     expect(entry.debtId).to.be.equal(debtId);
-    expect(entry.amount).to.eq.BN(bn(1000));
+    expect(entry.amount).to.equal(bn(1000));
     expect(entry.oracle).to.be.equal(oracle.address);
     expect(entry.token).to.be.equal(token.address);
-    expect(entry.liquidationRatio).to.eq.BN(ratio(110));
-    expect(entry.balanceRatio).to.eq.BN(ratio(150));
+    expect(entry.liquidationRatio).to.equal(ratio(110));
+    expect(entry.balanceRatio).to.equal(ratio(150));
   });
   it('Should fail create collateral entry with liquidation ratio below balance ratio', async () => {
     const lib = await TestCollateralLib.new();
@@ -58,7 +58,7 @@ contract('Test Collateral lib', function ([_]) {
 
     await expectRevert(
       lib.create(
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         token.address,
         debtId,
         bn(1000),
@@ -75,7 +75,7 @@ contract('Test Collateral lib', function ([_]) {
 
     await expectRevert(
       lib.create(
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         token.address,
         debtId,
         bn(1000),
@@ -92,7 +92,7 @@ contract('Test Collateral lib', function ([_]) {
 
     await expectRevert(
       lib.create(
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
         token.address,
         debtId,
         bn(1000),
@@ -108,8 +108,8 @@ contract('Test Collateral lib', function ([_]) {
 
     await expectRevert(
       lib.create(
-        constants.ZERO_ADDRESS,
-        constants.ZERO_ADDRESS,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero,
         debtId,
         bn(1000),
         ratio(105),
@@ -124,7 +124,7 @@ contract('Test Collateral lib', function ([_]) {
     const debtId = web3.utils.randomHex(32);
 
     await lib.create(
-      constants.ZERO_ADDRESS,
+      ethers.constants.AddressZero,
       token.address,
       debtId,
       bn(1000),
@@ -132,7 +132,7 @@ contract('Test Collateral lib', function ([_]) {
       ratio(150),
     );
 
-    expect(await lib.toBase()).to.eq.BN(bn(1000));
+    expect(await lib.toBase()).to.equal(bn(1000));
   });
   it('Should convert amount using RateOracle', async () => {
     const lib = await TestCollateralLib.new();
@@ -151,7 +151,7 @@ contract('Test Collateral lib', function ([_]) {
 
     // 1 BASE == 0.5 TOKEN
     await oracle.setEquivalent(bn(500000000000000000));
-    expect(await lib.toBase()).to.eq.BN(bn(2000));
+    expect(await lib.toBase()).to.equal(bn(2000));
   });
   it('Should return current ratio without RateOracle', async () => {
     const lib = await TestCollateralLib.new();
@@ -159,7 +159,7 @@ contract('Test Collateral lib', function ([_]) {
     const debtId = web3.utils.randomHex(32);
 
     await lib.create(
-      constants.ZERO_ADDRESS,
+      ethers.constants.AddressZero,
       token.address,
       debtId,
       bn(1000),
@@ -167,14 +167,14 @@ contract('Test Collateral lib', function ([_]) {
       ratio(150),
     );
 
-    expect(await lib.ratio(bn(1000))).to.eq.BN(ratio(100));
-    expect(unratio(await lib.ratio(bn(1000)))).to.eq.BN(bn(100));
-    expect(unratio(await lib.ratio(bn(909)))).to.eq.BN(bn(110));
-    expect(unratio(await lib.ratio(bn(333)))).to.eq.BN(bn(300));
-    expect(unratio(await lib.ratio(bn(1000)))).to.eq.BN(bn(100));
-    expect(unratio(await lib.ratio(bn(1100)))).to.eq.BN(bn(90));
-    expect(unratio(await lib.ratio(bn(2000)))).to.eq.BN(bn(50));
-    expect(unratio(await lib.ratio(bn(4000)))).to.eq.BN(bn(25));
+    expect(await lib.ratio(bn(1000))).to.equal(ratio(100));
+    expect(unratio(await lib.ratio(bn(1000)))).to.equal(bn(100));
+    expect(unratio(await lib.ratio(bn(909)))).to.equal(bn(110));
+    expect(unratio(await lib.ratio(bn(333)))).to.equal(bn(300));
+    expect(unratio(await lib.ratio(bn(1000)))).to.equal(bn(100));
+    expect(unratio(await lib.ratio(bn(1100)))).to.equal(bn(90));
+    expect(unratio(await lib.ratio(bn(2000)))).to.equal(bn(50));
+    expect(unratio(await lib.ratio(bn(4000)))).to.equal(bn(25));
   });
   it('Should return current ratio with RateOracle', async () => {
     const lib = await TestCollateralLib.new();
@@ -194,14 +194,14 @@ contract('Test Collateral lib', function ([_]) {
     // 1 BASE == 0.5 TOKEN
     await oracle.setEquivalent(bn(500000000000000000));
 
-    expect(await lib.ratio(bn(1000))).to.eq.BN(ratio(100));
-    expect(unratio(await lib.ratio(bn(1000)))).to.eq.BN(bn(100));
-    expect(unratio(await lib.ratio(bn(909)))).to.eq.BN(bn(110));
-    expect(unratio(await lib.ratio(bn(333)))).to.eq.BN(bn(300));
-    expect(unratio(await lib.ratio(bn(1000)))).to.eq.BN(bn(100));
-    expect(unratio(await lib.ratio(bn(1100)))).to.eq.BN(bn(90));
-    expect(unratio(await lib.ratio(bn(2000)))).to.eq.BN(bn(50));
-    expect(unratio(await lib.ratio(bn(4000)))).to.eq.BN(bn(25));
+    expect(await lib.ratio(bn(1000))).to.equal(ratio(100));
+    expect(unratio(await lib.ratio(bn(1000)))).to.equal(bn(100));
+    expect(unratio(await lib.ratio(bn(909)))).to.equal(bn(110));
+    expect(unratio(await lib.ratio(bn(333)))).to.equal(bn(300));
+    expect(unratio(await lib.ratio(bn(1000)))).to.equal(bn(100));
+    expect(unratio(await lib.ratio(bn(1100)))).to.equal(bn(90));
+    expect(unratio(await lib.ratio(bn(2000)))).to.equal(bn(50));
+    expect(unratio(await lib.ratio(bn(4000)))).to.equal(bn(25));
   });
   it('Should return required to balance without RateOracle', async () => {
     const lib = await TestCollateralLib.new();
@@ -209,7 +209,7 @@ contract('Test Collateral lib', function ([_]) {
     const debtId = web3.utils.randomHex(32);
 
     await lib.create(
-      constants.ZERO_ADDRESS,
+      ethers.constants.AddressZero,
       token.address,
       debtId,
       bn(1000),
@@ -240,7 +240,7 @@ contract('Test Collateral lib', function ([_]) {
     const debtId = web3.utils.randomHex(32);
 
     await lib.create(
-      constants.ZERO_ADDRESS,
+      ethers.constants.AddressZero,
       token.address,
       debtId,
       bn(1200),
@@ -328,7 +328,7 @@ contract('Test Collateral lib', function ([_]) {
     const debtId = web3.utils.randomHex(32);
 
     await lib.create(
-      constants.ZERO_ADDRESS,
+      ethers.constants.AddressZero,
       token.address,
       debtId,
       bn(1000),
@@ -337,22 +337,22 @@ contract('Test Collateral lib', function ([_]) {
     );
 
     // Can't withdraw collateral
-    expect(await lib.canWithdraw(bn(910))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(920))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(990))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(999))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(1000))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(1200))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(2000))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(2000000))).to.eq.BN(bn(0));
+    expect(await lib.canWithdraw(bn(910))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(920))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(990))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(999))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(1000))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(1200))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(2000))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(2000000))).to.equal(bn(0));
 
     // Can withdraw collateral
-    expect(await lib.canWithdraw(bn(0))).to.eq.BN(bn(1000));
-    expect(await lib.canWithdraw(bn(100))).to.eq.BN(bn(890));
-    expect(await lib.canWithdraw(bn(250))).to.eq.BN(bn(725));
-    expect(await lib.canWithdraw(bn(500))).to.eq.BN(bn(450));
-    expect(await lib.canWithdraw(bn(900))).to.eq.BN(bn(10));
-    expect(await lib.canWithdraw(bn(909))).to.eq.BN(bn(0));
+    expect(await lib.canWithdraw(bn(0))).to.equal(bn(1000));
+    expect(await lib.canWithdraw(bn(100))).to.equal(bn(890));
+    expect(await lib.canWithdraw(bn(250))).to.equal(bn(725));
+    expect(await lib.canWithdraw(bn(500))).to.equal(bn(450));
+    expect(await lib.canWithdraw(bn(900))).to.equal(bn(10));
+    expect(await lib.canWithdraw(bn(909))).to.equal(bn(0));
   });
   it('Should return can withdraw with RateOracle', async () => {
     const lib = await TestCollateralLib.new();
@@ -373,22 +373,22 @@ contract('Test Collateral lib', function ([_]) {
     await oracle.setEquivalent(bn(500000000000000000));
 
     // Can't withdraw collateral
-    expect(await lib.canWithdraw(bn(910))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(920))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(990))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(999))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(1000))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(1200))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(2000))).to.eq.BN(bn(0));
-    expect(await lib.canWithdraw(bn(2000000))).to.eq.BN(bn(0));
+    expect(await lib.canWithdraw(bn(910))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(920))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(990))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(999))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(1000))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(1200))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(2000))).to.equal(bn(0));
+    expect(await lib.canWithdraw(bn(2000000))).to.equal(bn(0));
 
     // Can withdraw collateral
-    expect(await lib.canWithdraw(bn(0))).to.eq.BN(bn(500));
-    expect(await lib.canWithdraw(bn(100))).to.eq.BN(bn(445));
-    expect(await lib.canWithdraw(bn(250))).to.eq.BN(bn(362));
-    expect(await lib.canWithdraw(bn(500))).to.eq.BN(bn(225));
-    expect(await lib.canWithdraw(bn(900))).to.eq.BN(bn(5));
-    expect(await lib.canWithdraw(bn(909))).to.eq.BN(bn(0));
+    expect(await lib.canWithdraw(bn(0))).to.equal(bn(500));
+    expect(await lib.canWithdraw(bn(100))).to.equal(bn(445));
+    expect(await lib.canWithdraw(bn(250))).to.equal(bn(362));
+    expect(await lib.canWithdraw(bn(500))).to.equal(bn(225));
+    expect(await lib.canWithdraw(bn(900))).to.equal(bn(5));
+    expect(await lib.canWithdraw(bn(909))).to.equal(bn(0));
   });
   it('Should return if a collateral is in liquidation, without rate oracle', async () => {
     const lib = await TestCollateralLib.new();
@@ -396,7 +396,7 @@ contract('Test Collateral lib', function ([_]) {
     const debtId = web3.utils.randomHex(32);
 
     await lib.create(
-      constants.ZERO_ADDRESS,
+      ethers.constants.AddressZero,
       token.address,
       debtId,
       bn(1000),

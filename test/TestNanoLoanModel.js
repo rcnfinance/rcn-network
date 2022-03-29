@@ -54,10 +54,10 @@ contract('NanoLoanModel', function (accounts) {
   it('Test get obligations functions', async function () {
     const id = toBytes32(idCounter++);
     // if the loan its no create the obligation should be 0
-    expect(await model.getClosingObligation(id)).to.eq.BN('0', 'should be 0');
-    expect(await model.getEstimateObligation(id)).to.eq.BN('0', 'should be 0');
+    expect(await model.getClosingObligation(id)).to.equal('0', 'should be 0');
+    expect(await model.getEstimateObligation(id)).to.equal('0', 'should be 0');
     const obligation = await model.getObligation(id, 0);
-    expect(obligation.amount).to.eq.BN('0', 'should be 0');
+    expect(obligation.amount).to.equal('0', 'should be 0');
     assert.equal(obligation.defined, true, 'should be false');
   });
   it('Test validate function', async function () {
@@ -181,42 +181,42 @@ contract('NanoLoanModel', function (accounts) {
     const timestamp = bn((await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp.toString());
 
     const config = await model.configs(id);
-    expect(config.amount).to.eq.BN(defaultParams.amount, 'The amount its wrong');
-    expect(config.interestRate).to.eq.BN(defaultParams.interestRate, 'The interest rate its wrong');
-    expect(config.interestRatePunitory).to.eq.BN(defaultParams.interestRatePunitory, 'The interest rate punitory its wrong');
-    expect(config.dueTime).to.eq.BN(timestamp.add(monthInSec), 'The dues in its wrong');
+    expect(config.amount).to.equal(defaultParams.amount, 'The amount its wrong');
+    expect(config.interestRate).to.equal(defaultParams.interestRate, 'The interest rate its wrong');
+    expect(config.interestRatePunitory).to.equal(defaultParams.interestRatePunitory, 'The interest rate punitory its wrong');
+    expect(config.dueTime).to.equal(timestamp.add(monthInSec), 'The dues in its wrong');
     assert.equal(config.id, id, 'The id its wrong');
 
     const state = await model.states(id);
-    expect(state.paid).to.eq.BN('0', 'The paid should be 0');
-    expect(state.interest).to.eq.BN('125', 'The interest should be 125');
-    expect(state.punitoryInterest).to.eq.BN('0', 'The punitoryInterest should be 0');
+    expect(state.paid).to.equal('0', 'The paid should be 0');
+    expect(state.interest).to.equal('125', 'The interest should be 125');
+    expect(state.punitoryInterest).to.equal('0', 'The punitoryInterest should be 0');
     // we need check the realDelta timestamp
-    // expect(state.interestTimestamp).to.eq.BN(timestamp.add(cancelableAt), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
-    expect(state.status).to.eq.BN('0', 'The status should not be paid');
+    // expect(state.interestTimestamp).to.equal(timestamp.add(cancelableAt), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
+    expect(state.status).to.equal('0', 'The status should not be paid');
   });
   it('Test addPaid without punitory', async function () {
     const id = toBytes32(idCounter++);
     /* const tx = */await model.create(id, defaultData, { from: owner });
     // const timestamp = bn((await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp.toString());
 
-    await time.increase(1000000);
+    await increaseTime(1000000);
 
     await model.addPaid(id, 1000, { from: owner });
 
     const state = await model.states(id);
-    expect(state.paid).to.eq.BN('1000', 'The paid should be 1000');
-    expect(state.interest).to.eq.BN('125', 'The interest should be 125');
-    expect(state.punitoryInterest).to.eq.BN('0', 'The punitoryInterest should be 0');
+    expect(state.paid).to.equal('1000', 'The paid should be 1000');
+    expect(state.interest).to.equal('125', 'The interest should be 125');
+    expect(state.punitoryInterest).to.equal('0', 'The punitoryInterest should be 0');
     // we need check the realDelta timestamp
-    // expect(state.interestTimestamp).to.eq.BN(timestamp.add(cancelableAt), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
-    expect(state.status).to.eq.BN('0', 'The status should not be paid');
+    // expect(state.interestTimestamp).to.equal(timestamp.add(cancelableAt), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
+    expect(state.status).to.equal('0', 'The status should not be paid');
   });
   it('Test pay total with interest and interestPunitory', async function () {
     const id = toBytes32(idCounter++);
     await model.create(id, defaultData, { from: owner });
 
-    await time.increase(monthInSec.toNumber() * 2);
+    await increaseTime(monthInSec.toNumber() * 2);
 
     const interestTotal = amount.mul(bn('30')).div(bn('12')).div(bn('100')); // 250
     const interestPTotal = amount.add(interestTotal).mul(bn('60')).div(bn('12')).div(bn('100')); // 512.5
@@ -225,12 +225,12 @@ contract('NanoLoanModel', function (accounts) {
     await model.addPaid(id, total, { from: owner });
 
     const state = await model.states(id);
-    expect(state.paid).to.eq.BN(total, 'The paid should be 10762');
-    expect(state.interest).to.eq.BN(interestTotal, 'The interest should be 250');
-    expect(state.punitoryInterest).to.eq.BN(interestPTotal, 'The punitoryInterest should be 512');
+    expect(state.paid).to.equal(total, 'The paid should be 10762');
+    expect(state.interest).to.equal(interestTotal, 'The interest should be 250');
+    expect(state.punitoryInterest).to.equal(interestPTotal, 'The punitoryInterest should be 512');
     // we need check the realDelta timestamp
     // assert.equal(state.interestTimestamp, timestamp.add(cancelableAt).toString(), 'The interestTimestamp should be the timestamp of block of create transaction plus the cancelable at');
-    expect(state.status).to.eq.BN(STATUS_PAID, 'The status should be paid');
+    expect(state.status).to.equal(STATUS_PAID, 'The status should be paid');
   });
   //                                              amount, interest, pInterest, duesIn, d1, v1, d2, v2, d3, v3, d4, v4
   it('Test E1 28% Anual interest, 91 days', eTest(10000, 28, 42, 91, 30, 10233, 31, 10474, 91, 11469, 5, 11530));
@@ -260,7 +260,7 @@ contract('NanoLoanModel', function (accounts) {
       await model.create(id, params, { from: owner });
 
       // forward time, d1 days
-      await time.increase(bn(d1).mul(sd).toNumber());
+      await increaseTime(bn(d1).mul(sd).toNumber());
 
       // check that the interest accumulated it's close to the defined by the test
       await model.run(id);
@@ -270,7 +270,7 @@ contract('NanoLoanModel', function (accounts) {
       assert.isBelow(d1Diff.toNumber(), 2, 'The v1 should aprox the interest rate in the d1 timestamp');
 
       // forward time, d2 days
-      await time.increase(bn(d2).mul(sd).toNumber());
+      await increaseTime(bn(d2).mul(sd).toNumber());
 
       // check that the interest accumulated it's close to the defined by the test
       const d2PendingAmount = await model.getClosingObligation(id);
@@ -278,7 +278,7 @@ contract('NanoLoanModel', function (accounts) {
       assert.isBelow(d2Diff.toNumber(), 2, 'The v2 should aprox the interest rate in the d2 timestamp');
 
       // forward time, d3 days
-      await time.increase(bn(d3).mul(sd).toNumber());
+      await increaseTime(bn(d3).mul(sd).toNumber());
 
       // check that the interest accumulated it's close to the defined by the test
       await model.run(id);
@@ -287,7 +287,7 @@ contract('NanoLoanModel', function (accounts) {
       assert.isBelow(d3Diff.toNumber(), 2, 'The v3 should aprox the interest rate in the d3 timestamp');
 
       // forward time, d4 days
-      await time.increase(bn(d4).mul(sd).toNumber());
+      await increaseTime(bn(d4).mul(sd).toNumber());
 
       // check that the interest accumulated it's close to the defined by the test
       const d4PendingAmount = await model.getClosingObligation(id);
@@ -298,8 +298,8 @@ contract('NanoLoanModel', function (accounts) {
       await model.addPaid(id, d4PendingAmount, { from: owner });
 
       const state = await model.states(id);
-      expect(state.paid).to.eq.BN(d4PendingAmount, 'The paid should be ' + d4PendingAmount.toString());
-      expect(state.status).to.eq.BN(STATUS_PAID, 'The status should be paid');
+      expect(state.paid).to.equal(d4PendingAmount, 'The paid should be ' + d4PendingAmount.toString());
+      expect(state.status).to.equal(STATUS_PAID, 'The status should be paid');
     };
   }
   it('get modelId', async function () {

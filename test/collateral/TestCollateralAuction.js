@@ -53,19 +53,19 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         },
       );
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       // Validate struct
       const entry = await auction.auctions(auctionId);
       expect(entry.fromToken).to.be.equal(token.address);
-      expect(entry.startTime).to.eq.BN(await time.latest());
-      expect(entry.limitDelta).to.eq.BN(bn(12600));
-      expect(entry.startOffer).to.eq.BN(bn(950));
-      expect(entry.amount).to.eq.BN(bn(50));
-      expect(entry.limit).to.eq.BN(bn(2000));
+      expect(entry.startTime).to.equal(await getNow());
+      expect(entry.limitDelta).to.equal(bn(12600));
+      expect(entry.startOffer).to.equal(bn(950));
+      expect(entry.amount).to.equal(bn(50));
+      expect(entry.limit).to.equal(bn(2000));
 
       // Should increase auction count
-      expect(await auction.getAuctionsLength()).to.eq.BN(bn(2));
+      expect(await auction.getAuctionsLength()).to.equal(bn(2));
     });
   });
   describe('Fail to create an auction', () => {
@@ -157,7 +157,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
           { from: owner },
         );
 
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(2000));
 
         await auction.transferOwnership(mock.address, { from: owner });
       });
@@ -168,13 +168,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
         await auction.take(id, data, false, { from: anotherUser });
 
-        expect(await base.balanceOf(mock.address)).to.eq.BN(bn(2000));
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(0));
-        expect(await base.balanceOf(anotherUser)).to.eq.BN(bn(0));
+        expect(await base.balanceOf(mock.address)).to.equal(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(0));
+        expect(await base.balanceOf(anotherUser)).to.equal(bn(0));
 
-        expect(await mock.lastId()).to.eq.BN(id);
-        expect(await mock.lastLeftover()).to.eq.BN(bn(1750));
-        expect(await mock.lastReceived()).to.eq.BN(bn(250));
+        expect(await mock.lastId()).to.equal(id);
+        expect(await mock.lastLeftover()).to.equal(bn(1750));
+        expect(await mock.lastReceived()).to.equal(bn(250));
         expect(await mock.lastData()).to.be.equal(data);
       });
       it('Should take same token auction after 10 minutes', async () => {
@@ -186,13 +186,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
         await auction.take(id, data, false, { from: anotherUser });
 
-        expect(await base.balanceOf(mock.address)).to.eq.BN(bn(2000));
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(0));
-        expect(await base.balanceOf(anotherUser)).to.eq.BN(bn(0));
+        expect(await base.balanceOf(mock.address)).to.equal(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(0));
+        expect(await base.balanceOf(anotherUser)).to.equal(bn(0));
 
-        expect(await mock.lastId()).to.eq.BN(id);
-        expect(await mock.lastLeftover()).to.eq.BN(bn(1750));
-        expect(await mock.lastReceived()).to.eq.BN(bn(250));
+        expect(await mock.lastId()).to.equal(id);
+        expect(await mock.lastLeftover()).to.equal(bn(1750));
+        expect(await mock.lastReceived()).to.equal(bn(250));
         expect(await mock.lastData()).to.be.equal(data);
       });
       it('Should take same token auction after 10 days', async () => {
@@ -204,13 +204,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
         await auction.take(id, data, false, { from: anotherUser });
 
-        expect(await base.balanceOf(mock.address)).to.eq.BN(bn(2000));
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(0));
-        expect(await base.balanceOf(anotherUser)).to.eq.BN(bn(0));
+        expect(await base.balanceOf(mock.address)).to.equal(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(0));
+        expect(await base.balanceOf(anotherUser)).to.equal(bn(0));
 
-        expect(await mock.lastId()).to.eq.BN(id);
-        expect(await mock.lastLeftover()).to.eq.BN(bn(1750));
-        expect(await mock.lastReceived()).to.eq.BN(bn(250));
+        expect(await mock.lastId()).to.equal(id);
+        expect(await mock.lastLeftover()).to.equal(bn(1750));
+        expect(await mock.lastReceived()).to.equal(bn(250));
         expect(await mock.lastData()).to.be.equal(data);
       });
       it('Should take same token auction after 1 year', async () => {
@@ -222,13 +222,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
         await auction.take(id, data, false, { from: anotherUser });
 
-        expect(await base.balanceOf(mock.address)).to.eq.BN(bn(2000));
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(0));
-        expect(await base.balanceOf(anotherUser)).to.eq.BN(bn(0));
+        expect(await base.balanceOf(mock.address)).to.equal(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(0));
+        expect(await base.balanceOf(anotherUser)).to.equal(bn(0));
 
-        expect(await mock.lastId()).to.eq.BN(id);
-        expect(await mock.lastLeftover()).to.eq.BN(bn(1750));
-        expect(await mock.lastReceived()).to.eq.BN(bn(250));
+        expect(await mock.lastId()).to.equal(id);
+        expect(await mock.lastLeftover()).to.equal(bn(1750));
+        expect(await mock.lastReceived()).to.equal(bn(250));
         expect(await mock.lastData()).to.be.equal(data);
       });
     });
@@ -251,7 +251,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
           { from: owner },
         );
 
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(2000));
 
         await auction.transferOwnership(mock.address, { from: owner });
       });
@@ -262,13 +262,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
         await auction.take(id, data, false, { from: anotherUser });
 
-        expect(await base.balanceOf(mock.address)).to.eq.BN(bn(2000));
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(0));
-        expect(await base.balanceOf(anotherUser)).to.eq.BN(bn(0));
+        expect(await base.balanceOf(mock.address)).to.equal(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(0));
+        expect(await base.balanceOf(anotherUser)).to.equal(bn(0));
 
-        expect(await mock.lastId()).to.eq.BN(id);
-        expect(await mock.lastLeftover()).to.eq.BN(bn(0));
-        expect(await mock.lastReceived()).to.eq.BN(bn(2000));
+        expect(await mock.lastId()).to.equal(id);
+        expect(await mock.lastLeftover()).to.equal(bn(0));
+        expect(await mock.lastReceived()).to.equal(bn(2000));
         expect(await mock.lastData()).to.be.equal(data);
       });
       it('Should take same token auction after 10 minutes', async () => {
@@ -280,13 +280,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
         await auction.take(id, data, false, { from: anotherUser });
 
-        expect(await base.balanceOf(mock.address)).to.eq.BN(bn(2000));
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(0));
-        expect(await base.balanceOf(anotherUser)).to.eq.BN(bn(0));
+        expect(await base.balanceOf(mock.address)).to.equal(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(0));
+        expect(await base.balanceOf(anotherUser)).to.equal(bn(0));
 
-        expect(await mock.lastId()).to.eq.BN(id);
-        expect(await mock.lastLeftover()).to.eq.BN(bn(0));
-        expect(await mock.lastReceived()).to.eq.BN(bn(2000));
+        expect(await mock.lastId()).to.equal(id);
+        expect(await mock.lastLeftover()).to.equal(bn(0));
+        expect(await mock.lastReceived()).to.equal(bn(2000));
         expect(await mock.lastData()).to.be.equal(data);
       });
       it('Should take same token auction after 10 days', async () => {
@@ -298,13 +298,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
         await auction.take(id, data, false, { from: anotherUser });
 
-        expect(await base.balanceOf(mock.address)).to.eq.BN(bn(2000));
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(0));
-        expect(await base.balanceOf(anotherUser)).to.eq.BN(bn(0));
+        expect(await base.balanceOf(mock.address)).to.equal(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(0));
+        expect(await base.balanceOf(anotherUser)).to.equal(bn(0));
 
-        expect(await mock.lastId()).to.eq.BN(id);
-        expect(await mock.lastLeftover()).to.eq.BN(bn(0));
-        expect(await mock.lastReceived()).to.eq.BN(bn(2000));
+        expect(await mock.lastId()).to.equal(id);
+        expect(await mock.lastLeftover()).to.equal(bn(0));
+        expect(await mock.lastReceived()).to.equal(bn(2000));
         expect(await mock.lastData()).to.be.equal(data);
       });
       it('Should take same token auction after 1 year', async () => {
@@ -316,13 +316,13 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         const data = web3.utils.randomHex(100);
         await auction.take(id, data, false, { from: anotherUser });
 
-        expect(await base.balanceOf(mock.address)).to.eq.BN(bn(2000));
-        expect(await base.balanceOf(auction.address)).to.eq.BN(bn(0));
-        expect(await base.balanceOf(anotherUser)).to.eq.BN(bn(0));
+        expect(await base.balanceOf(mock.address)).to.equal(bn(2000));
+        expect(await base.balanceOf(auction.address)).to.equal(bn(0));
+        expect(await base.balanceOf(anotherUser)).to.equal(bn(0));
 
-        expect(await mock.lastId()).to.eq.BN(id);
-        expect(await mock.lastLeftover()).to.eq.BN(bn(0));
-        expect(await mock.lastReceived()).to.eq.BN(bn(2000));
+        expect(await mock.lastId()).to.equal(id);
+        expect(await mock.lastLeftover()).to.equal(bn(0));
+        expect(await mock.lastReceived()).to.equal(bn(2000));
         expect(await mock.lastData()).to.be.equal(data);
       });
     });
@@ -344,14 +344,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { from: owner },
       );
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.transferOwnership(mock.address, { from: owner });
 
       const offer = await auction.offer(id);
 
-      expect(offer[0]).to.eq.BN(bn(950));
-      expect(offer[1]).to.eq.BN(bn(50));
+      expect(offer[0]).to.equal(bn(950));
+      expect(offer[1]).to.equal(bn(50));
 
       const data = web3.utils.randomHex(100);
 
@@ -362,14 +362,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { _id: id, _taker: user, _selling: bn(950), _requesting: bn(50) },
       );
 
-      expect(await base.balanceOf(user)).to.eq.BN(bn(0));
-      expect(await base.balanceOf(mock.address)).to.eq.BN(bn(50));
-      expect(await token.balanceOf(user)).to.eq.BN(bn(950));
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(0));
+      expect(await base.balanceOf(user)).to.equal(bn(0));
+      expect(await base.balanceOf(mock.address)).to.equal(bn(50));
+      expect(await token.balanceOf(user)).to.equal(bn(950));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(0));
 
-      expect(await mock.lastId()).to.eq.BN(id);
-      expect(await mock.lastLeftover()).to.eq.BN(bn(1050));
-      expect(await mock.lastReceived()).to.eq.BN(bn(50));
+      expect(await mock.lastId()).to.equal(id);
+      expect(await mock.lastLeftover()).to.equal(bn(1050));
+      expect(await mock.lastReceived()).to.equal(bn(50));
       expect(await mock.lastData()).to.be.equal(data);
     });
     it('Should take an auction at the reference price', async () => {
@@ -392,7 +392,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { from: owner },
       );
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.increaseTime(bn(10).mul(bn(60)));
 
@@ -400,8 +400,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
       const offer = await auction.offer(id);
 
-      expect(offer[0]).to.eq.BN(bn(1000));
-      expect(offer[1]).to.eq.BN(bn(50));
+      expect(offer[0]).to.equal(bn(1000));
+      expect(offer[1]).to.equal(bn(50));
 
       const data = web3.utils.randomHex(100);
 
@@ -412,14 +412,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { _id: id, _taker: user, _selling: bn(1000), _requesting: bn(50) },
       );
 
-      expect(await base.balanceOf(user)).to.eq.BN(bn(0));
-      expect(await base.balanceOf(mock.address)).to.eq.BN(bn(50));
-      expect(await token.balanceOf(user)).to.eq.BN(bn(1000));
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(0));
+      expect(await base.balanceOf(user)).to.equal(bn(0));
+      expect(await base.balanceOf(mock.address)).to.equal(bn(50));
+      expect(await token.balanceOf(user)).to.equal(bn(1000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(0));
 
-      expect(await mock.lastId()).to.eq.BN(id);
-      expect(await mock.lastLeftover()).to.eq.BN(bn(1000));
-      expect(await mock.lastReceived()).to.eq.BN(bn(50));
+      expect(await mock.lastId()).to.equal(id);
+      expect(await mock.lastLeftover()).to.equal(bn(1000));
+      expect(await mock.lastReceived()).to.equal(bn(50));
       expect(await mock.lastData()).to.be.equal(data);
     });
     it('Should take an auction at half the limit price', async () => {
@@ -444,14 +444,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
       await auction.increaseTime(bn(6300));
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.transferOwnership(mock.address, { from: owner });
 
       const offer = await auction.offer(id);
 
-      expect(offer[1]).to.eq.BN(bn(50));
-      expect(offer[0]).to.eq.BN(bn(1475));
+      expect(offer[1]).to.equal(bn(50));
+      expect(offer[0]).to.equal(bn(1475));
 
       const data = web3.utils.randomHex(100);
 
@@ -462,14 +462,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { _id: id, _taker: user, _selling: bn(1475), _requesting: bn(50) },
       );
 
-      expect(await base.balanceOf(user)).to.eq.BN(bn(0));
-      expect(await base.balanceOf(mock.address)).to.eq.BN(bn(50));
-      expect(await token.balanceOf(user)).to.eq.BN(bn(1475));
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(0));
+      expect(await base.balanceOf(user)).to.equal(bn(0));
+      expect(await base.balanceOf(mock.address)).to.equal(bn(50));
+      expect(await token.balanceOf(user)).to.equal(bn(1475));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(0));
 
-      expect(await mock.lastId()).to.eq.BN(id);
-      expect(await mock.lastLeftover()).to.eq.BN(bn(525));
-      expect(await mock.lastReceived()).to.eq.BN(bn(50));
+      expect(await mock.lastId()).to.equal(id);
+      expect(await mock.lastLeftover()).to.equal(bn(525));
+      expect(await mock.lastReceived()).to.equal(bn(50));
       expect(await mock.lastData()).to.be.equal(data);
     });
     it('Should take an auction at the limit price', async () => {
@@ -494,14 +494,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
       await auction.increaseTime(bn(12600));
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.transferOwnership(mock.address, { from: owner });
 
       const offer = await auction.offer(id);
 
-      expect(offer[1]).to.eq.BN(bn(50));
-      expect(offer[0]).to.eq.BN(bn(2000));
+      expect(offer[1]).to.equal(bn(50));
+      expect(offer[0]).to.equal(bn(2000));
 
       const data = web3.utils.randomHex(100);
 
@@ -512,14 +512,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { _id: id, _taker: user, _selling: bn(2000), _requesting: bn(50) },
       );
 
-      expect(await base.balanceOf(user)).to.eq.BN(bn(0));
-      expect(await base.balanceOf(mock.address)).to.eq.BN(bn(50));
-      expect(await token.balanceOf(user)).to.eq.BN(bn(2000));
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(0));
+      expect(await base.balanceOf(user)).to.equal(bn(0));
+      expect(await base.balanceOf(mock.address)).to.equal(bn(50));
+      expect(await token.balanceOf(user)).to.equal(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(0));
 
-      expect(await mock.lastId()).to.eq.BN(id);
-      expect(await mock.lastLeftover()).to.eq.BN(bn(0));
-      expect(await mock.lastReceived()).to.eq.BN(bn(50));
+      expect(await mock.lastId()).to.equal(id);
+      expect(await mock.lastLeftover()).to.equal(bn(0));
+      expect(await mock.lastReceived()).to.equal(bn(50));
       expect(await mock.lastData()).to.be.equal(data);
     });
     it('Should take an auction requesting half the base', async () => {
@@ -544,14 +544,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
       await auction.increaseTime(bn(55800));
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.transferOwnership(mock.address, { from: owner });
 
       const offer = await auction.offer(id);
 
-      expect(offer[1]).to.eq.BN(bn(25));
-      expect(offer[0]).to.eq.BN(bn(2000));
+      expect(offer[1]).to.equal(bn(25));
+      expect(offer[0]).to.equal(bn(2000));
 
       const data = web3.utils.randomHex(100);
 
@@ -562,14 +562,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { _id: id, _taker: user, _selling: bn(2000), _requesting: bn(25) },
       );
 
-      expect(await base.balanceOf(user)).to.eq.BN(bn(25));
-      expect(await base.balanceOf(mock.address)).to.eq.BN(bn(25));
-      expect(await token.balanceOf(user)).to.eq.BN(bn(2000));
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(0));
+      expect(await base.balanceOf(user)).to.equal(bn(25));
+      expect(await base.balanceOf(mock.address)).to.equal(bn(25));
+      expect(await token.balanceOf(user)).to.equal(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(0));
 
-      expect(await mock.lastId()).to.eq.BN(id);
-      expect(await mock.lastLeftover()).to.eq.BN(bn(0));
-      expect(await mock.lastReceived()).to.eq.BN(bn(25));
+      expect(await mock.lastId()).to.equal(id);
+      expect(await mock.lastLeftover()).to.equal(bn(0));
+      expect(await mock.lastReceived()).to.equal(bn(25));
       expect(await mock.lastData()).to.be.equal(data);
     });
     it('Should take an auction requesting almost no base', async () => {
@@ -592,7 +592,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { from: owner },
       );
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.increaseTime(bn(99000).sub(bn(1)));
 
@@ -600,8 +600,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
       const offer = await auction.offer(id);
 
-      expect(offer[1]).to.eq.BN(bn(1));
-      expect(offer[0]).to.eq.BN(bn(2000));
+      expect(offer[1]).to.equal(bn(1));
+      expect(offer[0]).to.equal(bn(2000));
 
       const data = web3.utils.randomHex(100);
 
@@ -612,14 +612,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { _id: id, _taker: user, _selling: bn(2000), _requesting: bn(1) },
       );
 
-      expect(await base.balanceOf(user)).to.eq.BN(bn(49));
-      expect(await base.balanceOf(mock.address)).to.eq.BN(bn(1));
-      expect(await token.balanceOf(user)).to.eq.BN(bn(2000));
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(0));
+      expect(await base.balanceOf(user)).to.equal(bn(49));
+      expect(await base.balanceOf(mock.address)).to.equal(bn(1));
+      expect(await token.balanceOf(user)).to.equal(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(0));
 
-      expect(await mock.lastId()).to.eq.BN(id);
-      expect(await mock.lastLeftover()).to.eq.BN(bn(0));
-      expect(await mock.lastReceived()).to.eq.BN(bn(1));
+      expect(await mock.lastId()).to.equal(id);
+      expect(await mock.lastLeftover()).to.equal(bn(0));
+      expect(await mock.lastReceived()).to.equal(bn(1));
       expect(await mock.lastData()).to.be.equal(data);
     });
     it('Should take an auction after restarting the auction', async () => {
@@ -642,7 +642,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { from: owner },
       );
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.increaseTime(bn(99000).add(bn(43200)));
 
@@ -650,8 +650,8 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
       const offer = await auction.offer(id);
 
-      expect(offer[1]).to.eq.BN(bn(25));
-      expect(offer[0]).to.eq.BN(bn(2000));
+      expect(offer[1]).to.equal(bn(25));
+      expect(offer[0]).to.equal(bn(2000));
 
       const data = web3.utils.randomHex(100);
 
@@ -662,14 +662,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { _id: id, _taker: user, _selling: bn(2000), _requesting: bn(25) },
       );
 
-      expect(await base.balanceOf(user)).to.eq.BN(bn(25));
-      expect(await base.balanceOf(mock.address)).to.eq.BN(bn(25));
-      expect(await token.balanceOf(user)).to.eq.BN(bn(2000));
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(0));
+      expect(await base.balanceOf(user)).to.equal(bn(25));
+      expect(await base.balanceOf(mock.address)).to.equal(bn(25));
+      expect(await token.balanceOf(user)).to.equal(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(0));
 
-      expect(await mock.lastId()).to.eq.BN(id);
-      expect(await mock.lastLeftover()).to.eq.BN(bn(0));
-      expect(await mock.lastReceived()).to.eq.BN(bn(25));
+      expect(await mock.lastId()).to.equal(id);
+      expect(await mock.lastLeftover()).to.equal(bn(0));
+      expect(await mock.lastReceived()).to.equal(bn(25));
       expect(await mock.lastData()).to.be.equal(data);
     });
   });
@@ -691,7 +691,7 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { from: owner },
       );
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.transferOwnership(mock.address, { from: owner });
     });
@@ -742,14 +742,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
         { from: owner },
       );
 
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
       await auction.transferOwnership(mock.address, { from: owner });
 
       const offer = await auction.offer(id);
 
-      expect(offer[0]).to.eq.BN(bn(950));
-      expect(offer[1]).to.eq.BN(bn(50));
+      expect(offer[0]).to.equal(bn(950));
+      expect(offer[1]).to.equal(bn(50));
 
       const data = web3.utils.randomHex(100);
 
@@ -758,14 +758,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
 
       expect(await callback.callbackCalled()).to.be.equal(true);
 
-      expect(await base.balanceOf(callback.address)).to.eq.BN(bn(0));
-      expect(await base.balanceOf(mock.address)).to.eq.BN(bn(50));
-      expect(await token.balanceOf(callback.address)).to.eq.BN(bn(950));
-      expect(await token.balanceOf(auction.address)).to.eq.BN(bn(0));
+      expect(await base.balanceOf(callback.address)).to.equal(bn(0));
+      expect(await base.balanceOf(mock.address)).to.equal(bn(50));
+      expect(await token.balanceOf(callback.address)).to.equal(bn(950));
+      expect(await token.balanceOf(auction.address)).to.equal(bn(0));
 
-      expect(await mock.lastId()).to.eq.BN(id);
-      expect(await mock.lastLeftover()).to.eq.BN(bn(1050));
-      expect(await mock.lastReceived()).to.eq.BN(bn(50));
+      expect(await mock.lastId()).to.equal(id);
+      expect(await mock.lastLeftover()).to.equal(bn(1050));
+      expect(await mock.lastReceived()).to.equal(bn(50));
       expect(await mock.lastData()).to.be.equal(data);
     });
   });
@@ -790,14 +790,14 @@ contract('Test Collateral Dutch auction', function ([_, stub, owner, user, anoth
       { from: owner },
     );
 
-    expect(await token.balanceOf(auction.address)).to.eq.BN(bn(2000));
+    expect(await token.balanceOf(auction.address)).to.equal(bn(2000));
 
     await auction.transferOwnership(mock.address, { from: owner });
 
     const offer = await auction.offer(id);
 
-    expect(offer[0]).to.eq.BN(bn(950));
-    expect(offer[1]).to.eq.BN(bn(50));
+    expect(offer[0]).to.equal(bn(950));
+    expect(offer[1]).to.equal(bn(50));
 
     const data = web3.utils.randomHex(100);
 
