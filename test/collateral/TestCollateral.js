@@ -13,7 +13,7 @@ describe('Test Collateral cosigner Diaspore', function () {
   let owner, borrower, creator, burner;
   let rcn, auxToken, loanManager, debtEngine, model, collateral, oracle, testCollateralAuctionMock, testCollateralHandler;
 
-  const WEI = ethers.utils.parseEther('1');;
+  const WEI = ethers.utils.parseEther('1');
 
   async function toFee (amount) {
     const feePerc = await debtEngine.fee();
