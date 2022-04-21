@@ -9,7 +9,7 @@ const {
   toBytes32,
 } = require('../Helper.js');
 
-describe('Test Collateral cosigner Diaspore', function (accounts) {
+describe('Test Collateral cosigner Diaspore', function () {
   let owner, borrower, creator, burner;
   let rcn, auxToken, loanManager, debtEngine, model, collateral, oracle, testCollateralAuctionMock, testCollateralHandler;
 
@@ -64,12 +64,12 @@ describe('Test Collateral cosigner Diaspore', function (accounts) {
     const entryId = await collateral.getEntriesLength();
 
     await collateral.connect(creator).create(
-      creator.address,   // Owner
-      loanId,            // debtId
-      oracle.address,    // entry oracle
-      entryAmount,       // amount
-      ratio(150),        // liquidationRatio
-      ratio(200),        // balanceRatio
+      creator.address, // Owner
+      loanId,          // debtId
+      oracle.address,  // entry oracle
+      entryAmount,     // amount
+      ratio(150),      // liquidationRatio
+      ratio(200),      // balanceRatio
     );
 
     return { entryId, loanId };
