@@ -1,17 +1,6 @@
-
-const TestRateOracle = artifacts.require('TestRateOracle');
-const TestCollateralLib = artifacts.require('TestCollateralLib');
-const TestToken = artifacts.require('TestToken');
-
-const {
-  constants,
-  expectRevert,
-} = require('@openzeppelin/test-helpers');
-
-const {
-  expect,
-  bn,
-} = require('../Helper.js');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+const { bn, randomHex } = require('../Helper.js');
 
 function ratio (num) {
   return bn(num).mul(bn(2).pow(bn(32))).div(bn(100));
@@ -27,12 +16,15 @@ async function expectTuple (promise, v0, v1) {
   expect(result[1]).to.equal(bn(v1));
 }
 
-contract('Test Collateral lib', function ([_]) {
+describe('Test Collateral lib', function () {
   it('Should create a collateral entry', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
-    const oracle = await TestRateOracle.new();
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
+    const TestRateOracle = await ethers.getContractFactory('TestRateOracle');
+    const oracle = await TestRateOracle.deploy();
 
     await lib.create(
       oracle.address,
@@ -52,11 +44,13 @@ contract('Test Collateral lib', function ([_]) {
     expect(entry.balanceRatio).to.equal(ratio(150));
   });
   it('Should fail create collateral entry with liquidation ratio below balance ratio', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
-    await expectRevert(
+    await expect(
       lib.create(
         ethers.constants.AddressZero,
         token.address,
@@ -64,16 +58,17 @@ contract('Test Collateral lib', function ([_]) {
         bn(1000),
         ratio(110),
         ratio(105),
-      ),
-      'collateral-lib: _liquidationRatio should be below _balanceRatio',
-    );
+      )
+    ).to.be.revertedWith('collateral-lib: _liquidationRatio should be below _balanceRatio');
   });
   it('Should fail create collateral entry with liquidation ratio equal to balance ratio', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
-    await expectRevert(
+    await expect(
       lib.create(
         ethers.constants.AddressZero,
         token.address,
@@ -81,16 +76,17 @@ contract('Test Collateral lib', function ([_]) {
         bn(1000),
         ratio(110),
         ratio(110),
-      ),
-      'collateral-lib: _liquidationRatio should be below _balanceRatio',
-    );
+      )
+    ).to.be.revertedWith('collateral-lib: _liquidationRatio should be below _balanceRatio');
   });
   it('Should fail create collateral entry with liquidation below 100', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
-    await expectRevert(
+    await expect(
       lib.create(
         ethers.constants.AddressZero,
         token.address,
@@ -98,15 +94,15 @@ contract('Test Collateral lib', function ([_]) {
         bn(1000),
         ratio(99),
         ratio(110),
-      ),
-      'collateral-lib: _liquidationRatio should be above one',
-    );
+      )
+    ).to.be.revertedWith('collateral-lib: _liquidationRatio should be above one');
   });
   it('Should fail create collateral entry with no token', async () => {
-    const lib = await TestCollateralLib.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const debtId = randomHex();
 
-    await expectRevert(
+    await expect(
       lib.create(
         ethers.constants.AddressZero,
         ethers.constants.AddressZero,
@@ -114,14 +110,15 @@ contract('Test Collateral lib', function ([_]) {
         bn(1000),
         ratio(105),
         ratio(110),
-      ),
-      'collateral-lib: _token can\'t be address zero',
-    );
+      )
+    ).to.be.revertedWith('collateral-lib: _token can\'t be address zero');
   });
   it('Should convert amount without RateOracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
     await lib.create(
       ethers.constants.AddressZero,
@@ -135,10 +132,13 @@ contract('Test Collateral lib', function ([_]) {
     expect(await lib.toBase()).to.equal(bn(1000));
   });
   it('Should convert amount using RateOracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
-    const oracle = await TestRateOracle.new();
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
+    const TestRateOracle = await ethers.getContractFactory('TestRateOracle');
+    const oracle = await TestRateOracle.deploy();
 
     await lib.create(
       oracle.address,
@@ -150,13 +150,15 @@ contract('Test Collateral lib', function ([_]) {
     );
 
     // 1 BASE == 0.5 TOKEN
-    await oracle.setEquivalent(bn(500000000000000000));
+    await oracle.setEquivalent(bn('500000000000000000'));
     expect(await lib.toBase()).to.equal(bn(2000));
   });
   it('Should return current ratio without RateOracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
     await lib.create(
       ethers.constants.AddressZero,
@@ -177,10 +179,13 @@ contract('Test Collateral lib', function ([_]) {
     expect(unratio(await lib.ratio(bn(4000)))).to.equal(bn(25));
   });
   it('Should return current ratio with RateOracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
-    const oracle = await TestRateOracle.new();
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
+    const TestRateOracle = await ethers.getContractFactory('TestRateOracle');
+    const oracle = await TestRateOracle.deploy();
 
     await lib.create(
       oracle.address,
@@ -192,7 +197,7 @@ contract('Test Collateral lib', function ([_]) {
     );
 
     // 1 BASE == 0.5 TOKEN
-    await oracle.setEquivalent(bn(500000000000000000));
+    await oracle.setEquivalent(bn('500000000000000000'));
 
     expect(await lib.ratio(bn(1000))).to.equal(ratio(100));
     expect(unratio(await lib.ratio(bn(1000)))).to.equal(bn(100));
@@ -204,9 +209,11 @@ contract('Test Collateral lib', function ([_]) {
     expect(unratio(await lib.ratio(bn(4000)))).to.equal(bn(25));
   });
   it('Should return required to balance without RateOracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
     await lib.create(
       ethers.constants.AddressZero,
@@ -235,9 +242,11 @@ contract('Test Collateral lib', function ([_]) {
     await expectTuple(lib.balance(bn(2000000)), 1000, 1000);
   });
   it('Should return required to balance without RateOracle - biz', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
     await lib.create(
       ethers.constants.AddressZero,
@@ -260,10 +269,13 @@ contract('Test Collateral lib', function ([_]) {
     await expectTuple(lib.balance(bn(1001)), 603, 603);
   });
   it('Should return required to balance with RateOracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
-    const oracle = await TestRateOracle.new();
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
+    const TestRateOracle = await ethers.getContractFactory('TestRateOracle');
+    const oracle = await TestRateOracle.deploy();
 
     await lib.create(
       oracle.address,
@@ -275,7 +287,7 @@ contract('Test Collateral lib', function ([_]) {
     );
 
     // 1 BASE == 0.5 TOKEN
-    await oracle.setEquivalent(bn(500000000000000000));
+    await oracle.setEquivalent(bn('500000000000000000'));
 
     // Balance is not required
     await expectTuple(lib.balance(bn(0)), 0, 0);
@@ -295,10 +307,13 @@ contract('Test Collateral lib', function ([_]) {
     await expectTuple(lib.balance(bn(2000000)), 500, 1000);
   });
   it('Should return required to balance with RateOracle - biz', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
-    const oracle = await TestRateOracle.new();
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
+    const TestRateOracle = await ethers.getContractFactory('TestRateOracle');
+    const oracle = await TestRateOracle.deploy();
 
     await lib.create(
       oracle.address,
@@ -310,7 +325,7 @@ contract('Test Collateral lib', function ([_]) {
     );
 
     // 1 BASE == 0.5 TOKEN
-    await oracle.setEquivalent(bn(500000000000000000));
+    await oracle.setEquivalent(bn('500000000000000000'));
 
     // Balance is not required
     await expectTuple(lib.balance(bn(0)), 0, 0);
@@ -323,9 +338,11 @@ contract('Test Collateral lib', function ([_]) {
     await expectTuple(lib.balance(bn(1001)), 301, 603);
   });
   it('Should return can withdraw without RateOracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
     await lib.create(
       ethers.constants.AddressZero,
@@ -355,10 +372,13 @@ contract('Test Collateral lib', function ([_]) {
     expect(await lib.canWithdraw(bn(909))).to.equal(bn(0));
   });
   it('Should return can withdraw with RateOracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
-    const oracle = await TestRateOracle.new();
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
+    const TestRateOracle = await ethers.getContractFactory('TestRateOracle');
+    const oracle = await TestRateOracle.deploy();
 
     await lib.create(
       oracle.address,
@@ -370,7 +390,7 @@ contract('Test Collateral lib', function ([_]) {
     );
 
     // 1 BASE == 0.5 TOKEN
-    await oracle.setEquivalent(bn(500000000000000000));
+    await oracle.setEquivalent(bn('500000000000000000'));
 
     // Can't withdraw collateral
     expect(await lib.canWithdraw(bn(910))).to.equal(bn(0));
@@ -391,9 +411,11 @@ contract('Test Collateral lib', function ([_]) {
     expect(await lib.canWithdraw(bn(909))).to.equal(bn(0));
   });
   it('Should return if a collateral is in liquidation, without rate oracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
 
     await lib.create(
       ethers.constants.AddressZero,
@@ -423,10 +445,13 @@ contract('Test Collateral lib', function ([_]) {
     expect(await lib.inLiquidation(bn(2000000))).to.be.equal(true);
   });
   it('Should return if a collateral is in liquidation, with rate oracle', async () => {
-    const lib = await TestCollateralLib.new();
-    const token = await TestToken.new();
-    const debtId = web3.utils.randomHex(32);
-    const oracle = await TestRateOracle.new();
+    const TestCollateralLib = await ethers.getContractFactory('TestCollateralLib');
+    const lib = await TestCollateralLib.deploy();
+    const TestToken = await ethers.getContractFactory('TestToken');
+    const token = await TestToken.deploy();
+    const debtId = randomHex();
+    const TestRateOracle = await ethers.getContractFactory('TestRateOracle');
+    const oracle = await TestRateOracle.deploy();
 
     await lib.create(
       oracle.address,
@@ -438,7 +463,7 @@ contract('Test Collateral lib', function ([_]) {
     );
 
     // 1 BASE == 0.5 TOKEN
-    await oracle.setEquivalent(bn(500000000000000000));
+    await oracle.setEquivalent(bn('500000000000000000'));
 
     // Not in liquidation
     expect(await lib.inLiquidation(bn(0))).to.be.equal(false);
